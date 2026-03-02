@@ -1,389 +1,521 @@
-# Niche Audio Prep -- Backend Architecture Plan
+# Niche Audio Prep -- Backend Architecture
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> Document-Driven Development spec. This document IS the backend. Code implements what this describes.
 
-**Goal:** Build the backend for a multi-tenant, white-labeled audio exam prep SaaS that pre-loads professional regulation content and lets users listen to study material on repeat.
+**Goal:** A multi-tenant REST API for audio exam prep. Organizations create content libraries for professional certification exams. The system batch pre-generates audio via Kokoro TTS on Modal. Users study by listening.
 
-**Architecture:** Runtime config / single-deployment multi-tenancy (Approach 1 from white-label research). Middleware inspects request hostname, resolves to tenant/org, injects config. Supabase for auth + database + storage. Modal for TTS. Stripe for billing. All content is pre-generated -- no on-demand TTS for end users.
+**Architecture:** NestJS (TypeScript) standalone service. Single deployment, all tenants. Tenant context comes from the authenticated user's org membership -- JWT in, org-scoped data out. The backend does not know or care about white-labeling, domains, or branding. Those are frontend concerns.
 
-**Tech Stack:** Next.js 16 (App Router), Supabase (Auth + PostgreSQL + Storage), Kokoro TTS on Modal, Stripe, PostHog, TypeScript, `pg` (raw SQL, no ORM -- matching try-listening pattern).
+**Tech Stack:**
+- **NestJS** (TypeScript) -- API server
+- **Prisma** -- Database ORM and migrations
+- **Supabase** -- Auth (JWT verification), PostgreSQL database, file storage (audio)
+- **Modal** -- Hosts Kokoro TTS for batch audio pre-generation
+- **Stripe** -- Billing and subscription management
+- **PostHog** -- Server-side analytics and feature flags
 
-**Existing Prototype Reference:** `try-listening` at `/Users/will/github/try-listening`. Key patterns to carry forward: `DatabaseLike` interface, raw SQL migrations, `requireUser()` auth guard, `pg.Pool` connection, `@supabase/ssr` cookie-based auth, token bucket rate limiting.
+**Why NestJS over FastAPI:** TypeScript end-to-end. The frontend is Next.js, the mobile app is React Native, and shared types live in a monorepo `packages/types` package. A NestJS backend means one language across the entire stack. No Python-to-TypeScript type translation. Shared validation schemas (Zod) between frontend and backend. Engineers work in one language.
+
+**Why Prisma over raw SQL:** Prisma gives us type-safe database access with zero runtime overhead for query building. The generated client types flow directly into DTOs and controller responses. Migrations are version-controlled `.sql` files that Prisma generates from schema changes. We still write raw SQL when Prisma's query builder falls short (complex aggregations, window functions), but the common CRUD path is type-safe.
+
+**Prototype Reference:** `try-listening` at `/Users/will/github/try-listening`. Patterns carried forward: Modal Kokoro TTS deployment (`modal/kokoro_tts.py`), sentence-boundary text chunking, token bucket rate limiting, content-hash audio caching.
 
 ---
 
 ## Table of Contents
 
-1. [Database Schema](#1-database-schema)
-2. [Auth & Multi-tenancy](#2-auth--multi-tenancy)
-3. [Content Pipeline](#3-content-pipeline)
-4. [TTS / Audio Generation](#4-tts--audio-generation)
-5. [API Routes](#5-api-routes)
-6. [Billing (Stripe)](#6-billing-stripe)
-7. [Infrastructure & Environment](#7-infrastructure--environment)
-8. [Migration Path from try-listening](#8-migration-path-from-try-listening)
-9. [Task Breakdown](#9-task-breakdown)
+1. [System Context](#1-system-context)
+2. [Database Schema](#2-database-schema)
+3. [Auth & Multi-tenancy](#3-auth--multi-tenancy)
+4. [API Design](#4-api-design)
+5. [Content Pipeline](#5-content-pipeline)
+6. [Audio Generation Pipeline](#6-audio-generation-pipeline)
+7. [User Progress & Spaced Repetition](#7-user-progress--spaced-repetition)
+8. [Billing (Stripe)](#8-billing-stripe)
+9. [Infrastructure & Deployment](#9-infrastructure--deployment)
+10. [Evolution from try-listening](#10-evolution-from-try-listening)
+11. [Implementation Plan](#11-implementation-plan)
 
 ---
 
-## 1. Database Schema
+## 1. System Context
+
+### What This Service Does
+
+The backend is a REST API. It handles:
+
+- Verifying Supabase JWTs and resolving which org(s) a user belongs to
+- Serving content (exams, topics, sections, study items) scoped by org
+- Serving signed URLs for pre-generated audio files stored in Supabase Storage
+- Tracking per-user listening progress and spaced repetition schedules
+- Managing org memberships and invitations
+- Processing Stripe webhooks and gating features by subscription tier
+- Triggering batch audio generation via Modal
+
+### What This Service Does NOT Do
+
+- **No domain detection.** The backend receives a JWT. It looks up which orgs the user belongs to. That is the entire multi-tenancy mechanism.
+- **No brand theming.** No colors, logos, fonts, taglines, hero images. The frontend handles all white-labeling.
+- **No landing pages.** No HTML rendering of any kind.
+- **No on-demand TTS.** All audio is pre-generated in batch when content is created or updated. Users stream from Supabase Storage via signed URLs.
+
+### System Diagram
+
+```
+Frontend (Next.js on Vercel, per-brand domains)
+  |
+  | HTTPS + Authorization: Bearer <supabase-jwt>
+  v
+NestJS Backend (single deployment on Railway/Fly.io)
+  |
+  |-- Supabase Auth (JWT verification via shared secret)
+  |-- Supabase PostgreSQL (all data, Prisma ORM)
+  |-- Supabase Storage (audio files, signed URLs)
+  |-- Modal (Kokoro TTS, batch generation only)
+  |-- Stripe (billing webhooks, checkout sessions)
+  |-- PostHog (server-side event capture)
+```
+
+---
+
+## 2. Database Schema
 
 ### Design Principles
 
-- **UUIDs everywhere.** No deterministic SHA-based IDs (try-listening pattern). Content is admin-managed, not user-generated.
-- **Row-level security (RLS).** All user-facing tables get RLS policies scoped to org. Admin tables get service-role-only access.
-- **`org_id` on every tenant-scoped row.** This is the fundamental multi-tenancy key.
-- **Soft deletes for content.** Regulations change yearly; old content should be archived, not destroyed.
-- **Timestamps everywhere.** `created_at`, `updated_at` on every table.
+- **UUIDs everywhere.** All primary keys are UUIDs.
+- **`orgId` on every tenant-scoped row.** This is the multi-tenancy key.
+- **Row-level security (RLS).** All user-facing tables get RLS policies scoped to org membership. Admin mutations use the service role key (bypasses RLS).
+- **Soft deletes for content.** `isArchived` flag. Regulations change yearly; old content is archived, not destroyed.
+- **Timestamps everywhere.** `createdAt`, `updatedAt` on every table.
 
-### Entity Relationship Overview
+### Entity Relationships
 
 ```
 organizations (tenant)
-  |-- org_memberships (join) -- users (extends auth.users)
+  |-- orgMemberships (join) -- users (extends auth.users)
   |-- exams
   |     |-- topics
   |     |     |-- sections
-  |     |     |     |-- study_items (the text chunks users listen to)
-  |     |     |     |     |-- audio_files (pre-generated, stored in Supabase Storage)
+  |     |     |     |-- studyItems (text chunks users listen to)
+  |     |     |     |     |-- audioFiles (metadata; bytes in Supabase Storage)
   |-- subscriptions (Stripe billing)
-  |-- brand_configs (colors, logo, domain)
 
-user_progress (per-user, per-study-item listening state)
-user_streaks (daily activity tracking)
+userProgress (per-user, per-study-item listening state)
+userStreaks (daily activity tracking)
+userBookmarks (flagged items)
+inviteTokens (org invitations)
+audioGenerationJobs (batch generation tracking)
 ```
 
-### Complete SQL Schema
+No `brandConfigs` table. No `domain` column on organizations. Branding is frontend-only.
+
+### Prisma Schema
+
+```prisma
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ORGANIZATIONS
+// =============================================================================
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique               // URL-safe identifier: "firefighter-prep"
+  name      String                          // Display name: "FirefighterPrep"
+  niche     String                          // Category: "firefighting", "electrical", "aviation"
+  isActive  Boolean  @default(true) @map("is_active")
+  settings  Json     @default("{}")         // Org-level config (default voices, etc.)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  memberships   OrgMembership[]
+  exams         Exam[]
+  subscription  Subscription?
+  inviteTokens  InviteToken[]
+  generationJobs AudioGenerationJob[]
+
+  @@map("organizations")
+}
+
+// =============================================================================
+// USERS (extends Supabase auth.users)
+// =============================================================================
+
+model User {
+  id            String   @id @db.Uuid       // References auth.users(id)
+  email         String
+  displayName   String?  @map("display_name")
+  avatarUrl     String?  @map("avatar_url")
+  isGlobalAdmin Boolean  @default(false) @map("is_global_admin")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  memberships    OrgMembership[]
+  sentInvites    OrgMembership[] @relation("InvitedBy")
+  progress       UserProgress[]
+  streaks        UserStreak[]
+  bookmarks      UserBookmark[]
+  invitesSent    InviteToken[]   @relation("InviteSender")
+  triggeredJobs  AudioGenerationJob[] @relation("JobTriggeredBy")
+
+  @@map("users")
+}
+
+// =============================================================================
+// ORG MEMBERSHIPS (users <-> organizations, many-to-many)
+// =============================================================================
+
+enum OrgRole {
+  owner
+  admin
+  member
+
+  @@map("org_role")
+}
+
+model OrgMembership {
+  id        String   @id @default(uuid()) @db.Uuid
+  orgId     String   @map("org_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  role      OrgRole  @default(member)
+  invitedBy String?  @map("invited_by") @db.Uuid
+  invitedAt DateTime? @map("invited_at") @db.Timestamptz
+  joinedAt  DateTime @default(now()) @map("joined_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inviter   User?        @relation("InvitedBy", fields: [invitedBy], references: [id])
+
+  @@unique([orgId, userId])
+  @@index([userId])
+  @@index([orgId])
+  @@map("org_memberships")
+}
+
+// =============================================================================
+// CONTENT HIERARCHY: exams -> topics -> sections -> study_items
+// =============================================================================
+
+model Exam {
+  id             String   @id @default(uuid()) @db.Uuid
+  orgId          String   @map("org_id") @db.Uuid
+  title          String
+  slug           String
+  description    String?
+  sourceDocument String?  @map("source_document")  // "NFPA 1001 (2019 Edition)"
+  editionYear    Int?     @map("edition_year")
+  isPublished    Boolean  @default(false) @map("is_published")
+  isArchived     Boolean  @default(false) @map("is_archived")
+  sortOrder      Int      @default(0) @map("sort_order")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  org    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  topics Topic[]
+
+  @@unique([orgId, slug])
+  @@index([orgId])
+  @@map("exams")
+}
+
+model Topic {
+  id         String   @id @default(uuid()) @db.Uuid
+  examId     String   @map("exam_id") @db.Uuid
+  title      String
+  slug       String
+  description String?
+  sortOrder  Int      @default(0) @map("sort_order")
+  isArchived Boolean  @default(false) @map("is_archived")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  exam     Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  sections Section[]
+
+  @@unique([examId, slug])
+  @@index([examId])
+  @@map("topics")
+}
+
+model Section {
+  id         String   @id @default(uuid()) @db.Uuid
+  topicId    String   @map("topic_id") @db.Uuid
+  title      String
+  slug       String
+  description String?
+  sortOrder  Int      @default(0) @map("sort_order")
+  isArchived Boolean  @default(false) @map("is_archived")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  topic      Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  studyItems StudyItem[]
+
+  @@unique([topicId, slug])
+  @@index([topicId])
+  @@map("sections")
+}
+
+model StudyItem {
+  id              String   @id @default(uuid()) @db.Uuid
+  sectionId       String   @map("section_id") @db.Uuid
+  title           String?
+  textContent     String   @map("text_content")     // The actual text (~3800 chars max for TTS)
+  textHash        String   @map("text_hash")         // SHA-256 of normalized text (cache key)
+  charCount       Int      @map("char_count")
+  difficulty      String?                             // beginner | intermediate | advanced
+  importance      String?                             // low | medium | high | critical
+  tags            String[] @default([])
+  sourceReference String?  @map("source_reference")  // "NFPA 1001 Section 5.3.1"
+  sortOrder       Int      @default(0) @map("sort_order")
+  isArchived      Boolean  @default(false) @map("is_archived")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  section    Section        @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  audioFiles AudioFile[]
+  progress   UserProgress[]
+  bookmarks  UserBookmark[]
+
+  @@index([sectionId])
+  @@map("study_items")
+}
+
+// =============================================================================
+// CONTENT VERSIONING STRATEGY
+// =============================================================================
+// When regulations change (e.g., NEC 2023 -> NEC 2026), create a new exam
+// record with the new editionYear. The old exam is archived (isArchived = true).
+// This is simpler than row-level versioning and matches how regulations work:
+// you study one edition at a time.
+//
+// For minor corrections within an edition, update studyItems.textContent
+// in place. The textHash column changes, triggering audio regeneration
+// in the next batch job.
+
+// =============================================================================
+// AUDIO FILES (metadata; bytes stored in Supabase Storage)
+// =============================================================================
+
+// Storage path convention: audio/{org_slug}/{exam_slug}/{study_item_id}/{voice}.flac
+model AudioFile {
+  id            String   @id @default(uuid()) @db.Uuid
+  studyItemId   String   @map("study_item_id") @db.Uuid
+  voice         String                          // Kokoro voice ID: "af_heart", "am_adam"
+  model         String   @default("kokoro")
+  textHash      String   @map("text_hash")     // Must match studyItems.textHash
+  storagePath   String   @map("storage_path")
+  storageBucket String   @default("audio") @map("storage_bucket")
+  fileSizeBytes Int      @map("file_size_bytes")
+  durationSeconds Float? @map("duration_seconds")
+  format        String   @default("flac")
+  isCurrent     Boolean  @default(true) @map("is_current")
+  generatedAt   DateTime @default(now()) @map("generated_at") @db.Timestamptz
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  studyItem StudyItem @relation(fields: [studyItemId], references: [id], onDelete: Cascade)
+
+  @@unique([studyItemId, voice, model, textHash])
+  @@index([studyItemId])
+  @@map("audio_files")
+}
+
+// =============================================================================
+// USER PROGRESS
+// =============================================================================
+
+model UserProgress {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  studyItemId        String    @map("study_item_id") @db.Uuid
+  orgId              String    @map("org_id") @db.Uuid
+  listenCount        Int       @default(0) @map("listen_count")
+  lastPositionSeconds Float    @default(0) @map("last_position_seconds")
+  lastPlaybackRate   Float     @default(1.0) @map("last_playback_rate")
+  isCompleted        Boolean   @default(false) @map("is_completed")
+  firstListenedAt    DateTime? @map("first_listened_at") @db.Timestamptz
+  lastListenedAt     DateTime? @map("last_listened_at") @db.Timestamptz
+  // Spaced repetition fields (SM-2)
+  easeFactor         Float     @default(2.5) @map("ease_factor")
+  intervalDays       Int       @default(1) @map("interval_days")
+  nextReviewAt       DateTime? @map("next_review_at") @db.Timestamptz
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studyItem StudyItem @relation(fields: [studyItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, studyItemId])
+  @@index([userId, orgId])
+  @@map("user_progress")
+}
+
+// =============================================================================
+// USER STREAKS (daily activity tracking)
+// =============================================================================
+
+model UserStreak {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  orgId          String   @map("org_id") @db.Uuid
+  date           DateTime @db.Date
+  listenSeconds  Int      @default(0) @map("listen_seconds")
+  itemsCompleted Int      @default(0) @map("items_completed")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId, date])
+  @@index([userId, orgId])
+  @@map("user_streaks")
+}
+
+// =============================================================================
+// USER BOOKMARKS
+// =============================================================================
+
+model UserBookmark {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  studyItemId String   @map("study_item_id") @db.Uuid
+  orgId       String   @map("org_id") @db.Uuid
+  note        String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studyItem StudyItem @relation(fields: [studyItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, studyItemId])
+  @@index([userId, orgId])
+  @@map("user_bookmarks")
+}
+
+// =============================================================================
+// SUBSCRIPTIONS (Stripe billing)
+// =============================================================================
+
+enum SubscriptionStatus {
+  trialing
+  active
+  past_due
+  canceled
+  unpaid
+  incomplete
+
+  @@map("subscription_status")
+}
+
+enum PlanTier {
+  free
+  individual
+  team
+  enterprise
+
+  @@map("plan_tier")
+}
+
+model Subscription {
+  id                   String             @id @default(uuid()) @db.Uuid
+  orgId                String             @unique @map("org_id") @db.Uuid
+  stripeCustomerId     String             @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?            @unique @map("stripe_subscription_id")
+  plan                 PlanTier           @default(free)
+  status               SubscriptionStatus @default(trialing)
+  trialEndsAt          DateTime?          @map("trial_ends_at") @db.Timestamptz
+  currentPeriodStart   DateTime?          @map("current_period_start") @db.Timestamptz
+  currentPeriodEnd     DateTime?          @map("current_period_end") @db.Timestamptz
+  cancelAtPeriodEnd    Boolean            @default(false) @map("cancel_at_period_end")
+  maxMembers           Int                @default(1) @map("max_members")
+  createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+// =============================================================================
+// INVITE TOKENS
+// =============================================================================
+
+model InviteToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  orgId      String    @map("org_id") @db.Uuid
+  email      String
+  role       OrgRole   @default(member)
+  token      String    @unique @default(uuid())
+  invitedBy  String    @map("invited_by") @db.Uuid
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz
+  acceptedAt DateTime? @map("accepted_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  inviter User         @relation("InviteSender", fields: [invitedBy], references: [id])
+
+  @@index([token])
+  @@index([email])
+  @@map("invite_tokens")
+}
+
+// =============================================================================
+// AUDIO GENERATION JOBS (tracking batch generation progress)
+// =============================================================================
+
+enum GenerationStatus {
+  pending
+  in_progress
+  completed
+  failed
+
+  @@map("generation_status")
+}
+
+model AudioGenerationJob {
+  id             String           @id @default(uuid()) @db.Uuid
+  orgId          String           @map("org_id") @db.Uuid
+  examId         String?          @map("exam_id") @db.Uuid
+  status         GenerationStatus @default(pending)
+  totalItems     Int              @default(0) @map("total_items")
+  completedItems Int              @default(0) @map("completed_items")
+  failedItems    Int              @default(0) @map("failed_items")
+  voices         String[]         @default(["af_heart"])
+  errorLog       Json             @default("[]") @map("error_log")
+  startedAt      DateTime?        @map("started_at") @db.Timestamptz
+  completedAt    DateTime?        @map("completed_at") @db.Timestamptz
+  triggeredBy    String?          @map("triggered_by") @db.Uuid
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  triggerer User?        @relation("JobTriggeredBy", fields: [triggeredBy], references: [id])
+
+  @@index([orgId])
+  @@map("audio_generation_jobs")
+}
+```
+
+### RLS Policies (Supabase SQL)
+
+RLS policies live outside of Prisma and are applied via a separate migration file run in the Supabase SQL editor. These are identical in logic to what Prisma manages structurally -- they add defense-in-depth at the database layer for any direct Supabase client access.
 
 ```sql
--- =============================================================================
--- EXTENSIONS
--- =============================================================================
-
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
--- =============================================================================
--- ORGANIZATIONS (tenants)
--- =============================================================================
-
-CREATE TABLE organizations (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  slug TEXT UNIQUE NOT NULL,              -- URL-safe identifier: "firefighter-prep"
-  name TEXT NOT NULL,                      -- Display name: "FirefighterPrep"
-  niche TEXT NOT NULL,                     -- Category: "firefighting", "electrical", "aviation"
-  domain TEXT UNIQUE,                      -- Custom domain: "firefighterprep.com" (nullable until configured)
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_organizations_domain ON organizations (domain) WHERE domain IS NOT NULL;
-CREATE INDEX idx_organizations_slug ON organizations (slug);
-
--- =============================================================================
--- BRAND CONFIGS (per-org theming)
--- =============================================================================
-
-CREATE TABLE brand_configs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  logo_url TEXT,                            -- URL to logo in Supabase Storage
-  favicon_url TEXT,
-  primary_color TEXT NOT NULL DEFAULT '#2563EB',    -- hex
-  secondary_color TEXT NOT NULL DEFAULT '#1E40AF',
-  accent_color TEXT NOT NULL DEFAULT '#3B82F6',
-  background_color TEXT NOT NULL DEFAULT '#FFFFFF',
-  foreground_color TEXT NOT NULL DEFAULT '#0F172A',
-  font_heading TEXT NOT NULL DEFAULT 'Inter',
-  font_body TEXT NOT NULL DEFAULT 'Inter',
-  tagline TEXT,                             -- "Pass your firefighter exam. Eyes-free."
-  meta_description TEXT,
-  hero_headline TEXT,
-  hero_subheadline TEXT,
-  hero_image_url TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (org_id)
-);
-
--- =============================================================================
--- USERS (extends Supabase auth.users)
--- =============================================================================
-
-CREATE TABLE users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT NOT NULL,
-  display_name TEXT,
-  avatar_url TEXT,
-  is_global_admin BOOLEAN NOT NULL DEFAULT false,  -- platform-level admin (us)
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- =============================================================================
--- ORG MEMBERSHIPS (users <-> organizations, many-to-many)
--- =============================================================================
-
-CREATE TYPE org_role AS ENUM ('owner', 'admin', 'member');
-
-CREATE TABLE org_memberships (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  role org_role NOT NULL DEFAULT 'member',
-  invited_by UUID REFERENCES users(id),
-  invited_at TIMESTAMPTZ,
-  joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (org_id, user_id)
-);
-
-CREATE INDEX idx_org_memberships_user ON org_memberships (user_id);
-CREATE INDEX idx_org_memberships_org ON org_memberships (org_id);
-
--- =============================================================================
--- CONTENT HIERARCHY: exams -> topics -> sections -> study_items
--- =============================================================================
-
--- Exams represent a specific certification exam
--- e.g., "Firefighter I (NFPA 1001)", "Journeyman Electrician (NEC 2023)"
-CREATE TABLE exams (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,                      -- "Firefighter I Certification"
-  slug TEXT NOT NULL,                       -- "firefighter-i"
-  description TEXT,
-  source_document TEXT,                     -- "NFPA 1001 (2019 Edition)"
-  edition_year INTEGER,                     -- 2023
-  is_published BOOLEAN NOT NULL DEFAULT false,
-  is_archived BOOLEAN NOT NULL DEFAULT false,
-  sort_order INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (org_id, slug)
-);
-
-CREATE INDEX idx_exams_org ON exams (org_id);
-
--- Topics are major divisions within an exam
--- e.g., "Fire Behavior", "Building Construction", "Hazardous Materials"
-CREATE TABLE topics (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  exam_id UUID NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,                      -- "Fire Behavior"
-  slug TEXT NOT NULL,
-  description TEXT,
-  sort_order INTEGER NOT NULL DEFAULT 0,
-  is_archived BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (exam_id, slug)
-);
-
-CREATE INDEX idx_topics_exam ON topics (exam_id);
-
--- Sections are sub-divisions within a topic
--- e.g., "Phases of Fire", "Flashover", "Backdraft"
-CREATE TABLE sections (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  topic_id UUID NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,                      -- "Phases of Fire"
-  slug TEXT NOT NULL,
-  description TEXT,
-  sort_order INTEGER NOT NULL DEFAULT 0,
-  is_archived BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (topic_id, slug)
-);
-
-CREATE INDEX idx_sections_topic ON sections (topic_id);
-
--- Study items are the atomic units users listen to.
--- Each is a chunk of text with pre-generated audio.
--- e.g., one code section, one regulation paragraph, one concept explanation.
-CREATE TABLE study_items (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  section_id UUID NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
-  title TEXT,                               -- Optional title for the chunk
-  text_content TEXT NOT NULL,               -- The actual text (max ~3800 chars for TTS)
-  text_hash TEXT NOT NULL,                  -- SHA-256 of text_content (for cache invalidation)
-  char_count INTEGER NOT NULL,
-  difficulty TEXT CHECK (difficulty IN ('beginner', 'intermediate', 'advanced')),
-  importance TEXT CHECK (importance IN ('low', 'medium', 'high', 'critical')),
-  tags TEXT[] DEFAULT '{}',                 -- Free-form tags: ["nfpa-1001", "chapter-5", "flashover"]
-  source_reference TEXT,                    -- "NFPA 1001 Section 5.3.1"
-  sort_order INTEGER NOT NULL DEFAULT 0,
-  is_archived BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_study_items_section ON study_items (section_id);
-CREATE INDEX idx_study_items_tags ON study_items USING GIN (tags);
-
--- =============================================================================
--- CONTENT VERSIONING
--- =============================================================================
-
--- When regulations change (e.g., NEC 2023 -> NEC 2026), we create a new exam
--- record with the new edition_year. The old exam is archived (is_archived = true).
--- This is simpler than row-level versioning and matches how regulations actually work:
--- you study one edition at a time.
---
--- For minor corrections within an edition, we update the study_item in place
--- and re-generate audio. The text_hash column detects when audio needs regeneration.
-
--- =============================================================================
--- AUDIO FILES (pre-generated, stored in Supabase Storage)
--- =============================================================================
-
--- Audio is stored in Supabase Storage (S3-compatible), not in PostgreSQL BYTEA.
--- This table is a metadata index -- the actual audio bytes live in storage.
--- Storage path convention: audio/{org_slug}/{exam_slug}/{study_item_id}/{voice}.flac
-CREATE TABLE audio_files (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  study_item_id UUID NOT NULL REFERENCES study_items(id) ON DELETE CASCADE,
-  voice TEXT NOT NULL,                      -- Kokoro voice ID: "af_heart", "am_adam"
-  model TEXT NOT NULL DEFAULT 'kokoro',     -- TTS model
-  text_hash TEXT NOT NULL,                  -- Must match study_items.text_hash (stale = needs regen)
-  storage_path TEXT NOT NULL,               -- Path in Supabase Storage bucket
-  storage_bucket TEXT NOT NULL DEFAULT 'audio', -- Supabase Storage bucket name
-  file_size_bytes INTEGER NOT NULL,
-  duration_seconds REAL,                    -- Audio duration (populated after generation)
-  format TEXT NOT NULL DEFAULT 'flac',      -- audio format
-  is_current BOOLEAN NOT NULL DEFAULT true, -- false = superseded by newer generation
-  generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (study_item_id, voice, model, text_hash)
-);
-
-CREATE INDEX idx_audio_files_study_item ON audio_files (study_item_id);
-CREATE INDEX idx_audio_files_current ON audio_files (study_item_id, voice) WHERE is_current = true;
-
--- =============================================================================
--- USER PROGRESS
--- =============================================================================
-
--- Per-user, per-study-item progress. Tracks whether they've listened,
--- how far they got, and how many times they've completed it.
-CREATE TABLE user_progress (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  study_item_id UUID NOT NULL REFERENCES study_items(id) ON DELETE CASCADE,
-  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  listen_count INTEGER NOT NULL DEFAULT 0,        -- Total completions
-  last_position_seconds REAL NOT NULL DEFAULT 0,  -- Resume point
-  last_playback_rate REAL NOT NULL DEFAULT 1.0,
-  is_completed BOOLEAN NOT NULL DEFAULT false,    -- Has listened to 90%+ at least once
-  first_listened_at TIMESTAMPTZ,
-  last_listened_at TIMESTAMPTZ,
-  -- Spaced repetition fields
-  ease_factor REAL NOT NULL DEFAULT 2.5,          -- SM-2 algorithm ease factor
-  interval_days INTEGER NOT NULL DEFAULT 1,       -- Days until next review
-  next_review_at TIMESTAMPTZ,                     -- When to surface this item again
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (user_id, study_item_id)
-);
-
-CREATE INDEX idx_user_progress_user_org ON user_progress (user_id, org_id);
-CREATE INDEX idx_user_progress_next_review ON user_progress (user_id, next_review_at)
-  WHERE next_review_at IS NOT NULL;
-
--- =============================================================================
--- USER STREAKS (daily activity tracking)
--- =============================================================================
-
-CREATE TABLE user_streaks (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  date DATE NOT NULL,                       -- UTC date of activity
-  listen_seconds INTEGER NOT NULL DEFAULT 0,-- Total seconds listened that day
-  items_completed INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (user_id, org_id, date)
-);
-
-CREATE INDEX idx_user_streaks_user_org ON user_streaks (user_id, org_id);
-
--- =============================================================================
--- SUBSCRIPTIONS (Stripe billing)
--- =============================================================================
-
-CREATE TYPE subscription_status AS ENUM (
-  'trialing', 'active', 'past_due', 'canceled', 'unpaid', 'incomplete'
-);
-
-CREATE TYPE plan_tier AS ENUM (
-  'free', 'individual', 'team', 'enterprise'
-);
-
-CREATE TABLE subscriptions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  stripe_customer_id TEXT UNIQUE NOT NULL,
-  stripe_subscription_id TEXT UNIQUE,       -- null during free tier
-  plan plan_tier NOT NULL DEFAULT 'free',
-  status subscription_status NOT NULL DEFAULT 'trialing',
-  trial_ends_at TIMESTAMPTZ,
-  current_period_start TIMESTAMPTZ,
-  current_period_end TIMESTAMPTZ,
-  cancel_at_period_end BOOLEAN NOT NULL DEFAULT false,
-  -- Usage tracking for metered billing
-  audio_generation_count INTEGER NOT NULL DEFAULT 0,  -- This billing period
-  audio_generation_limit INTEGER NOT NULL DEFAULT 100, -- Per-period limit
-  max_members INTEGER NOT NULL DEFAULT 1,              -- Seat limit
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (org_id)
-);
-
-CREATE INDEX idx_subscriptions_stripe_customer ON subscriptions (stripe_customer_id);
-CREATE INDEX idx_subscriptions_stripe_sub ON subscriptions (stripe_subscription_id)
-  WHERE stripe_subscription_id IS NOT NULL;
-
--- =============================================================================
--- INVITE TOKENS (for org member invitations)
--- =============================================================================
-
-CREATE TABLE invite_tokens (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  email TEXT NOT NULL,                      -- Invited email address
-  role org_role NOT NULL DEFAULT 'member',
-  token TEXT UNIQUE NOT NULL DEFAULT encode(gen_random_bytes(32), 'hex'),
-  invited_by UUID NOT NULL REFERENCES users(id),
-  expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days'),
-  accepted_at TIMESTAMPTZ,                  -- null = pending
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_invite_tokens_token ON invite_tokens (token);
-CREATE INDEX idx_invite_tokens_email ON invite_tokens (email);
-
--- =============================================================================
--- RATE LIMITING (per-user TTS generation, admin only)
--- =============================================================================
-
-CREATE TABLE tts_daily_usage (
-  date TEXT NOT NULL,
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  request_count INTEGER NOT NULL DEFAULT 0,
-  PRIMARY KEY (date, user_id)
-);
-
 -- =============================================================================
 -- ROW-LEVEL SECURITY POLICIES
 -- =============================================================================
 
--- Enable RLS on all user-facing tables
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE brand_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE org_memberships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE exams ENABLE ROW LEVEL SECURITY;
@@ -393,8 +525,10 @@ ALTER TABLE study_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audio_files ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_streaks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_bookmarks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invite_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audio_generation_jobs ENABLE ROW LEVEL SECURITY;
 
 -- Users can read their own profile
 CREATE POLICY users_select_own ON users
@@ -416,13 +550,7 @@ CREATE POLICY orgs_select ON organizations
     id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.uid())
   );
 
--- Brand configs: readable by org members
-CREATE POLICY brand_configs_select ON brand_configs
-  FOR SELECT USING (
-    org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.uid())
-  );
-
--- Content: readable by org members (through the exam -> org relationship)
+-- Content: readable by org members (published, non-archived only)
 CREATE POLICY exams_select ON exams
   FOR SELECT USING (
     org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.uid())
@@ -479,25 +607,27 @@ CREATE POLICY audio_files_select ON audio_files
     AND is_current = true
   );
 
--- User progress: users can only access their own
+-- User progress, streaks, bookmarks: users can only access their own
 CREATE POLICY user_progress_select ON user_progress
   FOR SELECT USING (user_id = auth.uid());
-
 CREATE POLICY user_progress_insert ON user_progress
   FOR INSERT WITH CHECK (user_id = auth.uid());
-
 CREATE POLICY user_progress_update ON user_progress
   FOR UPDATE USING (user_id = auth.uid());
 
--- User streaks: users can only access their own
 CREATE POLICY user_streaks_select ON user_streaks
   FOR SELECT USING (user_id = auth.uid());
-
 CREATE POLICY user_streaks_insert ON user_streaks
   FOR INSERT WITH CHECK (user_id = auth.uid());
-
 CREATE POLICY user_streaks_update ON user_streaks
   FOR UPDATE USING (user_id = auth.uid());
+
+CREATE POLICY user_bookmarks_select ON user_bookmarks
+  FOR SELECT USING (user_id = auth.uid());
+CREATE POLICY user_bookmarks_insert ON user_bookmarks
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY user_bookmarks_delete ON user_bookmarks
+  FOR DELETE USING (user_id = auth.uid());
 
 -- Subscriptions: readable by org admins/owners
 CREATE POLICY subscriptions_select ON subscriptions
@@ -508,7 +638,7 @@ CREATE POLICY subscriptions_select ON subscriptions
     )
   );
 
--- Invite tokens: readable by org admins/owners, and by the invited email
+-- Invite tokens: readable by org admins/owners
 CREATE POLICY invite_tokens_select ON invite_tokens
   FOR SELECT USING (
     org_id IN (
@@ -517,14 +647,16 @@ CREATE POLICY invite_tokens_select ON invite_tokens
     )
   );
 
--- =============================================================================
--- ADMIN POLICIES
--- Note: Content mutation (INSERT/UPDATE/DELETE on exams, topics, sections,
--- study_items, audio_files) is done via service role key from admin API routes,
--- which bypasses RLS. No RLS write policies needed for content tables.
--- =============================================================================
+-- Generation jobs: readable by org admins/owners
+CREATE POLICY generation_jobs_select ON audio_generation_jobs
+  FOR SELECT USING (
+    org_id IN (
+      SELECT org_id FROM org_memberships
+      WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
+    )
+  );
 
--- Global admins can read everything (for platform admin panel)
+-- Global admins can read everything
 CREATE POLICY global_admin_all ON organizations
   FOR ALL USING (
     EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_global_admin = true)
@@ -533,1994 +665,244 @@ CREATE POLICY global_admin_all ON organizations
 
 ### Key Schema Decisions
 
-1. **No BYTEA for audio.** try-listening stores audio in `audio_chunks.audio_data BYTEA`. This works for user-generated on-demand audio but does not scale for pre-generated content libraries. We use Supabase Storage (S3-compatible) and store only metadata in PostgreSQL.
+1. **No `brandConfigs` table.** Branding is exclusively a frontend concern. The backend stores org identity (`slug`, `name`, `niche`) but nothing visual.
 
-2. **Flat content hierarchy (exam > topic > section > study_item).** Four levels is enough to model any regulation structure. NEC articles map to topics, sub-articles to sections, individual code paragraphs to study items.
+2. **No `domain` column on organizations.** Domain-to-org mapping is handled by the frontend deployment, not the API. The backend identifies tenants through JWT claims and org membership lookups.
 
-3. **Spaced repetition on `user_progress`.** SM-2 fields (`ease_factor`, `interval_days`, `next_review_at`) let us build a review queue without a separate table. Items surface when `next_review_at <= NOW()`.
+3. **Audio in Supabase Storage, metadata in PostgreSQL.** try-listening stores audio in `BYTEA` columns. That does not scale for pre-generated content libraries (potentially 10-25 GB per niche). Supabase Storage is S3-compatible and serves via signed URLs.
 
-4. **Per-org subscriptions, not per-user.** Matches the team/organization purchase model. Seat limits are enforced via `subscriptions.max_members` checked against `org_memberships` count.
+4. **Flat four-level content hierarchy.** Exam > Topic > Section > Study Item. Four levels model any regulation structure. NEC articles map to topics, sub-articles to sections, individual code paragraphs to study items.
 
-5. **Soft deletes via `is_archived`.** Content is never hard-deleted. This preserves progress data and allows content restoration.
+5. **SM-2 spaced repetition on `userProgress`.** `easeFactor`, `intervalDays`, `nextReviewAt` let us build a review queue without a separate table. Items surface when `nextReviewAt <= NOW()`.
+
+6. **Per-org subscriptions, not per-user.** The org purchases a plan. Seat limits enforced via `subscriptions.maxMembers` checked against `orgMemberships` count.
+
+7. **Prisma with `@@map` for snake_case.** The database uses snake_case column names (PostgreSQL convention). Prisma models use camelCase (TypeScript convention). The `@map` and `@@map` directives bridge the two without compromise.
 
 ---
 
-## 2. Auth & Multi-tenancy
+## 3. Auth & Multi-tenancy
 
-### Authentication Flow
+### How Authentication Works
 
-Supabase Auth handles all identity management. We support three auth methods:
+Supabase Auth handles all identity management. The frontend uses `@supabase/ssr` for sign-up/sign-in (Google OAuth, email/password, magic link). After authentication, Supabase issues a JWT.
+
+The NestJS backend verifies the JWT on every request using a Guard. It does NOT manage sessions, cookies, or auth state.
 
 ```
-Google OAuth   -> Supabase Auth -> session cookie -> middleware -> API routes
-Email/Password -> Supabase Auth -> session cookie -> middleware -> API routes
-Magic Link     -> Supabase Auth -> session cookie -> middleware -> API routes
+Frontend (any brand domain)
+  |
+  | Authorization: Bearer <supabase-jwt>
+  v
+NestJS
+  |-- SupabaseAuthGuard: Verify JWT signature (HS256, Supabase JWT secret)
+  |-- Extract user_id from JWT sub claim
+  |-- OrgMembershipGuard: Look up org_memberships for that user_id
+  |-- Scope all queries by org_id from URL path
 ```
 
-### Auth Callback: User Record Creation
-
-When a user authenticates for the first time, we need to create their `users` record and optionally add them to an org. This happens via a Supabase database function triggered by `auth.users` inserts:
-
-```sql
--- Trigger function: create public.users row when auth.users is created
-CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.users (id, email, display_name, avatar_url)
-  VALUES (
-    NEW.id,
-    NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
-    NEW.raw_user_meta_data->>'avatar_url'
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
-```
-
-### Middleware: Tenant Resolution
-
-The Next.js middleware does two things: (1) refresh the Supabase session, (2) resolve the tenant from the hostname.
+### JWT Verification (NestJS Guard)
 
 ```typescript
-// src/middleware.ts
-import { createServerClient } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+// src/auth/guards/supabase-auth.guard.ts
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
 
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll(); },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-
-  // Refresh session
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // Resolve tenant from hostname
-  const hostname = request.headers.get("host") || "";
-  // In dev, use x-tenant-slug header or default to first org
-  // In prod, look up org by domain
-  supabaseResponse.headers.set("x-org-domain", hostname);
-
-  // Public routes: landing page, sign-in, auth callback, API webhooks
-  const isPublicRoute = request.nextUrl.pathname === "/"
-    || request.nextUrl.pathname.startsWith("/sign-in")
-    || request.nextUrl.pathname.startsWith("/auth/")
-    || request.nextUrl.pathname.startsWith("/api/webhooks");
-
-  if (!user && !isPublicRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/sign-in";
-    return NextResponse.redirect(url);
-  }
-
-  if (user && request.nextUrl.pathname === "/") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/app";
-    return NextResponse.redirect(url);
-  }
-
-  return supabaseResponse;
-}
-
-export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|icon).*)",
-  ],
-};
-```
-
-### Tenant Resolution Helper
-
-```typescript
-// src/lib/tenant.ts
-import type { DatabaseLike } from "./db";
-
-export interface Tenant {
-  orgId: string;
-  slug: string;
-  name: string;
-  niche: string;
-  domain: string | null;
-}
-
-// In-memory cache (per-serverless-instance). Short TTL.
-const tenantCache = new Map<string, { tenant: Tenant; cachedAt: number }>();
-const TENANT_CACHE_TTL_MS = 60_000; // 1 minute
-
-/**
- * Resolve tenant from hostname (custom domain) or slug.
- * Returns null if no matching org found.
- */
-export async function resolveTenant(
-  db: DatabaseLike,
-  hostnameOrSlug: string
-): Promise<Tenant | null> {
-  const cacheKey = hostnameOrSlug.toLowerCase();
-  const cached = tenantCache.get(cacheKey);
-  if (cached && Date.now() - cached.cachedAt < TENANT_CACHE_TTL_MS) {
-    return cached.tenant;
-  }
-
-  // Try domain match first, then slug match
-  const { rows } = await db.query<{
-    id: string;
-    slug: string;
-    name: string;
-    niche: string;
-    domain: string | null;
-  }>(
-    `SELECT id, slug, name, niche, domain FROM organizations
-     WHERE (domain = $1 OR slug = $1) AND is_active = true
-     LIMIT 1`,
-    [cacheKey]
-  );
-
-  if (rows.length === 0) return null;
-
-  const tenant: Tenant = {
-    orgId: rows[0].id,
-    slug: rows[0].slug,
-    name: rows[0].name,
-    niche: rows[0].niche,
-    domain: rows[0].domain,
-  };
-
-  tenantCache.set(cacheKey, { tenant, cachedAt: Date.now() });
-  return tenant;
-}
-```
-
-### Authorization Helper
-
-```typescript
-// src/lib/require-membership.ts
-import type { DatabaseLike } from "./db";
-import type { OrgRole } from "./types";
-
-export interface MembershipResult {
-  orgId: string;
+export interface AuthUser {
   userId: string;
+  email: string;
+}
+
+@Injectable()
+export class SupabaseAuthGuard implements CanActivate {
+  constructor(private config: ConfigService) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Missing or invalid authorization header');
+    }
+
+    const token = authHeader.slice(7);
+
+    try {
+      const payload = jwt.verify(token, this.config.get('SUPABASE_JWT_SECRET'), {
+        algorithms: ['HS256'],
+        audience: 'authenticated',
+      }) as jwt.JwtPayload;
+
+      if (!payload.sub) {
+        throw new UnauthorizedException('Token missing subject');
+      }
+
+      request.user = {
+        userId: payload.sub,
+        email: payload.email,
+      } satisfies AuthUser;
+
+      return true;
+    } catch {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+  }
+}
+```
+
+### Org Membership Guard
+
+Every org-scoped endpoint requires the user to be a member of the target org. This runs after JWT verification:
+
+```typescript
+// src/auth/guards/org-membership.guard.ts
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { PrismaService } from '../../prisma/prisma.service';
+import { OrgRole } from '@prisma/client';
+
+export interface OrgContext {
+  userId: string;
+  email: string;
+  orgId: string;
   role: OrgRole;
 }
 
-/**
- * Verify user belongs to org with at least the required role.
- * Role hierarchy: owner > admin > member.
- */
-export async function requireMembership(
-  db: DatabaseLike,
-  userId: string,
-  orgId: string,
-  minimumRole: OrgRole = "member"
-): Promise<MembershipResult | null> {
-  const { rows } = await db.query<{ role: OrgRole }>(
-    `SELECT role FROM org_memberships WHERE user_id = $1 AND org_id = $2`,
-    [userId, orgId]
-  );
-
-  if (rows.length === 0) return null;
-
-  const role = rows[0].role;
-  const hierarchy: Record<OrgRole, number> = { owner: 3, admin: 2, member: 1 };
-
-  if (hierarchy[role] < hierarchy[minimumRole]) return null;
-
-  return { orgId, userId, role };
-}
-
-/**
- * Check if user is a global platform admin.
- */
-export async function isGlobalAdmin(
-  db: DatabaseLike,
-  userId: string
-): Promise<boolean> {
-  const { rows } = await db.query<{ is_global_admin: boolean }>(
-    `SELECT is_global_admin FROM users WHERE id = $1`,
-    [userId]
-  );
-  return rows[0]?.is_global_admin === true;
-}
-```
-
-### Org Invite Flow
-
-```
-1. Admin calls POST /api/orgs/{orgId}/invites with { email, role }
-2. Server creates invite_tokens row, sends email with invite link
-3. Invited user clicks link -> /auth/accept-invite?token=xxx
-4. If user exists: add org_membership. If not: sign up first, then add.
-5. invite_tokens.accepted_at is set.
-```
-
----
-
-## 3. Content Pipeline
-
-### Overview
-
-Content flows through this pipeline:
-
-```
-Raw regulation text (PDF/document)
-  -> Manual chunking by content admin (via admin UI or bulk import API)
-  -> study_items rows in database
-  -> Batch TTS generation job (Modal)
-  -> audio_files in Supabase Storage
-  -> Ready for users to listen
-```
-
-### Content Import API
-
-The admin API accepts content in a structured JSON format. This is the canonical import format for all niches.
-
-```typescript
-// Content import format
-interface ContentImport {
-  exam: {
-    title: string;           // "Firefighter I Certification"
-    slug: string;            // "firefighter-i"
-    sourceDocument: string;  // "NFPA 1001 (2019 Edition)"
-    editionYear: number;     // 2019
-  };
-  topics: Array<{
-    title: string;
-    slug: string;
-    description?: string;
-    sections: Array<{
-      title: string;
-      slug: string;
-      description?: string;
-      items: Array<{
-        title?: string;
-        textContent: string;     // The actual study text (max 3800 chars)
-        difficulty?: "beginner" | "intermediate" | "advanced";
-        importance?: "low" | "medium" | "high" | "critical";
-        tags?: string[];
-        sourceReference?: string; // "NFPA 1001 Section 5.3.1"
-      }>;
-    }>;
-  }>;
-}
-```
-
-### Text Chunking
-
-We reuse the chunker from try-listening (`src/lib/chunker.ts`). For content import, if any `textContent` exceeds 3800 chars, the import API auto-chunks it into multiple study_items with sequential sort_order.
-
-```typescript
-// src/lib/content-import.ts
-import { chunkText } from "./chunker";
-import { createHash } from "crypto";
-
-function textHash(text: string): string {
-  return createHash("sha256").update(text).digest("hex").slice(0, 32);
-}
-
-/**
- * Process a content import: validate, chunk oversized items,
- * compute text hashes, and return normalized database rows.
- */
-export function normalizeContentImport(
-  orgId: string,
-  input: ContentImport
-): NormalizedContent {
-  // ... validation, chunking, hash computation
-  // Returns structured data ready for database insertion
-}
-```
-
-### Content Versioning Strategy
-
-Regulations update on known cycles (NEC every 3 years, FAR/AIM annually, etc.):
-
-1. **New edition = new exam record.** Create a new `exams` row with `edition_year = 2026`. Copy the topic/section structure. Update study_items that changed.
-2. **Archive old edition.** Set `is_archived = true` on the old exam. Users with progress on the old edition keep their data; they just can't access the archived exam's content.
-3. **Minor corrections.** Update `study_items.text_content` in place. The `text_hash` column changes, triggering audio regeneration in the next batch job.
-
----
-
-## 4. TTS / Audio Generation
-
-### Architecture Change from try-listening
-
-try-listening generates audio on-demand when users play content. niche-audio-prep pre-generates ALL audio for all content at upload time.
-
-```
-try-listening:  User presses play -> POST /api/tts -> Modal Kokoro -> return audio
-niche-audio-prep:  Admin uploads content -> batch job -> Modal Kokoro -> Supabase Storage
-                   User presses play -> GET signed URL from Supabase Storage -> stream audio
-```
-
-### Batch Generation Pipeline
-
-```typescript
-// src/lib/audio-generation.ts
-import { synthesize } from "./tts";
-import { createClient } from "@supabase/supabase-js";
-
-interface GenerationJob {
-  studyItemId: string;
-  textContent: string;
-  textHash: string;
-  voice: string;
-  model: string;
-  storagePath: string;
-}
-
-/**
- * Find all study_items that need audio generation.
- * A study item needs generation if:
- * 1. No audio_files row exists for its current text_hash + voice combo, OR
- * 2. Its text_hash differs from the audio_files.text_hash (content updated)
- */
-export async function findPendingGenerations(
-  db: DatabaseLike,
-  orgId: string,
-  voices: string[] = ["af_heart"]  // Default voice(s) per org
-): Promise<GenerationJob[]> {
-  const { rows } = await db.query<{
-    study_item_id: string;
-    text_content: string;
-    text_hash: string;
-    exam_slug: string;
-    org_slug: string;
-  }>(
-    `SELECT si.id as study_item_id, si.text_content, si.text_hash,
-            e.slug as exam_slug, o.slug as org_slug
-     FROM study_items si
-     JOIN sections s ON s.id = si.section_id
-     JOIN topics t ON t.id = s.topic_id
-     JOIN exams e ON e.id = t.exam_id
-     JOIN organizations o ON o.id = e.org_id
-     WHERE e.org_id = $1 AND si.is_archived = false
-     AND NOT EXISTS (
-       SELECT 1 FROM audio_files af
-       WHERE af.study_item_id = si.id
-       AND af.text_hash = si.text_hash
-       AND af.voice = ANY($2)
-       AND af.is_current = true
-     )`,
-    [orgId, voices]
-  );
-
-  return rows.flatMap((row) =>
-    voices.map((voice) => ({
-      studyItemId: row.study_item_id,
-      textContent: row.text_content,
-      textHash: row.text_hash,
-      voice,
-      model: "kokoro",
-      storagePath: `audio/${row.org_slug}/${row.exam_slug}/${row.study_item_id}/${voice}.flac`,
-    }))
-  );
-}
-
-/**
- * Generate audio for a single study item and upload to Supabase Storage.
- * Returns the audio_files metadata row to insert.
- */
-export async function generateAndUpload(
-  job: GenerationJob
-): Promise<{
-  studyItemId: string;
-  voice: string;
-  model: string;
-  textHash: string;
-  storagePath: string;
-  storageBucket: string;
-  fileSizeBytes: number;
-  format: string;
-}> {
-  // 1. Synthesize via Modal Kokoro
-  const audioBuffer = await synthesize(job.textContent, job.voice, job.model);
-
-  // 2. Upload to Supabase Storage
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!  // Service role for storage writes
-  );
-
-  const { error } = await supabase.storage
-    .from("audio")
-    .upload(job.storagePath, audioBuffer, {
-      contentType: "audio/flac",
-      upsert: true,
-    });
-
-  if (error) throw new Error(`Storage upload failed: ${error.message}`);
-
-  return {
-    studyItemId: job.studyItemId,
-    voice: job.voice,
-    model: job.model,
-    textHash: job.textHash,
-    storagePath: job.storagePath,
-    storageBucket: "audio",
-    fileSizeBytes: audioBuffer.byteLength,
-    format: "flac",
-  };
-}
-
-/**
- * Run batch generation for an org. Processes items with concurrency limit.
- * Returns count of generated items.
- */
-export async function runBatchGeneration(
-  db: DatabaseLike,
-  orgId: string,
-  options: {
-    voices?: string[];
-    concurrency?: number;
-  } = {}
-): Promise<{ generated: number; failed: number; errors: string[] }> {
-  const voices = options.voices ?? ["af_heart"];
-  const concurrency = options.concurrency ?? 5;
-
-  const jobs = await findPendingGenerations(db, orgId, voices);
-  let generated = 0;
-  let failed = 0;
-  const errors: string[] = [];
-
-  // Process in batches of `concurrency`
-  for (let i = 0; i < jobs.length; i += concurrency) {
-    const batch = jobs.slice(i, i + concurrency);
-    const results = await Promise.allSettled(batch.map(generateAndUpload));
-
-    for (const result of results) {
-      if (result.status === "fulfilled") {
-        const meta = result.value;
-        // Mark old audio as non-current
-        await db.query(
-          `UPDATE audio_files SET is_current = false
-           WHERE study_item_id = $1 AND voice = $2 AND is_current = true`,
-          [meta.studyItemId, meta.voice]
-        );
-        // Insert new audio_files row
-        await db.query(
-          `INSERT INTO audio_files
-           (study_item_id, voice, model, text_hash, storage_path, storage_bucket, file_size_bytes, format)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [meta.studyItemId, meta.voice, meta.model, meta.textHash,
-           meta.storagePath, meta.storageBucket, meta.fileSizeBytes, meta.format]
-        );
-        generated++;
-      } else {
-        failed++;
-        errors.push(result.reason?.message || "Unknown error");
-      }
-    }
-  }
-
-  return { generated, failed, errors };
-}
-```
-
-### Voice Configuration Per Niche
-
-Different niches may want different default voices:
-
-```typescript
-// src/lib/voice-config.ts
-export const NICHE_VOICES: Record<string, string[]> = {
-  firefighting: ["am_adam", "af_heart"],    // Male primary (firefighter demographics)
-  electrical:   ["am_adam", "af_heart"],
-  aviation:     ["am_adam", "af_nova"],
-  cdl:          ["am_adam", "af_heart"],
-  nursing:      ["af_heart", "am_adam"],     // Female primary (nursing demographics)
-  // Default for any niche not listed
-  default:      ["af_heart", "am_adam"],
+const ROLE_HIERARCHY: Record<OrgRole, number> = {
+  owner: 3,
+  admin: 2,
+  member: 1,
 };
 
-export function getVoicesForNiche(niche: string): string[] {
-  return NICHE_VOICES[niche] || NICHE_VOICES.default;
-}
-```
+export const MIN_ROLE_KEY = 'minRole';
 
-### Audio Serving to Users
+@Injectable()
+export class OrgMembershipGuard implements CanActivate {
+  constructor(
+    private prisma: PrismaService,
+    private reflector: Reflector,
+  ) {}
 
-Users never hit Modal directly. They get signed URLs from Supabase Storage:
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+    const orgId = request.params.orgId;
 
-```typescript
-// src/lib/audio-url.ts
-import { createClient } from "@supabase/supabase-js";
-
-/**
- * Get a signed URL for an audio file. URL is valid for 1 hour.
- * Returns null if the audio file doesn't exist.
- */
-export async function getAudioUrl(
-  storagePath: string,
-  bucket: string = "audio"
-): Promise<string | null> {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .createSignedUrl(storagePath, 3600); // 1 hour
-
-  if (error || !data?.signedUrl) return null;
-  return data.signedUrl;
-}
-```
-
----
-
-## 5. API Routes
-
-### Route Map
-
-All routes use the Next.js App Router convention (`src/app/api/.../route.ts`).
-
-```
-PUBLIC (no auth required):
-  GET  /api/health                      Health check
-  POST /api/webhooks/stripe             Stripe webhook handler
-
-AUTH (Supabase session required):
-  GET  /api/me                          Current user profile + org memberships
-  POST /api/auth/accept-invite          Accept org invite
-
-ORG-SCOPED (auth + org membership required):
-  GET  /api/orgs                        List user's orgs
-  GET  /api/orgs/[orgId]                Org details + brand config
-  GET  /api/orgs/[orgId]/exams          List published exams
-  GET  /api/orgs/[orgId]/exams/[examId] Exam with full topic/section tree
-  GET  /api/orgs/[orgId]/exams/[examId]/items  List study items for exam
-  GET  /api/orgs/[orgId]/audio/[studyItemId]   Get signed audio URL
-  GET  /api/orgs/[orgId]/progress       User's progress summary
-  PATCH /api/orgs/[orgId]/progress      Update progress for a study item
-  GET  /api/orgs/[orgId]/progress/review-queue  Items due for review (spaced rep)
-  GET  /api/orgs/[orgId]/streaks        User's streak data
-
-ADMIN (auth + org admin/owner role required):
-  POST   /api/admin/orgs/[orgId]/content/import    Bulk content import
-  POST   /api/admin/orgs/[orgId]/content/generate   Trigger audio generation
-  GET    /api/admin/orgs/[orgId]/content/status     Audio generation status
-  PUT    /api/admin/orgs/[orgId]/brand              Update brand config
-  POST   /api/admin/orgs/[orgId]/invites            Send invite
-  DELETE /api/admin/orgs/[orgId]/invites/[inviteId] Revoke invite
-  GET    /api/admin/orgs/[orgId]/members            List members
-  PATCH  /api/admin/orgs/[orgId]/members/[userId]   Update member role
-  DELETE /api/admin/orgs/[orgId]/members/[userId]   Remove member
-
-GLOBAL ADMIN (auth + is_global_admin required):
-  POST /api/admin/orgs                    Create new org
-  GET  /api/admin/orgs                    List all orgs
-  PATCH /api/admin/orgs/[orgId]           Update org settings
-```
-
-### Route Implementation Pattern
-
-Every org-scoped route follows this pattern (matching try-listening's `requireUser()` pattern):
-
-```typescript
-// src/app/api/orgs/[orgId]/exams/route.ts
-import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/require-user";
-import { requireMembership } from "@/lib/require-membership";
-import { getDb } from "@/lib/db";
-
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ orgId: string }> }
-) {
-  // 1. Auth check
-  const { userId, error: authError } = await requireUser();
-  if (authError) return authError;
-
-  const { orgId } = await params;
-
-  // 2. Org membership check
-  const db = await getDb();
-  const membership = await requireMembership(db, userId, orgId);
-  if (!membership) {
-    return NextResponse.json({ error: "Not a member of this organization" }, { status: 403 });
-  }
-
-  // 3. Business logic
-  const { rows } = await db.query(
-    `SELECT id, title, slug, description, source_document, edition_year, sort_order
-     FROM exams
-     WHERE org_id = $1 AND is_published = true AND is_archived = false
-     ORDER BY sort_order`,
-    [orgId]
-  );
-
-  return NextResponse.json({ exams: rows });
-}
-```
-
-### Key Endpoint Details
-
-#### `GET /api/orgs/[orgId]/audio/[studyItemId]`
-
-Returns a signed URL for the audio file. Does not stream the audio directly -- the client uses the signed URL to stream from Supabase Storage.
-
-```typescript
-// Request: GET /api/orgs/{orgId}/audio/{studyItemId}?voice=af_heart
-// Response: { url: "https://xxx.supabase.co/storage/v1/object/sign/audio/...", durationSeconds: 45.2 }
-```
-
-#### `PATCH /api/orgs/[orgId]/progress`
-
-Updates listening progress. Called frequently during playback (debounced on client, same pattern as try-listening).
-
-```typescript
-// Request body:
-{
-  studyItemId: "uuid",
-  positionSeconds: 23.5,
-  playbackRate: 1.5,
-  isCompleted: false        // Client sends true when user reaches 90%+
-}
-
-// When isCompleted transitions to true for the first time:
-// 1. Increment listen_count
-// 2. Update spaced repetition fields (ease_factor, interval_days, next_review_at)
-// 3. Update user_streaks for today
-```
-
-#### `GET /api/orgs/[orgId]/progress/review-queue`
-
-Returns study items due for spaced repetition review.
-
-```typescript
-// Response:
-{
-  items: [
-    {
-      studyItemId: "uuid",
-      title: "Flashover Indicators",
-      sectionTitle: "Fire Behavior",
-      topicTitle: "Fire Dynamics",
-      lastListenedAt: "2026-02-20T...",
-      listenCount: 3,
-      intervalDays: 4,
-      audioUrl: "https://..."
-    }
-  ],
-  totalDue: 12,
-  nextReviewAt: "2026-02-25T08:00:00Z"  // When the next batch becomes due
-}
-```
-
-### Spaced Repetition Algorithm (SM-2 Variant)
-
-```typescript
-// src/lib/spaced-repetition.ts
-
-/**
- * SM-2 inspired algorithm for audio study items.
- * Quality is based on user action:
- *   5 = Listened to completion without pausing
- *   4 = Listened to completion with pauses
- *   3 = Listened to completion on second try
- *   2 = Listened but skipped before completion
- *   1 = Started but abandoned early
- *
- * For simplicity in v1, we use:
- *   quality = 5 if completed, 2 if not
- */
-export function calculateNextReview(
-  currentEaseFactor: number,
-  currentIntervalDays: number,
-  listenCount: number,
-  isCompleted: boolean
-): { easeFactor: number; intervalDays: number; nextReviewAt: Date } {
-  const quality = isCompleted ? 5 : 2;
-
-  // Update ease factor
-  let easeFactor = currentEaseFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
-  easeFactor = Math.max(1.3, easeFactor); // Floor at 1.3
-
-  // Calculate interval
-  let intervalDays: number;
-  if (listenCount <= 1) {
-    intervalDays = 1;
-  } else if (listenCount === 2) {
-    intervalDays = 3;
-  } else {
-    intervalDays = Math.round(currentIntervalDays * easeFactor);
-  }
-
-  // Cap at 180 days
-  intervalDays = Math.min(180, intervalDays);
-
-  const nextReviewAt = new Date();
-  nextReviewAt.setDate(nextReviewAt.getDate() + intervalDays);
-
-  return { easeFactor, intervalDays, nextReviewAt };
-}
-```
-
-### Rate Limiting
-
-Carry forward try-listening's dual-layer rate limiting pattern but scope it per-org:
-
-```typescript
-// Per-user burst: 50 tokens, 5/sec refill (for audio URL requests)
-// Per-org daily cap: based on subscription tier
-// Admin TTS generation: separate limits per org subscription
-```
-
----
-
-## 6. Billing (Stripe)
-
-### Plan Tiers
-
-| Tier | Price | Seats | Features |
-|------|-------|-------|----------|
-| **Free** | $0 | 1 | 1 exam, 50 study items, ads, no offline |
-| **Individual** | $14.99/mo | 1 | All exams in niche, unlimited items, offline, no ads |
-| **Team** | $49.99/mo | 10 | Everything in Individual + team progress dashboard |
-| **Enterprise** | Custom | Unlimited | SSO, custom content, dedicated support |
-
-### Stripe Integration
-
-#### Setup
-
-```typescript
-// src/lib/stripe.ts
-import Stripe from "stripe";
-
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27.acacia",
-});
-```
-
-#### Checkout Flow
-
-```
-1. User clicks "Upgrade" -> POST /api/orgs/{orgId}/billing/checkout
-2. Server creates Stripe Checkout Session with org metadata
-3. Redirect user to Stripe Checkout
-4. Stripe sends webhook -> POST /api/webhooks/stripe
-5. Webhook handler updates subscriptions table
-6. User redirected back to app with active subscription
-```
-
-#### Webhook Handler
-
-```typescript
-// src/app/api/webhooks/stripe/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
-import { getDb } from "@/lib/db";
-
-export async function POST(request: NextRequest) {
-  const body = await request.text();
-  const sig = request.headers.get("stripe-signature")!;
-
-  let event: Stripe.Event;
-  try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
-  } catch {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-  }
-
-  const db = await getDb();
-
-  switch (event.type) {
-    case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const orgId = session.metadata?.org_id;
-      const plan = session.metadata?.plan as string;
-      if (!orgId) break;
-
-      await db.query(
-        `INSERT INTO subscriptions (org_id, stripe_customer_id, stripe_subscription_id, plan, status)
-         VALUES ($1, $2, $3, $4, 'active')
-         ON CONFLICT (org_id) DO UPDATE SET
-           stripe_customer_id = EXCLUDED.stripe_customer_id,
-           stripe_subscription_id = EXCLUDED.stripe_subscription_id,
-           plan = EXCLUDED.plan,
-           status = 'active',
-           updated_at = NOW()`,
-        [orgId, session.customer, session.subscription, plan]
-      );
-      break;
+    if (!user || !orgId) {
+      throw new ForbiddenException('Missing user or org context');
     }
 
-    case "customer.subscription.updated": {
-      const sub = event.data.object as Stripe.Subscription;
-      await db.query(
-        `UPDATE subscriptions SET
-           status = $1,
-           current_period_start = $2,
-           current_period_end = $3,
-           cancel_at_period_end = $4,
-           updated_at = NOW()
-         WHERE stripe_subscription_id = $5`,
-        [
-          sub.status,
-          new Date(sub.current_period_start * 1000).toISOString(),
-          new Date(sub.current_period_end * 1000).toISOString(),
-          sub.cancel_at_period_end,
-          sub.id,
-        ]
-      );
-      break;
+    const membership = await this.prisma.orgMembership.findUnique({
+      where: { orgId_userId: { orgId, userId: user.userId } },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('Not a member of this organization');
     }
 
-    case "customer.subscription.deleted": {
-      const sub = event.data.object as Stripe.Subscription;
-      await db.query(
-        `UPDATE subscriptions SET status = 'canceled', updated_at = NOW()
-         WHERE stripe_subscription_id = $1`,
-        [sub.id]
-      );
-      break;
+    const minRole = this.reflector.get<OrgRole>(MIN_ROLE_KEY, context.getHandler()) ?? 'member';
+
+    if (ROLE_HIERARCHY[membership.role] < ROLE_HIERARCHY[minRole]) {
+      throw new ForbiddenException('Insufficient role');
     }
 
-    case "invoice.payment_failed": {
-      const invoice = event.data.object as Stripe.Invoice;
-      await db.query(
-        `UPDATE subscriptions SET status = 'past_due', updated_at = NOW()
-         WHERE stripe_customer_id = $1`,
-        [invoice.customer]
-      );
-      break;
-    }
+    request.orgContext = {
+      userId: user.userId,
+      email: user.email,
+      orgId,
+      role: membership.role,
+    } satisfies OrgContext;
+
+    return true;
   }
-
-  return NextResponse.json({ received: true });
 }
 ```
 
-#### Subscription Gating Middleware
+### Custom Decorators
 
 ```typescript
-// src/lib/require-subscription.ts
-import type { DatabaseLike } from "./db";
-import type { PlanTier } from "./types";
+// src/auth/decorators/min-role.decorator.ts
+import { SetMetadata } from '@nestjs/common';
+import { OrgRole } from '@prisma/client';
+import { MIN_ROLE_KEY } from '../guards/org-membership.guard';
 
-/**
- * Check if org has an active subscription at the required tier.
- * Returns the subscription or null.
- */
-export async function requireSubscription(
-  db: DatabaseLike,
-  orgId: string,
-  minimumPlan: PlanTier = "free"
-): Promise<{ plan: PlanTier; status: string } | null> {
-  const { rows } = await db.query<{ plan: PlanTier; status: string }>(
-    `SELECT plan, status FROM subscriptions
-     WHERE org_id = $1 AND status IN ('active', 'trialing')`,
-    [orgId]
-  );
+export const MinRole = (role: OrgRole) => SetMetadata(MIN_ROLE_KEY, role);
 
-  if (rows.length === 0) {
-    // No subscription = free tier
-    if (minimumPlan === "free") return { plan: "free", status: "active" };
-    return null;
-  }
+// src/auth/decorators/current-user.decorator.ts
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { AuthUser } from '../guards/supabase-auth.guard';
 
-  const tier = rows[0];
-  const hierarchy: Record<PlanTier, number> = {
-    free: 0, individual: 1, team: 2, enterprise: 3,
-  };
-
-  if (hierarchy[tier.plan] < hierarchy[minimumPlan]) return null;
-  return tier;
-}
-```
-
----
-
-## 7. Infrastructure & Environment
-
-### Services
-
-| Service | Purpose | Cost |
-|---------|---------|------|
-| **Supabase** (Pro) | Auth, PostgreSQL, Storage, Realtime | $25/mo |
-| **Vercel** (Pro) | Next.js hosting, edge middleware, domains | $20/mo |
-| **Modal** | Kokoro TTS model hosting | ~$0.05/1M chars |
-| **Stripe** | Billing | 2.9% + $0.30/txn |
-| **PostHog** (free tier) | Analytics, feature flags | $0 |
-| **Domain registrar** | Custom domains per niche | ~$12/yr each |
-
-### Supabase Storage Buckets
-
-```
-audio/                    -- Pre-generated audio files (private, signed URLs)
-  {org_slug}/
-    {exam_slug}/
-      {study_item_id}/
-        {voice}.flac
-
-brands/                   -- Brand assets (public)
-  {org_slug}/
-    logo.svg
-    favicon.ico
-    hero.webp
-```
-
-### Environment Variables
-
-```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...          # Server-only, for storage writes + admin ops
-DATABASE_URL=postgresql://...              # Direct Postgres connection for pg.Pool
-
-# Modal (TTS)
-KOKORO_TTS_URL=https://xxx.modal.run/v1/audio/speech
-MODAL_AUTH_KEY=xxx
-MODAL_AUTH_SECRET=xxx
-
-# Stripe
-STRIPE_SECRET_KEY=sk_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_...
-
-# PostHog
-NEXT_PUBLIC_POSTHOG_KEY=phc_...
-NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
-
-# App
-NEXT_PUBLIC_APP_URL=https://app.nicheaudioprep.com   # Canonical app URL
-NODE_ENV=production
-```
-
----
-
-## 8. Migration Path from try-listening
-
-### What We Keep
-
-| Component | Keep? | Notes |
-|-----------|-------|-------|
-| `DatabaseLike` interface + `pg.Pool` | Yes | Core DB abstraction |
-| `runMigrations()` pattern | Yes | Add new migrations for new schema |
-| `requireUser()` auth guard | Yes | Extend with org membership checks |
-| Supabase Auth (`@supabase/ssr`) | Yes | Add email/password + magic link providers |
-| `synthesize()` TTS function | Yes | Used in batch generation pipeline |
-| `chunkText()` chunker | Yes | Used in content import pipeline |
-| `TokenBucket` rate limiter | Yes | Add per-org scoping |
-| Middleware pattern | Yes | Add tenant resolution |
-| PostHog integration | Yes | Add org-scoped events |
-
-### What Changes
-
-| try-listening | niche-audio-prep | Why |
-|---------------|------------------|-----|
-| Audio in BYTEA | Audio in Supabase Storage | Scale: pre-generated content is GBs, not MBs |
-| User-generated content | Admin-managed content | Content is professional exam material, not URLs |
-| Single-user model | Multi-tenant org model | White-label requires org scoping |
-| On-demand TTS | Pre-generated batch TTS | Users should never wait for generation |
-| `library_entries` | `exams > topics > sections > study_items` | Structured content hierarchy vs flat list |
-| SHA-based entry IDs | UUID primary keys | Admin-managed content doesn't need deterministic IDs |
-| Google OAuth only | Google + email/password + magic link | Broader user base |
-
-### Migration Steps
-
-1. **Copy shared utilities.** `db.ts`, `chunker.ts`, `tts.ts`, `rate-limiter.ts`, `supabase/server.ts`, `supabase/client.ts` -- copy these verbatim, then modify.
-2. **Write new migrations.** All tables from section 1 as new migration files.
-3. **Extend middleware.** Add tenant resolution to the existing auth middleware pattern.
-4. **New API routes.** Build from scratch following the org-scoped pattern.
-5. **Admin content pipeline.** New code for content import + batch audio generation.
-6. **Stripe integration.** New code.
-
----
-
-## 9. Task Breakdown
-
-Implementation order follows dependencies. Each task is testable in isolation. TDD throughout.
-
-### Phase 1: Foundation (Database + Auth)
-
-#### Task 1: Project Scaffolding
-
-**Files:**
-- Create: `package.json`
-- Create: `tsconfig.json`
-- Create: `next.config.ts`
-- Create: `tailwind.config.ts`
-- Create: `src/app/layout.tsx`
-- Create: `src/app/page.tsx`
-
-**Step 1:** Initialize Next.js project with TypeScript, Tailwind, and App Router.
-
-```bash
-bunx create-next-app@latest . --typescript --tailwind --app --src-dir --no-import-alias
-```
-
-**Step 2:** Install dependencies from try-listening plus new ones.
-
-```bash
-bun add @supabase/ssr @supabase/supabase-js pg stripe posthog-js posthog-node
-bun add -d @types/pg
-```
-
-**Step 3:** Create `.env.local` with all environment variables (use dummy values for now).
-
-**Step 4:** Verify `bun dev` starts without errors.
-
-**Step 5:** Commit.
-
-```bash
-git add -A && git commit -m "chore: scaffold next.js project with dependencies"
-```
-
----
-
-#### Task 2: Database Layer (`DatabaseLike` + Migrations)
-
-**Files:**
-- Create: `src/lib/db.ts` (copy from try-listening)
-- Create: `src/lib/migrations.ts` (new schema)
-- Test: `src/lib/db.test.ts`
-
-**Step 1: Write the failing test.**
-
-```typescript
-// src/lib/db.test.ts
-import { describe, it, expect } from "bun:test";
-import { runMigrations, type DatabaseLike, type Migration } from "./db";
-
-function createMockDb(): DatabaseLike & { executed: string[] } {
-  const executed: string[] = [];
-  return {
-    executed,
-    async query<T>(sql: string, params?: unknown[]) {
-      executed.push(sql);
-      if (sql.includes("SELECT version FROM migrations")) {
-        return { rows: [] as T[] };
-      }
-      return { rows: [] as T[] };
-    },
-    async exec(sql: string) {
-      executed.push(sql);
-    },
-  };
-}
-
-describe("runMigrations", () => {
-  it("should run pending migrations in order", async () => {
-    const db = createMockDb();
-    const migrations: Migration[] = [
-      { version: 2, name: "second", up: "CREATE TABLE second (id INT)" },
-      { version: 1, name: "first", up: "CREATE TABLE first (id INT)" },
-    ];
-    await runMigrations(db, migrations);
-    // Should run version 1 before version 2
-    const createStatements = db.executed.filter((s) => s.includes("CREATE TABLE first") || s.includes("CREATE TABLE second"));
-    expect(createStatements[0]).toContain("first");
-    expect(createStatements[1]).toContain("second");
-  });
-
-  it("should skip already-applied migrations", async () => {
-    const executed: string[] = [];
-    const db: DatabaseLike = {
-      async query<T>(sql: string) {
-        executed.push(sql);
-        if (sql.includes("SELECT version FROM migrations")) {
-          return { rows: [{ version: 1 }] as T[] };
-        }
-        return { rows: [] as T[] };
-      },
-      async exec(sql: string) { executed.push(sql); },
-    };
-    await runMigrations(db, [
-      { version: 1, name: "first", up: "CREATE TABLE first (id INT)" },
-      { version: 2, name: "second", up: "CREATE TABLE second (id INT)" },
-    ]);
-    expect(executed.some((s) => s.includes("CREATE TABLE first"))).toBe(false);
-    expect(executed.some((s) => s.includes("CREATE TABLE second"))).toBe(true);
-  });
-});
-```
-
-**Step 2:** Run test to verify it fails.
-
-Run: `bun test src/lib/db.test.ts`
-Expected: FAIL (module not found)
-
-**Step 3:** Copy `db.ts` from try-listening verbatim (it's generic enough). Write new `migrations.ts` with the organizations + users migration only (first two tables).
-
-```typescript
-// src/lib/migrations.ts
-import type { Migration } from "./db";
-
-export const migrations: Migration[] = [
-  {
-    version: 1,
-    name: "create_organizations",
-    up: `
-      CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-      CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
-      CREATE TABLE IF NOT EXISTS organizations (
-        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-        slug TEXT UNIQUE NOT NULL,
-        name TEXT NOT NULL,
-        niche TEXT NOT NULL,
-        domain TEXT UNIQUE,
-        is_active BOOLEAN NOT NULL DEFAULT true,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-      CREATE INDEX IF NOT EXISTS idx_organizations_domain ON organizations (domain) WHERE domain IS NOT NULL;
-      CREATE INDEX IF NOT EXISTS idx_organizations_slug ON organizations (slug);
-    `,
+export const CurrentUser = createParamDecorator(
+  (_data: unknown, ctx: ExecutionContext): AuthUser => {
+    return ctx.switchToHttp().getRequest().user;
   },
-  {
-    version: 2,
-    name: "create_users_and_memberships",
-    up: `
-      CREATE TABLE IF NOT EXISTS users (
-        id UUID PRIMARY KEY,
-        email TEXT NOT NULL,
-        display_name TEXT,
-        avatar_url TEXT,
-        is_global_admin BOOLEAN NOT NULL DEFAULT false,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
+);
 
-      CREATE TYPE org_role AS ENUM ('owner', 'admin', 'member');
+// src/auth/decorators/org-context.decorator.ts
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { OrgContext } from '../guards/org-membership.guard';
 
-      CREATE TABLE IF NOT EXISTS org_memberships (
-        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-        org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        role org_role NOT NULL DEFAULT 'member',
-        invited_by UUID REFERENCES users(id),
-        invited_at TIMESTAMPTZ,
-        joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        UNIQUE (org_id, user_id)
-      );
-      CREATE INDEX IF NOT EXISTS idx_org_memberships_user ON org_memberships (user_id);
-      CREATE INDEX IF NOT EXISTS idx_org_memberships_org ON org_memberships (org_id);
-    `,
+export const CurrentOrg = createParamDecorator(
+  (_data: unknown, ctx: ExecutionContext): OrgContext => {
+    return ctx.switchToHttp().getRequest().orgContext;
   },
-];
+);
 ```
 
-**Step 4:** Run test to verify it passes.
-
-Run: `bun test src/lib/db.test.ts`
-Expected: PASS
-
-**Step 5:** Commit.
-
-```bash
-git add src/lib/db.ts src/lib/db.test.ts src/lib/migrations.ts
-git commit -m "feat: database layer with organizations and users migrations"
-```
-
----
-
-#### Task 3: Content Schema Migrations
-
-**Files:**
-- Modify: `src/lib/migrations.ts` (add migrations 3-6)
-
-**Step 1:** Add migrations for brand_configs, exams, topics, sections, study_items, audio_files, and user_progress. Each as a separate migration version.
-
-**Step 2:** Add migrations for subscriptions, invite_tokens, user_streaks, and tts_daily_usage.
-
-**Step 3:** Run tests to verify existing migration tests still pass.
-
-**Step 4:** Commit.
-
-```bash
-git add src/lib/migrations.ts
-git commit -m "feat: complete database schema migrations"
-```
-
----
-
-#### Task 4: Tenant Resolution
-
-**Files:**
-- Create: `src/lib/tenant.ts`
-- Test: `src/lib/tenant.test.ts`
-
-**Step 1: Write the failing test.**
+### Global Admin Guard
 
 ```typescript
-// src/lib/tenant.test.ts
-import { describe, it, expect } from "bun:test";
-import { resolveTenant } from "./tenant";
-import type { DatabaseLike } from "./db";
+// src/auth/guards/global-admin.guard.ts
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
 
-function mockDb(rows: Record<string, unknown>[]): DatabaseLike {
-  return {
-    async query<T>() { return { rows: rows as T[] }; },
-    async exec() {},
-  };
+@Injectable()
+export class GlobalAdminGuard implements CanActivate {
+  constructor(private prisma: PrismaService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+
+    if (!user) {
+      throw new ForbiddenException('Authentication required');
+    }
+
+    const dbUser = await this.prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { isGlobalAdmin: true },
+    });
+
+    if (!dbUser?.isGlobalAdmin) {
+      throw new ForbiddenException('Global admin access required');
+    }
+
+    return true;
+  }
 }
-
-describe("resolveTenant", () => {
-  it("should resolve by domain", async () => {
-    const db = mockDb([{
-      id: "org-1", slug: "firefighter-prep", name: "FirefighterPrep",
-      niche: "firefighting", domain: "firefighterprep.com",
-    }]);
-    const tenant = await resolveTenant(db, "firefighterprep.com");
-    expect(tenant).not.toBeNull();
-    expect(tenant!.orgId).toBe("org-1");
-    expect(tenant!.niche).toBe("firefighting");
-  });
-
-  it("should resolve by slug", async () => {
-    const db = mockDb([{
-      id: "org-2", slug: "pilot-audio", name: "PilotAudio",
-      niche: "aviation", domain: null,
-    }]);
-    const tenant = await resolveTenant(db, "pilot-audio");
-    expect(tenant).not.toBeNull();
-    expect(tenant!.slug).toBe("pilot-audio");
-  });
-
-  it("should return null for unknown domain", async () => {
-    const db = mockDb([]);
-    const tenant = await resolveTenant(db, "unknown.com");
-    expect(tenant).toBeNull();
-  });
-
-  it("should cache results", async () => {
-    let queryCount = 0;
-    const db: DatabaseLike = {
-      async query<T>() {
-        queryCount++;
-        return { rows: [{
-          id: "org-1", slug: "test", name: "Test", niche: "test", domain: "test.com",
-        }] as T[] };
-      },
-      async exec() {},
-    };
-    await resolveTenant(db, "test.com");
-    await resolveTenant(db, "test.com");
-    expect(queryCount).toBe(1); // Second call should hit cache
-  });
-});
 ```
 
-**Step 2:** Run test to verify it fails.
+### Supabase Auth Trigger (auto-create user record)
 
-**Step 3:** Implement `src/lib/tenant.ts` (code shown in section 2 above).
-
-**Step 4:** Run test to verify it passes.
-
-**Step 5:** Commit.
-
-```bash
-git add src/lib/tenant.ts src/lib/tenant.test.ts
-git commit -m "feat: tenant resolution with caching"
-```
-
----
-
-#### Task 5: Auth Guard + Membership Check
-
-**Files:**
-- Create: `src/lib/require-user.ts` (copy from try-listening)
-- Create: `src/lib/require-membership.ts`
-- Test: `src/lib/require-membership.test.ts`
-
-**Step 1: Write the failing test.**
-
-```typescript
-// src/lib/require-membership.test.ts
-import { describe, it, expect } from "bun:test";
-import { requireMembership, isGlobalAdmin } from "./require-membership";
-import type { DatabaseLike } from "./db";
-
-function mockDb(rows: Record<string, unknown>[]): DatabaseLike {
-  return {
-    async query<T>() { return { rows: rows as T[] }; },
-    async exec() {},
-  };
-}
-
-describe("requireMembership", () => {
-  it("should return membership for valid member", async () => {
-    const db = mockDb([{ role: "member" }]);
-    const result = await requireMembership(db, "user-1", "org-1");
-    expect(result).not.toBeNull();
-    expect(result!.role).toBe("member");
-  });
-
-  it("should return null for non-member", async () => {
-    const db = mockDb([]);
-    const result = await requireMembership(db, "user-1", "org-1");
-    expect(result).toBeNull();
-  });
-
-  it("should reject member when admin required", async () => {
-    const db = mockDb([{ role: "member" }]);
-    const result = await requireMembership(db, "user-1", "org-1", "admin");
-    expect(result).toBeNull();
-  });
-
-  it("should allow owner when admin required", async () => {
-    const db = mockDb([{ role: "owner" }]);
-    const result = await requireMembership(db, "user-1", "org-1", "admin");
-    expect(result).not.toBeNull();
-  });
-});
-
-describe("isGlobalAdmin", () => {
-  it("should return true for global admin", async () => {
-    const db = mockDb([{ is_global_admin: true }]);
-    expect(await isGlobalAdmin(db, "user-1")).toBe(true);
-  });
-
-  it("should return false for regular user", async () => {
-    const db = mockDb([{ is_global_admin: false }]);
-    expect(await isGlobalAdmin(db, "user-1")).toBe(false);
-  });
-});
-```
-
-**Step 2:** Run test to verify it fails.
-
-**Step 3:** Implement (code shown in section 2 above).
-
-**Step 4:** Run test to verify it passes.
-
-**Step 5:** Commit.
-
-```bash
-git add src/lib/require-user.ts src/lib/require-membership.ts src/lib/require-membership.test.ts
-git commit -m "feat: auth guard and org membership authorization"
-```
-
----
-
-#### Task 6: Supabase Auth Setup + Middleware
-
-**Files:**
-- Create: `src/lib/supabase/server.ts` (copy from try-listening)
-- Create: `src/lib/supabase/client.ts` (copy from try-listening)
-- Create: `src/middleware.ts` (extend try-listening pattern)
-
-**Step 1:** Copy Supabase client files from try-listening.
-
-**Step 2:** Write middleware with tenant resolution (code shown in section 2).
-
-**Step 3:** Verify dev server starts: `bun dev`.
-
-**Step 4:** Commit.
-
-```bash
-git add src/lib/supabase/ src/middleware.ts
-git commit -m "feat: supabase auth clients and tenant-aware middleware"
-```
-
----
-
-### Phase 2: Content Management
-
-#### Task 7: Content Import Utility
-
-**Files:**
-- Create: `src/lib/content-import.ts`
-- Test: `src/lib/content-import.test.ts`
-- Reuse: `src/lib/chunker.ts` (copy from try-listening)
-
-**Step 1: Write the failing test.**
-
-```typescript
-// src/lib/content-import.test.ts
-import { describe, it, expect } from "bun:test";
-import { normalizeContentImport, type ContentImport } from "./content-import";
-
-describe("normalizeContentImport", () => {
-  const validImport: ContentImport = {
-    exam: {
-      title: "Firefighter I",
-      slug: "firefighter-i",
-      sourceDocument: "NFPA 1001",
-      editionYear: 2019,
-    },
-    topics: [{
-      title: "Fire Behavior",
-      slug: "fire-behavior",
-      sections: [{
-        title: "Phases of Fire",
-        slug: "phases-of-fire",
-        items: [{
-          textContent: "Fire develops in four phases: ignition, growth, fully developed, and decay.",
-          importance: "critical",
-          sourceReference: "NFPA 1001 5.3.1",
-        }],
-      }],
-    }],
-  };
-
-  it("should produce correct structure", () => {
-    const result = normalizeContentImport("org-1", validImport);
-    expect(result.exam.title).toBe("Firefighter I");
-    expect(result.topics).toHaveLength(1);
-    expect(result.topics[0].sections[0].items[0].charCount).toBe(
-      "Fire develops in four phases: ignition, growth, fully developed, and decay.".length
-    );
-  });
-
-  it("should compute text hash", () => {
-    const result = normalizeContentImport("org-1", validImport);
-    const item = result.topics[0].sections[0].items[0];
-    expect(item.textHash).toMatch(/^[a-f0-9]{32}$/);
-  });
-
-  it("should auto-chunk items exceeding 3800 chars", () => {
-    const longText = "A".repeat(5000);
-    const importData: ContentImport = {
-      exam: { title: "Test", slug: "test", sourceDocument: "Test", editionYear: 2024 },
-      topics: [{
-        title: "T", slug: "t",
-        sections: [{
-          title: "S", slug: "s",
-          items: [{ textContent: longText }],
-        }],
-      }],
-    };
-    const result = normalizeContentImport("org-1", importData);
-    const items = result.topics[0].sections[0].items;
-    expect(items.length).toBeGreaterThan(1);
-    items.forEach((item) => expect(item.charCount).toBeLessThanOrEqual(3800));
-  });
-
-  it("should assign sequential sort_order", () => {
-    const importData: ContentImport = {
-      exam: { title: "Test", slug: "test", sourceDocument: "Test", editionYear: 2024 },
-      topics: [{
-        title: "T", slug: "t",
-        sections: [{
-          title: "S", slug: "s",
-          items: [
-            { textContent: "First item" },
-            { textContent: "Second item" },
-          ],
-        }],
-      }],
-    };
-    const result = normalizeContentImport("org-1", importData);
-    const items = result.topics[0].sections[0].items;
-    expect(items[0].sortOrder).toBe(0);
-    expect(items[1].sortOrder).toBe(1);
-  });
-});
-```
-
-**Step 2:** Run test to verify it fails.
-
-**Step 3:** Implement `content-import.ts` with chunking, hashing, and validation.
-
-**Step 4:** Run test to verify it passes.
-
-**Step 5:** Commit.
-
-```bash
-git add src/lib/content-import.ts src/lib/content-import.test.ts src/lib/chunker.ts
-git commit -m "feat: content import normalization with auto-chunking"
-```
-
----
-
-#### Task 8: Content Admin API Routes
-
-**Files:**
-- Create: `src/app/api/admin/orgs/[orgId]/content/import/route.ts`
-- Create: `src/app/api/admin/orgs/[orgId]/content/generate/route.ts`
-- Create: `src/app/api/admin/orgs/[orgId]/content/status/route.ts`
-
-**Step 1:** Implement `POST /api/admin/orgs/[orgId]/content/import` -- accepts `ContentImport` JSON, validates, writes to DB.
-
-**Step 2:** Implement `POST /api/admin/orgs/[orgId]/content/generate` -- triggers batch audio generation.
-
-**Step 3:** Implement `GET /api/admin/orgs/[orgId]/content/status` -- returns audio generation progress (how many items have audio vs need generation).
-
-**Step 4:** Manual test with `curl` against local dev.
-
-**Step 5:** Commit.
-
-```bash
-git add src/app/api/admin/
-git commit -m "feat: admin content import and audio generation API routes"
-```
-
----
-
-### Phase 3: Audio Generation Pipeline
-
-#### Task 9: TTS Integration
-
-**Files:**
-- Create: `src/lib/tts.ts` (copy from try-listening)
-- Create: `src/lib/audio-generation.ts`
-- Test: `src/lib/audio-generation.test.ts`
-
-**Step 1: Write the failing test.**
-
-```typescript
-// src/lib/audio-generation.test.ts
-import { describe, it, expect } from "bun:test";
-import { findPendingGenerations } from "./audio-generation";
-import type { DatabaseLike } from "./db";
-
-describe("findPendingGenerations", () => {
-  it("should return items without audio", async () => {
-    const db: DatabaseLike = {
-      async query<T>() {
-        return {
-          rows: [{
-            study_item_id: "item-1",
-            text_content: "Test content",
-            text_hash: "abc123",
-            exam_slug: "firefighter-i",
-            org_slug: "firefighter-prep",
-          }] as T[],
-        };
-      },
-      async exec() {},
-    };
-    const jobs = await findPendingGenerations(db, "org-1", ["af_heart"]);
-    expect(jobs).toHaveLength(1);
-    expect(jobs[0].storagePath).toBe("audio/firefighter-prep/firefighter-i/item-1/af_heart.flac");
-  });
-
-  it("should generate a job per voice", async () => {
-    const db: DatabaseLike = {
-      async query<T>() {
-        return {
-          rows: [{
-            study_item_id: "item-1",
-            text_content: "Test",
-            text_hash: "abc",
-            exam_slug: "test",
-            org_slug: "test",
-          }] as T[],
-        };
-      },
-      async exec() {},
-    };
-    const jobs = await findPendingGenerations(db, "org-1", ["af_heart", "am_adam"]);
-    expect(jobs).toHaveLength(2);
-    expect(jobs[0].voice).toBe("af_heart");
-    expect(jobs[1].voice).toBe("am_adam");
-  });
-});
-```
-
-**Step 2:** Run test to verify it fails.
-
-**Step 3:** Implement `audio-generation.ts` (code shown in section 4 above).
-
-**Step 4:** Run test to verify it passes.
-
-**Step 5:** Commit.
-
-```bash
-git add src/lib/tts.ts src/lib/audio-generation.ts src/lib/audio-generation.test.ts
-git commit -m "feat: audio generation pipeline with batch processing"
-```
-
----
-
-### Phase 4: User-Facing API
-
-#### Task 10: Org + Exam Listing Routes
-
-**Files:**
-- Create: `src/app/api/orgs/route.ts`
-- Create: `src/app/api/orgs/[orgId]/route.ts`
-- Create: `src/app/api/orgs/[orgId]/exams/route.ts`
-- Create: `src/app/api/orgs/[orgId]/exams/[examId]/route.ts`
-
-**Step 1:** Implement `GET /api/orgs` -- list orgs for authenticated user.
-
-**Step 2:** Implement `GET /api/orgs/[orgId]` -- org details + brand config.
-
-**Step 3:** Implement `GET /api/orgs/[orgId]/exams` -- list published exams.
-
-**Step 4:** Implement `GET /api/orgs/[orgId]/exams/[examId]` -- full exam tree (topics + sections + item counts).
-
-**Step 5:** Commit.
-
-```bash
-git add src/app/api/orgs/
-git commit -m "feat: org and exam listing API routes"
-```
-
----
-
-#### Task 11: Audio Serving Route
-
-**Files:**
-- Create: `src/app/api/orgs/[orgId]/audio/[studyItemId]/route.ts`
-- Create: `src/lib/audio-url.ts`
-
-**Step 1:** Implement `GET /api/orgs/[orgId]/audio/[studyItemId]` -- returns signed URL from Supabase Storage.
-
-**Step 2:** Query `audio_files` for current audio, generate signed URL, return with duration metadata.
-
-**Step 3:** Commit.
-
-```bash
-git add src/app/api/orgs/[orgId]/audio/ src/lib/audio-url.ts
-git commit -m "feat: audio serving via signed storage URLs"
-```
-
----
-
-#### Task 12: Progress Tracking
-
-**Files:**
-- Create: `src/lib/progress.ts`
-- Test: `src/lib/progress.test.ts`
-- Create: `src/app/api/orgs/[orgId]/progress/route.ts`
-- Create: `src/app/api/orgs/[orgId]/progress/review-queue/route.ts`
-
-**Step 1: Write the failing test for spaced repetition.**
-
-```typescript
-// src/lib/spaced-repetition.test.ts
-import { describe, it, expect } from "bun:test";
-import { calculateNextReview } from "./spaced-repetition";
-
-describe("calculateNextReview", () => {
-  it("should set 1-day interval for first listen", () => {
-    const result = calculateNextReview(2.5, 1, 1, true);
-    expect(result.intervalDays).toBe(1);
-    expect(result.easeFactor).toBeGreaterThan(2.5); // Quality 5 increases ease
-  });
-
-  it("should set 3-day interval for second listen", () => {
-    const result = calculateNextReview(2.6, 1, 2, true);
-    expect(result.intervalDays).toBe(3);
-  });
-
-  it("should use ease factor for subsequent listens", () => {
-    const result = calculateNextReview(2.5, 3, 3, true);
-    expect(result.intervalDays).toBe(Math.round(3 * 2.6)); // 3 * updated ease
-  });
-
-  it("should decrease ease factor for incomplete listens", () => {
-    const result = calculateNextReview(2.5, 3, 3, false);
-    expect(result.easeFactor).toBeLessThan(2.5);
-    expect(result.easeFactor).toBeGreaterThanOrEqual(1.3); // Floor
-  });
-
-  it("should cap interval at 180 days", () => {
-    const result = calculateNextReview(2.5, 100, 10, true);
-    expect(result.intervalDays).toBeLessThanOrEqual(180);
-  });
-});
-```
-
-**Step 2:** Run test to verify it fails.
-
-**Step 3:** Implement `spaced-repetition.ts` (code shown in section 5 above).
-
-**Step 4:** Run test to verify it passes.
-
-**Step 5:** Implement `progress.ts` data access layer + API routes.
-
-**Step 6:** Commit.
-
-```bash
-git add src/lib/spaced-repetition.ts src/lib/spaced-repetition.test.ts src/lib/progress.ts src/lib/progress.test.ts src/app/api/orgs/[orgId]/progress/
-git commit -m "feat: progress tracking with spaced repetition"
-```
-
----
-
-#### Task 13: Streak Tracking
-
-**Files:**
-- Create: `src/lib/streaks.ts`
-- Test: `src/lib/streaks.test.ts`
-- Create: `src/app/api/orgs/[orgId]/streaks/route.ts`
-
-**Step 1:** Write tests for streak calculation (current streak length, longest streak, daily totals).
-
-**Step 2:** Implement streak data access and API route.
-
-**Step 3:** Commit.
-
-```bash
-git add src/lib/streaks.ts src/lib/streaks.test.ts src/app/api/orgs/[orgId]/streaks/
-git commit -m "feat: user streak tracking"
-```
-
----
-
-### Phase 5: Billing
-
-#### Task 14: Stripe Integration
-
-**Files:**
-- Create: `src/lib/stripe.ts`
-- Create: `src/lib/require-subscription.ts`
-- Test: `src/lib/require-subscription.test.ts`
-- Create: `src/app/api/webhooks/stripe/route.ts`
-- Create: `src/app/api/orgs/[orgId]/billing/checkout/route.ts`
-- Create: `src/app/api/orgs/[orgId]/billing/portal/route.ts`
-
-**Step 1:** Write tests for subscription tier gating.
-
-```typescript
-// src/lib/require-subscription.test.ts
-import { describe, it, expect } from "bun:test";
-import { requireSubscription } from "./require-subscription";
-import type { DatabaseLike } from "./db";
-
-describe("requireSubscription", () => {
-  it("should allow free tier when no subscription exists", async () => {
-    const db: DatabaseLike = {
-      async query<T>() { return { rows: [] as T[] }; },
-      async exec() {},
-    };
-    const result = await requireSubscription(db, "org-1", "free");
-    expect(result).not.toBeNull();
-    expect(result!.plan).toBe("free");
-  });
-
-  it("should reject when higher tier required", async () => {
-    const db: DatabaseLike = {
-      async query<T>() { return { rows: [] as T[] }; },
-      async exec() {},
-    };
-    const result = await requireSubscription(db, "org-1", "individual");
-    expect(result).toBeNull();
-  });
-
-  it("should allow enterprise when team required", async () => {
-    const db: DatabaseLike = {
-      async query<T>() { return { rows: [{ plan: "enterprise", status: "active" }] as T[] }; },
-      async exec() {},
-    };
-    const result = await requireSubscription(db, "org-1", "team");
-    expect(result).not.toBeNull();
-  });
-});
-```
-
-**Step 2:** Implement `stripe.ts`, `require-subscription.ts`.
-
-**Step 3:** Implement Stripe webhook handler (code shown in section 6).
-
-**Step 4:** Implement checkout and billing portal routes.
-
-**Step 5:** Commit.
-
-```bash
-git add src/lib/stripe.ts src/lib/require-subscription.ts src/lib/require-subscription.test.ts src/app/api/webhooks/stripe/ src/app/api/orgs/[orgId]/billing/
-git commit -m "feat: stripe billing integration with subscription gating"
-```
-
----
-
-### Phase 6: Admin & Org Management
-
-#### Task 15: Org Invite System
-
-**Files:**
-- Create: `src/lib/invites.ts`
-- Test: `src/lib/invites.test.ts`
-- Create: `src/app/api/admin/orgs/[orgId]/invites/route.ts`
-- Create: `src/app/api/auth/accept-invite/route.ts`
-
-**Step 1:** Write tests for invite creation, acceptance, expiration.
-
-**Step 2:** Implement invite logic and API routes.
-
-**Step 3:** Commit.
-
-```bash
-git add src/lib/invites.ts src/lib/invites.test.ts src/app/api/admin/orgs/[orgId]/invites/ src/app/api/auth/accept-invite/
-git commit -m "feat: org invite system"
-```
-
----
-
-#### Task 16: Brand Config API
-
-**Files:**
-- Create: `src/app/api/admin/orgs/[orgId]/brand/route.ts`
-
-**Step 1:** Implement `PUT /api/admin/orgs/[orgId]/brand` -- update brand config (colors, logo URL, copy, etc.).
-
-**Step 2:** Commit.
-
-```bash
-git add src/app/api/admin/orgs/[orgId]/brand/
-git commit -m "feat: brand config admin API"
-```
-
----
-
-#### Task 17: Global Admin Routes
-
-**Files:**
-- Create: `src/app/api/admin/orgs/route.ts` (create + list orgs)
-
-**Step 1:** Implement `POST /api/admin/orgs` -- create new org (global admin only).
-
-**Step 2:** Implement `GET /api/admin/orgs` -- list all orgs with member counts and subscription status.
-
-**Step 3:** Commit.
-
-```bash
-git add src/app/api/admin/orgs/route.ts
-git commit -m "feat: global admin org management"
-```
-
----
-
-### Phase 7: Types, Constants, PostHog
-
-#### Task 18: Shared Types and Constants
-
-**Files:**
-- Create: `src/lib/types.ts`
-- Create: `src/lib/constants.ts` (extend from try-listening)
-
-```typescript
-// src/lib/types.ts
-export type OrgRole = "owner" | "admin" | "member";
-export type PlanTier = "free" | "individual" | "team" | "enterprise";
-export type SubscriptionStatus = "trialing" | "active" | "past_due" | "canceled" | "unpaid" | "incomplete";
-export type Difficulty = "beginner" | "intermediate" | "advanced";
-export type Importance = "low" | "medium" | "high" | "critical";
-
-export interface Exam { /* ... */ }
-export interface Topic { /* ... */ }
-export interface Section { /* ... */ }
-export interface StudyItem { /* ... */ }
-export interface UserProgress { /* ... */ }
-// ... all shared types
-```
-
-This task should be done early (alongside Task 2) since other tasks depend on these types. Listed here for organizational clarity.
-
-**Step 1:** Commit.
-
-```bash
-git add src/lib/types.ts src/lib/constants.ts
-git commit -m "feat: shared types and constants"
-```
-
----
-
-#### Task 19: PostHog Events
-
-**Files:**
-- Create: `src/lib/posthog-server.ts` (copy from try-listening)
-- Define events
-
-```typescript
-// Server-side events to track:
-// content_imported        - admin imported content
-// audio_batch_started     - batch TTS generation started
-// audio_batch_completed   - batch TTS generation finished
-// audio_item_generated    - single audio item generated
-// study_item_listened     - user completed listening to an item
-// streak_updated          - user's streak changed
-// subscription_created    - new Stripe subscription
-// subscription_canceled   - subscription canceled
-// org_created             - new org created
-// member_invited          - invite sent
-// member_joined           - invite accepted
-```
-
-**Step 1:** Commit.
-
-```bash
-git add src/lib/posthog-server.ts
-git commit -m "feat: posthog server-side event tracking"
-```
-
----
-
-### Phase 8: Integration Testing
-
-#### Task 20: End-to-End Flow Test
-
-Write an integration test that exercises the full content lifecycle:
-
-1. Create org (global admin)
-2. Create user + membership
-3. Import content (admin)
-4. Verify exam/topic/section/item structure
-5. Get audio URL (simulated -- mock Supabase Storage)
-6. Update progress
-7. Check review queue
-
-This should use a real (local) PostgreSQL database or Supabase local dev.
-
-```bash
-git commit -m "test: end-to-end content lifecycle integration test"
-```
-
----
-
-## Appendix A: Supabase Storage Bucket Config
-
-Create via Supabase Dashboard or migration:
+When a user signs up via Supabase Auth, a database trigger creates the corresponding `users` row:
 
 ```sql
--- Run in Supabase SQL editor (not in app migrations -- this is Supabase infra)
-INSERT INTO storage.buckets (id, name, public)
-VALUES
-  ('audio', 'audio', false),     -- Private: signed URLs required
-  ('brands', 'brands', true);    -- Public: logos, images
-
--- Storage RLS: audio bucket
-CREATE POLICY audio_select ON storage.objects
-  FOR SELECT USING (
-    bucket_id = 'audio'
-    AND auth.role() = 'authenticated'
-  );
-
--- Storage RLS: brands bucket (public read)
-CREATE POLICY brands_select ON storage.objects
-  FOR SELECT USING (bucket_id = 'brands');
-
--- Storage RLS: admin upload (service role bypasses RLS, but for extra safety)
-CREATE POLICY audio_insert ON storage.objects
-  FOR INSERT WITH CHECK (
-    bucket_id = 'audio'
-    AND EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_global_admin = true)
-  );
-```
-
-## Appendix B: Supabase Auth Trigger
-
-```sql
--- Run in Supabase SQL editor after creating the users table
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -2544,16 +926,1758 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 ```
 
-## Appendix C: Rate Limiting by Subscription Tier
+### Multi-Tenancy: How Org Context Flows
 
-| Tier | Audio URL requests/min | API requests/min | Offline downloads |
-|------|----------------------|------------------|-------------------|
-| Free | 30 | 60 | No |
-| Individual | 120 | 300 | Yes |
-| Team | 300 | 600 | Yes |
-| Enterprise | Unlimited | Unlimited | Yes |
+1. User authenticates via Supabase on any frontend domain.
+2. Frontend includes the JWT in the `Authorization` header.
+3. `SupabaseAuthGuard` verifies the JWT, extracts `userId`.
+4. For org-scoped endpoints (e.g., `GET /api/v1/orgs/:orgId/exams`), the `orgId` is in the URL path.
+5. `OrgMembershipGuard` verifies the user belongs to that org.
+6. All database queries for that request are scoped by `orgId`.
 
-## Appendix D: Content Size Estimates
+A user who belongs to multiple orgs can access each by making requests with different `orgId` values. The frontend decides which org context to show (based on domain mapping, user selection, etc.) -- the backend does not care how the frontend made that choice.
+
+### Org Invite Flow
+
+```
+1. Admin calls POST /api/v1/orgs/:orgId/invites with { email, role }
+2. Server creates invite_tokens row, returns invite URL with token
+3. Frontend sends invitation email with link containing the token
+4. Invited user clicks link -> redirected to sign-up/sign-in
+5. After auth, frontend calls POST /api/v1/auth/accept-invite?token=xxx
+6. Server validates token (not expired, not already accepted)
+7. Server creates org_membership, marks token accepted_at = NOW()
+```
+
+---
+
+## 4. API Design
+
+### Route Map
+
+All routes are prefixed with `/api/v1`. The backend is a standalone NestJS app.
+
+```
+PUBLIC (no auth):
+  GET  /api/v1/health                                  Health check
+  POST /api/v1/webhooks/stripe                         Stripe webhook handler
+
+AUTH (JWT required):
+  GET  /api/v1/me                                      Current user profile + org list
+  POST /api/v1/auth/accept-invite                      Accept org invitation
+
+ORG-SCOPED (JWT + org membership):
+  GET  /api/v1/orgs                                    List user's orgs
+  GET  /api/v1/orgs/:orgId                             Org details
+  GET  /api/v1/orgs/:orgId/exams                       List published exams
+  GET  /api/v1/orgs/:orgId/exams/:examId               Exam detail with topic/section tree
+  GET  /api/v1/orgs/:orgId/exams/:examId/items         Study items (paginated, filterable)
+  GET  /api/v1/orgs/:orgId/audio/:studyItemId          Get signed audio URL
+  GET  /api/v1/orgs/:orgId/progress                    User's progress summary for org
+  POST /api/v1/orgs/:orgId/progress                    Update progress for a study item
+  GET  /api/v1/orgs/:orgId/progress/review-queue       Items due for spaced rep review
+  GET  /api/v1/orgs/:orgId/streaks                     User's streak data
+  GET  /api/v1/orgs/:orgId/bookmarks                   User's bookmarked items
+  POST /api/v1/orgs/:orgId/bookmarks                   Add bookmark
+  DELETE /api/v1/orgs/:orgId/bookmarks/:bookmarkId     Remove bookmark
+
+ORG ADMIN (JWT + org admin/owner role):
+  POST   /api/v1/orgs/:orgId/content/import            Bulk content import
+  POST   /api/v1/orgs/:orgId/content/generate          Trigger audio generation
+  GET    /api/v1/orgs/:orgId/content/jobs               Audio generation job status
+  GET    /api/v1/orgs/:orgId/content/items              List all items (incl. unpublished)
+  PUT    /api/v1/orgs/:orgId/content/items/:itemId      Update a study item
+  DELETE /api/v1/orgs/:orgId/content/items/:itemId      Archive a study item
+  POST   /api/v1/orgs/:orgId/invites                    Send invite
+  GET    /api/v1/orgs/:orgId/invites                    List pending invites
+  DELETE /api/v1/orgs/:orgId/invites/:inviteId          Revoke invite
+  GET    /api/v1/orgs/:orgId/members                    List members
+  PATCH  /api/v1/orgs/:orgId/members/:userId            Update member role
+  DELETE /api/v1/orgs/:orgId/members/:userId            Remove member
+  POST   /api/v1/orgs/:orgId/billing/checkout           Create Stripe checkout session
+  POST   /api/v1/orgs/:orgId/billing/portal             Create Stripe billing portal
+
+GLOBAL ADMIN (JWT + is_global_admin):
+  POST  /api/v1/admin/orgs                             Create new org
+  GET   /api/v1/admin/orgs                             List all orgs
+  PATCH /api/v1/admin/orgs/:orgId                      Update org settings
+```
+
+### NestJS Module Structure
+
+```
+backend/
+  src/
+    main.ts                          # Bootstrap, CORS, global pipes
+    app.module.ts                    # Root module
+    prisma/
+      prisma.module.ts               # Global PrismaService
+      prisma.service.ts              # Prisma client wrapper with onModuleInit/onModuleDestroy
+    config/
+      config.module.ts               # ConfigModule setup
+      env.validation.ts              # Zod schema for env var validation
+    auth/
+      auth.module.ts
+      auth.controller.ts             # GET /me, POST /auth/accept-invite
+      auth.service.ts
+      guards/
+        supabase-auth.guard.ts       # JWT verification
+        org-membership.guard.ts      # Org membership + role check
+        global-admin.guard.ts        # Global admin check
+      decorators/
+        current-user.decorator.ts    # @CurrentUser() param decorator
+        org-context.decorator.ts     # @CurrentOrg() param decorator
+        min-role.decorator.ts        # @MinRole('admin') method decorator
+    health/
+      health.module.ts
+      health.controller.ts           # GET /health
+    orgs/
+      orgs.module.ts
+      orgs.controller.ts             # GET /orgs, GET /orgs/:orgId
+      orgs.service.ts
+    exams/
+      exams.module.ts
+      exams.controller.ts            # GET /exams, GET /exams/:examId, GET /exams/:examId/items
+      exams.service.ts
+      dto/
+        exam.dto.ts
+    audio/
+      audio.module.ts
+      audio.controller.ts            # GET /audio/:studyItemId
+      audio.service.ts               # Signed URL generation
+    progress/
+      progress.module.ts
+      progress.controller.ts         # GET/POST /progress, GET /progress/review-queue
+      progress.service.ts
+      spaced-repetition.service.ts   # SM-2 algorithm
+      dto/
+        update-progress.dto.ts
+    streaks/
+      streaks.module.ts
+      streaks.controller.ts          # GET /streaks
+      streaks.service.ts
+    bookmarks/
+      bookmarks.module.ts
+      bookmarks.controller.ts        # GET/POST/DELETE /bookmarks
+      bookmarks.service.ts
+      dto/
+        create-bookmark.dto.ts
+    content/
+      content.module.ts
+      content.controller.ts          # POST /content/import, POST /content/generate, GET /content/jobs, CRUD items
+      content.service.ts             # Content import, normalization, auto-chunking
+      dto/
+        content-import.dto.ts
+    members/
+      members.module.ts
+      members.controller.ts          # GET /members, PATCH /members/:userId, DELETE /members/:userId
+      members.service.ts
+    invites/
+      invites.module.ts
+      invites.controller.ts          # POST/GET/DELETE /invites
+      invites.service.ts
+      dto/
+        create-invite.dto.ts
+    billing/
+      billing.module.ts
+      billing.controller.ts          # POST /billing/checkout, POST /billing/portal
+      billing.service.ts             # Stripe operations
+      stripe-webhook.controller.ts   # POST /webhooks/stripe (no auth)
+    admin/
+      admin.module.ts
+      admin.controller.ts            # POST/GET/PATCH /admin/orgs
+      admin.service.ts
+    tts/
+      tts.module.ts
+      tts.service.ts                 # Modal Kokoro API wrapper
+    audio-generation/
+      audio-generation.module.ts
+      audio-generation.service.ts    # Batch generation orchestration
+      voice-config.service.ts        # Niche-specific voice defaults
+    shared/
+      utils/
+        chunker.ts                   # Text chunking (ported from try-listening)
+        text-hash.ts                 # SHA-256 content hashing
+      interceptors/
+        logging.interceptor.ts       # Request/response logging
+      pipes/
+        zod-validation.pipe.ts       # Zod-based DTO validation
+      filters/
+        http-exception.filter.ts     # Consistent error responses
+      middleware/
+        rate-limiter.middleware.ts    # Token bucket (ported from try-listening)
+    analytics/
+      analytics.module.ts
+      analytics.service.ts           # PostHog server-side event capture
+  prisma/
+    schema.prisma                    # Database schema
+    migrations/                      # Prisma-generated migration files
+    seed.ts                          # Seed script for dev data
+  modal/
+    kokoro_tts.py                    # Modal deployment (identical to try-listening)
+  test/
+    jest-e2e.json
+    app.e2e-spec.ts
+  package.json
+  tsconfig.json
+  tsconfig.build.json
+  nest-cli.json
+  Dockerfile
+  .env.example
+```
+
+### Request/Response Patterns
+
+Every org-scoped controller method receives verified membership context via custom decorators:
+
+```typescript
+// src/exams/exams.controller.ts
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { SupabaseAuthGuard } from '../auth/guards/supabase-auth.guard';
+import { OrgMembershipGuard, OrgContext } from '../auth/guards/org-membership.guard';
+import { CurrentOrg } from '../auth/decorators/org-context.decorator';
+import { ExamsService } from './exams.service';
+
+@Controller('api/v1/orgs/:orgId')
+@UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
+export class ExamsController {
+  constructor(private examsService: ExamsService) {}
+
+  @Get('exams')
+  async listExams(@CurrentOrg() org: OrgContext) {
+    return this.examsService.listPublished(org.orgId);
+  }
+
+  @Get('exams/:examId')
+  async getExam(
+    @CurrentOrg() org: OrgContext,
+    @Param('examId') examId: string,
+  ) {
+    return this.examsService.getWithTopicTree(org.orgId, examId);
+  }
+
+  @Get('exams/:examId/items')
+  async listItems(
+    @CurrentOrg() org: OrgContext,
+    @Param('examId') examId: string,
+  ) {
+    return this.examsService.listItems(org.orgId, examId);
+  }
+}
+```
+
+### Key Endpoint Details
+
+#### `GET /api/v1/orgs/:orgId/audio/:studyItemId`
+
+Returns a signed URL for the pre-generated audio file. The client streams directly from Supabase Storage -- the backend never proxies audio bytes.
+
+```typescript
+// Request: GET /api/v1/orgs/:orgId/audio/:studyItemId?voice=af_heart
+// Response:
+{
+    "url": "https://xxx.supabase.co/storage/v1/object/sign/audio/...",
+    "durationSeconds": 45.2,
+    "voice": "af_heart",
+    "format": "flac",
+    "expiresIn": 3600
+}
+```
+
+#### `POST /api/v1/orgs/:orgId/progress`
+
+Updates listening progress. Called frequently during playback (debounced on client, ~every 10 seconds).
+
+```typescript
+// Request body:
+{
+    "studyItemId": "uuid",
+    "positionSeconds": 23.5,
+    "playbackRate": 1.5,
+    "isCompleted": false
+}
+
+// When isCompleted transitions to true for the first time:
+// 1. Increment listenCount
+// 2. Recalculate spaced repetition fields (SM-2)
+// 3. Upsert userStreaks for today (increment itemsCompleted, add listenSeconds)
+```
+
+#### `GET /api/v1/orgs/:orgId/progress/review-queue`
+
+Returns study items due for spaced repetition review.
+
+```typescript
+// Response:
+{
+    "items": [
+        {
+            "studyItemId": "uuid",
+            "title": "Flashover Indicators",
+            "sectionTitle": "Fire Behavior",
+            "topicTitle": "Fire Dynamics",
+            "lastListenedAt": "2026-02-20T...",
+            "listenCount": 3,
+            "intervalDays": 4
+        }
+    ],
+    "totalDue": 12,
+    "nextReviewAt": "2026-02-25T08:00:00Z"
+}
+```
+
+### Error Responses
+
+All errors follow a consistent shape via a global exception filter:
+
+```typescript
+// src/shared/filters/http-exception.filter.ts
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
+
+@Catch(HttpException)
+export class HttpExceptionFilter implements ExceptionFilter {
+  catch(exception: HttpException, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+    const status = exception.getStatus();
+    const exceptionResponse = exception.getResponse();
+
+    const body = typeof exceptionResponse === 'string'
+      ? { detail: exceptionResponse, code: 'UNKNOWN_ERROR' }
+      : { detail: (exceptionResponse as any).message, code: (exceptionResponse as any).code ?? 'UNKNOWN_ERROR' };
+
+    response.status(status).json(body);
+  }
+}
+```
+
+```json
+{
+    "detail": "Human-readable error message",
+    "code": "MACHINE_READABLE_CODE"
+}
+```
+
+Standard HTTP status codes: 400 (bad request), 401 (not authenticated), 403 (not authorized), 404 (not found), 422 (validation error), 429 (rate limited), 500 (internal error).
+
+### Rate Limiting
+
+Port try-listening's `TokenBucket` and `PerUserTokenBucket` pattern to a NestJS middleware:
+
+```typescript
+// src/shared/middleware/rate-limiter.middleware.ts
+import { Injectable, NestMiddleware, HttpException } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
+
+export class TokenBucket {
+  private tokens: number;
+  private lastRefill: number;
+
+  constructor(
+    private maxTokens: number,
+    private refillRatePerSecond: number,
+  ) {
+    this.tokens = maxTokens;
+    this.lastRefill = Date.now();
+  }
+
+  consume(): boolean {
+    this.refill();
+    if (this.tokens < 1) return false;
+    this.tokens -= 1;
+    return true;
+  }
+
+  private refill() {
+    const now = Date.now();
+    const elapsed = (now - this.lastRefill) / 1000;
+    this.tokens = Math.min(this.maxTokens, this.tokens + elapsed * this.refillRatePerSecond);
+    this.lastRefill = now;
+  }
+}
+
+export class PerUserTokenBucket {
+  private buckets = new Map<string, { bucket: TokenBucket; lastAccess: number }>();
+
+  constructor(
+    private maxTokens: number,
+    private refillRatePerSecond: number,
+  ) {}
+
+  consume(userId: string): boolean {
+    let entry = this.buckets.get(userId);
+    if (!entry) {
+      entry = {
+        bucket: new TokenBucket(this.maxTokens, this.refillRatePerSecond),
+        lastAccess: Date.now(),
+      };
+      this.buckets.set(userId, entry);
+    }
+    entry.lastAccess = Date.now();
+    return entry.bucket.consume();
+  }
+
+  cleanup(maxAgeMs: number) {
+    const cutoff = Date.now() - maxAgeMs;
+    for (const [key, entry] of this.buckets) {
+      if (entry.lastAccess < cutoff) this.buckets.delete(key);
+    }
+  }
+}
+```
+
+| Tier | Audio URL req/min | API req/min |
+|------|------------------|-------------|
+| Free | 30 | 60 |
+| Individual | 120 | 300 |
+| Team | 300 | 600 |
+| Enterprise | Unlimited | Unlimited |
+
+---
+
+## 5. Content Pipeline
+
+### Overview
+
+Content flows through this pipeline:
+
+```
+Raw regulation text (PDF/document)
+  -> Manual curation + structuring by content admin
+  -> POST /api/v1/orgs/:orgId/content/import (structured JSON)
+  -> studyItems rows in database (auto-chunked if > 3800 chars)
+  -> POST /api/v1/orgs/:orgId/content/generate (triggers batch job)
+  -> Modal Kokoro TTS -> audio bytes -> Supabase Storage
+  -> audioFiles metadata rows in database
+  -> Ready for users: GET /audio/:studyItemId returns signed URL
+```
+
+### Content Import DTOs
+
+```typescript
+// src/content/dto/content-import.dto.ts
+import { z } from 'zod';
+
+export const StudyItemImportSchema = z.object({
+  title: z.string().optional(),
+  textContent: z.string().max(10000),
+  difficulty: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
+  importance: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  tags: z.array(z.string()).default([]),
+  sourceReference: z.string().optional(),
+});
+
+export const SectionImportSchema = z.object({
+  title: z.string(),
+  slug: z.string(),
+  description: z.string().optional(),
+  items: z.array(StudyItemImportSchema),
+});
+
+export const TopicImportSchema = z.object({
+  title: z.string(),
+  slug: z.string(),
+  description: z.string().optional(),
+  sections: z.array(SectionImportSchema),
+});
+
+export const ExamImportSchema = z.object({
+  title: z.string(),
+  slug: z.string(),
+  description: z.string().optional(),
+  sourceDocument: z.string(),
+  editionYear: z.number().int(),
+});
+
+export const ContentImportSchema = z.object({
+  exam: ExamImportSchema,
+  topics: z.array(TopicImportSchema),
+});
+
+export type ContentImport = z.infer<typeof ContentImportSchema>;
+export type StudyItemImport = z.infer<typeof StudyItemImportSchema>;
+```
+
+### Text Chunking
+
+Ported from try-listening's `chunkText()`. If any `textContent` exceeds 3800 characters, the import service auto-chunks it into multiple study items with sequential `sortOrder`.
+
+```typescript
+// src/shared/utils/chunker.ts
+export const MAX_CHUNK_SIZE = 3800;
+
+export function chunkText(text: string, maxSize = MAX_CHUNK_SIZE): string[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  if (trimmed.length <= maxSize) return [trimmed];
+
+  const chunks: string[] = [];
+  let remaining = trimmed;
+
+  while (remaining) {
+    if (remaining.length <= maxSize) {
+      chunks.push(remaining.trim());
+      break;
+    }
+
+    const window = remaining.slice(0, maxSize);
+
+    // Try sentence boundary
+    const sentenceIdx = lastSentenceBoundary(window);
+    if (sentenceIdx > 0) {
+      chunks.push(window.slice(0, sentenceIdx + 1).trim());
+      remaining = remaining.slice(sentenceIdx + 1).trim();
+      continue;
+    }
+
+    // Fall back to word boundary
+    const spaceIdx = window.lastIndexOf(' ');
+    if (spaceIdx > 0) {
+      chunks.push(window.slice(0, spaceIdx).trim());
+      remaining = remaining.slice(spaceIdx).trim();
+      continue;
+    }
+
+    // Hard split (extremely rare)
+    chunks.push(window);
+    remaining = remaining.slice(maxSize).trim();
+  }
+
+  return chunks;
+}
+
+function lastSentenceBoundary(text: string): number {
+  let lastIdx = -1;
+  for (let i = 0; i < text.length; i++) {
+    if ('.!?'.includes(text[i])) {
+      const next = text[i + 1];
+      if (next === undefined || next === ' ' || next === '\n') {
+        lastIdx = i;
+      }
+    }
+  }
+  return lastIdx;
+}
+```
+
+### Content Hash
+
+```typescript
+// src/shared/utils/text-hash.ts
+import { createHash } from 'crypto';
+
+/**
+ * SHA-256 hash of normalized text. Used for audio cache invalidation.
+ * Ported from try-listening src/lib/text-hash.ts.
+ */
+export function computeTextHash(text: string): string {
+  const normalized = text.replace(/\s+/g, ' ').trim().toLowerCase();
+  return createHash('sha256').update(normalized).digest('hex').slice(0, 16);
+}
+```
+
+### Content Versioning Strategy
+
+Regulations update on known cycles (NEC every 3 years, FAR/AIM annually, etc.):
+
+1. **New edition = new exam record.** Create a new `exams` row with `editionYear = 2026`. Copy the topic/section structure. Update study items that changed.
+2. **Archive old edition.** Set `isArchived = true` on the old exam. Users with progress on the old edition keep their data; they just cannot access the archived exam's content through the API.
+3. **Minor corrections.** Update `studyItems.textContent` in place. The `textHash` column changes, which the batch generation job detects as needing re-generation.
+
+---
+
+## 6. Audio Generation Pipeline
+
+### Architecture: Batch Pre-generation
+
+try-listening generates audio on-demand when users press play. niche-audio-prep pre-generates ALL audio at content upload time. Users never wait for TTS.
+
+```
+try-listening:       User presses play -> API -> Modal Kokoro -> return audio -> cache
+niche-audio-prep:    Admin uploads content -> trigger batch -> Modal Kokoro -> Supabase Storage
+                     User presses play -> GET signed URL -> stream from Supabase Storage
+```
+
+### Modal Kokoro TTS Deployment
+
+Identical to try-listening's `modal/kokoro_tts.py`. Same model, same OpenAI-compatible API, same proxy auth. The deployment does not change -- what changes is how we call it (batch from a background job instead of on-demand from a route handler).
+
+```python
+# modal/kokoro_tts.py
+# Identical to try-listening deployment.
+# Key specs:
+#   - GPU: T4
+#   - Concurrency: 10 concurrent inputs per container
+#   - Scale-down: 120s idle
+#   - Min containers: 0
+#   - Auth: Modal proxy auth (Modal-Key + Modal-Secret headers)
+#   - Endpoint: POST /speech (OpenAI-compatible: { model, input, voice, response_format })
+#   - Available voices: 28 Kokoro voices (af_*, am_*, bf_*, bm_*)
+#   - Output: audio bytes (FLAC or WAV)
+```
+
+### TTS Client
+
+```typescript
+// src/tts/tts.service.ts
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+
+@Injectable()
+export class TtsService {
+  private readonly logger = new Logger(TtsService.name);
+
+  constructor(private config: ConfigService) {}
+
+  /**
+   * Synthesize text to audio via Modal-hosted Kokoro TTS.
+   * Ported from try-listening src/lib/tts.ts.
+   */
+  async synthesize(
+    text: string,
+    voice = 'af_heart',
+    responseFormat = 'flac',
+  ): Promise<Buffer> {
+    const url = this.config.getOrThrow('KOKORO_TTS_URL');
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Modal-Key': this.config.getOrThrow('MODAL_AUTH_KEY'),
+        'Modal-Secret': this.config.getOrThrow('MODAL_AUTH_SECRET'),
+      },
+      body: JSON.stringify({
+        model: 'kokoro',
+        input: text,
+        voice,
+        response_format: responseFormat,
+      }),
+    });
+
+    if (!response.ok) {
+      const detail = await response.text();
+      this.logger.error(`TTS synthesis failed: ${response.status} ${detail}`);
+      throw new Error(`TTS synthesis failed: ${response.status}`);
+    }
+
+    return Buffer.from(await response.arrayBuffer());
+  }
+}
+```
+
+### Batch Generation Service
+
+```typescript
+// src/audio-generation/audio-generation.service.ts
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { TtsService } from '../tts/tts.service';
+import { ConfigService } from '@nestjs/config';
+import { createClient } from '@supabase/supabase-js';
+
+interface PendingGeneration {
+  studyItemId: string;
+  textContent: string;
+  textHash: string;
+  voice: string;
+  storagePath: string;
+}
+
+@Injectable()
+export class AudioGenerationService {
+  private readonly logger = new Logger(AudioGenerationService.name);
+  private supabase;
+
+  constructor(
+    private prisma: PrismaService,
+    private tts: TtsService,
+    private config: ConfigService,
+  ) {
+    this.supabase = createClient(
+      this.config.getOrThrow('SUPABASE_URL'),
+      this.config.getOrThrow('SUPABASE_SERVICE_ROLE_KEY'),
+    );
+  }
+
+  async findPendingGenerations(
+    orgId: string,
+    voices: string[],
+  ): Promise<PendingGeneration[]> {
+    // Raw SQL because this join + NOT EXISTS is cleaner than Prisma's generated API
+    const rows = await this.prisma.$queryRaw<Array<{
+      study_item_id: string;
+      text_content: string;
+      text_hash: string;
+      exam_slug: string;
+      org_slug: string;
+    }>>`
+      SELECT si.id as study_item_id, si.text_content, si.text_hash,
+             e.slug as exam_slug, o.slug as org_slug
+      FROM study_items si
+      JOIN sections s ON s.id = si.section_id
+      JOIN topics t ON t.id = s.topic_id
+      JOIN exams e ON e.id = t.exam_id
+      JOIN organizations o ON o.id = e.org_id
+      WHERE e.org_id = ${orgId}::uuid AND si.is_archived = false
+      AND NOT EXISTS (
+        SELECT 1 FROM audio_files af
+        WHERE af.study_item_id = si.id
+        AND af.text_hash = si.text_hash
+        AND af.voice = ANY(${voices})
+        AND af.is_current = true
+      )
+    `;
+
+    const jobs: PendingGeneration[] = [];
+    for (const row of rows) {
+      for (const voice of voices) {
+        jobs.push({
+          studyItemId: row.study_item_id,
+          textContent: row.text_content,
+          textHash: row.text_hash,
+          voice,
+          storagePath: `audio/${row.org_slug}/${row.exam_slug}/${row.study_item_id}/${voice}.flac`,
+        });
+      }
+    }
+    return jobs;
+  }
+
+  async generateAndUpload(job: PendingGeneration): Promise<{
+    studyItemId: string;
+    voice: string;
+    textHash: string;
+    storagePath: string;
+    fileSizeBytes: number;
+  }> {
+    const audioBuffer = await this.tts.synthesize(job.textContent, job.voice);
+
+    const { error } = await this.supabase.storage
+      .from('audio')
+      .upload(job.storagePath, audioBuffer, {
+        contentType: 'audio/flac',
+        upsert: true,
+      });
+
+    if (error) throw new Error(`Storage upload failed: ${error.message}`);
+
+    return {
+      studyItemId: job.studyItemId,
+      voice: job.voice,
+      textHash: job.textHash,
+      storagePath: job.storagePath,
+      fileSizeBytes: audioBuffer.length,
+    };
+  }
+
+  async runBatchGeneration(
+    orgId: string,
+    voices?: string[],
+    concurrency = 5,
+    jobId?: string,
+  ): Promise<{ generated: number; failed: number; total: number; errors: any[] }> {
+    const effectiveVoices = voices ?? ['af_heart'];
+    const jobs = await this.findPendingGenerations(orgId, effectiveVoices);
+
+    if (jobId) {
+      await this.prisma.audioGenerationJob.update({
+        where: { id: jobId },
+        data: { status: 'in_progress', totalItems: jobs.length, startedAt: new Date() },
+      });
+    }
+
+    let generated = 0;
+    let failed = 0;
+    const errors: any[] = [];
+
+    // Process with concurrency limit
+    const semaphore = { count: 0 };
+    const results = jobs.map(async (job) => {
+      while (semaphore.count >= concurrency) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      semaphore.count++;
+
+      try {
+        const meta = await this.generateAndUpload(job);
+
+        // Mark old audio as non-current
+        await this.prisma.audioFile.updateMany({
+          where: { studyItemId: meta.studyItemId, voice: meta.voice, isCurrent: true },
+          data: { isCurrent: false },
+        });
+
+        // Insert new audio_files row
+        await this.prisma.audioFile.create({
+          data: {
+            studyItemId: meta.studyItemId,
+            voice: meta.voice,
+            model: 'kokoro',
+            textHash: meta.textHash,
+            storagePath: meta.storagePath,
+            storageBucket: 'audio',
+            fileSizeBytes: meta.fileSizeBytes,
+            format: 'flac',
+          },
+        });
+
+        generated++;
+
+        if (jobId) {
+          await this.prisma.audioGenerationJob.update({
+            where: { id: jobId },
+            data: { completedItems: generated },
+          });
+        }
+      } catch (e) {
+        failed++;
+        errors.push({
+          studyItemId: job.studyItemId,
+          voice: job.voice,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      } finally {
+        semaphore.count--;
+      }
+    });
+
+    await Promise.all(results);
+
+    const finalStatus = failed === 0 ? 'completed' : 'failed';
+    if (jobId) {
+      await this.prisma.audioGenerationJob.update({
+        where: { id: jobId },
+        data: {
+          status: finalStatus as any,
+          failedItems: failed,
+          errorLog: errors,
+          completedAt: new Date(),
+        },
+      });
+    }
+
+    return { generated, failed, total: jobs.length, errors };
+  }
+}
+```
+
+### Voice Configuration
+
+Default voices per niche, stored in `organizations.settings` JSONB:
+
+```typescript
+// src/audio-generation/voice-config.service.ts
+import { Injectable } from '@nestjs/common';
+
+const DEFAULT_VOICES: Record<string, string[]> = {
+  firefighting: ['am_adam', 'af_heart'],
+  electrical:   ['am_adam', 'af_heart'],
+  aviation:     ['am_adam', 'af_nova'],
+  cdl:          ['am_adam', 'af_heart'],
+  nursing:      ['af_heart', 'am_adam'],
+  plumbing:     ['am_adam', 'af_heart'],
+  hvac:         ['am_adam', 'af_heart'],
+  real_estate:  ['af_heart', 'am_adam'],
+  insurance:    ['af_heart', 'am_adam'],
+};
+
+const FALLBACK_VOICES = ['af_heart', 'am_adam'];
+
+@Injectable()
+export class VoiceConfigService {
+  getVoicesForOrg(org: { niche: string; settings: any }): string[] {
+    const custom = org.settings?.voices as string[] | undefined;
+    if (custom?.length) return custom;
+    return DEFAULT_VOICES[org.niche] ?? FALLBACK_VOICES;
+  }
+}
+```
+
+### Audio Serving
+
+Users never hit Modal directly. They get signed URLs from Supabase Storage:
+
+```typescript
+// src/audio/audio.service.ts
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
+import { createClient } from '@supabase/supabase-js';
+
+@Injectable()
+export class AudioService {
+  private supabase;
+
+  constructor(
+    private prisma: PrismaService,
+    private config: ConfigService,
+  ) {
+    this.supabase = createClient(
+      this.config.getOrThrow('SUPABASE_URL'),
+      this.config.getOrThrow('SUPABASE_SERVICE_ROLE_KEY'),
+    );
+  }
+
+  async getSignedUrl(
+    orgId: string,
+    studyItemId: string,
+    voice = 'af_heart',
+    expiresIn = 3600,
+  ) {
+    const audioFile = await this.prisma.audioFile.findFirst({
+      where: {
+        studyItemId,
+        voice,
+        isCurrent: true,
+        studyItem: {
+          section: {
+            topic: {
+              exam: { orgId, isPublished: true, isArchived: false },
+            },
+          },
+        },
+      },
+    });
+
+    if (!audioFile) {
+      throw new NotFoundException('Audio file not found');
+    }
+
+    const { data, error } = await this.supabase.storage
+      .from(audioFile.storageBucket)
+      .createSignedUrl(audioFile.storagePath, expiresIn);
+
+    if (error) throw new Error(`Failed to create signed URL: ${error.message}`);
+
+    return {
+      url: data.signedUrl,
+      durationSeconds: audioFile.durationSeconds,
+      voice: audioFile.voice,
+      format: audioFile.format,
+      expiresIn,
+    };
+  }
+}
+```
+
+---
+
+## 7. User Progress & Spaced Repetition
+
+### SM-2 Algorithm
+
+```typescript
+// src/progress/spaced-repetition.service.ts
+import { Injectable } from '@nestjs/common';
+
+interface ReviewCalculation {
+  easeFactor: number;
+  intervalDays: number;
+  nextReviewAt: Date;
+}
+
+@Injectable()
+export class SpacedRepetitionService {
+  /**
+   * SM-2 inspired algorithm for audio study items.
+   *
+   * Simplified quality scoring:
+   *   5 = completed listening (isCompleted=true)
+   *   2 = incomplete listening (isCompleted=false)
+   */
+  calculateNextReview(
+    currentEase: number,
+    currentInterval: number,
+    listenCount: number,
+    isCompleted: boolean,
+  ): ReviewCalculation {
+    const quality = isCompleted ? 5 : 2;
+
+    // Update ease factor
+    let ease = currentEase + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+    ease = Math.max(1.3, ease);
+
+    // Calculate interval
+    let interval: number;
+    if (listenCount <= 1) {
+      interval = 1;
+    } else if (listenCount === 2) {
+      interval = 3;
+    } else {
+      interval = Math.round(currentInterval * ease);
+    }
+
+    interval = Math.min(180, interval); // Cap at 6 months
+
+    const nextReviewAt = new Date();
+    nextReviewAt.setDate(nextReviewAt.getDate() + interval);
+
+    return { easeFactor: ease, intervalDays: interval, nextReviewAt };
+  }
+}
+```
+
+### Progress Update Flow
+
+When the client reports progress:
+
+1. Upsert `userProgress` row for (userId, studyItemId).
+2. If `isCompleted` transitions to `true` for the first time:
+   a. Increment `listenCount`.
+   b. Recalculate SM-2 fields via `calculateNextReview()`.
+   c. Upsert `userStreaks` for today (increment `itemsCompleted`, add `listenSeconds`).
+   d. Capture `study_item_listened` event to PostHog.
+3. Always update `lastPositionSeconds`, `lastPlaybackRate`, `lastListenedAt`.
+
+```typescript
+// src/progress/progress.service.ts
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { SpacedRepetitionService } from './spaced-repetition.service';
+import { AnalyticsService } from '../analytics/analytics.service';
+
+@Injectable()
+export class ProgressService {
+  constructor(
+    private prisma: PrismaService,
+    private spacedRep: SpacedRepetitionService,
+    private analytics: AnalyticsService,
+  ) {}
+
+  async updateProgress(
+    userId: string,
+    orgId: string,
+    data: {
+      studyItemId: string;
+      positionSeconds: number;
+      playbackRate: number;
+      isCompleted: boolean;
+    },
+  ) {
+    const existing = await this.prisma.userProgress.findUnique({
+      where: { userId_studyItemId: { userId, studyItemId: data.studyItemId } },
+    });
+
+    const isNewCompletion = data.isCompleted && (!existing || !existing.isCompleted);
+    const newListenCount = isNewCompletion
+      ? (existing?.listenCount ?? 0) + 1
+      : (existing?.listenCount ?? 0);
+
+    let smFields = {};
+    if (isNewCompletion) {
+      smFields = this.spacedRep.calculateNextReview(
+        existing?.easeFactor ?? 2.5,
+        existing?.intervalDays ?? 1,
+        newListenCount,
+        true,
+      );
+    }
+
+    const progress = await this.prisma.userProgress.upsert({
+      where: { userId_studyItemId: { userId, studyItemId: data.studyItemId } },
+      create: {
+        userId,
+        studyItemId: data.studyItemId,
+        orgId,
+        lastPositionSeconds: data.positionSeconds,
+        lastPlaybackRate: data.playbackRate,
+        isCompleted: data.isCompleted,
+        listenCount: isNewCompletion ? 1 : 0,
+        firstListenedAt: new Date(),
+        lastListenedAt: new Date(),
+        ...smFields,
+      },
+      update: {
+        lastPositionSeconds: data.positionSeconds,
+        lastPlaybackRate: data.playbackRate,
+        isCompleted: data.isCompleted,
+        listenCount: newListenCount,
+        lastListenedAt: new Date(),
+        ...(isNewCompletion ? { firstListenedAt: existing?.firstListenedAt ?? new Date() } : {}),
+        ...smFields,
+      },
+    });
+
+    // Update streaks if completed
+    if (isNewCompletion) {
+      const today = new Date().toISOString().slice(0, 10);
+      await this.prisma.$executeRaw`
+        INSERT INTO user_streaks (id, user_id, org_id, date, items_completed, listen_seconds)
+        VALUES (gen_random_uuid(), ${userId}::uuid, ${orgId}::uuid, ${today}::date, 1, ${Math.round(data.positionSeconds)})
+        ON CONFLICT (user_id, org_id, date)
+        DO UPDATE SET
+          items_completed = user_streaks.items_completed + 1,
+          listen_seconds = user_streaks.listen_seconds + ${Math.round(data.positionSeconds)},
+          updated_at = NOW()
+      `;
+
+      this.analytics.capture({
+        distinctId: userId,
+        event: 'study_item_listened',
+        properties: { orgId, studyItemId: data.studyItemId },
+      });
+    }
+
+    return progress;
+  }
+}
+```
+
+### Review Queue
+
+Query items where `nextReviewAt <= NOW()` for a given user and org, ordered by `nextReviewAt` ascending (most overdue first). Include item metadata (title, section, topic) for display in the client.
+
+### Streak Calculation
+
+Streaks are computed from `userStreaks` rows. A streak is the count of consecutive days with at least one `itemsCompleted > 0` row, ending at today (or yesterday, if the user hasn't studied today yet). The backend calculates this on-read -- no separate streak counter to keep in sync.
+
+```typescript
+// src/streaks/streaks.service.ts
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class StreaksService {
+  constructor(private prisma: PrismaService) {}
+
+  async getStreak(userId: string, orgId: string) {
+    const rows = await this.prisma.userStreak.findMany({
+      where: { userId, orgId, itemsCompleted: { gt: 0 } },
+      orderBy: { date: 'desc' },
+      take: 365,
+      select: { date: true, listenSeconds: true, itemsCompleted: true },
+    });
+
+    if (rows.length === 0) return { currentStreak: 0, longestStreak: 0, history: [] };
+
+    // Calculate current streak
+    let currentStreak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < rows.length; i++) {
+      const expectedDate = new Date(today);
+      expectedDate.setDate(expectedDate.getDate() - i);
+      const rowDate = new Date(rows[i].date);
+      rowDate.setHours(0, 0, 0, 0);
+
+      if (rowDate.getTime() === expectedDate.getTime()) {
+        currentStreak++;
+      } else if (i === 0) {
+        // Allow yesterday as the most recent streak day
+        expectedDate.setDate(expectedDate.getDate() - 1);
+        if (rowDate.getTime() === expectedDate.getTime()) {
+          currentStreak++;
+        } else {
+          break;
+        }
+      } else {
+        break;
+      }
+    }
+
+    return { currentStreak, history: rows };
+  }
+}
+```
+
+---
+
+## 8. Billing (Stripe)
+
+### Plan Tiers
+
+| Tier | Price | Seats | Features |
+|------|-------|-------|----------|
+| **Free** | $0 | 1 | 1 exam, 50 study items, no offline downloads |
+| **Individual** | $14.99/mo | 1 | All exams in niche, unlimited items, offline |
+| **Team** | $49.99/mo | 10 | Everything in Individual + team progress dashboard |
+| **Enterprise** | Custom | Unlimited | SSO, custom content, dedicated support |
+
+### Checkout Flow
+
+```
+1. Org admin calls POST /api/v1/orgs/:orgId/billing/checkout with { plan }
+2. Server creates Stripe Checkout Session with org_id in metadata
+3. Returns checkout URL -> frontend redirects user to Stripe
+4. After payment, Stripe sends webhook -> POST /api/v1/webhooks/stripe
+5. Webhook handler creates/updates subscriptions row
+6. Stripe redirects user back to app (success_url)
+```
+
+### Webhook Handler
+
+```typescript
+// src/billing/stripe-webhook.controller.ts
+import { Controller, Post, Req, Res, HttpException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
+import { Request, Response } from 'express';
+import Stripe from 'stripe';
+
+@Controller('api/v1/webhooks')
+export class StripeWebhookController {
+  private readonly logger = new Logger(StripeWebhookController.name);
+  private stripe: Stripe;
+
+  constructor(
+    private config: ConfigService,
+    private prisma: PrismaService,
+  ) {
+    this.stripe = new Stripe(this.config.getOrThrow('STRIPE_SECRET_KEY'));
+  }
+
+  @Post('stripe')
+  async handleWebhook(@Req() req: Request, @Res() res: Response) {
+    const sig = req.headers['stripe-signature'] as string;
+    let event: Stripe.Event;
+
+    try {
+      event = this.stripe.webhooks.constructEvent(
+        req.body, // raw body -- needs express.raw() middleware on this route
+        sig,
+        this.config.getOrThrow('STRIPE_WEBHOOK_SECRET'),
+      );
+    } catch {
+      throw new HttpException('Invalid signature', 400);
+    }
+
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const orgId = session.metadata?.org_id;
+        const plan = session.metadata?.plan;
+        if (orgId) {
+          await this.prisma.subscription.upsert({
+            where: { orgId },
+            create: {
+              orgId,
+              stripeCustomerId: session.customer as string,
+              stripeSubscriptionId: session.subscription as string,
+              plan: plan as any ?? 'individual',
+              status: 'active',
+            },
+            update: {
+              stripeCustomerId: session.customer as string,
+              stripeSubscriptionId: session.subscription as string,
+              plan: plan as any ?? 'individual',
+              status: 'active',
+            },
+          });
+        }
+        break;
+      }
+
+      case 'customer.subscription.updated': {
+        const sub = event.data.object as Stripe.Subscription;
+        await this.prisma.subscription.updateMany({
+          where: { stripeSubscriptionId: sub.id },
+          data: {
+            status: sub.status as any,
+            currentPeriodStart: new Date(sub.current_period_start * 1000),
+            currentPeriodEnd: new Date(sub.current_period_end * 1000),
+            cancelAtPeriodEnd: sub.cancel_at_period_end,
+          },
+        });
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const sub = event.data.object as Stripe.Subscription;
+        await this.prisma.subscription.updateMany({
+          where: { stripeSubscriptionId: sub.id },
+          data: { status: 'canceled' },
+        });
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice;
+        await this.prisma.subscription.updateMany({
+          where: { stripeCustomerId: invoice.customer as string },
+          data: { status: 'past_due' },
+        });
+        break;
+      }
+    }
+
+    res.json({ received: true });
+  }
+}
+```
+
+### Subscription Gating
+
+```typescript
+// src/billing/guards/subscription.guard.ts
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { PrismaService } from '../../prisma/prisma.service';
+import { PlanTier } from '@prisma/client';
+
+const PLAN_HIERARCHY: Record<PlanTier, number> = {
+  free: 0,
+  individual: 1,
+  team: 2,
+  enterprise: 3,
+};
+
+export const MIN_PLAN_KEY = 'minPlan';
+
+@Injectable()
+export class SubscriptionGuard implements CanActivate {
+  constructor(
+    private prisma: PrismaService,
+    private reflector: Reflector,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const orgId = request.params.orgId;
+    const minPlan = this.reflector.get<PlanTier>(MIN_PLAN_KEY, context.getHandler()) ?? 'free';
+
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { orgId },
+    });
+
+    if (!subscription || !['active', 'trialing'].includes(subscription.status)) {
+      if (minPlan === 'free') {
+        request.subscription = { plan: 'free', status: 'active' };
+        return true;
+      }
+      throw new ForbiddenException('Subscription required');
+    }
+
+    if (PLAN_HIERARCHY[subscription.plan] < PLAN_HIERARCHY[minPlan]) {
+      throw new ForbiddenException(`Requires ${minPlan} plan or higher`);
+    }
+
+    request.subscription = { plan: subscription.plan, status: subscription.status };
+    return true;
+  }
+}
+```
+
+### Free Tier Enforcement
+
+The free tier caps are enforced at the application layer, not at Stripe:
+
+```typescript
+// Checked in content listing endpoints:
+// - Free: max 1 published exam, max 50 study items accessible
+// - Individual+: all exams, all items
+// The enforcement is a simple count check in the exam/items query
+```
+
+---
+
+## 9. Infrastructure & Deployment
+
+### Services
+
+| Service | Purpose | Est. Cost |
+|---------|---------|-----------|
+| **Supabase** (Pro) | Auth, PostgreSQL, Storage | $25/mo |
+| **Railway or Fly.io** | NestJS container hosting | ~$5-20/mo |
+| **Modal** | Kokoro TTS GPU hosting | ~$0.05/1M chars (batch only) |
+| **Stripe** | Payment processing | 2.9% + $0.30/txn |
+| **PostHog** (free tier) | Analytics, feature flags | $0 to start |
+
+No Vercel for the backend. The backend is a NestJS container deployed to Railway, Fly.io, or any Docker host.
+
+### Supabase Storage Buckets
+
+```
+audio/                    -- Pre-generated audio files (private bucket, signed URLs)
+  {org_slug}/
+    {exam_slug}/
+      {study_item_id}/
+        {voice}.flac      -- e.g., af_heart.flac, am_adam.flac
+```
+
+### Environment Variables
+
+```bash
+# Supabase
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJ...         # Server-only: storage writes, admin ops
+SUPABASE_JWT_SECRET=your-jwt-secret      # For verifying client JWTs
+DATABASE_URL=postgresql://...            # Prisma connection string
+
+# Modal (TTS)
+KOKORO_TTS_URL=https://xxx.modal.run/speech
+MODAL_AUTH_KEY=xxx
+MODAL_AUTH_SECRET=xxx
+
+# Stripe
+STRIPE_SECRET_KEY=sk_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# PostHog
+POSTHOG_API_KEY=phc_...
+POSTHOG_HOST=https://us.i.posthog.com
+
+# App
+CORS_ORIGINS=https://firefighterprep.com,https://pilotaudioprep.com,http://localhost:3000
+NODE_ENV=production
+LOG_LEVEL=info
+PORT=3000
+```
+
+### CORS Configuration
+
+The backend serves multiple frontend domains. CORS origins configured via env var:
+
+```typescript
+// src/main.ts
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { ConfigService } from '@nestjs/config';
+import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
+import { LoggingInterceptor } from './shared/interceptors/logging.interceptor';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true, // Required for Stripe webhook signature verification
+  });
+
+  const config = app.get(ConfigService);
+
+  app.enableCors({
+    origin: config.get('CORS_ORIGINS')?.split(',') ?? ['http://localhost:3000'],
+    credentials: true,
+  });
+
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(new LoggingInterceptor());
+
+  const port = config.get('PORT') ?? 3000;
+  await app.listen(port);
+}
+bootstrap();
+```
+
+### App Module
+
+```typescript
+// src/app.module.ts
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
+import { HealthModule } from './health/health.module';
+import { OrgsModule } from './orgs/orgs.module';
+import { ExamsModule } from './exams/exams.module';
+import { AudioModule } from './audio/audio.module';
+import { ProgressModule } from './progress/progress.module';
+import { StreaksModule } from './streaks/streaks.module';
+import { BookmarksModule } from './bookmarks/bookmarks.module';
+import { ContentModule } from './content/content.module';
+import { MembersModule } from './members/members.module';
+import { InvitesModule } from './invites/invites.module';
+import { BillingModule } from './billing/billing.module';
+import { AdminModule } from './admin/admin.module';
+import { TtsModule } from './tts/tts.module';
+import { AudioGenerationModule } from './audio-generation/audio-generation.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    AuthModule,
+    HealthModule,
+    OrgsModule,
+    ExamsModule,
+    AudioModule,
+    ProgressModule,
+    StreaksModule,
+    BookmarksModule,
+    ContentModule,
+    MembersModule,
+    InvitesModule,
+    BillingModule,
+    AdminModule,
+    TtsModule,
+    AudioGenerationModule,
+    AnalyticsModule,
+  ],
+})
+export class AppModule {}
+```
+
+### Prisma Service
+
+```typescript
+// src/prisma/prisma.service.ts
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+
+@Injectable()
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  async onModuleInit() {
+    await this.$connect();
+  }
+
+  async onModuleDestroy() {
+    await this.$disconnect();
+  }
+}
+```
+
+### Dockerfile
+
+```dockerfile
+FROM node:20-slim AS builder
+
+WORKDIR /app
+COPY package.json bun.lock ./
+RUN npm install --frozen-lockfile
+
+COPY prisma ./prisma
+RUN npx prisma generate
+
+COPY tsconfig.json tsconfig.build.json nest-cli.json ./
+COPY src ./src
+RUN npm run build
+
+FROM node:20-slim AS runner
+
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package.json ./
+
+EXPOSE 3000
+CMD ["node", "dist/main.js"]
+```
+
+### Dependencies
+
+```json
+// package.json (relevant deps)
+{
+  "name": "niche-audio-prep-backend",
+  "version": "0.1.0",
+  "dependencies": {
+    "@nestjs/common": "^11",
+    "@nestjs/config": "^4",
+    "@nestjs/core": "^11",
+    "@nestjs/platform-express": "^11",
+    "@prisma/client": "^6",
+    "@supabase/supabase-js": "^2",
+    "jsonwebtoken": "^9",
+    "posthog-node": "^4",
+    "reflect-metadata": "^0.2",
+    "rxjs": "^7",
+    "stripe": "^17",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11",
+    "@nestjs/schematics": "^11",
+    "@nestjs/testing": "^11",
+    "@types/express": "^5",
+    "@types/jsonwebtoken": "^9",
+    "@types/node": "^22",
+    "jest": "^30",
+    "prisma": "^6",
+    "ts-jest": "^29",
+    "typescript": "^5.7"
+  }
+}
+```
+
+---
+
+## 10. Evolution from try-listening
+
+### What We Port (keep in TypeScript)
+
+| try-listening (TypeScript) | niche-audio-prep (TypeScript/NestJS) | Notes |
+|---------------------------|--------------------------------------|-------|
+| `src/lib/chunker.ts` | `src/shared/utils/chunker.ts` | Same algorithm, same language |
+| `src/lib/tts.ts` (`synthesize()`) | `src/tts/tts.service.ts` | Same Modal API, NestJS service |
+| `src/lib/rate-limiter.ts` (`TokenBucket`) | `src/shared/middleware/rate-limiter.middleware.ts` | Same token bucket logic |
+| `src/lib/text-hash.ts` | `src/shared/utils/text-hash.ts` | Same SHA-256, use Node.js crypto instead of Web Crypto |
+| `modal/kokoro_tts.py` | `modal/kokoro_tts.py` | Unchanged -- already Python |
+| `src/lib/constants.ts` (voice IDs, chunk size) | `src/shared/utils/chunker.ts` + voice-config service | Split across relevant locations |
+
+### What Changes Fundamentally
+
+| try-listening | niche-audio-prep | Why |
+|---------------|------------------|-----|
+| Next.js API routes | NestJS standalone service | TypeScript end-to-end, proper module system |
+| Cookie-based auth (`@supabase/ssr`) | JWT Bearer auth (Guard) | Standalone API, not SSR |
+| `pg.Pool` (node-postgres) | Prisma Client | Type-safe ORM, generated types |
+| Audio in `BYTEA` columns | Audio in Supabase Storage | Pre-gen content is GBs |
+| User pastes URLs | Admin imports structured content | Professional exam material |
+| Single-user model | Multi-tenant orgs | Orgs purchase subscriptions |
+| On-demand TTS | Batch pre-generated TTS | Users never wait |
+| `library_entries` (flat) | `exams > topics > sections > studyItems` | Content hierarchy |
+| SHA-based entry IDs | UUID primary keys | Admin-managed, no dedup |
+| Google OAuth only | Google + email/password + magic link | Broader user base |
+
+### What We Do NOT Port
+
+- `src/lib/extractor.ts` -- URL content extraction. Content is admin-uploaded.
+- `src/lib/file-parser.ts` -- File upload parsing. Not needed.
+- `src/lib/idb-audio-store.ts` -- IndexedDB client-side cache. Frontend concern.
+- `src/lib/library.ts` -- Library management. Replaced by content hierarchy.
+- `src/middleware.ts` -- Next.js middleware. Not applicable.
+- `src/components/*` -- React components. Frontend.
+- `src/hooks/*` -- React hooks. Frontend.
+
+---
+
+## 11. Implementation Plan
+
+### Phase 1: Foundation
+
+**Task 1: Project Scaffolding**
+- [ ] Create `backend/` directory with NestJS scaffold (`@nestjs/cli`)
+- [ ] Install deps: `@nestjs/common`, `@nestjs/config`, `@prisma/client`, `@supabase/supabase-js`, `jsonwebtoken`, `stripe`, `posthog-node`, `zod`
+- [ ] Create `Dockerfile` and `.env.example`
+- [ ] Set up `ConfigModule.forRoot({ isGlobal: true })` with Zod env validation
+- [ ] Verify `bun run start:dev` starts and serves `GET /api/v1/health`
+
+**Task 2: Database Layer (Prisma)**
+- [ ] Create `prisma/schema.prisma` with full schema from section 2
+- [ ] Create `src/prisma/prisma.module.ts` and `prisma.service.ts` (global module)
+- [ ] Run `npx prisma migrate dev --name init` to generate initial migration
+- [ ] Create `prisma/seed.ts` for dev data (one org, one user, sample content)
+- [ ] Test: Prisma client connects, queries work, seed data loads
+
+**Task 3: Auth & Guards**
+- [ ] Create `src/auth/guards/supabase-auth.guard.ts` (JWT verification)
+- [ ] Create `src/auth/guards/org-membership.guard.ts` with role hierarchy
+- [ ] Create `src/auth/guards/global-admin.guard.ts`
+- [ ] Create decorators: `@CurrentUser()`, `@CurrentOrg()`, `@MinRole()`
+- [ ] Create Supabase auth trigger SQL for auto user record creation
+- [ ] Test: valid JWT extracts userId; invalid JWT returns 401; membership check returns 403 for non-members
+
+### Phase 2: Content Management
+
+**Task 4: Content Import Service**
+- [ ] Create `src/shared/utils/chunker.ts` (port from try-listening)
+- [ ] Create `src/shared/utils/text-hash.ts` (port from try-listening)
+- [ ] Create `src/content/dto/content-import.dto.ts` with Zod schemas
+- [ ] Create `src/content/content.service.ts` with normalization, auto-chunking, DB insertion
+- [ ] Test: chunker splits at sentence boundaries; oversized items auto-chunked; hashes stable
+
+**Task 5: Content Admin API**
+- [ ] Create `src/content/content.controller.ts`
+  - `POST /content/import` -- bulk import from JSON
+  - `GET /content/jobs` -- list generation job statuses
+  - `GET /content/items` -- list all items (admin view, includes unpublished)
+  - `PUT /content/items/:itemId` -- update study item text/metadata
+  - `DELETE /content/items/:itemId` -- archive (soft delete)
+- [ ] Test: import creates correct DB structure; admin role enforced; non-admins get 403
+
+### Phase 3: Audio Generation
+
+**Task 6: TTS Client & Batch Generation**
+- [ ] Create `src/tts/tts.service.ts` (port synthesize from try-listening)
+- [ ] Create `src/audio-generation/audio-generation.service.ts` with `findPendingGenerations`, `generateAndUpload`, `runBatchGeneration`
+- [ ] Create `src/audio-generation/voice-config.service.ts` with niche-specific defaults
+- [ ] Create `src/audio/audio.service.ts` for signed URL generation
+- [ ] Wire `POST /content/generate` to create job record + trigger batch in background
+- [ ] Test: pending items correctly identified; generation job status tracked; audio files uploaded to Storage
+
+### Phase 4: User-Facing API
+
+**Task 7: Org & Exam Routes**
+- [ ] Create `src/orgs/orgs.controller.ts` -- `GET /orgs`, `GET /orgs/:orgId`
+- [ ] Create `src/exams/exams.controller.ts` -- `GET /exams`, `GET /exams/:examId`, `GET /exams/:examId/items`
+- [ ] Test: only published non-archived exams returned; org scoping enforced; pagination works
+
+**Task 8: Audio Serving**
+- [ ] Create `src/audio/audio.controller.ts` -- `GET /audio/:studyItemId?voice=af_heart`
+- [ ] Returns signed URL + metadata (duration, format, voice)
+- [ ] Test: returns valid signed URL; 404 for missing audio; voice parameter respected
+
+**Task 9: Progress Tracking**
+- [ ] Create `src/progress/spaced-repetition.service.ts` (SM-2 algorithm)
+- [ ] Create `src/progress/progress.service.ts` (upsert logic, completion detection)
+- [ ] Create `src/progress/progress.controller.ts` -- `GET /progress`, `POST /progress`, `GET /progress/review-queue`
+- [ ] Test: SM-2 intervals correct; completion triggers streak update; review queue returns due items sorted by urgency
+
+**Task 10: Streaks & Bookmarks**
+- [ ] Create `src/streaks/streaks.service.ts` (consecutive day calculation)
+- [ ] Create `src/streaks/streaks.controller.ts` -- `GET /streaks`
+- [ ] Create `src/bookmarks/bookmarks.controller.ts` -- `GET`, `POST`, `DELETE`
+- [ ] Test: streak count correct for consecutive days with gaps; bookmarks scoped to user+org
+
+### Phase 5: Billing & Org Management
+
+**Task 11: Stripe Integration**
+- [ ] Create `src/billing/stripe-webhook.controller.ts` (handle checkout.session.completed, subscription.updated/deleted, invoice.payment_failed)
+- [ ] Create `src/billing/billing.service.ts` (create checkout session, create portal session)
+- [ ] Create `src/billing/billing.controller.ts`: `POST /billing/checkout`, `POST /billing/portal`
+- [ ] Create `src/billing/guards/subscription.guard.ts` for tier gating
+- [ ] Test: webhook correctly updates subscription status for each event type; tier gating blocks downgraded features
+
+**Task 12: Org Admin Routes**
+- [ ] Create `src/members/members.controller.ts` -- list members, update role, remove member
+- [ ] Create `src/invites/invites.controller.ts` -- create, list, revoke invites
+- [ ] Create `src/auth/auth.controller.ts` -- `GET /me`, `POST /auth/accept-invite`
+- [ ] Test: invite creation + acceptance + expiration; role updates; member removal; seat limit enforcement
+
+**Task 13: Global Admin Routes**
+- [ ] Create `src/admin/admin.controller.ts` -- `POST /admin/orgs`, `GET /admin/orgs`, `PATCH /admin/orgs/:orgId`
+- [ ] Test: global_admin flag enforced; org creation with correct defaults; settings update
+
+### Phase 6: Polish & Hardening
+
+**Task 14: Rate Limiting**
+- [ ] Create `src/shared/middleware/rate-limiter.middleware.ts` (port TokenBucket + PerUserTokenBucket from try-listening)
+- [ ] Apply as NestJS middleware, respect tier-based limits from subscription table
+- [ ] Test: burst protection works; tier-based limits enforced; 429 returned with retry info
+
+**Task 15: PostHog Integration**
+- [ ] Create `src/analytics/analytics.service.ts` with server-side PostHog capture
+- [ ] Instrument events: `content_imported`, `audio_batch_started`, `audio_batch_completed`, `study_item_listened`, `streak_updated`, `subscription_created`, `subscription_canceled`, `org_created`, `member_invited`, `member_joined`
+- [ ] Include properties: `orgId`, `orgSlug`, `niche`, `planTier`, `userId` as appropriate
+
+**Task 16: Integration Tests**
+- [ ] Full content lifecycle: create org -> import content -> generate audio -> list exams -> get audio URL -> update progress -> check review queue
+- [ ] Auth flow: invalid JWT, expired JWT, missing membership, insufficient role
+- [ ] Billing flow: webhook processing for each event type, tier gating
+- [ ] Edge cases: empty org, archived content, concurrent progress updates
+
+---
+
+## Appendix A: Supabase Storage Bucket Config
+
+```sql
+-- Run in Supabase SQL editor (not in app migrations)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('audio', 'audio', false);  -- Private bucket: signed URLs required
+
+-- Storage RLS: authenticated users can read audio files
+CREATE POLICY audio_select ON storage.objects
+  FOR SELECT USING (
+    bucket_id = 'audio'
+    AND auth.role() = 'authenticated'
+  );
+
+-- Storage RLS: service role handles uploads (bypasses RLS by default)
+-- This policy adds defense-in-depth for admin users
+CREATE POLICY audio_insert ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'audio'
+    AND EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_global_admin = true)
+  );
+```
+
+## Appendix B: Content Size Estimates
 
 | Niche | Source Pages | Est. Study Items | Est. Audio Hours | Est. Storage |
 |-------|-------------|-----------------|-----------------|-------------|
@@ -2563,4 +2687,44 @@ CREATE TRIGGER on_auth_user_created
 | CDL | ~100 | ~250 | ~8h | ~3 GB |
 | Per niche average | ~500 | ~1,000 | ~30h | ~10 GB |
 
-At Supabase Pro ($25/mo), storage is 100 GB included. Enough for ~10 niches before needing the first upgrade.
+Supabase Pro ($25/mo) includes 100 GB storage. Enough for ~10 niches before needing upgrade.
+
+## Appendix C: PostHog Events
+
+```typescript
+// Server-side events to capture:
+'content_imported'          // Admin imported content batch
+'audio_batch_started'       // Batch TTS generation kicked off
+'audio_batch_completed'     // Batch TTS generation finished (with success/fail counts)
+'study_item_listened'       // User completed listening to an item
+'streak_updated'            // User's streak changed
+'subscription_created'      // New Stripe subscription
+'subscription_canceled'     // Subscription canceled
+'org_created'               // New org created
+'member_invited'            // Invite sent
+'member_joined'             // Invite accepted
+
+// Properties on all events:
+// orgId, orgSlug, niche (for org-scoped events)
+// userId (for user-scoped events)
+// planTier (when relevant)
+```
+
+## Appendix D: Supabase Auth Trigger
+
+See the SQL in [Section 3: Auth & Multi-tenancy](#3-auth--multi-tenancy). Run this in the Supabase SQL editor after creating the `users` table.
+
+## Appendix E: Shared Types Package
+
+The monorepo includes a `packages/types` package that exports shared TypeScript types used by both the NestJS backend and the Next.js/React Native frontends. Key shared types:
+
+```typescript
+// packages/types/src/index.ts
+export type { Exam, Topic, Section, StudyItem } from './content';
+export type { UserProgress, ReviewQueueItem } from './progress';
+export type { Organization, OrgMembership } from './orgs';
+export type { SubscriptionPlan, SubscriptionStatus } from './billing';
+export type { AudioUrlResponse, ProgressUpdateRequest } from './api';
+```
+
+This eliminates type duplication. When the backend adds a field to an API response, the frontend TypeScript compiler catches any consuming code that needs updating. This is the core value proposition of a TypeScript-end-to-end stack.

@@ -23,10 +23,16 @@ Audio study aids for these niches barely exist. The ones that do are generic tex
                     ┌──────────▼──────────────────────┐
                     │     Next.js on Vercel            │
                     │  (single deployment, all brands) │
-                    │                                  │
                     │  Middleware: Host → brand config  │
                     │  Runtime CSS variable theming    │
                     │  shadcn/ui components            │
+                    └──────────┬──────────────────────┘
+                               │
+                    ┌──────────▼──────────────────────┐
+                    │    NestJS Backend (TypeScript)   │
+                    │  (single service, all brands)   │
+                    │  JWT auth, org-scoped queries    │
+                    │  Prisma ORM, NOT white-labeled   │
                     └──────────┬──────────────────────┘
                                │
               ┌────────────────┼────────────────┐
@@ -54,14 +60,16 @@ Comprehensive analysis of 18+ niche exam markets across 4 tiers. Key findings:
 - Trades are the sweet spot: users can't read on jobsites, high exam volume, regulation-heavy
 - Each niche documented with: exam name, governing body, content scope, annual test-takers, source materials
 
-### [backend-plan.md](./backend-plan.md) -- Backend Architecture
-15-table Supabase schema, Modal TTS pipeline, Stripe billing. Key decisions:
-- **Supabase** for auth (multi-provider), database (PostgreSQL + RLS), and storage (audio files)
-- **Modal** for hosting Kokoro TTS -- batch pre-generation of all content audio (not on-demand like try-listening)
-- **Multi-tenant org model** with roles (owner/admin/member) and row-level security
+### [backend-plan.md](./backend-plan.md) -- Backend Architecture (DDD)
+Standalone NestJS service (TypeScript). NOT white-labeled -- single service serving all brands. Key decisions:
+- **NestJS** -- TypeScript end-to-end with frontend and mobile, shared types
+- **Prisma ORM** -- type-safe queries, generated client, snake_case DB mapping
+- **Supabase** for auth (JWT verification), database (PostgreSQL + RLS), and storage (audio files)
+- **Modal** for hosting Kokoro TTS -- batch pre-generation, called via HTTP from NestJS
+- **NestJS Guards** for auth: SupabaseAuthGuard, OrgMembershipGuard, SubscriptionGuard
 - **Content hierarchy**: exams > topics > sections > study_items > audio_files
 - **Stripe** subscriptions: per-org billing with tiered plans
-- 20 tasks across 8 phases, TDD-style
+- 16 modules, 6-phase implementation plan, DDD-style
 
 ### [frontend-plan.md](./frontend-plan.md) -- Frontend Architecture
 White-labeled Next.js on Vercel, single deployment serving all brands. Key decisions:
@@ -82,6 +90,20 @@ React Native (Expo) with one app per niche in app stores. Key decisions:
 - **Pre-generated audio files** (not on-demand TTS) -- RNTP expects complete files
 - 25 tasks across 7 phases
 
+### [adaptive-learning-architecture.md](./adaptive-learning-architecture.md) -- Adaptive Learning System
+Math Academy-inspired mastery-based adaptive learning. The system that compresses a course's worth of learning into the shortest path per student. Covers:
+- **Knowledge graph** -- concepts, prerequisite edges, encompassing edges (subject-agnostic, defined by content not code)
+- **Diagnostic assessment** -- adaptive 20-60 question assessment to map what the student already knows
+- **Mastery enforcement** -- can't advance without passing prerequisites, plateau detection + remediation
+- **FIRe spaced repetition** -- Fractional Implicit Repetition: credit flows backward through the graph, reducing review burden
+- **Active practice** -- multiple choice, fill blank, true/false, ordering, matching, scenario-based problems
+- **Task selection algorithm** -- the "brain" that decides what to study next (frontier, non-interference, review compression)
+- **XP system + gamification** -- 1 XP = ~1 min of study, streaks, leaderboards, anti-gaming
+- **DDD bounded contexts** -- 6 new backend modules with domain events
+- **Data model** -- full Prisma schema additions
+- **Content authoring** -- YAML/JSON course definitions, no code to add a new course
+- Phases 8-13 implementation plan (~10-15 weeks)
+
 ### [white-label-architecture-research.md](./white-label-architecture-research.md) -- White-Label Research
 Analysis of 4 approaches to white-labeling. Recommendation: runtime config/theme-driven, single Vercel deployment.
 
@@ -91,8 +113,9 @@ These carry over from try-listening and are used everywhere:
 - `chunkText()` -- sentence-boundary text chunking (max 3800 chars)
 - `synthesize()` -- Modal Kokoro TTS call pattern
 - `TokenBucket` rate limiter
-- `requireUser()` auth guard
-- `@supabase/ssr` cookie-based auth
+- `SupabaseAuthGuard` / `OrgMembershipGuard` (NestJS guards)
+- `@CurrentUser()` / `@CurrentOrg()` / `@MinRole()` decorators
+- Supabase JWT verification (backend) / `@supabase/ssr` cookie auth (frontend)
 - IndexedDB offline audio caching (web) / WatermelonDB + file system (mobile)
 - PostHog analytics events
 - Media Session API (web) / RNTP (mobile) for lock screen controls
@@ -107,11 +130,19 @@ niche-audio-prep/
 │   ├── backend-plan.md
 │   ├── frontend-plan.md
 │   └── mobile-plan.md
+├── backend/                 # NestJS API server
+│   ├── src/
+│   │   ├── modules/        # NestJS modules (auth, orgs, exams, audio, etc.)
+│   │   ├── guards/         # SupabaseAuth, OrgMembership, Subscription
+│   │   ├── decorators/     # @CurrentUser, @CurrentOrg, @MinRole
+│   │   └── prisma/         # Prisma service + schema
+│   ├── test/
+│   └── package.json
 ├── packages/
-│   └── shared/             # Types, API client, business logic hooks
-│       ├── types/          # Shared TypeScript types
-│       ├── api/            # API client (fetch wrapper)
-│       └── utils/          # chunkText, formatting, etc.
+│   └── shared/             # Shared TS types, API client (web + mobile)
+│       ├── types/
+│       ├── api/
+│       └── utils/
 ├── apps/
 │   ├── web/                # Next.js app (landing + dashboard)
 │   └── mobile/             # Expo app
@@ -129,8 +160,8 @@ niche-audio-prep/
 4. Shared types package
 
 ### Phase 2: Backend Core (Week 2-3)
-5. Tenant resolution middleware
-6. Auth flow (Supabase + multi-provider)
+5. NestJS scaffold with Supabase JWT verification (SupabaseAuthGuard)
+6. Auth guards + decorators (OrgMembershipGuard, @MinRole, @CurrentUser)
 7. Org management API (create, invite, roles)
 8. Content CRUD API (admin)
 9. Content import pipeline (regulation text → study items)
@@ -187,12 +218,51 @@ niche-audio-prep/
 | Content accuracy liability | Disclaimer: "study aid, not official source." Version content to match current exam year. |
 | Modal costs at scale | Pre-generate everything. Cache aggressively. One-time cost per content version. |
 
+### Phase 8: Knowledge Graph Foundation (Week 12-14)
+35. Prisma schema additions (Concept, KnowledgePoint, edges, Course, enrollment)
+36. Knowledge graph module: CRUD, YAML import, graph validation
+37. Graph query service: frontier calculation, prerequisite/encompassing traversal
+38. Content authoring format + example course YAML
+
+### Phase 9: Student Model & Diagnostic (Week 14-16)
+39. Student model module: StudentConceptState, StudentKPState
+40. Course enrollment flow
+41. Adaptive diagnostic assessment algorithm
+42. Diagnostic UI (web + mobile)
+43. Knowledge profile visualization
+
+### Phase 10: Assessment & Practice (Week 16-18)
+44. Assessment module: problems, reviews, quizzes
+45. Problem types: MC, true/false, fill blank, ordering, matching
+46. Practice problem UI (web + mobile)
+47. Review + quiz flows with audio integration
+
+### Phase 11: Learning Engine (Week 18-20)
+48. Task selector: the "brain" -- what to study next
+49. Knowledge frontier calculation + mastery enforcement
+50. Plateau detection + prerequisite remediation
+51. "Next task" API + study session UI
+
+### Phase 12: Spaced Repetition -- FIRe (Week 20-22)
+52. FIRe algorithm: core equations, memory decay
+53. Implicit repetition propagation through encompassing edges
+54. Review scheduling + compression
+55. Replace SM-2 for adaptive-mode enrollments
+
+### Phase 13: Gamification & Polish (Week 22-24)
+56. XP system with anti-gaming
+57. Leaderboards + enhanced streaks
+58. Knowledge graph progress visualization
+59. First full adaptive course content (one Tier 1 niche)
+
+> See [adaptive-learning-architecture.md](./adaptive-learning-architecture.md) for full technical details on Phases 8-13.
+
 ## What We're NOT Building (Yet)
 
 - User-generated content (paste your own URLs) -- that's try-listening
-- AI tutoring / chat / quizzes -- just audio for now
+- AI tutoring / chat
 - Community features (forums, study groups)
 - Live classes or video
 - Content creation tools for third parties
 
-Keep it simple. Audio study. Pass your exam. Ship fast.
+Ship the audio platform first (Phases 1-7), then layer adaptive learning on top (Phases 8-13).
