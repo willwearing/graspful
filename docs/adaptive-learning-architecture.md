@@ -259,10 +259,107 @@ Content authors can omit encompassing weights. The system applies heuristics:
 
 1. **Direct prerequisite, same topic area:** default 0.5
 2. **Direct prerequisite, different topic area:** default 0.3
-3. **Indirect prerequisite (2+ steps back):** default 0.1
+3. **Indirect prerequisite (2+ steps back):** multiplicative decay (e.g., A->B = 0.5, B->C = 0.4, so A->C = 0.2)
 4. **No encompassing relationship specified:** 0.0
 
-Authors can override any weight. Over time, the system can suggest weight adjustments based on student performance data (if students who master B still forget A, the weight is too high).
+Authors can override any weight. But heuristics are just a starting point -- the system must validate and adjust them from student data.
+
+### Encompassing Weight Calibration Feedback Loop
+
+The heuristic defaults will be wrong. Math Academy spent 250 hours on manual calibration and still doesn't have a published data-driven adjustment process. We build the feedback loop from day one.
+
+**The core signal:** If students whose mastery of concept B came primarily from implicit credit (practicing advanced concept A that encompasses B) fail reviews of B at a higher rate than students who practiced B explicitly, the encompassing weight from A to B is too high.
+
+#### Step 1: Instrument Two Mastery Pathways
+
+For every concept, classify each student's mastery source:
+
+```
+implicit_ratio(student, concept) = implicit_credit_earned / total_credit_earned
+```
+
+- **Explicit mastery group:** `implicit_ratio < 0.4` (most credit from direct practice/review)
+- **Implicit mastery group:** `implicit_ratio >= 0.6` (most credit from encompassing flow)
+- **Mixed:** `0.4 <= implicit_ratio < 0.6` (excluded from comparison to reduce noise)
+
+Track this on `StudentConceptState` via a new `implicitCreditRatio` field, updated on every repetition credit event.
+
+#### Step 2: Compare Review Pass Rates
+
+When concept B comes up for spaced repetition review, compare:
+
+```
+pass_rate_explicit(B) = reviews_passed / reviews_total  (explicit mastery group)
+pass_rate_implicit(B) = reviews_passed / reviews_total  (implicit mastery group)
+retention_gap(B) = pass_rate_explicit(B) - pass_rate_implicit(B)
+```
+
+This is analogous to CMU DataShop's learning curve analysis -- comparing whether two "learning pathways" produce equivalent retention.
+
+**Reference:** DataShop Learning Curve Analysis (pslcdatashop.web.cmu.edu/help?page=learningCurve). A smooth, monotonically decreasing error rate = well-calibrated skill. Flat or rising error rate = miscalibrated.
+
+#### Step 3: Detect Problems via Statistical Test
+
+Use a two-proportion z-test:
+
+- **H0:** `pass_rate_implicit = pass_rate_explicit`
+- **H1:** `pass_rate_implicit < pass_rate_explicit`
+
+Thresholds (derived from spaced repetition literature -- FSRS targets 90% desired retention):
+
+| Retention Gap | Cohort Size (per group) | Action |
+|---|---|---|
+| < 0.10 | any | No action. Weight is working. |
+| 0.10 - 0.15 | n >= 30 | Flag for monitoring. |
+| > 0.15 | n >= 30, p < 0.05 | Flag for weight adjustment. |
+
+#### Step 4: Adjust Weights
+
+Two modes based on data volume:
+
+**Low data (<100 reviews per concept): Bayesian shrinkage**
+
+```
+retention_ratio = pass_rate_implicit / pass_rate_explicit
+w_new = w_old * retention_ratio
+w_final = 0.7 * w_old + 0.3 * w_new    // exponential smoothing, conservative
+```
+
+**High data (100+ reviews per concept): Direct estimation**
+
+```
+retention_ratio = pass_rate_implicit / pass_rate_explicit
+
+if retention_ratio < 0.85:       // implicit group retains <85% as well
+  w_new = w_old * retention_ratio
+elif retention_ratio > 0.95:     // implicit credit is working well
+  w_new = min(1.0, w_old * 1.10) // consider increasing by 10%
+else:
+  w_new = w_old                  // no change needed
+```
+
+**Guardrails:**
+- Maximum single adjustment: +/- 0.1
+- Minimum meaningful change: 0.05 (smaller changes are noise)
+- Cooldown: don't re-adjust a weight within 30 days
+- Clamp all weights to [0.0, 1.0]
+- Log every adjustment with before/after values and the data that triggered it
+
+#### Step 5: Monitoring Dashboard
+
+Track per encompassing edge:
+1. Current weight (with history)
+2. Cohort sizes (explicit vs implicit mastery groups)
+3. Retention gap with confidence interval
+4. Trend (widening or narrowing after last adjustment)
+
+**Run the calibration job weekly** (or nightly once data volume supports it). Surface flagged edges in the admin dashboard for content author review -- the system proposes adjustments, a human approves.
+
+**References:**
+- Pavlik, Cen, Koedinger (2009) -- Learning Factors Transfer Analysis: measuring skill transfer via learning curve comparison
+- de la Torre (2008) -- Q-Matrix Refinement via RMSEA: flagging misspecified skill mappings using fit statistics (threshold 0.05-0.1)
+- FSRS optimizer (github.com/open-spaced-repetition/fsrs4anki) -- maximum likelihood parameter tuning from review history
+- Koedinger, Yudelson, Pavlik (2016) -- Testing Theories of Transfer: evidence that transfer is narrow and skill-pair-specific
 
 ---
 
@@ -333,26 +430,140 @@ Regulations change yearly. The system supports:
 
 When a student enrolls in a course, they take an adaptive diagnostic before any learning begins.
 
-### Algorithm
+### Mastery Estimation (Modified BKT)
 
-Inspired by Math Academy's approach:
+Each concept has a mastery probability `P(L_c)` that updates with each observed answer. We use Bayesian Knowledge Tracing without the transition parameter (no learning happens during a diagnostic).
 
-1. **Compress the knowledge graph** into the minimum set of concepts that "covers" the entire course. A concept C "covers" its subtree: mastery of C implies mastery of C's prerequisites. Find the minimum set of leaf-ish concepts whose prerequisite trees span all concepts.
+**Parameters per concept c:**
+- `P(L0_c)` -- prior probability of mastery. Default: 0.5 (maximum uncertainty)
+- `P(S_c)` -- slip probability: answering wrong despite mastery. Default: 0.1
+- `P(G_c)` -- guess probability: answering right without mastery. Default: 0.2 for MC (1/options), 0.05 for fill-blank
 
-2. **Iterate:** Select the concept whose assessment provides the most information about unknown regions of the graph. Present 1-3 questions for that concept.
+**Update after correct answer on concept c:**
 
-3. **Propagate evidence:**
-   - Correct answer on concept C -> positive evidence for C + all prerequisites of C (transitive)
-   - Incorrect answer on concept C -> negative evidence for C + all dependents of C
-   - Correct but slow -> diminished positive evidence
+```
+P(L_c | correct) = P(L_c) * (1 - P(S_c)) / [P(L_c) * (1 - P(S_c)) + (1 - P(L_c)) * P(G_c)]
+```
 
-4. **Terminate** when the knowledge frontier is sufficiently mapped (confidence threshold met for all concepts) or max questions reached (60).
+**Update after incorrect answer on concept c:**
 
-5. **Output:** A knowledge profile showing mastery state per concept:
-   - `mastered` -- high confidence the student knows this
-   - `partially_known` -- some evidence, needs verification
-   - `unknown` -- no evidence of mastery
-   - `conditionally_mastered` -- inferred from advanced topic mastery, verify if student struggles later
+```
+P(L_c | incorrect) = P(L_c) * P(S_c) / [P(L_c) * P(S_c) + (1 - P(L_c)) * (1 - P(G_c))]
+```
+
+These are straight Bayes' theorem applications. No libraries needed.
+
+**Reference:** Corbett & Anderson (1995), "Knowledge tracing: Modeling the acquisition of procedural knowledge."
+
+### Evidence Propagation Through the Graph
+
+After updating `P(L_c)` for the directly-tested concept, propagate evidence through the prerequisite graph using a discount-factor heuristic:
+
+**Rule 1: Correct answer propagates mastery UP to prerequisites.**
+
+If a student can do concept C, they very likely know its prerequisites. For each ancestor `a` at depth `d` edges away:
+
+```
+P(L_a) = max(P(L_a), P(L_c | correct) * 0.85^d)
+```
+
+The 0.85 discount means: if you demonstrate mastery of C (P = 0.95), we infer P = 0.81 for a direct prerequisite, P = 0.69 for a grandparent. This is conservative -- better to re-test than to over-assume.
+
+**Rule 2: Incorrect answer propagates doubt DOWN to dependents.**
+
+If a student can't do concept C, they likely can't do things that depend on C. For each descendant `desc` at depth `k`:
+
+```
+P(L_desc) = min(P(L_desc), P(L_c | incorrect) + (1 - P(L_c | incorrect)) * (1 - 0.85^k))
+```
+
+**Rule 3: Don't propagate failure upward.** A student might know the prerequisites but fail to integrate them for the advanced concept. That's what the `P(S_c)` slip parameter captures.
+
+**Reference:** This discount-factor approach is a practical simplification of Pearl's belief propagation on DAGs. Full message-passing is more principled but unnecessary for graphs under 300 nodes.
+
+### Next-Question Selection: Minimum Expected Posterior Entropy
+
+The scoring function picks the concept whose assessment will **maximally reduce total uncertainty** across the entire graph. This is information-theoretically optimal.
+
+For each untested concept `j`:
+
+```
+score(j) = H_current - E[H_after_testing_j]
+```
+
+Where `H` is the total entropy across all concepts:
+
+```
+H = SUM over all concepts i: [-P(L_i) * log2(P(L_i)) - (1 - P(L_i)) * log2(1 - P(L_i))]
+```
+
+To compute `E[H_after_testing_j]`, simulate both outcomes:
+
+```
+P(correct_j) = P(L_j) * (1 - P(S_j)) + (1 - P(L_j)) * P(G_j)
+
+// Simulate correct answer: run BKT update + graph propagation, compute new entropy
+H_if_correct = total_entropy(state_after_correct_on_j)
+
+// Simulate incorrect answer: run BKT update + graph propagation, compute new entropy
+H_if_incorrect = total_entropy(state_after_incorrect_on_j)
+
+E[H_after] = P(correct_j) * H_if_correct + (1 - P(correct_j)) * H_if_incorrect
+
+score(j) = H_current - E[H_after]
+```
+
+**Select:** `j* = argmax(score(j))` -- the concept with the highest expected information gain.
+
+**Why this works well on a knowledge graph:** Concepts with many descendants and ancestors have high information gain because evidence propagates to many nodes. The algorithm naturally gravitates toward "strategic" concepts in the middle of the graph that split known from unknown.
+
+**Complexity:** For each candidate concept, simulate 2 outcomes and propagate through the graph. With 300 concepts: 300 candidates * 2 outcomes * O(300) propagation = ~180K operations per question. For 60 questions = ~10.8M operations total. Trivial -- well under 1 second on any modern machine.
+
+### Response Time Discounting
+
+Correct answers with excessive response time receive diminished evidence:
+
+```
+// If response time exceeds 2x the concept's expected time, discount the evidence
+time_ratio = response_time_ms / expected_response_time_ms
+if (time_ratio > 2.0 && correct):
+  // Blend between full correct update and no update
+  discount = max(0.3, 1.0 - (time_ratio - 2.0) * 0.2)
+  P(L_c) = P(L_c_before) + discount * (P(L_c_after_correct) - P(L_c_before))
+```
+
+This prevents a student who struggles through a question for 5 minutes from getting full mastery credit.
+
+### Stopping Criteria
+
+```
+function should_stop(P_mastery, num_questions):
+  uncertain_count = count(c where 0.2 < P(L_c) < 0.8)
+
+  if num_questions >= 60: return true            // hard cap
+  if uncertain_count == 0: return true           // full coverage
+  if num_questions >= 20 and uncertain_count < 5: return true  // diminishing returns
+  return false
+```
+
+### Classification
+
+After the diagnostic terminates, classify each concept:
+
+| P(L_c) | Classification | Action |
+|---|---|---|
+| >= 0.8 | `mastered` | Skip this concept in learning path |
+| 0.5 - 0.8 | `conditionally_mastered` | Mark mastered but verify if student struggles on dependents |
+| 0.2 - 0.5 | `partially_known` | Teach, but may progress faster than unstarted concepts |
+| < 0.2 | `unknown` | Teach from scratch |
+
+### Diagnostic Output
+
+1. **Knowledge profile:** mastery state per concept overlaid on the graph
+2. **Knowledge frontier:** the boundary between mastered and unknown
+3. **Global ability estimate:** MLE from all diagnostic responses (used to bootstrap `speed` -- see Section 6)
+4. **Estimated completion time** at various daily XP targets
+5. **Foundation gaps:** prerequisite concepts outside this course that need remediation
 
 ### Diagnostic Report
 
@@ -361,6 +572,11 @@ After the diagnostic, the student sees:
 - Estimated time to course completion at various daily effort levels
 - Which foundation gaps were identified
 - Recommended daily XP target
+
+**References:**
+- ALEKS diagnostic: splits probability mass over knowledge states using half-split item selection (Falmagne & Doignon, 2011)
+- Computerized Adaptive Testing: MEPE item selection is equivalent to maximizing mutual information (Tatsuoka, 2002; Wang et al., 2020)
+- Math Academy diagnostic: compresses graph into minimum covering set, iterates by information gain (mathacademy.com/how-our-ai-works)
 
 ---
 
@@ -375,15 +591,183 @@ For each (student, concept) pair, the system tracks:
 ```
 {
   masteryState: 'unstarted' | 'in_progress' | 'mastered' | 'needs_review',
-  repNum: number,             // accumulated successful spaced reps
+  repNum: number,             // accumulated successful spaced reps (FIRe)
   memory: number,             // current retention estimate (0-1)
   lastPracticedAt: timestamp,
   interval: number,           // days until next review needed
-  speed: number,              // student ability / concept difficulty
+  speed: number,              // derived: exp(abilityTheta - difficultyTheta)
+  abilityTheta: number,       // student ability on logit scale (Elo/IRT)
+  speedRD: number,            // rating deviation: uncertainty in ability estimate (Glicko)
+  observationCount: number,   // practice observations on this concept
+  implicitCreditRatio: number,// fraction of total credit from implicit repetition
   failCount: number,          // consecutive failures (for plateau detection)
   diagnosticState: 'unknown' | 'mastered' | 'partially_known' | 'conditionally_mastered'
 }
 ```
+
+### Speed Parameter: Bootstrap, Update, and Convergence
+
+The `speed` parameter modulates how much credit a student earns per spaced repetition in the FIRe equations. It represents `student_ability / concept_difficulty`. The challenge: for a new student on a new concept, we have no data.
+
+The approach combines Elo-style updates (Pelanek 2016) with Glicko-style uncertainty tracking and response time evidence from IRT.
+
+#### Bootstrap: Initial Estimate
+
+**Stage 1: No data at all.** Before the diagnostic:
+
+```
+abilityTheta = 0.0     // centered, no information
+speedRD = 350          // maximum uncertainty (Glicko scale)
+speed = 1.0            // neutral default
+```
+
+**Stage 2: After diagnostic.** The diagnostic provides a global ability estimate via Maximum Likelihood Estimation:
+
+```typescript
+function bootstrapFromDiagnostic(
+  responses: { conceptId: string; correct: boolean }[]
+): number {
+  let theta = 0;  // start at center
+
+  // Newton-Raphson: find theta that maximizes likelihood of observed responses
+  for (let iter = 0; iter < 20; iter++) {
+    let gradient = 0;
+    let hessian = 0;
+    for (const r of responses) {
+      const difficulty = getConceptDifficultyTheta(r.conceptId);
+      const p = 1 / (1 + Math.exp(-(theta - difficulty)));
+      gradient += (r.correct ? 1 : 0) - p;      // first derivative of log-likelihood
+      hessian += p * (1 - p);                    // Fisher information
+    }
+    if (hessian < 0.001) break;
+    theta += gradient / hessian;                  // Newton step
+  }
+  return theta;
+}
+```
+
+With 20-60 diagnostic items, this converges in 5-10 iterations and produces an ability estimate with SE ~ 0.3-0.5 logits.
+
+Then set per-concept initial speed:
+
+```
+abilityTheta = globalTheta   // from diagnostic
+speedRD = 250                // reduced from 350 (we have some info)
+speed = exp(abilityTheta - conceptDifficultyTheta)
+```
+
+**Concept difficulty on logit scale** is derived from authored difficulty (1-10):
+
+```
+difficultyTheta = (authored_difficulty - 5.5) * (6 / 9)  // maps 1-10 to roughly -3 to +3
+```
+
+Once population data is available (50+ attempts per concept), replace this with observed difficulty:
+
+```
+difficultyTheta = -ln(pass_rate / (1 - pass_rate))  // logit of observed pass rate
+```
+
+#### Update Rule: After Each Practice Observation
+
+Every time a student answers a problem on concept C, update the speed estimate:
+
+```typescript
+function updateSpeed(state: SpeedState, obs: Observation, concept: ConceptParams): SpeedState {
+  const { abilityTheta, speedRD, observationCount } = state;
+  const { difficultyTheta, timeIntensity, timeIntensitySD } = concept;
+
+  // 1. K-factor: high uncertainty = bigger updates (faster convergence for new students)
+  const K = Math.max(0.05, 1.0 / (1 + 0.5 * observationCount));
+  // K = 1.0 for first observation, 0.67 after 1, 0.5 after 2, converges toward 0.05
+
+  // 2. Accuracy signal (standard Elo/Rasch)
+  const expected = 1 / (1 + Math.exp(-(abilityTheta - difficultyTheta)));
+  const actual = obs.correct ? 1 : 0;
+  const accuracyResidual = actual - expected;
+
+  // 3. Response time signal (Van der Linden lognormal model)
+  const observedLogRT = Math.log(obs.responseTimeMs / 1000);
+  const rtResidual = timeIntensity - observedLogRT;  // positive = faster than expected
+  const normalizedRT = Math.max(-2, Math.min(2,      // clip outliers
+    rtResidual / Math.max(timeIntensitySD, 0.5)
+  ));
+
+  // 4. Response time weight: grows from 0.1 to 0.3 as we collect more data
+  const lambda = 0.1 + 0.2 * Math.min(1, observationCount / 20);
+
+  // 5. Guessing detection: fast + incorrect = likely guessing, discount
+  let rtWeight = lambda * normalizedRT;
+  if (!obs.correct && normalizedRT > 0.5) {
+    rtWeight *= 0.3;  // fast + wrong = guessing, don't penalize ability much
+  }
+
+  // 6. Combined update
+  const newTheta = abilityTheta + K * (accuracyResidual + rtWeight);
+
+  // 7. Uncertainty shrinks (Glicko formula)
+  const q = Math.log(10) / 400;
+  const gRD = 1 / Math.sqrt(1 + 3 * q * q * speedRD * speedRD / (Math.PI * Math.PI));
+  const d2 = 1 / (q * q * gRD * gRD * expected * (1 - expected));
+  const newRD = Math.sqrt(1 / (1 / (speedRD * speedRD) + 1 / d2));
+
+  return { abilityTheta: newTheta, speedRD: newRD, observationCount: observationCount + 1 };
+}
+```
+
+**What response time tells you:**
+- Fast + correct: strong positive signal (both accuracy and speed channels agree)
+- Slow + correct: moderate positive (got it right, but needed effort)
+- Fast + incorrect: likely guessing (discount the negative accuracy signal)
+- Slow + incorrect: strong negative (both channels agree the student struggled)
+
+**Reference:** Van der Linden (2006), "A lognormal model for response times on test items." The joint accuracy + RT model outperforms accuracy-only models by ~15% in ability estimation accuracy.
+
+#### Deriving Speed from Ability
+
+```
+raw_speed = exp(abilityTheta - difficultyTheta)
+```
+
+This gives: speed = 1.0 when ability equals difficulty, >1.0 when the student is stronger, <1.0 when weaker.
+
+#### Cold-Start Blending
+
+For the first ~15 observations, blend the estimated speed with a conservative prior:
+
+```
+confidence = min(1.0, observationCount / 15)
+effective_speed = 1.0 * (1 - confidence) + raw_speed * confidence
+```
+
+This ensures:
+- **0 observations:** effective_speed = 1.0 (neutral, conservative scheduling)
+- **8 observations:** effective_speed = 0.47 * 1.0 + 0.53 * raw_speed (blended)
+- **15+ observations:** effective_speed = raw_speed (fully estimated)
+
+The `effective_speed` is what feeds into the FIRe equations:
+
+```
+repNum = max(0, repNum + effective_speed * decay^failed * rawDelta)
+```
+
+#### Convergence
+
+| Observations | RD | SE (logits) | Trust Level |
+|---|---|---|---|
+| 0 | 350 | -- | Default speed (1.0) |
+| 1-3 | ~250 | ~0.8 | Very noisy. Blend heavily with prior. |
+| 4-10 | ~180 | ~0.5 | Moderate signal. Start using for scheduling. |
+| 10-20 | ~120 | ~0.3 | Good signal. Full FIRe modulation. |
+| 20+ | <100 | ~0.2 | Stable. Only big performance shifts move it. |
+
+From CAT literature: adaptive tests achieve reliable ability estimates with 10-25 well-targeted items. For non-adaptive practice (where items aren't optimally targeted), expect 15-25 observations.
+
+**References:**
+- Pelanek (2016) -- "Applications of the Elo rating system in adaptive educational systems" (Computers & Education)
+- Glickman (1999) -- "The Glicko system" (glicko.net) -- uncertainty-aware rating
+- Van der Linden (2006) -- Lognormal response time model (JEBE)
+- Settles & Meeder (2016) -- "A Trainable Spaced Repetition Model for Language Learning" (Duolingo/ACL) -- half-life regression as an alternative speed model
 
 ### Per-Student-KnowledgePoint State
 
@@ -782,6 +1166,11 @@ model Concept {
   sourceReference String?
   sortOrder       Int                   // display ordering within course
 
+  // Speed parameter support (Section 6)
+  difficultyTheta Float    @default(0)  // difficulty on logit scale, initially from authored difficulty
+  timeIntensity   Float    @default(0)  // expected log(response_time_seconds), from population data
+  timeIntensitySD Float    @default(1)  // SD of log(RT), from population data
+
   // Relations
   knowledgePoints   KnowledgePoint[]
   prerequisiteOf    PrerequisiteEdge[]  @relation("prerequisiteTarget")
@@ -865,6 +1254,9 @@ model EncompassingEdge {
   targetConcept   Concept  @relation("encompassedTarget", fields: [targetConceptId], references: [id])
 
   weight          Float                 // 0.0 to 1.0
+  weightSource    String   @default("authored") // "authored", "heuristic", or "calibrated"
+  lastCalibratedAt DateTime?            // when the feedback loop last adjusted this weight
+  retentionGap    Float?               // last measured gap between implicit vs explicit pass rates
 
   @@unique([sourceConceptId, targetConceptId])
 }
@@ -959,7 +1351,11 @@ model StudentConceptState {
   memory          Float    @default(1.0)  // current retention estimate
   lastPracticedAt DateTime?
   interval        Float    @default(1.0)  // days until next review
-  speed           Float    @default(1.0)  // student ability / concept difficulty
+  speed           Float    @default(1.0)  // derived: exp(abilityTheta - difficultyTheta)
+  abilityTheta    Float    @default(0)    // student ability on logit scale (Elo/IRT)
+  speedRD         Float    @default(350)  // rating deviation: uncertainty (Glicko)
+  observationCount Int     @default(0)    // practice observations on this concept
+  implicitCreditRatio Float @default(0)   // fraction of credit from implicit repetition
   failCount       Int      @default(0)    // consecutive lesson failures
   diagnosticState DiagnosticState @default(unknown)
 
@@ -1242,7 +1638,7 @@ These need answers before implementation:
 
 3. **Audio-first practice problems.** How does fill-in-the-blank work in an audio-first mobile context? Voice input? On-screen keyboard? Does the UX degrade too much on mobile for certain problem types?
 
-4. **Encompassing weight calibration.** Math Academy spent 250 hours manually setting weights. Can we get 80% of the benefit with heuristic defaults + iterative refinement from student performance data?
+4. ~~**Encompassing weight calibration.**~~ **RESOLVED** -- see Section 3 "Encompassing Weight Calibration Feedback Loop." Heuristic defaults + data-driven feedback loop comparing implicit vs explicit mastery group review pass rates. Weekly calibration job proposes adjustments, human approves.
 
 5. **Minimum viable knowledge graph size.** How many concepts/problems does a course need before the adaptive system provides meaningful value over simple SM-2? Is there a floor below which it's not worth it?
 
