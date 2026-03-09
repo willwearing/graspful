@@ -27,6 +27,7 @@ model Organization {
   subscription   Subscription?
   inviteTokens   InviteToken[]
   generationJobs AudioGenerationJob[]
+  courses        Course[]
 
   @@map("organizations")
 }
@@ -374,4 +375,160 @@ model AudioGenerationJob {
 
   @@index([orgId])
   @@map("audio_generation_jobs")
+}
+
+// =============================================================================
+// KNOWLEDGE GRAPH — COURSES
+// =============================================================================
+
+model Course {
+  id             String   @id @default(uuid()) @db.Uuid
+  orgId          String   @map("org_id") @db.Uuid
+  slug           String
+  name           String
+  description    String?
+  version        String   @default("1.0")
+  estimatedHours Float?   @map("estimated_hours")
+  isPublished    Boolean  @default(false) @map("is_published")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  concepts Concept[]
+
+  @@unique([orgId, slug])
+  @@index([orgId])
+  @@map("courses")
+}
+
+// =============================================================================
+// KNOWLEDGE GRAPH — CONCEPTS
+// =============================================================================
+
+model Concept {
+  id                String   @id @default(uuid()) @db.Uuid
+  courseId           String   @map("course_id") @db.Uuid
+  orgId              String   @map("org_id") @db.Uuid
+  slug               String
+  name               String
+  description        String?
+  difficulty         Int      @default(5)
+  estimatedMinutes   Int?     @map("estimated_minutes")
+  tags               String[] @default([])
+  sourceReference    String?  @map("source_reference")
+  sortOrder          Int      @default(0) @map("sort_order")
+  difficultyTheta    Float    @default(0) @map("difficulty_theta")
+  timeIntensity      Float    @default(0) @map("time_intensity")
+  timeIntensitySD    Float    @default(0) @map("time_intensity_sd")
+  studyItemId        String?  @unique @map("study_item_id") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  course             Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  knowledgePoints    KnowledgePoint[]
+  prerequisiteOf     PrerequisiteEdge[] @relation("PrerequisiteSource")
+  prerequisiteFor    PrerequisiteEdge[] @relation("PrerequisiteTarget")
+  encompassedBy      EncompassingEdge[] @relation("EncompassingSource")
+  encompasses        EncompassingEdge[] @relation("EncompassingTarget")
+
+  @@unique([courseId, slug])
+  @@index([orgId])
+  @@index([courseId])
+  @@map("concepts")
+}
+
+// =============================================================================
+// KNOWLEDGE GRAPH — KNOWLEDGE POINTS
+// =============================================================================
+
+model KnowledgePoint {
+  id                    String   @id @default(uuid()) @db.Uuid
+  conceptId             String   @map("concept_id") @db.Uuid
+  slug                  String
+  sortOrder             Int      @default(0) @map("sort_order")
+  instructionText       String?  @map("instruction_text")
+  workedExampleText     String?  @map("worked_example_text")
+  instructionAudioUrl   String?  @map("instruction_audio_url")
+  workedExampleAudioUrl String?  @map("worked_example_audio_url")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  concept  Concept   @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  problems Problem[]
+
+  @@unique([conceptId, slug])
+  @@index([conceptId])
+  @@map("knowledge_points")
+}
+
+// =============================================================================
+// KNOWLEDGE GRAPH — EDGES
+// =============================================================================
+
+model PrerequisiteEdge {
+  id               String  @id @default(uuid()) @db.Uuid
+  sourceConceptId  String  @map("source_concept_id") @db.Uuid
+  targetConceptId  String  @map("target_concept_id") @db.Uuid
+  sourceKPId       String? @map("source_kp_id") @db.Uuid
+  targetKPId       String? @map("target_kp_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  sourceConcept Concept @relation("PrerequisiteSource", fields: [sourceConceptId], references: [id], onDelete: Cascade)
+  targetConcept Concept @relation("PrerequisiteTarget", fields: [targetConceptId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceConceptId, targetConceptId])
+  @@map("prerequisite_edges")
+}
+
+model EncompassingEdge {
+  id               String   @id @default(uuid()) @db.Uuid
+  sourceConceptId  String   @map("source_concept_id") @db.Uuid
+  targetConceptId  String   @map("target_concept_id") @db.Uuid
+  weight           Float    @default(0.5)
+  weightSource     String   @default("authored") @map("weight_source")
+  lastCalibratedAt DateTime? @map("last_calibrated_at") @db.Timestamptz
+  retentionGap     Float?   @map("retention_gap")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  sourceConcept Concept @relation("EncompassingSource", fields: [sourceConceptId], references: [id], onDelete: Cascade)
+  targetConcept Concept @relation("EncompassingTarget", fields: [targetConceptId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceConceptId, targetConceptId])
+  @@map("encompassing_edges")
+}
+
+// =============================================================================
+// KNOWLEDGE GRAPH — PROBLEMS
+// =============================================================================
+
+enum ProblemType {
+  multiple_choice
+  fill_blank
+  true_false
+  ordering
+  matching
+  scenario
+
+  @@map("problem_type")
+}
+
+model Problem {
+  id                  String      @id @default(uuid()) @db.Uuid
+  knowledgePointId    String      @map("knowledge_point_id") @db.Uuid
+  type                ProblemType
+  questionText        String      @map("question_text")
+  questionAudioUrl    String?     @map("question_audio_url")
+  options             Json?
+  correctAnswer       Json        @map("correct_answer")
+  explanation         String?
+  explanationAudioUrl String?     @map("explanation_audio_url")
+  difficulty          Int         @default(3)
+  isReviewVariant     Boolean     @default(false) @map("is_review_variant")
+  createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  knowledgePoint KnowledgePoint @relation(fields: [knowledgePointId], references: [id], onDelete: Cascade)
+
+  @@index([knowledgePointId])
+  @@map("problems")
 }
