@@ -2,6 +2,8 @@
 
 > Mastery-based adaptive learning system inspired by Math Academy. Subject-agnostic, white-label, no code to add a new course -- just content and a knowledge graph definition.
 
+**Status:** Not Started — this is now the FIRST major system to be built (Phases 2-6 in PLAN.md)
+
 **Core thesis:** We're not building "audio flashcards." We're building an expert system that compresses a course's worth of learning into the shortest possible path for each individual student, then delivers that path via audio instruction + active practice.
 
 ---
@@ -1529,9 +1531,17 @@ This preserves the "add a niche with minimal effort" promise: simple audio-only 
 
 ## 15. Implementation Phases
 
-These phases insert after the existing Phase 7 (Launch Prep), or can be interleaved.
+These are now the FIRST phases built after the backend foundation (Phase 1 in PLAN.md). The adaptive learning system is the core product differentiator and ships before billing, polish, and mobile.
 
-### Phase 8: Knowledge Graph Foundation (2-3 weeks)
+### Phase 2: Knowledge Graph Foundation (2-3 weeks)
+
+**Status:** Complete
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Backend Phase 1 deliverables (Prisma, NestJS scaffold), knowledge graph spec (Section 3), content authoring spec (Section 4)
+> - **Outputs:** Prisma schema additions, knowledge-graph module (CRUD, YAML import, validation), graph query service (frontier, prereqs, encompassing), admin API
+> - **Dependencies:** Backend Phase 1
 
 1. Prisma schema additions (Concept, KnowledgePoint, edges, etc.)
 2. `knowledge-graph` module: CRUD, import from YAML, graph validation
@@ -1539,7 +1549,15 @@ These phases insert after the existing Phase 7 (Launch Prep), or can be interlea
 4. Admin API: import course, validate, visualize graph
 5. Content authoring format documentation + example course
 
-### Phase 9: Student Model & Diagnostic (2 weeks)
+### Phase 3: Student Model & Diagnostic (2 weeks)
+
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Phase 2 deliverables (knowledge graph module), student model spec (Section 6), diagnostic spec (Section 5)
+> - **Outputs:** Student-model module, enrollment flow, diagnostic assessment algorithm, diagnostic UI, knowledge profile visualization
+> - **Dependencies:** Phase 2
 
 6. `student-model` module: StudentConceptState, StudentKPState
 7. Course enrollment flow
@@ -1547,7 +1565,15 @@ These phases insert after the existing Phase 7 (Launch Prep), or can be interlea
 9. Diagnostic UI (web + mobile): adaptive question flow, results display
 10. Knowledge profile visualization
 
-### Phase 10: Assessment & Practice (2-3 weeks)
+### Phase 4: Assessment & Practice (2-3 weeks)
+
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Phases 2-3 deliverables, assessment spec (Section 9), problem type definitions
+> - **Outputs:** Assessment module (problem types, quiz generation), practice problem UI, review session flow, audio integration for questions
+> - **Dependencies:** Phase 3
 
 11. `assessment` module: Problem, DiagnosticQuestion, QuizQuestion
 12. Problem types: MC, true/false, fill blank, ordering, matching
@@ -1556,7 +1582,15 @@ These phases insert after the existing Phase 7 (Launch Prep), or can be interlea
 15. Quiz generation + timed quiz UI
 16. Audio integration: question audio, explanation audio
 
-### Phase 11: Learning Engine (2-3 weeks)
+### Phase 5: Learning Engine (2-3 weeks)
+
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Phases 2-4 deliverables, task selection spec (Section 7), plateau detection spec
+> - **Outputs:** Learning-engine module (task selector, mastery enforcer), frontier calculation, plateau detection + remediation, "next task" API, learning session UI
+> - **Dependencies:** Phase 4
 
 17. `learning-engine` module: task selector, mastery enforcer
 18. Knowledge frontier calculation
@@ -1565,7 +1599,15 @@ These phases insert after the existing Phase 7 (Launch Prep), or can be interlea
 21. "Next task" API + session builder
 22. Learning session UI (web + mobile): the main study experience
 
-### Phase 12: Spaced Repetition (FIRe) (1-2 weeks)
+### Phase 6: Spaced Repetition — FIRe (1-2 weeks)
+
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Phase 5 deliverables, FIRe spec (Section 8), encompassing edge weights
+> - **Outputs:** Spaced-repetition module (FIRe equations), implicit repetition propagation, review scheduling + compression, SM-2 replacement for adaptive enrollments
+> - **Dependencies:** Phase 5
 
 23. `spaced-repetition` module: FIRe core equations
 24. Implicit repetition propagation through encompassing edges
@@ -1573,7 +1615,15 @@ These phases insert after the existing Phase 7 (Launch Prep), or can be interlea
 26. Replace SM-2 code path for adaptive-mode enrollments
 27. Memory decay calculation + review urgency scoring
 
-### Phase 13: Gamification & Polish (1-2 weeks)
+### Phase 11: Gamification & Polish (1-2 weeks)
+
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Phases 2-6 deliverables, XP spec (Section 10), existing streaks module
+> - **Outputs:** Gamification module (XP, anti-gaming), enhanced streaks, leaderboards, progress visualization, completion estimates, first adaptive course content
+> - **Dependencies:** Phase 6
 
 28. `gamification` module: XP calculation, anti-gaming
 29. Streaks (enhance existing)
@@ -1582,7 +1632,7 @@ These phases insert after the existing Phase 7 (Launch Prep), or can be interlea
 32. Completion estimates
 33. First full adaptive course content (port one niche)
 
-**Total estimated: 10-15 weeks on top of the existing 11-week plan.**
+**Total estimated: 10-15 weeks. Phases 2-6 are built first (core adaptive system), Phase 11 (gamification) comes later after billing and polish.**
 
 ---
 
@@ -1593,7 +1643,7 @@ These phases insert after the existing Phase 7 (Launch Prep), or can be interlea
 | Source | What It Covers |
 |--------|---------------|
 | [How Our AI Works](https://www.mathacademy.com/how-our-ai-works) | Official overview of the expert system |
-| [The Math Academy Way (free PDF)](https://www.justinmath.com/files/the-math-academy-way.pdf) | 400+ page book: science of learning, knowledge graph, FIRe, gamification |
+| [The Math Academy Way (free PDF)](https://www.justinmath.com/files/the-math-academy-way.pdf) | 508-page book (March 2026 draft): science of learning, knowledge graph, FIRe, gamification. **We did a full read-through — see Section 17 for callouts.** |
 | [How Math Academy Creates its Knowledge Graph](https://www.justinmath.com/how-math-academy-creates-its-knowledge-graph/) | Manual graph creation, encompassing weights |
 | [Individualized Spaced Repetition in Hierarchical Knowledge Structures](https://www.justinmath.com/individualized-spaced-repetition-in-hierarchical-knowledge-structures/) | FIRe algorithm with mathematical formulations |
 | [The Tip of Math Academy's Technical Iceberg](https://www.justinmath.com/the-tip-of-math-academys-technical-iceberg/) | What's publicly known vs. hidden |
@@ -1625,6 +1675,182 @@ These phases insert after the existing Phase 7 (Launch Prep), or can be interlea
 | Bayesian Knowledge Tracing | Probabilistic student modeling (Math Academy's starting point, then evolved beyond) |
 | Bloom's Two-Sigma Problem (1984) | Why 1-on-1 tutoring is 2 standard deviations better than classroom instruction |
 | [Spaced Repetition vs Spiraling](https://www.justinmath.com/spaced-repetition-vs-spiraling/) | Why spaced repetition beats curriculum spiraling |
+
+---
+
+## 17. Callouts from "The Math Academy Way" (Full 508-Page Read)
+
+After reading the complete book (March 2026 working draft), here are the key technical details that sharpen or fill gaps in our architecture. Organized by what you asked about: knowledge graph algorithms, timing content to students, and looping back to rehash content.
+
+---
+
+### Knowledge Graph: What the Book Adds
+
+**1. You only need to set encompassing weights along direct and key prerequisite edges.**
+
+The book (Ch 29) explains that the full pairwise weight matrix would have tens of millions of entries for thousands of topics. But you don't need most of them. It suffices to set weights only where:
+- The weight has a nontrivial value
+- The weight can't be inferred by repetition flow (FIRe propagation handles the rest)
+- The distance in the prerequisite graph is low (far-apart topics won't matter much even with full encompassing)
+
+The weights satisfying these conditions are almost always on **direct and key prerequisite edges**, which scales linearly with topic count. This validates our heuristic default approach but also means: **don't bother computing multi-hop heuristic defaults.** Just set weights on direct edges and let FIRe's repetition flow handle propagation.
+
+**Action:** Simplify heuristic defaults in Section 3. Remove the multiplicative decay formula for indirect prerequisites. Instead: set weights only on direct prereqs, default everything else to 0.0, and let FIRe handle it.
+
+**2. Non-ancestor encompassings exist.**
+
+The book describes cases where equivalent topics across courses (e.g., algebra-based stats vs calculus-based stats) share encompassing edges even though neither is a prerequisite of the other. We should support this in our edge model — an encompassing edge where `sourceConcept` is NOT an ancestor of `targetConcept` via prerequisite paths. Currently our model supports this structurally, but we should call it out as a valid content pattern.
+
+**3. Mastery floors for courses.**
+
+When a student enrolls in a higher-level course, there's a set of foundational topics that are automatically marked mastered (too basic to bother assessing). The book calls these "mastery floors" — topics that are far enough back or lie below the simplest diagnostic-assessable topics. We should add a `masteryFloor` concept set to the `Course` model.
+
+**Action:** Add `masteryFloorConceptIds String[]` to the Course model. On enrollment, auto-mark these as mastered without diagnostic assessment.
+
+**4. Key prerequisite edges at the KP level matter more than we specified.**
+
+The book emphasizes that each knowledge point should be linked to 1+ **key prerequisites** — the specific prerequisite knowledge most directly used in that KP. This is distinct from the concept-level prerequisite edges. When a student fails a lesson twice at the same KP, the system remediates the key prerequisites of that specific KP, not all prerequisites of the concept.
+
+Our schema already has optional `sourceKPId` / `targetKPId` on `PrerequisiteEdge`. **These should not be optional for adaptive-mode courses.** Content authors should specify KP-level key prerequisites. This is what enables precise remediation.
+
+**Action:** For adaptive-mode course YAML, require `keyPrerequisites` per knowledge point (concept IDs or KP IDs). Wire plateau detection to use these rather than tracing all concept-level prereqs.
+
+**5. Core vs supplemental topic prioritization.**
+
+The book (Ch 32) describes an algorithm that identifies "core" topics (most relevant in the big picture) vs "supplemental" topics. Core topics are taught first, giving students more spaced repetition cycles on them by course end. The algorithm satisfies two constraints:
+- If a topic is core, ALL its ancestors must also be core
+- Each course must have a reasonable balance of core/supplemental
+
+For our certification exam context, this maps to: prioritize the topics most frequently tested on the actual exam. We should add a `isCore Boolean @default(true)` field to `Concept` and have the task selector prefer core frontier topics over supplemental ones.
+
+---
+
+### Timing Content to Students: What the Book Adds
+
+**6. Student ability is measured at the per-topic level, not globally.**
+
+The book (Ch 29) is explicit: ability is tracked per student per topic, using accuracy across answers with more weight on recent answers. This is what we do (our `abilityTheta` on `StudentConceptState`). But the book adds two important propagation rules we should implement:
+- **Correct answers propagate DOWN** to simpler encompassed topics (if you solved a hard problem, your ability on its subskills is at least as good)
+- **Incorrect answers propagate UP** to more advanced encompassing topics (if you can't do the simple thing, you can't do the hard thing)
+
+Our `updateSpeed` function (Section 6) currently only updates the directly-tested concept. We should propagate ability signals through the encompassing graph after each observation.
+
+**Action:** After `updateSpeed()` on concept C, propagate:
+- On correct: `abilityTheta` boost (discounted) to encompassed concepts
+- On incorrect: `abilityTheta` penalty (discounted) to encompassing concepts
+
+**7. Initial ability prediction uses the local graph neighborhood.**
+
+The book says: to choose the initial starting value for a topic's accuracy, they predict based on the topic's local neighborhood — direct prerequisites, key prerequisites, encompassings, and same-module topics.
+
+Our cold-start blending (Section 6) uses a global `theta` from the diagnostic, which is a reasonable first pass. But once a student has been learning for a while, new unstarted concepts should bootstrap from their **graph neighbors**, not the global estimate.
+
+**Action:** When a student starts a new concept, initialize `abilityTheta` as the weighted average of their `abilityTheta` on the concept's direct prereqs, key prereqs, and encompassings (weighted by observation count / confidence). Fall back to global theta only if no neighbors have data.
+
+**8. Topic difficulty should come from population data, not just authored difficulty.**
+
+The book (Ch 29) says topic difficulty is measured by computing the topic's accuracy across all instances when one of its questions was answered by a serious student on an assessment. This naturally acts as a correction factor — hard topics get more review, easy ones get less.
+
+We have `difficultyTheta` on `Concept` that starts from authored difficulty and should migrate to observed difficulty once we have 50+ attempts. This is already in the plan but worth emphasizing: **the system self-corrects difficulty estimates from data.** This is a key feature, not just a nice-to-have.
+
+**9. When speed < 1.0, shut down ALL implicit credit and force explicit reviews.**
+
+This is in our plan (Section 8) but the book explains the WHY more clearly: weaker students often can't absorb implicit repetitions on difficult topics because they struggle to generalize that "what I learned earlier is a special case of what I'm learning now." The decision is based on student-topic learning speed — when it's < 1.0, the topic is hard for this student relative to their ability, so don't trust implicit practice.
+
+**10. The `decay` parameter models severe overdue penalties ("summer slide").**
+
+The book explains `decay` starts at 1 and grows larger as a review becomes severely overdue relative to its ideal interval (memory becomes very low). This models the real phenomenon where a topic forgotten over months may need to be nearly re-taught, not just reviewed once.
+
+Our FIRe equations include `decay` but we should be explicit about how it grows:
+
+```
+decay = 1.0 + max(0, (days / interval - 2.0)) * DECAY_RATE
+```
+
+When a review is 2x+ overdue, the penalty for failure increases. This prevents the system from treating "forgot it last week" the same as "forgot it 6 months ago."
+
+---
+
+### Looping Back / Rehashing Content: What the Book Adds
+
+**11. Repetition compression is more than just "knock out due reviews."**
+
+The book (Ch 18, Ch 31) is clear that repetition compression doesn't stop once all due reviews are eliminated. It also:
+- **Fends off upcoming reviews** by choosing tasks whose implicit repetitions push back the next due date on nearly-due topics
+- **Climbs the knowledge graph evenly** to maintain a broad spread of choices for future optimization (avoiding deep, narrow paths that limit future options)
+
+Our task selector (Section 7) handles the first point via "prefer frontier concepts whose encompassing edges knock out due reviews." But we should add the second: **when multiple frontier concepts have similar review-compression value, prefer concepts that broaden the frontier rather than deepen a single path.**
+
+**Action:** Add a "frontier breadth" factor to the task selection scoring. Frontier concepts in underrepresented topic areas get a small bonus.
+
+**12. Conditional completion from diagnostics is important.**
+
+The book (Ch 30) describes "conditionally completed" topics — topics where the diagnostic evidence barely places a student out of them. These are marked mastered, but if the student struggles on dependent topics, the system immediately "falls backward" along the learning path.
+
+Our diagnostic classification (Section 5) has `conditionally_mastered` but we should be more explicit about the fallback behavior: **when a student fails a lesson whose prerequisite is only conditionally mastered, immediately reclassify that prerequisite as `partially_known` and assign remediation.** This is more aggressive than our current plateau detection (which waits for 2 consecutive failures).
+
+**Action:** Add a check in `mastery-enforcer.service.ts`: if a lesson fails and any prerequisite is `conditionally_mastered`, immediately trigger remediation on that prerequisite without waiting for a second failure.
+
+**13. Conservative vs aggressive edge of mastery.**
+
+The book (Ch 30) distinguishes two boundaries:
+- **Aggressive edge:** where a student has learned just enough to continue layering more advanced content (lesson passed, but not yet automatic)
+- **Conservative edge:** where a student has solidified knowledge to the point of demonstrable mastery on an assessment
+
+Mastery-based learning with layering operates on the **aggressive** edge. Diagnostic placement measures the **conservative** edge. This explains why a student who completed a course might place lower on a diagnostic — and that's expected.
+
+For us, this means: **the mastery threshold for "can advance to dependent topics" should be LOWER than the mastery threshold for "can skip this on a diagnostic."** Our current plan uses a single threshold. We should split it:
+- Advancement threshold: all KPs passed (2 consecutive correct) — aggressive edge
+- Diagnostic placement threshold: P(L_c) >= 0.8 — conservative edge
+
+**14. Diagnostic algorithm details that differ from our BKT approach.**
+
+The book (Ch 30) describes a **plus-minus balance** system, not Bayesian Knowledge Tracing. For each topic:
+- Each answer has a weight (default 1.0, diminished for slow-but-correct answers)
+- Correct answers increase the balance of the answered topic AND its prerequisites
+- Incorrect answers decrease the balance of the answered topic AND its post-requisites
+- Also propagates positive credit to same-module leaf topics (correlation-based, not causal)
+- Topics with positive balances are credited with repNum equal to their balance
+
+This is simpler and more interpretable than BKT. Consider whether our BKT approach or this plus-minus balance would be easier to implement and debug. The plus-minus approach has the advantage of being transparent — you can inspect exactly why a topic was classified.
+
+**Note:** This is not necessarily better than our BKT — both are valid. But the plus-minus approach has lower implementation complexity and is easier to explain to content authors debugging student placements.
+
+**15. Graph compression for diagnostics.**
+
+The book says they compress the knowledge graph beforehand into the smallest number of topics that fully "covers" the course at a desired granularity. A topic is "covered" if it has both a descendant and an ancestor in the compressed graph within 3 prerequisite edges.
+
+We use information-theoretic question selection (MEPE), which is more principled. But the graph compression trick could reduce the candidate set significantly, making our O(n²) per-question computation cheaper. Worth considering if diagnostic performance becomes a bottleneck with 300+ concept courses.
+
+**16. Supplemental diagnostics for graph updates.**
+
+The book mentions tiny "supplemental diagnostics" assigned when topics are added or connectivity is revised in the knowledge graph. These reassess only the topics with zero evidence since the original diagnostic.
+
+For our certification context where regulations change annually, this is critical: **when a course version updates and adds new concepts, auto-generate a supplemental diagnostic covering only the new/changed concepts rather than forcing a full re-diagnostic.**
+
+**Action:** Add a `supplementalDiagnostic` flow triggered by course version updates. Only assess new concepts and concepts whose prerequisite edges changed.
+
+---
+
+### Other Technical Insights Worth Noting
+
+**17. Learning efficiency is primarily driven by performance quality, secondarily by pace.**
+
+The book (Ch 31) gives a concrete relationship: doubling your pace increases learning efficiency by ~7% (2^0.1). But quality of work (pass rate, accuracy) is the dominant factor. Low-quality work at high pace is far worse than high-quality work at moderate pace.
+
+For our XP system: **don't over-incentivize pace.** The leaderboard should reward quality-adjusted XP (XP × learning efficiency) rather than raw XP, to prevent students from rushing through content poorly.
+
+**18. The book claims ~1 explicit review per topic on average in practice.**
+
+With sufficient encompassings, Math Academy empirically observes that most courses need roughly 1 explicit review per topic — the rest is handled implicitly. This is our target efficiency. If students are doing 3+ explicit reviews per topic, our encompassing weights are likely too low or the graph doesn't have enough encompassings.
+
+**Monitoring action:** Track `average explicit reviews per mastered concept` as a system health metric. Target: < 1.5 for well-connected graphs.
+
+**19. Interleaving is implemented by mixing topics in review assignments.**
+
+The book (Ch 19) emphasizes that review sessions should interleave problems from different topic areas, not group them by topic. This creates "desirable difficulty" that promotes discrimination learning (matching problems to solution techniques) and category induction learning.
+
+Our review flow (Section 9) currently does "3-5 questions across the concept's KPs" for a single concept review. We should also offer **interleaved review sessions** that mix questions from 4-5 different concepts, especially for quiz preparation.
 
 ---
 
