@@ -1,5 +1,5 @@
 export class NextTaskResponseDto {
-  taskType: 'lesson' | 'review' | 'quiz' | 'remediation';
+  taskType!: 'lesson' | 'review' | 'quiz' | 'remediation';
   conceptId?: string;
-  reason: string;
+  reason!: string;
 }

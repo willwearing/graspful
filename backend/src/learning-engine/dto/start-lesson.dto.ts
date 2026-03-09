@@ -1,7 +1,7 @@
 export class StartLessonResponseDto {
-  conceptId: string;
-  conceptName: string;
-  knowledgePoints: Array<{
+  conceptId!: string;
+  conceptName!: string;
+  knowledgePoints!: Array<{
     id: string;
     slug: string;
     instructionText: string | null;

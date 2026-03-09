@@ -8,6 +8,7 @@ import { KnowledgeGraphModule } from './knowledge-graph/knowledge-graph.module';
 import { StudentModelModule } from './student-model/student-model.module';
 import { DiagnosticModule } from './diagnostic/diagnostic.module';
 import { AssessmentModule } from './assessment/assessment.module';
+import { LearningEngineModule } from './learning-engine/learning-engine.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AssessmentModule } from './assessment/assessment.module';
     StudentModelModule,
     DiagnosticModule,
     AssessmentModule,
+    LearningEngineModule,
   ],
 })
 export class AppModule {}
