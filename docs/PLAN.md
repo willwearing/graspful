@@ -239,7 +239,7 @@ Learning engine first, then audio platform, then billing. Mobile is deferred ent
 
 ### Phase 5: Learning Engine (Week 8-10)
 
-**Status:** Not Started
+**Status:** Complete
 
 1. Task selector: the "brain" -- what to study next
 2. Knowledge frontier calculation + mastery enforcement
