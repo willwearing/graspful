@@ -52,6 +52,10 @@ model User {
   bookmarks     UserBookmark[]
   invitesSent   InviteToken[]   @relation("InviteSender")
   triggeredJobs AudioGenerationJob[] @relation("JobTriggeredBy")
+  enrollments       CourseEnrollment[]
+  conceptStates     StudentConceptState[]
+  kpStates          StudentKPState[]
+  problemAttempts   ProblemAttempt[]
 
   @@map("users")
 }
@@ -395,6 +399,7 @@ model Course {
 
   org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   concepts Concept[]
+  enrollments CourseEnrollment[]
 
   @@unique([orgId, slug])
   @@index([orgId])
@@ -430,6 +435,7 @@ model Concept {
   prerequisiteFor    PrerequisiteEdge[] @relation("PrerequisiteTarget")
   encompassedBy      EncompassingEdge[] @relation("EncompassingSource")
   encompasses        EncompassingEdge[] @relation("EncompassingTarget")
+  studentStates StudentConceptState[]
 
   @@unique([courseId, slug])
   @@index([orgId])
@@ -455,6 +461,7 @@ model KnowledgePoint {
 
   concept  Concept   @relation(fields: [conceptId], references: [id], onDelete: Cascade)
   problems Problem[]
+  studentStates StudentKPState[]
 
   @@unique([conceptId, slug])
   @@index([conceptId])
@@ -512,6 +519,28 @@ enum ProblemType {
   @@map("problem_type")
 }
 
+// =============================================================================
+// STUDENT MODEL — ENUMS
+// =============================================================================
+
+enum MasteryState {
+  unstarted
+  in_progress
+  mastered
+  needs_review
+
+  @@map("mastery_state")
+}
+
+enum DiagnosticState {
+  unknown
+  mastered
+  partially_known
+  conditionally_mastered
+
+  @@map("diagnostic_state")
+}
+
 model Problem {
   id                  String      @id @default(uuid()) @db.Uuid
   knowledgePointId    String      @map("knowledge_point_id") @db.Uuid
@@ -528,7 +557,107 @@ model Problem {
   updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz
 
   knowledgePoint KnowledgePoint @relation(fields: [knowledgePointId], references: [id], onDelete: Cascade)
+  attempts ProblemAttempt[]
 
   @@index([knowledgePointId])
   @@map("problems")
+}
+
+// =============================================================================
+// STUDENT MODEL — ENROLLMENT
+// =============================================================================
+
+model CourseEnrollment {
+  id                   String    @id @default(uuid()) @db.Uuid
+  userId               String    @map("user_id") @db.Uuid
+  courseId              String    @map("course_id") @db.Uuid
+  diagnosticCompleted  Boolean   @default(false) @map("diagnostic_completed")
+  diagnosticCompletedAt DateTime? @map("diagnostic_completed_at") @db.Timestamptz
+  dailyXPTarget        Int       @default(40) @map("daily_xp_target")
+  totalXPEarned        Int       @default(0) @map("total_xp_earned")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@map("course_enrollments")
+}
+
+// =============================================================================
+// STUDENT MODEL — CONCEPT STATE
+// =============================================================================
+
+model StudentConceptState {
+  id                 String         @id @default(uuid()) @db.Uuid
+  userId             String         @map("user_id") @db.Uuid
+  conceptId          String         @map("concept_id") @db.Uuid
+  masteryState       MasteryState   @default(unstarted) @map("mastery_state")
+  repNum             Float          @default(0) @map("rep_num")
+  memory             Float          @default(1.0)
+  lastPracticedAt    DateTime?      @map("last_practiced_at") @db.Timestamptz
+  interval           Float          @default(1.0)
+  speed              Float          @default(1.0)
+  abilityTheta       Float          @default(0) @map("ability_theta")
+  speedRD            Float          @default(350) @map("speed_rd")
+  observationCount   Int            @default(0) @map("observation_count")
+  implicitCreditRatio Float         @default(0) @map("implicit_credit_ratio")
+  failCount          Int            @default(0) @map("fail_count")
+  diagnosticState    DiagnosticState @default(unknown) @map("diagnostic_state")
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, conceptId])
+  @@index([userId])
+  @@index([userId, masteryState])
+  @@map("student_concept_states")
+}
+
+// =============================================================================
+// STUDENT MODEL — KNOWLEDGE POINT STATE
+// =============================================================================
+
+model StudentKPState {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  knowledgePointId   String    @map("knowledge_point_id") @db.Uuid
+  passed             Boolean   @default(false)
+  attempts           Int       @default(0)
+  consecutiveCorrect Int       @default(0) @map("consecutive_correct")
+  lastAttemptAt      DateTime? @map("last_attempt_at") @db.Timestamptz
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  knowledgePoint KnowledgePoint @relation(fields: [knowledgePointId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, knowledgePointId])
+  @@index([userId])
+  @@map("student_kp_states")
+}
+
+// =============================================================================
+// STUDENT MODEL — PROBLEM ATTEMPTS
+// =============================================================================
+
+model ProblemAttempt {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  problemId      String   @map("problem_id") @db.Uuid
+  answer         Json
+  correct        Boolean
+  responseTimeMs Int      @map("response_time_ms")
+  xpAwarded      Int      @default(0) @map("xp_awarded")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([userId, problemId])
+  @@index([userId, createdAt])
+  @@map("problem_attempts")
 }

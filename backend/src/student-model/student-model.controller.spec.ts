@@ -1,0 +1,88 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { StudentModelController } from './student-model.controller';
+import { EnrollmentService } from './enrollment.service';
+import { StudentStateService } from './student-state.service';
+import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
+
+const mockGuard = { canActivate: () => true };
+
+describe('StudentModelController', () => {
+  let controller: StudentModelController;
+  let mockEnrollment: any;
+  let mockStudentState: any;
+
+  beforeEach(async () => {
+    mockEnrollment = {
+      enrollStudent: jest.fn(),
+    };
+
+    mockStudentState = {
+      getConceptStates: jest.fn(),
+      getMasteryMap: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [StudentModelController],
+      providers: [
+        { provide: EnrollmentService, useValue: mockEnrollment },
+        { provide: StudentStateService, useValue: mockStudentState },
+      ],
+    })
+      .overrideGuard(SupabaseAuthGuard)
+      .useValue(mockGuard)
+      .overrideGuard(OrgMembershipGuard)
+      .useValue(mockGuard)
+      .compile();
+
+    controller = module.get(StudentModelController);
+  });
+
+  describe('enroll', () => {
+    it('should enroll the current user in a course', async () => {
+      const enrollment = { id: 'e1', userId: 'u1', courseId: 'c1' };
+      mockEnrollment.enrollStudent.mockResolvedValue(enrollment);
+
+      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
+      const result = await controller.enroll('c1', orgCtx as any);
+
+      expect(result).toEqual(enrollment);
+      expect(mockEnrollment.enrollStudent).toHaveBeenCalledWith('org-1', 'u1', 'c1');
+    });
+  });
+
+  describe('getMastery', () => {
+    it('should return concept states for the current user', async () => {
+      const states = [
+        { conceptId: 'c1', masteryState: 'mastered', concept: { name: 'Concept 1' } },
+      ];
+      mockStudentState.getConceptStates.mockResolvedValue(states);
+
+      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
+      const result = await controller.getMastery('course-1', orgCtx as any);
+
+      expect(result).toEqual(states);
+      expect(mockStudentState.getConceptStates).toHaveBeenCalledWith('u1', 'course-1');
+    });
+  });
+
+  describe('getProfile', () => {
+    it('should return mastery breakdown with counts', async () => {
+      const states = [
+        { conceptId: 'c1', masteryState: 'mastered' },
+        { conceptId: 'c2', masteryState: 'mastered' },
+        { conceptId: 'c3', masteryState: 'unstarted' },
+        { conceptId: 'c4', masteryState: 'in_progress' },
+      ];
+      mockStudentState.getConceptStates.mockResolvedValue(states);
+
+      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
+      const result = await controller.getProfile('course-1', orgCtx as any);
+
+      expect(result.totalConcepts).toBe(4);
+      expect(result.mastered).toBe(2);
+      expect(result.inProgress).toBe(1);
+      expect(result.unstarted).toBe(1);
+      expect(result.completionPercent).toBeCloseTo(50);
+    });
+  });
+});
