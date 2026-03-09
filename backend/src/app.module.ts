@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { KnowledgeGraphModule } from './knowledge-graph/knowledge-graph.module';
 import { StudentModelModule } from './student-model/student-model.module';
 import { DiagnosticModule } from './diagnostic/diagnostic.module';
+import { AssessmentModule } from './assessment/assessment.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { DiagnosticModule } from './diagnostic/diagnostic.module';
     KnowledgeGraphModule,
     StudentModelModule,
     DiagnosticModule,
+    AssessmentModule,
   ],
 })
 export class AppModule {}
