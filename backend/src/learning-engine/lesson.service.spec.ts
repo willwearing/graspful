@@ -99,7 +99,14 @@ describe('LessonService', () => {
   });
 
   describe('completeLesson', () => {
-    it('should mark concept as in_progress and record lastPracticedAt', async () => {
+    it('should record lastPracticedAt when concept is in_progress', async () => {
+      mockPrisma.studentConceptState.findUnique.mockResolvedValue({
+        userId: 'u1',
+        conceptId: 'c2',
+        masteryState: 'in_progress',
+        failCount: 0,
+      });
+
       await service.completeLesson('u1', 'course-1', 'c2');
 
       expect(mockPrisma.studentConceptState.update).toHaveBeenCalledWith({
@@ -116,6 +123,19 @@ describe('LessonService', () => {
       await expect(
         service.completeLesson('u1', 'course-1', 'c2'),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw when concept is not in_progress', async () => {
+      mockPrisma.studentConceptState.findUnique.mockResolvedValue({
+        userId: 'u1',
+        conceptId: 'c2',
+        masteryState: 'unstarted',
+        failCount: 0,
+      });
+
+      await expect(
+        service.completeLesson('u1', 'course-1', 'c2'),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

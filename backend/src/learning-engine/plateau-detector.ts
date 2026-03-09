@@ -7,10 +7,15 @@ import {
 /**
  * Detect if a student is stuck on a concept.
  * A student is "plateaued" when they've failed the same concept
- * PLATEAU_FAIL_COUNT_THRESHOLD or more times.
+ * PLATEAU_FAIL_COUNT_THRESHOLD or more times AND the concept is
+ * not already mastered (mastered concepts may have residual failCount
+ * from before mastery).
  */
 export function detectPlateau(snapshot: ConceptSnapshot): boolean {
-  return snapshot.failCount >= PLATEAU_FAIL_COUNT_THRESHOLD;
+  return (
+    snapshot.failCount >= PLATEAU_FAIL_COUNT_THRESHOLD &&
+    snapshot.masteryState !== 'mastered'
+  );
 }
 
 /**

@@ -4,9 +4,11 @@ import {
   Post,
   Param,
   UseGuards,
+  NotFoundException,
 } from '@nestjs/common';
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
 import { OrgContext } from '@/auth/guards/org-membership.guard';
+import { PrismaService } from '@/prisma/prisma.service';
 import { LearningEngineService } from './learning-engine.service';
 import { LessonService } from './lesson.service';
 
@@ -16,6 +18,7 @@ export class LearningEngineController {
   constructor(
     private engine: LearningEngineService,
     private lessonService: LessonService,
+    private prisma: PrismaService,
   ) {}
 
   @Get('next-task')
@@ -31,9 +34,14 @@ export class LearningEngineController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    // Default daily XP target of 40; could be overridden by query param later
-    const dailyXPTarget = 40;
-    return this.engine.getStudySession(org.userId, courseId, dailyXPTarget);
+    const enrollment = await this.prisma.courseEnrollment.findUnique({
+      where: { userId_courseId: { userId: org.userId, courseId } },
+      select: { dailyXPTarget: true },
+    });
+    if (!enrollment) {
+      throw new NotFoundException('Not enrolled in this course');
+    }
+    return this.engine.getStudySession(org.userId, courseId, enrollment.dailyXPTarget);
   }
 
   @Post('lessons/:conceptId/start')

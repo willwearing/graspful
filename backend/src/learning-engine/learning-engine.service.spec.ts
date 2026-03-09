@@ -37,6 +37,12 @@ describe('LearningEngineService', () => {
       prerequisiteEdge: {
         findMany: jest.fn().mockResolvedValue(edges),
       },
+      courseEnrollment: {
+        findUnique: jest.fn().mockResolvedValue({ totalXPEarned: 50 }),
+      },
+      problemAttempt: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
     };
 
     mockStudentState = {

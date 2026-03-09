@@ -89,7 +89,7 @@ describe('selectNextTask', () => {
     expect(result.taskType).toBe('remediation');
   });
 
-  it('should return lesson fallback when nothing else applies', () => {
+  it('should return quiz fallback when nothing else applies', () => {
     const snapshots: ConceptSnapshot[] = [
       { conceptId: 'c1', masteryState: 'mastered', memory: 0.9, failCount: 0 },
       { conceptId: 'c2', masteryState: 'mastered', memory: 0.8, failCount: 0 },
@@ -100,5 +100,48 @@ describe('selectNextTask', () => {
     // Nothing to do - should still return something reasonable
     expect(result.taskType).toBe('quiz');
     expect(result.reason).toContain('caught up');
+  });
+
+  it('should return quiz fallback for empty snapshots', () => {
+    const result = selectNextTask([], [], [], 0);
+    expect(result.taskType).toBe('quiz');
+    expect(result.reason).toContain('caught up');
+  });
+
+  it('should NOT trigger remediation on mastered concepts with high failCount', () => {
+    const snapshots: ConceptSnapshot[] = [
+      { conceptId: 'c1', masteryState: 'in_progress', memory: 0.5, failCount: 0 },
+      { conceptId: 'c2', masteryState: 'mastered', memory: 0.8, failCount: 3 },
+      { conceptId: 'c3', masteryState: 'unstarted', memory: 1.0, failCount: 0 },
+    ];
+    const result = selectNextTask(snapshots, edges, ['c3'], 0);
+    // c2 is mastered with failCount 3 — should NOT trigger remediation
+    expect(result.taskType).toBe('lesson');
+    expect(result.conceptId).toBe('c3');
+  });
+
+  it('should not trigger remediation when plateau has no weak prereqs', () => {
+    const snapshots: ConceptSnapshot[] = [
+      { conceptId: 'c1', masteryState: 'mastered', memory: 0.9, failCount: 0 },
+      { conceptId: 'c2', masteryState: 'in_progress', memory: 0.4, failCount: 3 },
+      { conceptId: 'c3', masteryState: 'unstarted', memory: 1.0, failCount: 0 },
+    ];
+    // c2 is plateaued but its prereq (c1) is mastered — no weak prereqs
+    const result = selectNextTask(snapshots, edges, ['c3'], 0);
+    // Should skip P1, go to P3 (lesson)
+    expect(result.taskType).toBe('lesson');
+    expect(result.conceptId).toBe('c3');
+  });
+
+  it('P4: should only match memory between 0.3 and 0.5 (not overlap with P2)', () => {
+    const snapshots: ConceptSnapshot[] = [
+      { conceptId: 'c1', masteryState: 'mastered', memory: 0.35, failCount: 0 },
+      { conceptId: 'c2', masteryState: 'mastered', memory: 0.8, failCount: 0 },
+    ];
+    // c1 has memory 0.35 — between urgent (0.3) and standard (0.5)
+    const result = selectNextTask(snapshots, [], [], 0);
+    expect(result.taskType).toBe('review');
+    expect(result.conceptId).toBe('c1');
+    expect(result.reason).toContain('review');
   });
 });

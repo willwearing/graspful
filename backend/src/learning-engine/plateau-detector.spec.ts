@@ -34,6 +34,16 @@ describe('detectPlateau', () => {
     };
     expect(detectPlateau(snapshot)).toBe(true);
   });
+
+  it('should NOT detect plateau on mastered concepts even with high failCount', () => {
+    const snapshot: ConceptSnapshot = {
+      conceptId: 'c1',
+      masteryState: 'mastered',
+      memory: 0.9,
+      failCount: 3,
+    };
+    expect(detectPlateau(snapshot)).toBe(false);
+  });
 });
 
 describe('findWeakPrerequisites', () => {

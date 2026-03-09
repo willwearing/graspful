@@ -70,11 +70,13 @@ export function selectNextTask(
     };
   }
 
-  // P4: Standard reviews — memory < 0.5 on mastered/needs_review concepts
+  // P4: Standard reviews — memory >= 0.3 AND < 0.5 on mastered/needs_review concepts
+  // (memory < 0.3 is already handled by P2 urgent reviews)
   const standardReviews = snapshots
     .filter(
       (s) =>
         (s.masteryState === 'mastered' || s.masteryState === 'needs_review') &&
+        s.memory >= URGENT_REVIEW_MEMORY_THRESHOLD &&
         s.memory < STANDARD_REVIEW_MEMORY_THRESHOLD,
     )
     .sort((a, b) => a.memory - b.memory);

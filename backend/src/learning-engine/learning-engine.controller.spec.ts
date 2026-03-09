@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { LearningEngineController } from './learning-engine.controller';
 import { LearningEngineService } from './learning-engine.service';
 import { LessonService } from './lesson.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
 
 const mockGuard = { canActivate: () => true };
@@ -10,6 +11,7 @@ describe('LearningEngineController', () => {
   let controller: LearningEngineController;
   let mockEngine: any;
   let mockLesson: any;
+  let mockPrisma: any;
 
   const orgCtx = {
     orgId: 'org-1',
@@ -45,11 +47,18 @@ describe('LearningEngineController', () => {
       }),
     };
 
+    mockPrisma = {
+      courseEnrollment: {
+        findUnique: jest.fn().mockResolvedValue({ dailyXPTarget: 40 }),
+      },
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [LearningEngineController],
       providers: [
         { provide: LearningEngineService, useValue: mockEngine },
         { provide: LessonService, useValue: mockLesson },
+        { provide: PrismaService, useValue: mockPrisma },
       ],
     })
       .overrideGuard(SupabaseAuthGuard)
@@ -72,11 +81,24 @@ describe('LearningEngineController', () => {
   });
 
   describe('GET /session', () => {
-    it('should return a study session', async () => {
+    it('should return a study session using enrollment dailyXPTarget', async () => {
       const result = await controller.getStudySession('course-1', orgCtx as any);
 
       expect(result.tasks).toHaveLength(1);
       expect(result.estimatedXP).toBe(15);
+      expect(mockPrisma.courseEnrollment.findUnique).toHaveBeenCalledWith({
+        where: { userId_courseId: { userId: 'u1', courseId: 'course-1' } },
+        select: { dailyXPTarget: true },
+      });
+      expect(mockEngine.getStudySession).toHaveBeenCalledWith('u1', 'course-1', 40);
+    });
+
+    it('should throw when not enrolled', async () => {
+      mockPrisma.courseEnrollment.findUnique.mockResolvedValue(null);
+
+      await expect(
+        controller.getStudySession('course-1', orgCtx as any),
+      ).rejects.toThrow();
     });
   });
 

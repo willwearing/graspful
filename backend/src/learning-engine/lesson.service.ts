@@ -89,6 +89,11 @@ export class LessonService {
         `No enrollment state for concept ${conceptId}`,
       );
     }
+    if (conceptState.masteryState !== 'in_progress') {
+      throw new BadRequestException(
+        `Concept ${conceptId} is not in_progress (current: ${conceptState.masteryState}). Start the lesson first.`,
+      );
+    }
 
     // Record that the lesson content was consumed.
     // Mastery promotion to 'mastered' happens via problem practice in
