@@ -1,0 +1,377 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// =============================================================================
+// ORGANIZATIONS
+// =============================================================================
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique
+  name      String
+  niche     String
+  isActive  Boolean  @default(true) @map("is_active")
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  memberships    OrgMembership[]
+  exams          Exam[]
+  subscription   Subscription?
+  inviteTokens   InviteToken[]
+  generationJobs AudioGenerationJob[]
+
+  @@map("organizations")
+}
+
+// =============================================================================
+// USERS (extends Supabase auth.users)
+// =============================================================================
+
+model User {
+  id            String   @id @db.Uuid
+  email         String
+  displayName   String?  @map("display_name")
+  avatarUrl     String?  @map("avatar_url")
+  isGlobalAdmin Boolean  @default(false) @map("is_global_admin")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  memberships   OrgMembership[]
+  sentInvites   OrgMembership[] @relation("InvitedBy")
+  progress      UserProgress[]
+  streaks       UserStreak[]
+  bookmarks     UserBookmark[]
+  invitesSent   InviteToken[]   @relation("InviteSender")
+  triggeredJobs AudioGenerationJob[] @relation("JobTriggeredBy")
+
+  @@map("users")
+}
+
+// =============================================================================
+// ORG MEMBERSHIPS
+// =============================================================================
+
+enum OrgRole {
+  owner
+  admin
+  member
+
+  @@map("org_role")
+}
+
+model OrgMembership {
+  id        String    @id @default(uuid()) @db.Uuid
+  orgId     String    @map("org_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  role      OrgRole   @default(member)
+  invitedBy String?   @map("invited_by") @db.Uuid
+  invitedAt DateTime? @map("invited_at") @db.Timestamptz
+  joinedAt  DateTime  @default(now()) @map("joined_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inviter User?        @relation("InvitedBy", fields: [invitedBy], references: [id])
+
+  @@unique([orgId, userId])
+  @@index([userId])
+  @@index([orgId])
+  @@map("org_memberships")
+}
+
+// =============================================================================
+// CONTENT HIERARCHY
+// =============================================================================
+
+model Exam {
+  id             String   @id @default(uuid()) @db.Uuid
+  orgId          String   @map("org_id") @db.Uuid
+  title          String
+  slug           String
+  description    String?
+  sourceDocument String?  @map("source_document")
+  editionYear    Int?     @map("edition_year")
+  isPublished    Boolean  @default(false) @map("is_published")
+  isArchived     Boolean  @default(false) @map("is_archived")
+  sortOrder      Int      @default(0) @map("sort_order")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  org    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  topics Topic[]
+
+  @@unique([orgId, slug])
+  @@index([orgId])
+  @@map("exams")
+}
+
+model Topic {
+  id         String   @id @default(uuid()) @db.Uuid
+  examId     String   @map("exam_id") @db.Uuid
+  title      String
+  slug       String
+  description String?
+  sortOrder  Int      @default(0) @map("sort_order")
+  isArchived Boolean  @default(false) @map("is_archived")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  exam     Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  sections Section[]
+
+  @@unique([examId, slug])
+  @@index([examId])
+  @@map("topics")
+}
+
+model Section {
+  id         String   @id @default(uuid()) @db.Uuid
+  topicId    String   @map("topic_id") @db.Uuid
+  title      String
+  slug       String
+  description String?
+  sortOrder  Int      @default(0) @map("sort_order")
+  isArchived Boolean  @default(false) @map("is_archived")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  topic      Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  studyItems StudyItem[]
+
+  @@unique([topicId, slug])
+  @@index([topicId])
+  @@map("sections")
+}
+
+model StudyItem {
+  id              String   @id @default(uuid()) @db.Uuid
+  sectionId       String   @map("section_id") @db.Uuid
+  title           String?
+  textContent     String   @map("text_content")
+  textHash        String   @map("text_hash")
+  charCount       Int      @map("char_count")
+  difficulty      String?
+  importance      String?
+  tags            String[] @default([])
+  sourceReference String?  @map("source_reference")
+  sortOrder       Int      @default(0) @map("sort_order")
+  isArchived      Boolean  @default(false) @map("is_archived")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  section    Section        @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  audioFiles AudioFile[]
+  progress   UserProgress[]
+  bookmarks  UserBookmark[]
+
+  @@index([sectionId])
+  @@map("study_items")
+}
+
+// =============================================================================
+// AUDIO FILES
+// =============================================================================
+
+model AudioFile {
+  id            String   @id @default(uuid()) @db.Uuid
+  studyItemId   String   @map("study_item_id") @db.Uuid
+  voice         String
+  model         String   @default("kokoro")
+  textHash      String   @map("text_hash")
+  storagePath   String   @map("storage_path")
+  storageBucket String   @default("audio") @map("storage_bucket")
+  fileSizeBytes Int      @map("file_size_bytes")
+  durationSeconds Float? @map("duration_seconds")
+  format        String   @default("flac")
+  isCurrent     Boolean  @default(true) @map("is_current")
+  generatedAt   DateTime @default(now()) @map("generated_at") @db.Timestamptz
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  studyItem StudyItem @relation(fields: [studyItemId], references: [id], onDelete: Cascade)
+
+  @@unique([studyItemId, voice, model, textHash])
+  @@index([studyItemId])
+  @@map("audio_files")
+}
+
+// =============================================================================
+// USER PROGRESS
+// =============================================================================
+
+model UserProgress {
+  id                  String    @id @default(uuid()) @db.Uuid
+  userId              String    @map("user_id") @db.Uuid
+  studyItemId         String    @map("study_item_id") @db.Uuid
+  orgId               String    @map("org_id") @db.Uuid
+  listenCount         Int       @default(0) @map("listen_count")
+  lastPositionSeconds Float     @default(0) @map("last_position_seconds")
+  lastPlaybackRate    Float     @default(1.0) @map("last_playback_rate")
+  isCompleted         Boolean   @default(false) @map("is_completed")
+  firstListenedAt     DateTime? @map("first_listened_at") @db.Timestamptz
+  lastListenedAt      DateTime? @map("last_listened_at") @db.Timestamptz
+  easeFactor          Float     @default(2.5) @map("ease_factor")
+  intervalDays        Int       @default(1) @map("interval_days")
+  nextReviewAt        DateTime? @map("next_review_at") @db.Timestamptz
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studyItem StudyItem @relation(fields: [studyItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, studyItemId])
+  @@index([userId, orgId])
+  @@map("user_progress")
+}
+
+// =============================================================================
+// USER STREAKS
+// =============================================================================
+
+model UserStreak {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  orgId          String   @map("org_id") @db.Uuid
+  date           DateTime @db.Date
+  listenSeconds  Int      @default(0) @map("listen_seconds")
+  itemsCompleted Int      @default(0) @map("items_completed")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId, date])
+  @@index([userId, orgId])
+  @@map("user_streaks")
+}
+
+// =============================================================================
+// USER BOOKMARKS
+// =============================================================================
+
+model UserBookmark {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  studyItemId String   @map("study_item_id") @db.Uuid
+  orgId       String   @map("org_id") @db.Uuid
+  note        String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studyItem StudyItem @relation(fields: [studyItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, studyItemId])
+  @@index([userId, orgId])
+  @@map("user_bookmarks")
+}
+
+// =============================================================================
+// SUBSCRIPTIONS
+// =============================================================================
+
+enum SubscriptionStatus {
+  trialing
+  active
+  past_due
+  canceled
+  unpaid
+  incomplete
+
+  @@map("subscription_status")
+}
+
+enum PlanTier {
+  free
+  individual
+  team
+  enterprise
+
+  @@map("plan_tier")
+}
+
+model Subscription {
+  id                   String             @id @default(uuid()) @db.Uuid
+  orgId                String             @unique @map("org_id") @db.Uuid
+  stripeCustomerId     String             @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?            @unique @map("stripe_subscription_id")
+  plan                 PlanTier           @default(free)
+  status               SubscriptionStatus @default(trialing)
+  trialEndsAt          DateTime?          @map("trial_ends_at") @db.Timestamptz
+  currentPeriodStart   DateTime?          @map("current_period_start") @db.Timestamptz
+  currentPeriodEnd     DateTime?          @map("current_period_end") @db.Timestamptz
+  cancelAtPeriodEnd    Boolean            @default(false) @map("cancel_at_period_end")
+  maxMembers           Int                @default(1) @map("max_members")
+  createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+// =============================================================================
+// INVITE TOKENS
+// =============================================================================
+
+model InviteToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  orgId      String    @map("org_id") @db.Uuid
+  email      String
+  role       OrgRole   @default(member)
+  token      String    @unique @default(uuid())
+  invitedBy  String    @map("invited_by") @db.Uuid
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz
+  acceptedAt DateTime? @map("accepted_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  inviter User         @relation("InviteSender", fields: [invitedBy], references: [id])
+
+  @@index([token])
+  @@index([email])
+  @@map("invite_tokens")
+}
+
+// =============================================================================
+// AUDIO GENERATION JOBS
+// =============================================================================
+
+enum GenerationStatus {
+  pending
+  in_progress
+  completed
+  failed
+
+  @@map("generation_status")
+}
+
+model AudioGenerationJob {
+  id             String           @id @default(uuid()) @db.Uuid
+  orgId          String           @map("org_id") @db.Uuid
+  examId         String?          @map("exam_id") @db.Uuid
+  status         GenerationStatus @default(pending)
+  totalItems     Int              @default(0) @map("total_items")
+  completedItems Int              @default(0) @map("completed_items")
+  failedItems    Int              @default(0) @map("failed_items")
+  voices         String[]         @default(["af_heart"])
+  errorLog       Json             @default("[]") @map("error_log")
+  startedAt      DateTime?        @map("started_at") @db.Timestamptz
+  completedAt    DateTime?        @map("completed_at") @db.Timestamptz
+  triggeredBy    String?          @map("triggered_by") @db.Uuid
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  triggerer User?        @relation("JobTriggeredBy", fields: [triggeredBy], references: [id])
+
+  @@index([orgId])
+  @@map("audio_generation_jobs")
+}
