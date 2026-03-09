@@ -661,3 +661,22 @@ model ProblemAttempt {
   @@index([userId, createdAt])
   @@map("problem_attempts")
 }
+
+// =============================================================================
+// LEARNING ENGINE — REMEDIATIONS
+// =============================================================================
+
+model Remediation {
+  id                  String    @id @default(uuid()) @db.Uuid
+  userId              String    @map("user_id") @db.Uuid
+  courseId             String    @map("course_id") @db.Uuid
+  blockedConceptId    String    @map("blocked_concept_id") @db.Uuid
+  weakPrerequisiteId  String    @map("weak_prerequisite_id") @db.Uuid
+  resolved            Boolean   @default(false)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  resolvedAt          DateTime? @map("resolved_at") @db.Timestamptz
+
+  @@unique([userId, blockedConceptId, weakPrerequisiteId])
+  @@index([userId, courseId, resolved])
+  @@map("remediations")
+}
