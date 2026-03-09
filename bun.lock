@@ -17,9 +17,18 @@
       "name": "@niche-audio-prep/backend",
       "version": "0.0.1",
     },
+    "packages/shared": {
+      "name": "@niche-audio-prep/shared",
+      "version": "0.0.1",
+      "devDependencies": {
+        "typescript": "^5.7.0",
+      },
+    },
   },
   "packages": {
     "@niche-audio-prep/backend": ["@niche-audio-prep/backend@workspace:backend"],
+
+    "@niche-audio-prep/shared": ["@niche-audio-prep/shared@workspace:packages/shared"],
 
     "@niche-audio-prep/web": ["@niche-audio-prep/web@workspace:apps/web"],
 
