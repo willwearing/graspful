@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { StudentStateService } from '@/student-model/student-state.service';
 import { GraphQueryService } from '@/knowledge-graph/graph-query.service';
+import { MemoryDecayService } from '@/spaced-repetition/memory-decay.service';
 import { RemediationService } from './remediation.service';
 import { selectNextTask } from './task-selector';
 import { generateStudySession } from './session-generator';
@@ -20,12 +21,16 @@ export class LearningEngineService {
     private studentState: StudentStateService,
     private graphQuery: GraphQueryService,
     private remediationService: RemediationService,
+    private memoryDecay: MemoryDecayService,
   ) {}
 
   async getNextTask(
     userId: string,
     courseId: string,
   ): Promise<TaskRecommendation> {
+    // Decay memory before building context so values are current
+    await this.memoryDecay.decayAllMemory(userId, courseId);
+
     const { snapshots, edges, frontier } = await this.buildContext(
       userId,
       courseId,
@@ -53,6 +58,9 @@ export class LearningEngineService {
     courseId: string,
     dailyXPTarget: number,
   ): Promise<StudySession> {
+    // Decay memory before building context so values are current
+    await this.memoryDecay.decayAllMemory(userId, courseId);
+
     const { snapshots, edges, frontier } = await this.buildContext(
       userId,
       courseId,
