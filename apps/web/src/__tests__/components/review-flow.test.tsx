@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ReviewFlow } from "@/components/app/review-flow";
 
 const mockApiClientFetch = vi.fn();
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api-client", () => ({
   apiClientFetch: (...args: any[]) => mockApiClientFetch(...args),
 }));
 
@@ -19,7 +19,7 @@ const reviewStart = {
   currentProblem: {
     id: "p1",
     questionText: "What color is a fire hydrant?",
-    type: "multiple_choice",
+    type: "multiple_choice" as const,
     options: [
       { id: "a", text: "Red" },
       { id: "b", text: "Blue" },

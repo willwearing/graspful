@@ -4,7 +4,7 @@ import { DiagnosticFlow } from "@/components/app/diagnostic-flow";
 
 const mockApiClientFetch = vi.fn();
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api-client", () => ({
   apiClientFetch: (...args: any[]) => mockApiClientFetch(...args),
 }));
 
@@ -20,7 +20,7 @@ const startData = {
   question: {
     id: "q1",
     questionText: "What is NFPA?",
-    type: "multiple_choice",
+    type: "multiple_choice" as const,
     options: [
       { id: "a", text: "National Fire Protection Association" },
       { id: "b", text: "Not For Public Access" },

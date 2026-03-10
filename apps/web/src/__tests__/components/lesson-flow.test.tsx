@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { LessonFlow } from "@/components/app/lesson-flow";
 
 const mockApiClientFetch = vi.fn();
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api-client", () => ({
   apiClientFetch: (...args: any[]) => mockApiClientFetch(...args),
 }));
 

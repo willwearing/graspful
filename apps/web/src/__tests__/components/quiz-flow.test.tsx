@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, act } from "@testing-library/react"
 import { QuizFlow } from "@/components/app/quiz-flow";
 
 const mockApiClientFetch = vi.fn();
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api-client", () => ({
   apiClientFetch: (...args: any[]) => mockApiClientFetch(...args),
 }));
 
@@ -20,7 +20,7 @@ const quizData = {
     {
       id: "p1",
       questionText: "Quiz question 1?",
-      type: "multiple_choice",
+      type: "multiple_choice" as const,
       options: [
         { id: "a", text: "Answer A" },
         { id: "b", text: "Answer B" },
@@ -30,13 +30,13 @@ const quizData = {
     {
       id: "p2",
       questionText: "Quiz question 2?",
-      type: "true_false",
+      type: "true_false" as const,
       difficulty: 1,
     },
     {
       id: "p3",
       questionText: "Quiz question 3?",
-      type: "fill_blank",
+      type: "fill_blank" as const,
       difficulty: 3,
     },
   ],

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiClientFetch } from "@/lib/api";
+import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { BookOpen, Volume2 } from "lucide-react";
