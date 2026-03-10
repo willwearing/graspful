@@ -6,6 +6,7 @@ describe('LearningEngineService', () => {
   let mockStudentState: any;
   let mockGraphQuery: any;
   let mockRemediationService: any;
+  let mockMemoryDecay: any;
 
   const conceptStates = [
     {
@@ -59,11 +60,16 @@ describe('LearningEngineService', () => {
       createRemediation: jest.fn().mockResolvedValue({}),
     };
 
+    mockMemoryDecay = {
+      decayAllMemory: jest.fn().mockResolvedValue(undefined),
+    };
+
     service = new LearningEngineService(
       mockPrisma,
       mockStudentState,
       mockGraphQuery,
       mockRemediationService,
+      mockMemoryDecay,
     );
   });
 

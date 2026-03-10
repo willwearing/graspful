@@ -4,6 +4,7 @@ import { NotFoundException } from '@nestjs/common';
 describe('ProblemSubmissionService', () => {
   let service: ProblemSubmissionService;
   let mockPrisma: any;
+  let mockFireUpdate: any;
 
   const mockProblem = {
     id: 'prob-1',
@@ -70,7 +71,12 @@ describe('ProblemSubmissionService', () => {
       },
     };
 
-    service = new ProblemSubmissionService(mockPrisma);
+    mockFireUpdate = {
+      updateAfterReview: jest.fn().mockResolvedValue(undefined),
+      propagateImplicitRepetition: jest.fn().mockResolvedValue(undefined),
+    };
+
+    service = new ProblemSubmissionService(mockPrisma, mockFireUpdate);
   });
 
   it('should evaluate a correct MC answer and create attempt', async () => {

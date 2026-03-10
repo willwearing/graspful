@@ -5,6 +5,7 @@ describe('ReviewService', () => {
   let service: ReviewService;
   let mockPrisma: any;
   let mockProblemSubmission: any;
+  let mockFireUpdate: any;
 
   const mockProblems = [
     { id: 'p1', questionText: 'Q1', type: 'multiple_choice', options: ['A', 'B'], difficulty: 2, isReviewVariant: true },
@@ -25,6 +26,9 @@ describe('ReviewService', () => {
       problem: {
         findMany: jest.fn().mockResolvedValue(mockProblems),
       },
+      concept: {
+        findUnique: jest.fn().mockResolvedValue({ courseId: 'course-1' }),
+      },
     };
 
     mockProblemSubmission = {
@@ -36,7 +40,12 @@ describe('ReviewService', () => {
       }),
     };
 
-    service = new ReviewService(mockPrisma, mockProblemSubmission);
+    mockFireUpdate = {
+      updateAfterReview: jest.fn().mockResolvedValue(undefined),
+      propagateImplicitRepetition: jest.fn().mockResolvedValue(undefined),
+    };
+
+    service = new ReviewService(mockPrisma, mockProblemSubmission, mockFireUpdate);
   });
 
   describe('startReview', () => {
@@ -121,9 +130,17 @@ describe('ReviewService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             masteryState: 'mastered',
-            repNum: { increment: 1 },
+            failCount: 0,
           }),
         }),
+      );
+      // FIRe update should be called
+      expect(mockFireUpdate.updateAfterReview).toHaveBeenCalledWith(
+        'user-1',
+        'concept-1',
+        true,
+        1.0,
+        'course-1',
       );
     });
 
