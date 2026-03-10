@@ -51,7 +51,8 @@ export function computeImplicitRepetition(
 
       const effectiveWeight = cumulativeWeight * child.weight;
       const memoryDelta = effectiveWeight * rawDelta;
-      const repNumDelta = effectiveWeight * rawDelta * speed;
+      // Spec: speed_discount = 1.0 if speed >= 1.0 (gate already checked above)
+      const repNumDelta = effectiveWeight * rawDelta;
 
       updates.push({
         conceptId: child.conceptId,

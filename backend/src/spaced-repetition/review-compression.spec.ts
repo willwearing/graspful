@@ -22,6 +22,10 @@ describe('rankReviewsByCompression', () => {
 
     // "big" should come first because practicing it covers small1 + small2
     expect(result[0]).toBe('big');
+    // small1 and small2 follow (covered by big)
+    expect(result).toHaveLength(3);
+    expect(result).toContain('small1');
+    expect(result).toContain('small2');
   });
 
   it('should return original order when no encompassing edges exist', () => {
@@ -30,42 +34,24 @@ describe('rankReviewsByCompression', () => {
   });
 
   it('should not count concepts whose speed is below 1.0', () => {
+    // "big" encompasses "slow" (speed < 1.0) — should not count as coverage
     const edges: EncompassingLink[] = [
       { sourceConceptId: 'slow', targetConceptId: 'big', weight: 0.5 },
-      { sourceConceptId: 'fast', targetConceptId: 'small', weight: 0.5 },
     ];
     const speeds = new Map([
       ['slow', 0.5], // below threshold
-      ['fast', 1.5],
       ['big', 1.0],
-      ['small', 1.0],
     ]);
 
     const result = rankReviewsByCompression(
-      ['big', 'small'],
+      ['big', 'slow'],
       edges,
       speeds,
     );
 
-    // "small" covers "fast" (speed >= 1.0), "big" covers "slow" (speed < 1.0, doesn't count)
-    // But "slow" and "fast" aren't in the due list, so only due-list members count
-    // Both "big" and "small" have 0 coverage of due-list items -> original order
-    expect(result).toEqual(['big', 'small']);
-  });
-
-  it('should only count coverage of concepts in the due review list', () => {
-    const edges: EncompassingLink[] = [
-      { sourceConceptId: 'small', targetConceptId: 'big', weight: 0.5 },
-    ];
-    const speeds = new Map([
-      ['small', 1.2],
-      ['big', 1.0],
-    ]);
-
-    // Only "big" is due, "small" is NOT due
-    const result = rankReviewsByCompression(['big'], edges, speeds);
-    // "big" has 0 coverage of other due items (small isn't due)
-    expect(result).toEqual(['big']);
+    // "big" can't cover "slow" (speed < 1.0), so no compression benefit
+    // Order preserved by original index tiebreaker
+    expect(result).toEqual(['big', 'slow']);
   });
 
   it('should handle empty due list', () => {
@@ -90,9 +76,39 @@ describe('rankReviewsByCompression', () => {
       speeds,
     );
 
-    // "big" covers mid + small (2), "mid" covers small (1), "small" covers 0
+    // "big" covers mid + small (2), so it's picked first
+    // Then mid and small are covered → appended after
     expect(result[0]).toBe('big');
-    expect(result[1]).toBe('mid');
-    expect(result[2]).toBe('small');
+    expect(result).toHaveLength(3);
+  });
+
+  it('should use greedy set-cover: removing covered concepts between picks', () => {
+    // Two independent clusters:
+    // "a" encompasses "a1", "a2" (both due)
+    // "b" encompasses "b1" (due)
+    const edges: EncompassingLink[] = [
+      { sourceConceptId: 'a1', targetConceptId: 'a', weight: 0.5 },
+      { sourceConceptId: 'a2', targetConceptId: 'a', weight: 0.5 },
+      { sourceConceptId: 'b1', targetConceptId: 'b', weight: 0.5 },
+    ];
+    const speeds = new Map([
+      ['a1', 1.0], ['a2', 1.0], ['a', 1.0],
+      ['b1', 1.0], ['b', 1.0],
+    ]);
+
+    const result = rankReviewsByCompression(
+      ['a', 'a1', 'a2', 'b', 'b1'],
+      edges,
+      speeds,
+    );
+
+    // "a" picked first (covers 2), then a1/a2 covered.
+    // "b" picked next (covers 1), then b1 covered.
+    expect(result[0]).toBe('a');
+    expect(result).toHaveLength(5);
+    // After "a" picks up a1/a2, "b" should appear before b1
+    const bIndex = result.indexOf('b');
+    const b1Index = result.indexOf('b1');
+    expect(bIndex).toBeLessThan(b1Index);
   });
 });

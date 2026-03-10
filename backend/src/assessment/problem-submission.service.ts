@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { FireUpdateService } from '@/spaced-repetition/fire-update.service';
+import { calculateRawDelta } from '@/spaced-repetition/fire-equations';
 import { evaluateAnswer } from './answer-evaluator';
 import { calculateXP, ActivityType } from './xp-calculator';
 import { updateSpeed, deriveSpeed, blendSpeed, SpeedState, ConceptParams } from './speed-updater';
@@ -125,9 +126,11 @@ export class ProblemSubmissionService {
     }
 
     // 9. Propagate implicit repetition to encompassed concepts
-    const implicitRawDelta = evaluation.correct
-      ? 1.0 * (1 - preUpdateMemory)
-      : -0.5 * (1 - preUpdateMemory);
+    const implicitRawDelta = calculateRawDelta(
+      evaluation.correct,
+      evaluation.correct ? 1.0 : 0,
+      preUpdateMemory,
+    );
     await this.fireUpdate.propagateImplicitRepetition(
       userId,
       concept.id,

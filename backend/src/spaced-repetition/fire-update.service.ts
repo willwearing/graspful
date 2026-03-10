@@ -42,11 +42,9 @@ export class FireUpdateService {
     const decay = calculateDecay(state.memory);
     const newRepNum = updateRepNum(state.repNum, state.speed, decay, !passed, rawDelta);
 
-    const daysSince = state.lastPracticedAt
-      ? (Date.now() - state.lastPracticedAt.getTime()) / (1000 * 60 * 60 * 24)
-      : 0;
-
-    const newMemory = calculateMemory(state.memory, rawDelta, daysSince, state.interval);
+    // Use daysSince=0: memory decay was already applied by MemoryDecayService
+    // before task selection. This update represents the moment of practice.
+    const newMemory = calculateMemory(state.memory, rawDelta, 0, state.interval);
     const newInterval = calculateNextInterval(newRepNum);
 
     await this.prisma.studentConceptState.update({

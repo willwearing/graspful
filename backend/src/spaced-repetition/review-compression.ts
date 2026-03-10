@@ -1,17 +1,14 @@
 import { EncompassingLink } from './types';
 
 /**
- * Rank candidate review concepts by how many other due reviews they'd
- * implicitly satisfy. Concepts that cover the most due reviews come first.
- *
- * This is a greedy optimization: by reviewing an encompassing concept,
- * the student implicitly practices its encompassed concepts too,
- * potentially satisfying multiple review needs at once.
+ * Rank candidate review concepts using greedy set-cover: pick the concept
+ * that implicitly covers the most OTHER due reviews, remove covered concepts,
+ * repeat. This minimises the total number of explicit reviews needed.
  *
  * @param dueReviewConceptIds - Concept IDs that are due for review
  * @param encompassingEdges - All encompassing edges in the course
  * @param conceptSpeeds - Map of conceptId -> speed for this student
- * @returns Sorted concept IDs (most coverage first)
+ * @returns Sorted concept IDs (greedy set-cover order)
  */
 export function rankReviewsByCompression(
   dueReviewConceptIds: string[],
@@ -19,8 +16,6 @@ export function rankReviewsByCompression(
   conceptSpeeds: Map<string, number>,
 ): string[] {
   if (dueReviewConceptIds.length === 0) return [];
-
-  const dueSet = new Set(dueReviewConceptIds);
 
   // Build adjacency: targetConceptId -> array of { sourceConceptId }
   const adj = new Map<string, Array<{ conceptId: string; weight: number }>>();
@@ -34,38 +29,60 @@ export function rankReviewsByCompression(
     });
   }
 
-  // For each due concept, count how many OTHER due concepts it covers via BFS
-  const coverageMap = new Map<string, number>();
+  const remaining = new Set(dueReviewConceptIds);
+  const result: string[] = [];
 
-  for (const conceptId of dueReviewConceptIds) {
-    const covered = countCoverage(conceptId, adj, dueSet, conceptSpeeds);
-    coverageMap.set(conceptId, covered);
+  while (remaining.size > 0) {
+    // For each remaining concept, count how many OTHER remaining concepts it covers
+    let bestId = '';
+    let bestCoverage = -1;
+    let bestOriginalIndex = Infinity;
+
+    for (const conceptId of remaining) {
+      const covered = getCoveredSet(conceptId, adj, remaining, conceptSpeeds);
+      const originalIndex = dueReviewConceptIds.indexOf(conceptId);
+      // Pick highest coverage, break ties by original order
+      if (
+        covered.size > bestCoverage ||
+        (covered.size === bestCoverage && originalIndex < bestOriginalIndex)
+      ) {
+        bestId = conceptId;
+        bestCoverage = covered.size;
+        bestOriginalIndex = originalIndex;
+      }
+    }
+
+    // Add best concept to result
+    result.push(bestId);
+    remaining.delete(bestId);
+
+    // Remove all concepts covered by this pick from remaining
+    if (bestCoverage > 0) {
+      const covered = getCoveredSet(bestId, adj, remaining, conceptSpeeds);
+      for (const coveredId of covered) {
+        remaining.delete(coveredId);
+        result.push(coveredId); // still include them, just after the covering concept
+      }
+    }
   }
 
-  // Sort by coverage descending, break ties by original order
-  const indexed = dueReviewConceptIds.map((id, i) => ({ id, i }));
-  indexed.sort((a, b) => {
-    const coverageDiff = (coverageMap.get(b.id) ?? 0) - (coverageMap.get(a.id) ?? 0);
-    if (coverageDiff !== 0) return coverageDiff;
-    return a.i - b.i; // preserve original order as tiebreaker
-  });
-
-  return indexed.map((item) => item.id);
+  return result;
 }
 
 /**
- * BFS to count how many concepts in dueSet are reachable from startId
+ * BFS to find which concepts in `remaining` are reachable from startId
  * through encompassing edges (where the encompassed concept has speed >= 1.0).
+ * Does NOT include startId itself.
  */
-function countCoverage(
+function getCoveredSet(
   startId: string,
   adj: Map<string, Array<{ conceptId: string; weight: number }>>,
-  dueSet: Set<string>,
+  remaining: Set<string>,
   conceptSpeeds: Map<string, number>,
-): number {
+): Set<string> {
   const visited = new Set<string>([startId]);
   const queue = [startId];
-  let count = 0;
+  const covered = new Set<string>();
 
   while (queue.length > 0) {
     const currentId = queue.shift()!;
@@ -78,13 +95,13 @@ function countCoverage(
       const speed = conceptSpeeds.get(child.conceptId) ?? 0;
       if (speed < 1.0) continue;
 
-      if (dueSet.has(child.conceptId)) {
-        count++;
+      if (remaining.has(child.conceptId)) {
+        covered.add(child.conceptId);
       }
 
       queue.push(child.conceptId);
     }
   }
 
-  return count;
+  return covered;
 }

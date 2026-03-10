@@ -41,7 +41,6 @@ export class MemoryDecayService {
     });
 
     const updates = states
-      .filter((state) => state.lastPracticedAt != null && state.masteryState !== 'unstarted')
       .map((state) => {
         const daysSince =
           (now.getTime() - state.lastPracticedAt!.getTime()) / (1000 * 60 * 60 * 24);
@@ -50,7 +49,9 @@ export class MemoryDecayService {
       })
       .filter(({ state, decayed }) => Math.abs(state.memory - decayed) > DECAY_EPSILON);
 
-    await Promise.all(
+    if (updates.length === 0) return;
+
+    await this.prisma.$transaction(
       updates.map(({ state, decayed }) =>
         this.prisma.studentConceptState.update({
           where: {
