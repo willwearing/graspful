@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import { FireUpdateService } from '@/spaced-repetition/fire-update.service';
 import { evaluateAnswer } from './answer-evaluator';
 import { calculateXP, ActivityType } from './xp-calculator';
 import { updateSpeed, deriveSpeed, blendSpeed, SpeedState, ConceptParams } from './speed-updater';
@@ -27,7 +28,10 @@ export interface SubmitAnswerResult {
 
 @Injectable()
 export class ProblemSubmissionService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private fireUpdate: FireUpdateService,
+  ) {}
 
   async submitAnswer(input: SubmitAnswerInput): Promise<SubmitAnswerResult> {
     const { userId, problemId, answer, responseTimeMs, activityType } = input;
@@ -96,6 +100,12 @@ export class ProblemSubmissionService {
       evaluation.correct,
     );
 
+    // Capture pre-update memory for implicit repetition delta
+    const preUpdateMemory = (await this.prisma.studentConceptState.findUnique({
+      where: { userId_conceptId: { userId, conceptId: concept.id } },
+      select: { memory: true },
+    }))?.memory ?? 1;
+
     // 7. Update StudentConceptState (mastery transitions + speed)
     const updatedMasteryState = await this.updateConceptState(
       userId,
@@ -113,6 +123,17 @@ export class ProblemSubmissionService {
         data: { totalXPEarned: { increment: xpResult.xp } },
       });
     }
+
+    // 9. Propagate implicit repetition to encompassed concepts
+    const implicitRawDelta = evaluation.correct
+      ? 1.0 * (1 - preUpdateMemory)
+      : -0.5 * (1 - preUpdateMemory);
+    await this.fireUpdate.propagateImplicitRepetition(
+      userId,
+      concept.id,
+      implicitRawDelta,
+      concept.courseId,
+    );
 
     return {
       correct: evaluation.correct,
