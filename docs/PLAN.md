@@ -275,7 +275,7 @@ Learning engine first, then audio platform, then billing. Mobile is deferred ent
 
 ### Phase 7: Web Frontend -- Core (Week 12-15)
 
-**Status:** Not Started
+**Status:** Complete
 
 1. White-label theming system (CSS variables, shadcn/ui)
 2. Tenant detection middleware (Host header → brand config)
@@ -290,13 +290,13 @@ Learning engine first, then audio platform, then billing. Mobile is deferred ent
 > - **Inputs:** docs/frontend-plan.md, Phase 1 outputs (shared types, Supabase auth), backend API from Phases 1-6
 > - **Outputs:** Next.js app on Vercel, white-label theming working, tenant detection via Host header, landing page rendering per brand, auth flow complete, study dashboard showing enrolled courses, content browser navigating course → concept hierarchy, all pages mobile-responsive
 > - **Dependencies:** Phase 1 (minimum), Phase 6 (for full learning data)
-> - **Estimated tasks:** 18 (each 2-5 min)
+> - **Actual tasks:** 14 commits (implemented 2026-03-09), 40 frontend tests passing, production build clean
 
 ---
 
 ### Phase 8: Web Frontend -- Learning Experience (Week 15-17)
 
-**Status:** Not Started
+**Status:** Complete
 
 1. Diagnostic assessment UI
 2. Knowledge profile visualization
@@ -310,13 +310,13 @@ Learning engine first, then audio platform, then billing. Mobile is deferred ent
 > - **Inputs:** docs/frontend-plan.md, docs/adaptive-learning-architecture.md (UI sections), Phase 7 outputs (working Next.js app), backend APIs from Phases 3-6
 > - **Outputs:** Diagnostic flow UI, knowledge profile graph/chart, all 5 problem type UIs, study session page consuming "next task" API, review + quiz flows, progress dashboard with mastery percentages
 > - **Dependencies:** Phase 7
-> - **Estimated tasks:** 18 (each 2-5 min)
+> - **Actual tasks:** 11 (implemented 2026-03-10), 90 frontend tests passing (21 test files), 339 backend tests passing, production build clean
 
 ---
 
 ### Phase 9: Audio Pipeline (Week 17-19)
 
-**Status:** Not Started
+**Status:** Complete
 
 1. Port Modal Kokoro TTS from try-listening
 2. Batch TTS generation script
@@ -331,13 +331,13 @@ Learning engine first, then audio platform, then billing. Mobile is deferred ent
 > - **Inputs:** try-listening codebase (TTS + audio player), docs/backend-plan.md (audio module), Phase 8 outputs (learning experience UI)
 > - **Outputs:** Modal Kokoro TTS deployed, batch generation script producing audio for all content, Supabase Storage upload pipeline, audio serving API with CDN caching, audio player component in web app, audio integrated into lesson flow, IndexedDB offline caching working
 > - **Dependencies:** Phase 8 (for UI integration), Phase 1 (for backend)
-> - **Estimated tasks:** 16 (each 2-5 min)
+> - **Actual tasks:** implemented 2026-03-10, 377 backend tests passing, 139 frontend tests passing (26 test files), production build clean
 
 ---
 
 ### Phase 10: Billing (Week 19-20)
 
-**Status:** Not Started
+**Status:** Complete
 
 1. Stripe integration (checkout, webhooks, portal)
 2. Subscription gating middleware
@@ -348,17 +348,25 @@ Learning engine first, then audio platform, then billing. Mobile is deferred ent
 > - **Inputs:** docs/backend-plan.md (billing module), Phase 7 outputs (web frontend with theming)
 > - **Outputs:** Stripe Checkout flow, webhook handler for subscription events, customer portal link, SubscriptionGuard gating premium content, per-brand pricing page with Stripe Checkout integration
 > - **Dependencies:** Phase 7 (for frontend), Phase 1 (for backend)
-> - **Estimated tasks:** 10 (each 2-5 min)
+> - **Actual tasks:** implemented 2026-03-10, 398 backend tests passing, 145 frontend tests passing (27 test files), production build clean
 
 ---
 
 ### Phase 11: Gamification & Polish (Week 20-22)
 
-**Status:** Not Started
+**Status:** Complete (15 tasks, 21 new backend tests, 16 new frontend tests)
 
-1. XP system with anti-gaming
-2. Leaderboards + enhanced streaks
-3. Knowledge graph progress visualization
+1. XP event system with daily cap (500 XP) and anti-gaming
+2. Streak service with freeze tokens and longest streak tracking
+3. Weekly leaderboard with tie-aware ranking
+4. Completion estimate service (weeks remaining based on avg daily XP)
+5. Gamification REST API (GET xp, streak, leaderboard, stats, graph)
+6. XP events wired into problem submission and quiz completion flows
+7. Weekly XP bar chart (Recharts)
+8. Leaderboard component with current user highlight
+9. Completion estimate component with progress bar and ETA
+10. Interactive knowledge graph visualization (@xyflow/react) with mastery colors
+11. Dashboard wired to all gamification APIs
 
 > **Agent Boundary**
 > - **Skill:** `/writing-plans` → `/subagent-driven-development`

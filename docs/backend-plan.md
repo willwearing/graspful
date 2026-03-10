@@ -2,6 +2,10 @@
 
 > Document-Driven Development spec. This document IS the backend. Code implements what this describes.
 
+**Status:** Not Started
+
+**Status:** Phases 1-6 Complete — Phase 9 (Audio Pipeline) Complete — Phase 10 (Billing) Complete — Phase 11 (Gamification) Complete
+
 **Goal:** A multi-tenant REST API for audio exam prep. Organizations create content libraries for professional certification exams. The system batch pre-generates audio via Kokoro TTS on Modal. Users study by listening.
 
 **Architecture:** NestJS (TypeScript) standalone service. Single deployment, all tenants. Tenant context comes from the authenticated user's org membership -- JWT in, org-scoped data out. The backend does not know or care about white-labeling, domains, or branding. Those are frontend concerns.
@@ -2541,6 +2545,14 @@ CMD ["node", "dist/main.js"]
 
 ### Phase 1: Foundation
 
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** This spec (Sections 1-3), monorepo structure, Supabase project credentials
+> - **Outputs:** NestJS scaffold, Prisma schema + initial migration, auth guards + decorators, health endpoint
+> - **Dependencies:** None (first phase)
+
 **Task 1: Project Scaffolding**
 - [ ] Create `backend/` directory with NestJS scaffold (`@nestjs/cli`)
 - [ ] Install deps: `@nestjs/common`, `@nestjs/config`, `@prisma/client`, `@supabase/supabase-js`, `jsonwebtoken`, `stripe`, `posthog-node`, `zod`
@@ -2565,6 +2577,14 @@ CMD ["node", "dist/main.js"]
 
 ### Phase 2: Content Management
 
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Phase 1 deliverables, try-listening chunker/hash utils, content hierarchy spec (Section 5)
+> - **Outputs:** Content import service, admin CRUD API, chunker + text-hash utils
+> - **Dependencies:** Phase 1
+
 **Task 4: Content Import Service**
 - [ ] Create `src/shared/utils/chunker.ts` (port from try-listening)
 - [ ] Create `src/shared/utils/text-hash.ts` (port from try-listening)
@@ -2583,6 +2603,14 @@ CMD ["node", "dist/main.js"]
 
 ### Phase 3: Audio Generation
 
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Phase 2 deliverables, try-listening TTS service, Modal Kokoro deployment, Supabase Storage config
+> - **Outputs:** TTS service, batch generation pipeline, voice config, signed URL audio serving
+> - **Dependencies:** Phase 2
+
 **Task 6: TTS Client & Batch Generation**
 - [ ] Create `src/tts/tts.service.ts` (port synthesize from try-listening)
 - [ ] Create `src/audio-generation/audio-generation.service.ts` with `findPendingGenerations`, `generateAndUpload`, `runBatchGeneration`
@@ -2592,6 +2620,14 @@ CMD ["node", "dist/main.js"]
 - [ ] Test: pending items correctly identified; generation job status tracked; audio files uploaded to Storage
 
 ### Phase 4: User-Facing API
+
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Phases 1-3 deliverables, API design spec (Section 4), SM-2 algorithm spec (Section 7)
+> - **Outputs:** Org/exam routes, audio serving endpoint, progress tracking + SM-2, streaks + bookmarks
+> - **Dependencies:** Phase 3
 
 **Task 7: Org & Exam Routes**
 - [ ] Create `src/orgs/orgs.controller.ts` -- `GET /orgs`, `GET /orgs/:orgId`
@@ -2617,6 +2653,14 @@ CMD ["node", "dist/main.js"]
 
 ### Phase 5: Billing & Org Management
 
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Phase 4 deliverables, Stripe API keys, billing spec (Section 8), org admin spec (Section 4)
+> - **Outputs:** Stripe webhook handler, checkout/portal endpoints, subscription guard, org admin + invite routes, global admin routes
+> - **Dependencies:** Phase 4
+
 **Task 11: Stripe Integration**
 - [ ] Create `src/billing/stripe-webhook.controller.ts` (handle checkout.session.completed, subscription.updated/deleted, invoice.payment_failed)
 - [ ] Create `src/billing/billing.service.ts` (create checkout session, create portal session)
@@ -2635,6 +2679,14 @@ CMD ["node", "dist/main.js"]
 - [ ] Test: global_admin flag enforced; org creation with correct defaults; settings update
 
 ### Phase 6: Polish & Hardening
+
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Phases 1-5 deliverables, try-listening rate limiter, PostHog project API key
+> - **Outputs:** Rate limiting middleware, PostHog analytics instrumentation, full integration test suite
+> - **Dependencies:** Phase 5
 
 **Task 14: Rate Limiting**
 - [ ] Create `src/shared/middleware/rate-limiter.middleware.ts` (port TokenBucket + PerUserTokenBucket from try-listening)
