@@ -4,9 +4,16 @@ import { XPService } from './xp.service';
 import { StreakService } from './streak.service';
 import { LeaderboardService } from './leaderboard.service';
 import { CompletionEstimateService } from './completion-estimate.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
 
 const mockGuard = { canActivate: () => true };
+
+const mockPrisma = {
+  concept: { findMany: jest.fn() },
+  prerequisiteEdge: { findMany: jest.fn() },
+  studentConceptState: { findMany: jest.fn() },
+};
 
 describe('GamificationController', () => {
   let controller: GamificationController;
@@ -29,6 +36,7 @@ describe('GamificationController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [GamificationController],
       providers: [
+        { provide: PrismaService, useValue: mockPrisma },
         { provide: XPService, useValue: mockXPService },
         { provide: StreakService, useValue: mockStreakService },
         { provide: LeaderboardService, useValue: mockLeaderboardService },

@@ -11,6 +11,7 @@ import { ContinueStudying } from "@/components/app/continue-studying";
 import { WeeklyXPChart } from "@/components/app/weekly-xp-chart";
 import { CompletionEstimate } from "@/components/app/completion-estimate";
 import { Leaderboard } from "@/components/app/leaderboard";
+import { KnowledgeGraphSection } from "@/components/app/knowledge-graph-section";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -210,6 +211,16 @@ export default async function DashboardPage() {
       {leaderboard.length > 0 && (
         <div className="mb-8">
           <Leaderboard entries={leaderboard} currentUserId={user.id} />
+        </div>
+      )}
+
+      {/* Knowledge graph */}
+      {courses.length > 0 && (
+        <div className="mb-8">
+          <KnowledgeGraphSection
+            orgId={brand.orgId}
+            courseId={courses[0].id}
+          />
         </div>
       )}
 
