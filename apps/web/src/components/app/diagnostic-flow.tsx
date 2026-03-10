@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { apiClientFetch } from "@/lib/api-client";
 import { ProblemRenderer, type ProblemFeedback } from "@/components/app/problems/problem-renderer";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { Problem, ProblemAnswer } from "@/lib/types";
+import { trackDiagnosticComplete } from "@/lib/posthog/events";
 
 interface DiagnosticState {
   sessionId: string;
@@ -41,7 +42,9 @@ export function DiagnosticFlow({ orgId, courseId, token, initialData }: Diagnost
   const [feedback, setFeedback] = useState<ProblemFeedback | null>(null);
   const [result, setResult] = useState<DiagnosticResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [startTime] = useState(Date.now());
+  const [error, setError] = useState<string | null>(null);
+  const startTimeRef = useRef(Date.now());
+  const fetchingRef = useRef(false);
 
   const basePath = `/orgs/${orgId}/courses/${courseId}`;
 
@@ -52,12 +55,22 @@ export function DiagnosticFlow({ orgId, courseId, token, initialData }: Diagnost
       token
     );
     setResult(res);
+    trackDiagnosticComplete(
+      courseId,
+      res.breakdown.mastered + res.breakdown.conditionally_mastered,
+      res.totalConcepts,
+    );
   }, [basePath, token]);
 
   // If initially complete, fetch result
-  if (state.isComplete && !result) {
-    fetchResult(state.sessionId);
-  }
+  useEffect(() => {
+    if (state.isComplete && !result && !fetchingRef.current) {
+      fetchingRef.current = true;
+      fetchResult(state.sessionId).finally(() => {
+        fetchingRef.current = false;
+      });
+    }
+  }, [state.isComplete, state.sessionId, result, fetchResult]);
 
   async function handleSubmit(answer: ProblemAnswer) {
     if (submitting) return;
@@ -72,7 +85,7 @@ export function DiagnosticFlow({ orgId, courseId, token, initialData }: Diagnost
           body: JSON.stringify({
             sessionId: state.sessionId,
             answer,
-            responseTimeMs: Date.now() - startTime,
+            responseTimeMs: Date.now() - startTimeRef.current,
           }),
         }
       );
@@ -93,10 +106,12 @@ export function DiagnosticFlow({ orgId, courseId, token, initialData }: Diagnost
             isComplete: false,
             question: response.question,
           });
+          startTimeRef.current = Date.now();
         }
         setSubmitting(false);
       }, 1500);
     } catch {
+      setError("Something went wrong. Please try again.");
       setSubmitting(false);
     }
   }
@@ -155,6 +170,13 @@ export function DiagnosticFlow({ orgId, courseId, token, initialData }: Diagnost
         </div>
         <Progress value={Math.min(progressPercent, 100)} className="h-2" />
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          {error}
+          <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
+        </div>
+      )}
 
       {state.question && (
         <ProblemRenderer

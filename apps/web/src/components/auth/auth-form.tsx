@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useBrand } from "@/lib/brand/context";
+import { trackSignUp } from "@/lib/posthog/events";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -16,7 +17,12 @@ export function AuthForm({ mode }: AuthFormProps) {
   const brand = useBrand();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const rawRedirect = searchParams.get("redirect") || "/dashboard";
+  // Prevent open redirect: must be a relative path, not protocol-relative
+  const redirectTo =
+    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
+      ? rawRedirect
+      : "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +37,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     try {
       if (mode === "sign-up") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -39,7 +45,15 @@ export function AuthForm({ mode }: AuthFormProps) {
           },
         });
         if (error) throw error;
-        setError("Check your email for a confirmation link.");
+        if (data.session) {
+          // Auto-confirm is on (dev) — redirect immediately
+          trackSignUp(data.session.user.id, email);
+          router.push(redirectTo);
+          router.refresh();
+        } else {
+          // Email confirmation required (production)
+          setError("Check your email for a confirmation link.");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,

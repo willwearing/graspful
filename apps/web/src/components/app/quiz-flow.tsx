@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import type { Problem, ProblemAnswer } from "@/lib/types";
 import Link from "next/link";
 import { Clock } from "lucide-react";
+import { trackQuizComplete } from "@/lib/posthog/events";
 
 interface QuizData {
   quizId: string;
@@ -42,7 +43,9 @@ export function QuizFlow({ orgId, courseId, token, quizData }: QuizFlowProps) {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<QuizResult | null>(null);
   const [timeLeftMs, setTimeLeftMs] = useState(quizData.timeLimitMs);
-  const startTimeRef = useRef(Date.now());
+  const [error, setError] = useState<string | null>(null);
+  const timerStartRef = useRef(Date.now());
+  const questionStartRef = useRef(Date.now());
   const finishCalledRef = useRef(false);
 
   const basePath = `/orgs/${orgId}/courses/${courseId}`;
@@ -51,7 +54,7 @@ export function QuizFlow({ orgId, courseId, token, quizData }: QuizFlowProps) {
   useEffect(() => {
     if (result) return;
     const interval = setInterval(() => {
-      const elapsed = Date.now() - startTimeRef.current;
+      const elapsed = Date.now() - timerStartRef.current;
       const remaining = Math.max(0, quizData.timeLimitMs - elapsed);
       setTimeLeftMs(remaining);
       if (remaining <= 0) {
@@ -86,7 +89,7 @@ export function QuizFlow({ orgId, courseId, token, quizData }: QuizFlowProps) {
           body: JSON.stringify({
             problemId: quizData.problems[currentIndex].id,
             answer,
-            responseTimeMs: 5000,
+            responseTimeMs: Date.now() - questionStartRef.current,
           }),
         }
       );
@@ -96,14 +99,17 @@ export function QuizFlow({ orgId, courseId, token, quizData }: QuizFlowProps) {
       // Move to next or stay on last
       if (currentIndex < quizData.problems.length - 1) {
         setCurrentIndex((prev) => prev + 1);
+        questionStartRef.current = Date.now();
       }
     } catch {
-      // Continue
+      setError("Something went wrong. Please try again.");
     }
     setSubmitting(false);
   }
 
   async function handleFinish() {
+    if (finishCalledRef.current) return;
+    finishCalledRef.current = true;
     try {
       const res = await apiClientFetch<QuizResult>(
         `${basePath}/quizzes/${quizData.quizId}/complete`,
@@ -111,7 +117,13 @@ export function QuizFlow({ orgId, courseId, token, quizData }: QuizFlowProps) {
         { method: "POST" }
       );
       setResult(res);
+      trackQuizComplete(
+        quizData.quizId,
+        res.score >= 0.7,
+        res.score,
+      );
     } catch {
+      setError("Something went wrong. Please try again.");
       // Show minimal result
       setResult({
         quizId: quizData.quizId,
@@ -175,6 +187,13 @@ export function QuizFlow({ orgId, courseId, token, quizData }: QuizFlowProps) {
       </div>
 
       <Progress value={((currentIndex + 1) / quizData.totalProblems) * 100} className="h-2" />
+
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          {error}
+          <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
+        </div>
+      )}
 
       <ProblemRenderer
         problem={problem}
