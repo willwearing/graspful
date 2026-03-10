@@ -1,0 +1,987 @@
+course:
+  id: electrical-nec-2023
+  name: "NEC 2023 Electrical Exam Prep"
+  description: "Complete coverage of the National Electrical Code (NFPA 70) 2023 edition for Journeyman and Master Electrician exams."
+  estimatedHours: 80
+  version: "2024.1"
+  sourceDocument: "NFPA 70: National Electrical Code, 2023 Edition"
+
+concepts:
+
+  # ============================================================
+  # FOUNDATIONAL — NEC Structure & Definitions
+  # ============================================================
+
+  - id: nec-overview
+    name: "NEC Purpose, Scope, and Article Structure"
+    difficulty: 2
+    estimatedMinutes: 20
+    tags: [foundational, nec-structure]
+    sourceRef: "NEC 2023 Article 90"
+    knowledgePoints:
+      - id: nec-purpose
+        instruction: "The National Electrical Code (NEC), also known as NFPA 70, provides the practical safeguarding of persons and property from hazards arising from the use of electricity. Per Article 90.1, the NEC is not a design manual or instruction guide -- it establishes minimum safety requirements. The NEC is organized into an Introduction (Article 90) and nine Chapters. Chapters 1-4 apply generally. Chapters 5-7 supplement or modify Chapters 1-4 for special occupancies, equipment, and conditions. Chapter 8 covers communications systems and is independent of Chapters 1-7 except where specifically referenced. Chapter 9 contains tables."
+        workedExample: "Example: A question asks whether NEC Chapter 5 rules override Chapter 2 rules. The answer is yes -- per 90.3, Chapters 5-7 can supplement OR modify Chapters 1-4. So if Article 501 (Hazardous Locations) has a stricter wiring method requirement than Article 300, Article 501 controls."
+        problems:
+          - id: nec-overview-p1
+            type: multiple_choice
+            question: "What is the primary purpose of the NEC as stated in Article 90.1?"
+            options:
+              - "To serve as a design manual for electrical installations"
+              - "The practical safeguarding of persons and property from hazards arising from the use of electricity"
+              - "To establish maximum performance standards for electrical equipment"
+              - "To provide instructions for untrained persons"
+            correct: 1
+            explanation: "Per NEC 90.1(A), the purpose of the NEC is the practical safeguarding of persons and property from hazards arising from the use of electricity. It is not a design manual (90.1(A) Note)."
+          - id: nec-overview-p2
+            type: multiple_choice
+            question: "According to NEC 90.3, how do Chapters 5, 6, and 7 relate to Chapters 1 through 4?"
+            options:
+              - "They are completely independent of Chapters 1-4"
+              - "They can supplement or modify the rules in Chapters 1-4"
+              - "They only apply to residential installations"
+              - "They replace Chapters 1-4 entirely"
+            correct: 1
+            explanation: "Per NEC 90.3, Chapters 5, 6, and 7 supplement or modify Chapters 1-4. Chapter 8 is independent except where specifically referenced."
+          - id: nec-overview-p3
+            type: true_false
+            question: "Chapter 8 of the NEC (Communications Systems) is independent of Chapters 1-7 unless specifically referenced."
+            correct: "true"
+            explanation: "Per NEC 90.3, Chapter 8 covers communications systems and is not subject to the requirements of Chapters 1-7 except where the requirements are specifically referenced in Chapter 8."
+      - id: nec-article-structure
+        instruction: "The NEC is organized into Articles, each covering a specific topic. Articles are divided into Parts (Roman numerals), then Sections (e.g., 210.8), then subsections. Key foundational articles include: Article 90 (Introduction), Article 100 (Definitions), Article 110 (Requirements for Electrical Installations), Article 200 (Use and Identification of Grounded Conductors), Article 210 (Branch Circuits), Article 215 (Feeders), Article 220 (Branch-Circuit, Feeder, and Service Load Calculations), Article 225 (Outside Branch Circuits and Feeders), Article 230 (Services), Article 240 (Overcurrent Protection), Article 250 (Grounding and Bonding)."
+        problems:
+          - id: nec-structure-p1
+            type: multiple_choice
+            question: "Which NEC article covers the definitions of terms used throughout the Code?"
+            options:
+              - "Article 90"
+              - "Article 100"
+              - "Article 110"
+              - "Article 200"
+            correct: 1
+            explanation: "Article 100 contains definitions essential to proper application of the NEC. Only definitions of terms used in two or more articles are included in Article 100."
+          - id: nec-structure-p2
+            type: multiple_choice
+            question: "Which NEC article covers overcurrent protection?"
+            options:
+              - "Article 210"
+              - "Article 230"
+              - "Article 240"
+              - "Article 250"
+            correct: 2
+            explanation: "Article 240 covers overcurrent protection including fuses, circuit breakers, and their ratings and applications."
+
+  - id: article-100-definitions
+    name: "Article 100 — Key NEC Definitions"
+    difficulty: 3
+    estimatedMinutes: 25
+    tags: [foundational, definitions]
+    sourceRef: "NEC 2023 Article 100"
+    prerequisites:
+      - nec-overview
+    knowledgePoints:
+      - id: definitions-current
+        instruction: "Article 100 defines terms critical to exam success. Ampacity is the maximum current a conductor can carry continuously under conditions of use without exceeding its temperature rating. A Branch Circuit is the circuit conductors between the final overcurrent device and the outlet(s). A Feeder is all circuit conductors between the service equipment (or source of a separately derived system) and the final branch-circuit overcurrent device. Service refers to the conductors and equipment for delivering electric energy from the serving utility to the wiring system of the premises served."
+        workedExample: "Example: A question asks what separates a feeder from a branch circuit. The key distinction is the final overcurrent device. Everything from the service panel to the last breaker protecting a circuit is a feeder. Everything downstream of that breaker to the outlets is a branch circuit."
+        problems:
+          - id: def-p1
+            type: multiple_choice
+            question: "Per NEC Article 100, what is the definition of 'ampacity'?"
+            options:
+              - "The total power consumed by a circuit"
+              - "The maximum current a conductor can carry continuously under conditions of use without exceeding its temperature rating"
+              - "The voltage drop across a conductor"
+              - "The resistance of a conductor per foot"
+            correct: 1
+            explanation: "Ampacity is defined in Article 100 as the maximum current, in amperes, that a conductor can carry continuously under the conditions of use without exceeding its temperature rating."
+          - id: def-p2
+            type: multiple_choice
+            question: "According to Article 100, a 'feeder' is defined as:"
+            options:
+              - "The conductors between the utility transformer and the service point"
+              - "All circuit conductors between the service equipment and the final branch-circuit overcurrent device"
+              - "The conductors between the meter base and the main panel"
+              - "Any conductor rated over 100 amperes"
+            correct: 1
+            explanation: "Per Article 100, a feeder is all circuit conductors between the service equipment, the source of a separately derived system, or other power supply source, and the final branch-circuit overcurrent device."
+      - id: definitions-grounding
+        instruction: "Grounding-related definitions are frequently tested. Grounded means connected to ground or to a conductive body that extends the ground connection. Grounded Conductor is a system or circuit conductor that is intentionally grounded (typically the neutral). Grounding Conductor, Equipment (EGC) is the conductive path that provides a ground-fault current path and connects normally non-current-carrying metal parts of equipment together and to the system grounded conductor, the grounding electrode conductor, or both. Ground-Fault Current Path is an electrically conductive path from the point of a ground fault on a wiring system through normally non-current-carrying conductors to the electrical supply source."
+        problems:
+          - id: def-ground-p1
+            type: multiple_choice
+            question: "What is the 'grounded conductor' in a typical residential electrical system?"
+            options:
+              - "The bare copper wire in the panel"
+              - "The neutral conductor (white or gray)"
+              - "The hot conductor (black)"
+              - "The grounding electrode conductor"
+            correct: 1
+            explanation: "The grounded conductor is the system conductor that is intentionally grounded. In a standard 120/240V residential system, this is the neutral conductor, identified by white or gray insulation per Article 200.6."
+          - id: def-ground-p2
+            type: true_false
+            question: "The equipment grounding conductor (EGC) normally carries current during regular operation."
+            correct: "false"
+            explanation: "The EGC connects normally non-current-carrying metal parts of equipment. It only carries current during a ground fault condition to facilitate overcurrent device operation."
+
+  - id: article-110-requirements
+    name: "Article 110 — General Requirements for Electrical Installations"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [foundational, installation-requirements]
+    sourceRef: "NEC 2023 Article 110"
+    prerequisites:
+      - nec-overview
+    knowledgePoints:
+      - id: working-space
+        instruction: "Section 110.26 requires adequate working space around electrical equipment. For 0-150V to ground, the minimum clear working space depth is 3 feet (914 mm). For 151-600V, it is 3 feet (Condition 1), 3.5 feet (Condition 2), or 4 feet (Condition 3). The width of working space must be 30 inches (762 mm) minimum or the width of the equipment, whichever is greater. The workspace must have adequate illumination (110.26(D)) and a dedicated equipment space (110.26(E)). For equipment rated 1200A or more and over 6 feet wide, there must be one entrance/egress at each end of the working space (110.26(C)(2))."
+        workedExample: "Example: A 480V panelboard is installed against a concrete wall (grounded surface) with exposed live parts on the front. An electrician asks the minimum working space. This is Condition 2 (exposed live parts on one side and grounded parts on the other). Per Table 110.26(A)(1), 151-600V Condition 2 requires 3.5 feet (1.07m) minimum depth."
+        problems:
+          - id: art110-p1
+            type: multiple_choice
+            question: "What is the minimum working space depth in front of a 120/240V residential panel (Condition 1)?"
+            options:
+              - "2 feet"
+              - "2.5 feet"
+              - "3 feet"
+              - "4 feet"
+            correct: 2
+            explanation: "Per Table 110.26(A)(1), for 0-150V nominal to ground, Condition 1 requires a minimum of 3 feet (914 mm) clear working space depth."
+          - id: art110-p2
+            type: multiple_choice
+            question: "What is the minimum width of the working space in front of electrical equipment?"
+            options:
+              - "24 inches"
+              - "30 inches or the width of the equipment, whichever is greater"
+              - "36 inches"
+              - "42 inches"
+            correct: 1
+            explanation: "Per 110.26(A)(2), the width of the working space must be not less than 30 inches (762 mm) or the width of the equipment, whichever is greater."
+      - id: conductor-terminations
+        instruction: "Section 110.14 covers electrical connections. Conductors must be terminated using devices identified for the conductor material (110.14(A)). Temperature ratings of terminations are critical: unless the equipment is listed and marked otherwise, conductors must be selected based on the lowest temperature rating of any connected termination, conductor, or device. Most equipment terminations are rated for 75 degrees C. This means even if you use 90 degree C rated THHN wire, you must use the 75 degree C ampacity column from Table 310.16 for sizing -- unless the equipment is specifically listed for 90 degrees C terminations."
+        problems:
+          - id: art110-term-p1
+            type: multiple_choice
+            question: "When terminating THHN (90 degrees C rated) conductors on equipment with 75 degrees C rated terminals, which ampacity column from Table 310.16 must be used?"
+            options:
+              - "60 degrees C column"
+              - "75 degrees C column"
+              - "90 degrees C column"
+              - "Any column -- the conductor rating determines ampacity"
+            correct: 1
+            explanation: "Per 110.14(C), conductors must be selected based on the lowest temperature rating of any connected termination. Since the equipment terminals are rated 75 degrees C, the 75 degrees C ampacity column must be used."
+
+  # ============================================================
+  # CONDUCTORS — Sizing, Types, Ampacity
+  # ============================================================
+
+  - id: conductor-sizing
+    name: "Conductor Sizing and Ampacity Tables"
+    difficulty: 4
+    estimatedMinutes: 30
+    tags: [conductors, ampacity, table-310-16]
+    sourceRef: "NEC 2023 Article 310, Table 310.16"
+    prerequisites:
+      - article-100-definitions
+      - article-110-requirements
+    knowledgePoints:
+      - id: table-310-16
+        instruction: "Table 310.16 is the most frequently referenced table on electrician exams. It provides allowable ampacities of insulated conductors rated up to 2000 volts, based on not more than 3 current-carrying conductors in raceway or cable, at an ambient temperature of 30 degrees C (86 degrees F). Key values to memorize: 14 AWG copper at 60C = 15A, at 75C = 20A. 12 AWG copper at 60C = 20A, at 75C = 25A. 10 AWG copper at 60C = 30A, at 75C = 35A. 8 AWG copper at 75C = 50A. 6 AWG copper at 75C = 65A. 4 AWG copper at 75C = 85A. 3 AWG copper at 75C = 100A. 2 AWG copper at 75C = 115A. 1 AWG copper at 75C = 130A. 1/0 AWG copper at 75C = 150A. 2/0 AWG copper at 75C = 175A. 3/0 AWG copper at 75C = 200A. 4/0 AWG copper at 75C = 230A. 250 kcmil copper at 75C = 255A. 500 kcmil copper at 75C = 380A."
+        workedExample: "Example: What size THWN copper conductor is needed for a 100A continuous load? Step 1: 100A continuous load requires 125% capacity per 210.19(A)(1) = 125A minimum ampacity. Step 2: THWN is rated 75C, so use the 75C column. Step 3: From Table 310.16 at 75C, 1 AWG copper = 130A >= 125A. Answer: 1 AWG copper THWN."
+        problems:
+          - id: cond-size-p1
+            type: multiple_choice
+            question: "Per Table 310.16, what is the ampacity of a 6 AWG copper THWN conductor (75 degrees C column)?"
+            options:
+              - "55 amperes"
+              - "65 amperes"
+              - "75 amperes"
+              - "85 amperes"
+            correct: 1
+            explanation: "Per Table 310.16, 6 AWG copper at 75 degrees C has an ampacity of 65 amperes."
+          - id: cond-size-p2
+            type: multiple_choice
+            question: "What minimum size copper conductor (75 degrees C) is required for a 200A feeder?"
+            options:
+              - "2/0 AWG"
+              - "3/0 AWG"
+              - "4/0 AWG"
+              - "250 kcmil"
+            correct: 1
+            explanation: "Per Table 310.16, 3/0 AWG copper at 75 degrees C has an ampacity of 200A, which meets the 200A requirement."
+      - id: conductor-small-conductors
+        instruction: "Section 240.4(D) sets specific overcurrent protection limits for small conductors: 14 AWG must be protected at not more than 15A, 12 AWG at not more than 20A, and 10 AWG at not more than 30A. These are hard limits -- even if Table 310.16 shows a higher ampacity at 75C or 90C column, the overcurrent device cannot exceed these values for these wire sizes. Exception: motor circuits and certain other specific applications listed in 240.4(D) exceptions."
+        problems:
+          - id: cond-small-p1
+            type: multiple_choice
+            question: "What is the maximum overcurrent protection permitted for 14 AWG copper conductors per 240.4(D)?"
+            options:
+              - "10 amperes"
+              - "15 amperes"
+              - "20 amperes"
+              - "25 amperes"
+            correct: 1
+            explanation: "Per 240.4(D)(3), 14 AWG copper conductors must be protected at not more than 15 amperes."
+
+  - id: conductor-types
+    name: "Conductor Types and Identification"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [conductors, identification]
+    sourceRef: "NEC 2023 Article 310, Table 310.4(1)"
+    prerequisites:
+      - conductor-sizing
+    knowledgePoints:
+      - id: conductor-id
+        instruction: "Common conductor types and their properties: THHN (Thermoplastic High Heat-resistant Nylon) is rated 90 degrees C dry, used in conduit. THWN (Thermoplastic Heat and Water-resistant Nylon) is rated 75 degrees C wet/dry. THWN-2 is rated 90 degrees C dry and 75 degrees C wet. NM-B (Non-Metallic sheathed cable, aka Romex) contains THHN-rated conductors but the cable assembly is rated at 60 degrees C for ampacity purposes per 334.80. UF-B (Underground Feeder) is rated 60 degrees C and suitable for direct burial. XHHW-2 is rated 90 degrees C wet and dry. Conductor color identification: per 200.6, grounded conductors (neutral) must be white or gray. Per 250.119, equipment grounding conductors must be green, green with yellow stripe, or bare. Ungrounded (hot) conductors can be any other color; convention uses black, red, blue, and orange."
+        problems:
+          - id: cond-type-p1
+            type: multiple_choice
+            question: "What is the temperature rating of THHN conductor insulation in dry locations?"
+            options:
+              - "60 degrees C"
+              - "75 degrees C"
+              - "90 degrees C"
+              - "105 degrees C"
+            correct: 2
+            explanation: "THHN (Thermoplastic High Heat-resistant Nylon) is rated 90 degrees C in dry locations. This is one of the most common conductor types used in conduit installations."
+          - id: cond-type-p2
+            type: multiple_choice
+            question: "Per NEC 334.80, what temperature rating must be used for ampacity of NM-B cable conductors?"
+            options:
+              - "60 degrees C"
+              - "75 degrees C"
+              - "90 degrees C"
+              - "The rating printed on the cable jacket"
+            correct: 0
+            explanation: "Per 334.80, the ampacity of NM-B cable is determined using the 60 degrees C conductor temperature rating in Table 310.16, even though the individual conductors inside are rated at 90 degrees C."
+      - id: conductor-colors
+        instruction: "NEC conductor color code requirements: Grounded conductor (neutral) must be white or gray, or three continuous white or gray stripes on other than green insulation (200.6). Equipment grounding conductor must be green, green with one or more yellow stripes, or bare (250.119). High-leg delta (the B-phase in a 4-wire delta system) must be identified by an orange color or other effective means (110.15). Ungrounded (hot) conductors have no specific color requirement other than not using white, gray, green, or bare, but common convention is: black (phase A), red (phase B), blue (phase C) for 120/208V systems; brown, orange, yellow for 277/480V systems."
+        problems:
+          - id: cond-color-p1
+            type: multiple_choice
+            question: "Per NEC 110.15, the high-leg conductor in a 4-wire delta system must be identified by what color?"
+            options:
+              - "Red"
+              - "Blue"
+              - "Orange"
+              - "Yellow"
+            correct: 2
+            explanation: "Per 110.15, the high-leg conductor (the phase with higher voltage to ground in a 4-wire delta system) must be durably and permanently marked by an outer finish that is orange in color, or by other effective means."
+
+  # ============================================================
+  # BRANCH CIRCUITS & FEEDERS
+  # ============================================================
+
+  - id: branch-circuits
+    name: "Article 210 — Branch Circuits"
+    difficulty: 4
+    estimatedMinutes: 30
+    tags: [branch-circuits, article-210]
+    sourceRef: "NEC 2023 Article 210"
+    prerequisites:
+      - conductor-sizing
+    knowledgePoints:
+      - id: branch-circuit-ratings
+        instruction: "Branch circuits are classified by the rating of the overcurrent device. Standard ratings are 15, 20, 30, 40, and 50 amperes (210.3). For continuous loads, the branch circuit overcurrent device and conductors must be sized at 125% of the continuous load plus 100% of the noncontinuous load (210.19(A)(1) and 210.20(A)). A 20-amp branch circuit can supply any combination of outlets, but if it supplies a single appliance, the appliance rating cannot exceed 80% of the branch circuit rating. Multioutlet branch circuits rated 15 and 20A can supply lighting and receptacles. 30A circuits supply fixed cooking and other listed loads. 40 and 50A circuits supply cooking equipment and other specific loads per 210.23."
+        workedExample: "Example: A 20A branch circuit supplies a 16A continuous load. Is this acceptable? Step 1: For continuous loads, the circuit must be rated at 125% of the load. Step 2: 16A x 1.25 = 20A. Step 3: The 20A circuit exactly meets this requirement. However, this leaves no room for any additional load on this circuit."
+        problems:
+          - id: branch-p1
+            type: multiple_choice
+            question: "What is the maximum continuous load permitted on a 20-ampere branch circuit?"
+            options:
+              - "15 amperes"
+              - "16 amperes"
+              - "18 amperes"
+              - "20 amperes"
+            correct: 1
+            explanation: "Per 210.20(A), a branch circuit with continuous load must be rated at 125% of the load. 20A / 1.25 = 16A maximum continuous load."
+          - id: branch-p2
+            type: multiple_choice
+            question: "Which of the following is NOT a standard branch circuit rating per 210.3?"
+            options:
+              - "15 amperes"
+              - "25 amperes"
+              - "30 amperes"
+              - "50 amperes"
+            correct: 1
+            explanation: "Per 210.3, branch circuits are rated as 15, 20, 30, 40, and 50 amperes. 25 amperes is not a standard branch circuit rating."
+      - id: branch-circuit-conductors
+        instruction: "Branch circuit conductor sizing: minimum 14 AWG for 15A circuits, 12 AWG for 20A circuits, 10 AWG for 30A circuits (210.3 and Table 210.24). The neutral conductor of a branch circuit that supplies only line-to-neutral loads can be smaller than the ungrounded conductors but not smaller than the maximum unbalanced load (210.11(B)). For multi-wire branch circuits (210.4), all ungrounded conductors must be disconnected simultaneously at the point where the branch circuit originates. This requires a 2-pole or 3-pole breaker, or handle ties."
+        problems:
+          - id: branch-cond-p1
+            type: multiple_choice
+            question: "What is the minimum conductor size for a 30-ampere branch circuit?"
+            options:
+              - "14 AWG"
+              - "12 AWG"
+              - "10 AWG"
+              - "8 AWG"
+            correct: 2
+            explanation: "Per Table 210.24, a 30-ampere branch circuit requires a minimum conductor size of 10 AWG copper."
+
+  - id: feeders
+    name: "Article 215 — Feeders"
+    difficulty: 4
+    estimatedMinutes: 25
+    tags: [feeders, article-215]
+    sourceRef: "NEC 2023 Article 215"
+    prerequisites:
+      - branch-circuits
+    knowledgePoints:
+      - id: feeder-sizing
+        instruction: "Feeder conductors must have an ampacity not less than the sum of all branch circuit loads supplied, considering demand factors from Article 220 (215.2(A)(1)). For continuous loads, feeder conductors must be sized at 125% of the continuous load plus 100% of the noncontinuous load. The feeder overcurrent device must also be sized this way. The feeder neutral conductor must be sized to carry the maximum unbalanced load (220.61). For a 3-wire, single-phase dwelling feeder, the maximum unbalanced load is the maximum net load between the neutral and any ungrounded conductor."
+        workedExample: "Example: A feeder supplies 40A of continuous load and 60A of noncontinuous load. What minimum ampacity is required? Step 1: 40A x 1.25 = 50A (continuous portion). Step 2: 60A x 1.00 = 60A (noncontinuous portion). Step 3: Total = 50A + 60A = 110A. Step 4: From Table 310.16 at 75C: 1 AWG = 130A. Minimum conductor: 1 AWG copper."
+        problems:
+          - id: feeder-p1
+            type: multiple_choice
+            question: "A feeder supplies 80A of continuous load and 20A of noncontinuous load. What is the minimum required ampacity for the feeder conductors?"
+            options:
+              - "100 amperes"
+              - "110 amperes"
+              - "120 amperes"
+              - "125 amperes"
+            correct: 2
+            explanation: "Per 215.2(A)(1), feeder conductors must be sized at 125% of continuous load plus 100% of noncontinuous: (80A x 1.25) + (20A x 1.0) = 100A + 20A = 120A."
+          - id: feeder-p2
+            type: true_false
+            question: "Feeder conductors must always be sized at 125% of the total connected load."
+            correct: "false"
+            explanation: "The 125% factor only applies to the continuous portion of the load. Noncontinuous loads are calculated at 100%. The total required ampacity is (125% x continuous) + (100% x noncontinuous)."
+
+  - id: overcurrent-protection
+    name: "Article 240 — Overcurrent Protection"
+    difficulty: 5
+    estimatedMinutes: 30
+    tags: [overcurrent, fuses, breakers, article-240]
+    sourceRef: "NEC 2023 Article 240"
+    prerequisites:
+      - conductor-sizing
+      - branch-circuits
+    knowledgePoints:
+      - id: standard-oc-ratings
+        instruction: "Section 240.6(A) lists the standard ampere ratings for fuses and inverse time circuit breakers: 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 110, 125, 150, 175, 200, 225, 250, 300, 350, 400, 450, 500, 600, 700, 800, 1000, 1200, 1600, 2000, 2500, 3000, 4000, 5000, 6000. The next-size-up rule (240.4(B)) allows the next standard overcurrent device rating above the conductor ampacity when the conductor ampacity does not correspond to a standard rating -- but only up to 800A. Above 800A, the conductor ampacity must be equal to or greater than the overcurrent device rating."
+        workedExample: "Example: A 3/0 AWG copper conductor at 75C has an ampacity of 200A from Table 310.16. Since 200A is a standard rating per 240.6(A), a 200A breaker is used. If the calculated load required 195A protection, you would still use a 200A breaker since it is the next standard size up, and the conductor must have 200A ampacity."
+        problems:
+          - id: oc-p1
+            type: multiple_choice
+            question: "Per 240.6(A), which of the following is a standard ampere rating for a circuit breaker?"
+            options:
+              - "45 amperes"
+              - "55 amperes"
+              - "65 amperes"
+              - "85 amperes"
+            correct: 0
+            explanation: "Per 240.6(A), 45 amperes is a standard rating. The standard ratings include 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, etc."
+          - id: oc-p2
+            type: multiple_choice
+            question: "Per 240.4(B), when can the next standard size overcurrent device be used above the conductor ampacity?"
+            options:
+              - "Always, regardless of ampacity"
+              - "Only for circuits rated 800 amperes or less"
+              - "Only for circuits rated 400 amperes or less"
+              - "Only for motor circuits"
+            correct: 1
+            explanation: "Per 240.4(B), the next-size-up rule applies when the ampacity of conductors does not correspond to a standard overcurrent device rating, but only up to 800A. Above 800A, the overcurrent device rating must not exceed the conductor ampacity."
+      - id: tap-rules
+        instruction: "Section 240.21 allows conductors to be tapped from feeders without individual overcurrent protection at the tap point under specific conditions. The 10-foot tap rule (240.21(B)(1)) allows tap conductors up to 10 feet long if: the tap conductor ampacity is not less than the combined calculated loads it serves, and the tap conductor ampacity is not less than the rating of the device at the termination end, and the tap is enclosed in raceway. The 25-foot tap rule (240.21(B)(2)) allows tap conductors up to 25 feet if: ampacity is not less than 1/3 of the rating of the overcurrent device at the supply end, the tap terminates in a single circuit breaker or set of fuses that limits the load, and the tap is protected from physical damage."
+        problems:
+          - id: oc-tap-p1
+            type: multiple_choice
+            question: "Under the 25-foot tap rule (240.21(B)(2)), what is the minimum ampacity of a tap conductor from a 300A feeder?"
+            options:
+              - "75 amperes"
+              - "100 amperes"
+              - "150 amperes"
+              - "200 amperes"
+            correct: 1
+            explanation: "Per 240.21(B)(2), for a 25-foot tap, the conductor ampacity must be not less than 1/3 of the rating of the overcurrent device protecting the feeder. 300A / 3 = 100A minimum."
+
+  # ============================================================
+  # GROUNDING & BONDING
+  # ============================================================
+
+  - id: grounding-fundamentals
+    name: "Article 250 — Grounding Fundamentals"
+    difficulty: 5
+    estimatedMinutes: 30
+    tags: [grounding, bonding, article-250]
+    sourceRef: "NEC 2023 Article 250, Parts I-III"
+    prerequisites:
+      - article-100-definitions
+      - overcurrent-protection
+    knowledgePoints:
+      - id: grounding-purposes
+        instruction: "Grounding serves two primary purposes: (1) to stabilize the voltage to ground during normal operation, and (2) to facilitate overcurrent device operation during a ground fault. Systems must be grounded per 250.20 -- AC systems of 50V to 1000V are required to be grounded where the system can be grounded so that the maximum voltage to ground does not exceed 150V. This includes standard 120/240V single-phase and 120/208V three-phase wye systems. The grounding electrode conductor (GEC) connects the system grounded conductor (neutral) to the grounding electrode at the service. The main bonding jumper connects the grounded conductor to the equipment grounding bus in the service equipment."
+        workedExample: "Example: Why does a 120/208V 3-phase wye system need to be grounded? Per 250.20(B)(1), AC systems of 50-1000V supplying premises wiring must be grounded when the system can be grounded so that the maximum voltage to ground does not exceed 150V. In a 120/208V wye, the maximum voltage to ground is 120V (line to neutral), which is under 150V."
+        problems:
+          - id: gnd-fund-p1
+            type: multiple_choice
+            question: "What are the two primary purposes of grounding an electrical system?"
+            options:
+              - "To reduce electricity costs and improve power quality"
+              - "To stabilize voltage to ground and facilitate overcurrent device operation during ground faults"
+              - "To protect equipment from lightning and prevent static buildup"
+              - "To reduce electromagnetic interference and meet utility requirements"
+            correct: 1
+            explanation: "Grounding stabilizes voltage to ground during normal operation and provides a low-impedance ground-fault current path to facilitate overcurrent device operation, clearing the fault quickly."
+          - id: gnd-fund-p2
+            type: multiple_choice
+            question: "The main bonding jumper in the service equipment connects:"
+            options:
+              - "The grounding electrode to the water pipe"
+              - "The grounded conductor (neutral) bus to the equipment grounding bus"
+              - "The service entrance conductors to the meter base"
+              - "Two grounding electrodes together"
+            correct: 1
+            explanation: "The main bonding jumper connects the grounded conductor (neutral) to the equipment grounding conductor bus at the service equipment. This connection is required by 250.24(B) and is what allows fault current to return to the source."
+      - id: egc-sizing
+        instruction: "Equipment grounding conductors (EGCs) are sized per Table 250.122 based on the rating of the overcurrent device ahead of the circuit. Key values: 15A circuit = 14 AWG copper, 20A = 12 AWG, 30A = 10 AWG, 40A = 10 AWG, 60A = 10 AWG, 100A = 8 AWG, 200A = 6 AWG, 300A = 4 AWG, 400A = 3 AWG, 500A = 2 AWG, 600A = 1 AWG, 800A = 1/0 AWG, 1000A = 2/0 AWG, 1200A = 3/0 AWG. Note: when conductors are increased in size for voltage drop or other reasons, the EGC must also be proportionally increased per 250.122(B)."
+        problems:
+          - id: egc-p1
+            type: multiple_choice
+            question: "Per Table 250.122, what minimum size copper EGC is required for a circuit protected by a 200A breaker?"
+            options:
+              - "8 AWG"
+              - "6 AWG"
+              - "4 AWG"
+              - "3 AWG"
+            correct: 1
+            explanation: "Per Table 250.122, for a circuit with a 200-ampere overcurrent device, the minimum copper equipment grounding conductor size is 6 AWG."
+
+  - id: grounding-electrode-system
+    name: "Article 250 Part III — Grounding Electrode System"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [grounding, electrodes, article-250]
+    sourceRef: "NEC 2023 Article 250, Part III"
+    prerequisites:
+      - grounding-fundamentals
+    knowledgePoints:
+      - id: electrode-types
+        instruction: "The grounding electrode system (250.50) requires all electrodes present at the building to be bonded together. Electrodes include: metal underground water pipe in direct contact with earth for at least 10 feet (250.52(A)(1)), metal in-ground support structure (250.52(A)(2)), concrete-encased electrode (Ufer ground) -- at least 20 feet of bare copper 4 AWG or larger encased in at least 2 inches of concrete in contact with earth (250.52(A)(3)), ground ring -- bare copper 2 AWG or larger encircling the building, in contact with earth at a depth of at least 30 inches (250.52(A)(4)), rod and pipe electrodes -- at least 8 feet long, driven into the earth (250.52(A)(5)), and plate electrodes -- at least 2 sq ft of surface exposed to soil (250.52(A)(7))."
+        workedExample: "Example: A building has a metal water pipe entering the ground, a concrete footing with rebar, and two ground rods. Per 250.50, ALL of these electrodes must be bonded together to form the grounding electrode system. You cannot pick just one."
+        problems:
+          - id: electrode-p1
+            type: multiple_choice
+            question: "What is the minimum length of a ground rod electrode per 250.52(A)(5)?"
+            options:
+              - "4 feet"
+              - "6 feet"
+              - "8 feet"
+              - "10 feet"
+            correct: 2
+            explanation: "Per 250.52(A)(5), rod-type grounding electrodes must be at least 8 feet (2.44 m) in length and must be driven to a depth of at least 8 feet."
+          - id: electrode-p2
+            type: multiple_choice
+            question: "A concrete-encased electrode (Ufer ground) requires at least how many feet of bare copper conductor?"
+            options:
+              - "10 feet"
+              - "15 feet"
+              - "20 feet"
+              - "25 feet"
+            correct: 2
+            explanation: "Per 250.52(A)(3), a concrete-encased electrode requires at least 20 feet of bare copper conductor not smaller than 4 AWG, encased in at least 2 inches of concrete in direct contact with the earth."
+      - id: gec-sizing
+        instruction: "The grounding electrode conductor (GEC) connects the grounded conductor (neutral) at the service to the grounding electrode system. It is sized per Table 250.66 based on the size of the largest service-entrance conductor or equivalent area of parallel conductors. Key values: for service conductors up to 2 AWG copper, the GEC is 8 AWG copper. For 1 AWG or 1/0, GEC is 6 AWG. For 2/0 or 3/0, GEC is 4 AWG. For over 3/0 through 350 kcmil, GEC is 2 AWG. For over 350 through 600 kcmil, GEC is 1/0 AWG. For over 600 through 1100 kcmil, GEC is 2/0 AWG. For over 1100 kcmil, GEC is 3/0 AWG copper."
+        problems:
+          - id: gec-p1
+            type: multiple_choice
+            question: "Per Table 250.66, what size copper GEC is required for 3/0 AWG copper service entrance conductors?"
+            options:
+              - "8 AWG"
+              - "6 AWG"
+              - "4 AWG"
+              - "2 AWG"
+            correct: 2
+            explanation: "Per Table 250.66, for service entrance conductors of 2/0 or 3/0 AWG copper, the grounding electrode conductor must be not smaller than 4 AWG copper."
+
+  - id: bonding
+    name: "Article 250 Part V — Bonding"
+    difficulty: 5
+    estimatedMinutes: 20
+    tags: [grounding, bonding, article-250]
+    sourceRef: "NEC 2023 Article 250, Part V"
+    prerequisites:
+      - grounding-fundamentals
+    knowledgePoints:
+      - id: bonding-service
+        instruction: "Bonding at the service is critical for safety. Per 250.92, the following must be bonded at the service: service raceways, service cable armor, all service equipment enclosures containing service conductors, and any conduit or raceway from the service point to the service disconnecting means. Methods for bonding at the service (250.92(B)) include: bonding to the grounded service conductor, connections using threaded couplings or hubs on threaded entries, bonding-type locknuts, and bonding bushings with bonding jumpers. Standard locknuts alone are NOT permitted for bonding service equipment."
+        problems:
+          - id: bond-p1
+            type: true_false
+            question: "Standard locknuts are an acceptable means of bonding service equipment enclosures."
+            correct: "false"
+            explanation: "Per 250.92(B), standard locknuts are NOT listed as an acceptable bonding method at the service. Bonding at the service requires bonding bushings, bonding-type locknuts, threaded hubs, or connections to the grounded conductor."
+          - id: bond-p2
+            type: multiple_choice
+            question: "Which of the following must be bonded at the service per 250.92(A)?"
+            options:
+              - "Only the main panel enclosure"
+              - "All service raceways, cable armor, and enclosures containing service conductors"
+              - "Only metal water pipes within 5 feet of the panel"
+              - "Only the meter base"
+            correct: 1
+            explanation: "Per 250.92(A), the non-current-carrying metal parts that must be bonded include: service raceways, service cable armor or sheath, all service equipment enclosures containing service conductors, and any raceway or armor from the service point."
+
+  # ============================================================
+  # WIRING METHODS
+  # ============================================================
+
+  - id: wiring-methods-overview
+    name: "Article 300 — General Wiring Methods"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [wiring-methods, article-300]
+    sourceRef: "NEC 2023 Article 300"
+    prerequisites:
+      - conductor-types
+    knowledgePoints:
+      - id: wiring-general
+        instruction: "Article 300 contains general requirements applying to all wiring methods. Section 300.4 requires protection of conductors against physical damage. Cables through wood framing must be set back at least 1-1/4 inches from the edge of the framing member, or protected by a steel plate at least 1/16 inch thick (300.4(A)(1)). Section 300.5 covers underground installations -- minimum burial depths for direct-buried cables and conduits are in Table 300.5. For example, rigid metal conduit requires 6 inches minimum cover, PVC conduit requires 18 inches, and direct-buried UF cable requires 24 inches (residential circuits of 120V or less with GFCI can be 12 inches). All conductors of a circuit must be contained within the same raceway, cable, or trench (300.3(B)) to avoid inductive heating."
+        problems:
+          - id: wiring-p1
+            type: multiple_choice
+            question: "Per 300.4(A)(1), cables through wood framing must be set back at least how far from the edge of the framing member?"
+            options:
+              - "3/4 inch"
+              - "1 inch"
+              - "1-1/4 inches"
+              - "1-1/2 inches"
+            correct: 2
+            explanation: "Per 300.4(A)(1), cables or raceways through bored holes in wood members must be set back at least 1-1/4 inches from the nearest edge of the wood member. If not, a steel plate at least 1/16 inch thick must be used for protection."
+          - id: wiring-p2
+            type: multiple_choice
+            question: "Per Table 300.5, what is the minimum cover depth for direct-buried UF cable in a residential yard?"
+            options:
+              - "6 inches"
+              - "12 inches"
+              - "18 inches"
+              - "24 inches"
+            correct: 3
+            explanation: "Per Table 300.5, direct-buried cables (like UF-B) require a minimum cover of 24 inches. Residential 120V circuits with GFCI protection can be reduced to 12 inches."
+
+  - id: nm-cable
+    name: "Article 334 — NM (Romex) Cable"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [wiring-methods, nm-cable, article-334]
+    sourceRef: "NEC 2023 Article 334"
+    prerequisites:
+      - wiring-methods-overview
+    knowledgePoints:
+      - id: nm-uses
+        instruction: "NM (non-metallic sheathed cable, commonly Romex) cable is covered by Article 334. NM-B cable is permitted in one- and two-family dwellings and multifamily dwellings of Types III, IV, and V construction not exceeding 3 floors above grade (334.10). NM cable is NOT permitted in: commercial garages, theaters, motion picture studios, hazardous locations, embedded in plaster or running in hollows of masonry (where subject to dampness), or in any building exceeding 3 floors above grade. NM cable must be supported within 12 inches of every box or enclosure and at intervals not exceeding 4-1/2 feet (334.30). Per 334.80, the ampacity is based on the 60 degree C column of Table 310.16."
+        problems:
+          - id: nm-p1
+            type: multiple_choice
+            question: "How often must NM cable be supported, and how close to boxes?"
+            options:
+              - "Every 3 feet, within 6 inches of boxes"
+              - "Every 4-1/2 feet, within 12 inches of boxes"
+              - "Every 6 feet, within 18 inches of boxes"
+              - "Every 8 feet, within 24 inches of boxes"
+            correct: 1
+            explanation: "Per 334.30, NM cable must be secured within 12 inches of every box, cabinet, or fitting and at intervals not exceeding 4-1/2 feet (1.4 m)."
+          - id: nm-p2
+            type: true_false
+            question: "NM cable is permitted in a 5-story multifamily apartment building of Type III construction."
+            correct: "false"
+            explanation: "Per 334.10(3), NM cable in multifamily dwellings is limited to Types III, IV, and V construction not exceeding 3 floors above grade. A 5-story building exceeds this limit."
+
+  - id: mc-cable
+    name: "Article 330 — Metal-Clad (MC) Cable"
+    difficulty: 3
+    estimatedMinutes: 15
+    tags: [wiring-methods, mc-cable, article-330]
+    sourceRef: "NEC 2023 Article 330"
+    prerequisites:
+      - wiring-methods-overview
+    knowledgePoints:
+      - id: mc-uses
+        instruction: "MC (Metal-Clad) cable per Article 330 has an interlocking metal armor or a smooth metallic sheath. MC cable is much more versatile than NM cable -- it is permitted in nearly all locations including commercial, industrial, exposed and concealed, wet locations (when listed for wet locations), and in buildings of any height. MC cable must be supported within 12 inches of every box and at intervals not exceeding 6 feet (330.30(B) and (C)). The interlocking armor of standard MC cable is NOT recognized as an equipment grounding conductor -- an internal EGC conductor is required. However, Type MC cable with an interlocking metal armor listed as providing an adequate ground-fault current path may serve as an EGC (250.118(10))."
+        problems:
+          - id: mc-p1
+            type: multiple_choice
+            question: "What is the maximum support interval for MC cable per 330.30?"
+            options:
+              - "4-1/2 feet"
+              - "5 feet"
+              - "6 feet"
+              - "8 feet"
+            correct: 2
+            explanation: "Per 330.30(B), MC cable must be secured at intervals not exceeding 6 feet (1.8 m) and within 12 inches of every box, cabinet, fitting, or other cable termination."
+          - id: mc-p2
+            type: true_false
+            question: "MC cable is permitted in buildings of any height, unlike NM cable."
+            correct: "true"
+            explanation: "MC cable (Article 330) has no building height restriction, unlike NM cable which is limited to 3 floors above grade in multifamily dwellings. This makes MC cable the preferred choice in commercial and high-rise construction."
+
+  - id: emt-conduit
+    name: "Article 358 — Electrical Metallic Tubing (EMT)"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [wiring-methods, conduit, emt, article-358]
+    sourceRef: "NEC 2023 Article 358"
+    prerequisites:
+      - wiring-methods-overview
+    knowledgePoints:
+      - id: emt-uses
+        instruction: "EMT (Electrical Metallic Tubing) is a thin-walled, unthreaded steel or aluminum raceway. It uses compression or set-screw fittings (not threaded). EMT is permitted for both exposed and concealed work in most locations. EMT is NOT permitted where subject to severe physical damage (358.12(1)), in cinder concrete unless protected by at least 2 inches of cover (358.12(3)), or in hazardous locations unless specifically permitted. EMT must be supported within 3 feet of every box and at intervals per Table 358.30(A): every 10 feet for 1/2 to 1 inch, every 10 feet for 1-1/4 to 2 inch, every 10 feet for 2-1/2 to 4 inch. EMT is recognized as an equipment grounding conductor per 250.118(4)."
+        problems:
+          - id: emt-p1
+            type: multiple_choice
+            question: "EMT is NOT permitted in which of the following locations?"
+            options:
+              - "Concealed in walls"
+              - "Exposed in a dry warehouse"
+              - "Where subject to severe physical damage"
+              - "Outdoors with rain-tight fittings"
+            correct: 2
+            explanation: "Per 358.12(1), EMT is not permitted where, during installation or after, it will be subject to severe physical damage. For such locations, rigid metal conduit (RMC) or intermediate metal conduit (IMC) would be used."
+          - id: emt-p2
+            type: true_false
+            question: "EMT can serve as an equipment grounding conductor."
+            correct: "true"
+            explanation: "Per 250.118(4), electrical metallic tubing (EMT) is listed as an acceptable equipment grounding conductor."
+
+  - id: rigid-conduit
+    name: "Article 344 — Rigid Metal Conduit (RMC)"
+    difficulty: 3
+    estimatedMinutes: 15
+    tags: [wiring-methods, conduit, rmc, article-344]
+    sourceRef: "NEC 2023 Article 344"
+    prerequisites:
+      - emt-conduit
+    knowledgePoints:
+      - id: rmc-uses
+        instruction: "RMC (Rigid Metal Conduit) is the heaviest and most protective metallic raceway. It has threaded connections and provides excellent physical protection. RMC is permitted in all atmospheric conditions and occupancies (344.10). It is specifically required or recommended where severe physical damage is likely. RMC must be supported within 3 feet of each box and at intervals per Table 344.30(B)(2): trade sizes 1/2 to 3/4 every 10 feet, 1 inch every 12 feet, 1-1/4 to 1-1/2 every 14 feet, 2 to 2-1/2 every 16 feet, 3 and larger every 20 feet. RMC is recognized as an EGC per 250.118(2). It requires only 6 inches of burial depth per Table 300.5 -- the shallowest of any raceway."
+        problems:
+          - id: rmc-p1
+            type: multiple_choice
+            question: "What is the minimum burial depth for rigid metal conduit per Table 300.5?"
+            options:
+              - "6 inches"
+              - "12 inches"
+              - "18 inches"
+              - "24 inches"
+            correct: 0
+            explanation: "Per Table 300.5, rigid metal conduit requires a minimum cover of only 6 inches (152 mm) when direct buried, which is the shallowest requirement of any raceway or cable type."
+          - id: rmc-p2
+            type: true_false
+            question: "RMC is permitted in all atmospheric conditions and occupancies."
+            correct: "true"
+            explanation: "Per 344.10, RMC is permitted in all atmospheric conditions and occupancies. Its threaded connections and heavy wall thickness make it suitable for the most demanding installations."
+
+  - id: pvc-conduit
+    name: "Article 352 — PVC Conduit"
+    difficulty: 3
+    estimatedMinutes: 15
+    tags: [wiring-methods, conduit, pvc, article-352]
+    sourceRef: "NEC 2023 Article 352"
+    prerequisites:
+      - emt-conduit
+    knowledgePoints:
+      - id: pvc-uses
+        instruction: "PVC conduit (Schedule 40 and Schedule 80) is a non-metallic raceway. PVC is NOT permitted in hazardous locations (unless specifically permitted), for support of luminaires, where subject to physical damage (unless Schedule 80 or identified for the use), in areas of buildings with ambient temperatures exceeding 50 degrees C unless listed (352.12). PVC requires an equipment grounding conductor to be installed within the raceway since PVC itself is not conductive (250.118). PVC must be supported within 3 feet of every box and at intervals per Table 352.30(B): 1/2 to 1 inch every 3 feet, 1-1/4 to 2 inch every 5 feet, 2-1/2 to 3 inch every 5 feet, 3-1/2 to 5 inch every 6 feet, 6 inch every 8 feet. Expansion fittings may be required for temperature changes exceeding 14 degrees F (352.44)."
+        problems:
+          - id: pvc-p1
+            type: multiple_choice
+            question: "PVC conduit requires what additional conductor that metallic raceways may not need?"
+            options:
+              - "A bonding jumper at each fitting"
+              - "An equipment grounding conductor within the raceway"
+              - "A separate neutral conductor"
+              - "A ground-fault sensor wire"
+            correct: 1
+            explanation: "Since PVC conduit is non-conductive, it cannot serve as an equipment grounding conductor. An EGC must be installed within the raceway per 250.118 and 352.60."
+          - id: pvc-p2
+            type: multiple_choice
+            question: "What is the maximum support interval for 1-inch PVC conduit per Table 352.30(B)?"
+            options:
+              - "3 feet"
+              - "4 feet"
+              - "5 feet"
+              - "6 feet"
+            correct: 0
+            explanation: "Per Table 352.30(B), PVC conduit in trade sizes 1/2 through 1 inch must be supported at intervals not exceeding 3 feet."
+
+  - id: conduit-fill
+    name: "Conduit Fill Calculations"
+    difficulty: 6
+    estimatedMinutes: 30
+    tags: [conduit, fill-calculations, chapter-9]
+    sourceRef: "NEC 2023 Chapter 9, Tables 1, 4, 5"
+    prerequisites:
+      - emt-conduit
+      - conductor-sizing
+    knowledgePoints:
+      - id: fill-percentages
+        instruction: "Chapter 9, Table 1 sets the maximum percentage of conduit cross-sectional area that can be filled with conductors: 1 conductor = 53%, 2 conductors = 31%, 3 or more conductors = 40%. These apply to all raceway types. To calculate conduit fill: (1) Look up the cross-sectional area of each conductor in Chapter 9, Table 5 (for individual conductors) or Table 5A (for compact conductors). (2) Sum the areas of all conductors. (3) Look up the allowable fill area for the conduit size in Chapter 9, Table 4 for the specific raceway type. (4) Select the smallest conduit whose allowable fill area (at the correct percentage) meets or exceeds the total conductor area."
+        workedExample: "Example: What size EMT is needed for three 12 AWG THHN and one 12 AWG THHN (ground)? Step 1: From Table 5, 12 AWG THHN area = 0.0133 sq in. Step 2: Total area = 4 x 0.0133 = 0.0532 sq in. Step 3: With 4 conductors, use 40% fill. Step 4: From Table 4 for EMT, 1/2 inch EMT has 40% fill area of 0.122 sq in. Step 5: 0.122 >= 0.0532, so 1/2 inch EMT is adequate."
+        problems:
+          - id: fill-p1
+            type: multiple_choice
+            question: "Per Chapter 9, Table 1, what is the maximum fill percentage for a conduit containing 3 or more conductors?"
+            options:
+              - "25%"
+              - "31%"
+              - "40%"
+              - "53%"
+            correct: 2
+            explanation: "Per Chapter 9, Table 1, when a raceway contains 3 or more conductors (over 2), the maximum fill is 40% of the conduit cross-sectional area."
+          - id: fill-p2
+            type: multiple_choice
+            question: "When only 1 conductor is installed in a conduit, what is the maximum fill percentage?"
+            options:
+              - "31%"
+              - "40%"
+              - "53%"
+              - "60%"
+            correct: 2
+            explanation: "Per Chapter 9, Table 1, when only 1 conductor is installed in a raceway, the maximum fill is 53% of the conduit cross-sectional area."
+
+  - id: box-fill-calculations
+    name: "Article 314 — Box Fill Calculations"
+    difficulty: 6
+    estimatedMinutes: 25
+    tags: [boxes, fill-calculations, article-314]
+    sourceRef: "NEC 2023 Article 314, Table 314.16(B)"
+    prerequisites:
+      - wiring-methods-overview
+      - conductor-sizing
+    knowledgePoints:
+      - id: box-fill-rules
+        instruction: "Section 314.16 requires that boxes be sized to provide adequate space. Each conductor that enters the box counts as a volume allowance based on conductor size per Table 314.16(B): 14 AWG = 2.0 cu in, 12 AWG = 2.25 cu in, 10 AWG = 2.5 cu in, 8 AWG = 3.0 cu in, 6 AWG = 5.0 cu in. Additional fill allowances: each clamp counts as one conductor (the largest conductor entering the box), each support fitting (like a fixture stud) counts as one conductor, each device (switch/receptacle) counts as two conductors based on the largest conductor connected to it, all EGCs together count as one conductor (the largest EGC entering the box), and each isolated equipment grounding conductor counts as one additional conductor."
+        workedExample: "Example: A box has 4 x 12 AWG current-carrying conductors, 2 x 12 AWG EGCs, one cable clamp, and one duplex receptacle. Count: 4 conductors = 4 x 2.25. EGCs (all count as 1) = 1 x 2.25. Clamp (count as 1 largest) = 1 x 2.25. Receptacle (counts as 2) = 2 x 2.25. Total = 8 x 2.25 = 18.0 cu in. A 4x2-1/8 deep device box has 14.5 cu in -- too small. A 4-11/16 square box with 1-1/2 depth has 25.5 cu in -- sufficient."
+        problems:
+          - id: box-p1
+            type: multiple_choice
+            question: "Per Table 314.16(B), what is the volume allowance for a 12 AWG conductor?"
+            options:
+              - "2.0 cubic inches"
+              - "2.25 cubic inches"
+              - "2.5 cubic inches"
+              - "3.0 cubic inches"
+            correct: 1
+            explanation: "Per Table 314.16(B), each 12 AWG conductor requires a volume allowance of 2.25 cubic inches."
+          - id: box-p2
+            type: multiple_choice
+            question: "When counting box fill, a single duplex receptacle counts as how many conductors?"
+            options:
+              - "One"
+              - "Two"
+              - "Three"
+              - "Four"
+            correct: 1
+            explanation: "Per 314.16(B)(4), for each yoke or strap containing one or more devices, a double volume allowance (counts as 2 conductors) shall be made based on the largest conductor connected to the device."
+
+  # ============================================================
+  # RECEPTACLES, GFCI, AFCI
+  # ============================================================
+
+  - id: receptacle-outlets
+    name: "Article 210.52 + 406 — Receptacle Requirements"
+    difficulty: 4
+    estimatedMinutes: 25
+    tags: [receptacles, dwelling, article-210]
+    sourceRef: "NEC 2023 Sections 210.52, Article 406"
+    prerequisites:
+      - branch-circuits
+    knowledgePoints:
+      - id: dwelling-receptacles
+        instruction: "Section 210.52 specifies receptacle outlet requirements for dwellings. The 6/12 rule (210.52(A)): in every habitable room, receptacle outlets must be placed so that no point along the floor line in any wall space is more than 6 feet from a receptacle. This means receptacles must be no more than 12 feet apart. Wall space is defined as any space 2 feet or more in width. Kitchen countertop receptacles (210.52(C)): receptacles must be installed at each counter space 12 inches or wider, and no point along the counter line can be more than 24 inches (2 feet) from a receptacle. At least two 20A small-appliance circuits must serve the kitchen and dining area (210.52(B)). Bathroom receptacles require at least one 20A circuit, and it can only serve bathroom receptacles (210.11(C)(3))."
+        workedExample: "Example: A kitchen has a continuous countertop that is 8 feet long. How many receptacles are needed? Per 210.52(C)(1), no point along the wall line behind the counter can be more than 24 inches from a receptacle. Starting from one end: first receptacle within 24 inches of the end, then every 48 inches (4 feet) maximum. For 8 feet: you need at least 3 receptacles (at ~2 feet, ~4 feet, and ~6 feet from the end)."
+        problems:
+          - id: recep-p1
+            type: multiple_choice
+            question: "Per the 6/12 rule (210.52(A)), what is the maximum distance between receptacles along a wall in a habitable room?"
+            options:
+              - "6 feet"
+              - "8 feet"
+              - "10 feet"
+              - "12 feet"
+            correct: 3
+            explanation: "Per 210.52(A), no point along the floor line of any wall space can be more than 6 feet from a receptacle outlet. This means receptacles must be spaced no more than 12 feet apart."
+          - id: recep-p2
+            type: multiple_choice
+            question: "How many 20-ampere small-appliance branch circuits are required to serve the kitchen and dining area?"
+            options:
+              - "One"
+              - "Two"
+              - "Three"
+              - "Four"
+            correct: 1
+            explanation: "Per 210.52(B)(1), at least two 20-ampere small-appliance branch circuits are required to serve all wall and floor receptacle outlets in the kitchen, pantry, breakfast room, and dining room."
+
+  - id: gfci-protection
+    name: "Article 210.8 — GFCI Protection Requirements"
+    difficulty: 4
+    estimatedMinutes: 25
+    tags: [gfci, protection, article-210]
+    sourceRef: "NEC 2023 Section 210.8"
+    prerequisites:
+      - receptacle-outlets
+    knowledgePoints:
+      - id: gfci-locations-dwelling
+        instruction: "Section 210.8(A) lists locations requiring GFCI protection in dwelling units (125V, 15 and 20A). These include: bathrooms, garages and accessory buildings at or below grade, outdoors, crawl spaces at or below grade, basements (finished and unfinished), kitchen (all receptacles serving countertop surfaces and within 6 feet of the outside edge of a sink), sinks (within 6 feet of the outside edge), boathouses, bathtubs/shower stalls (within 6 feet), laundry areas, indoor damp/wet locations, and attics (2023 NEC addition). The 2023 NEC significantly expanded GFCI requirements to include all 250V outlets in many of these locations, not just 125V."
+        workedExample: "Example: Does a receptacle in an attached garage need GFCI protection? Yes. Per 210.8(A)(2), GFCI protection is required for all 125-volt, 15- and 20-ampere receptacles in garages and accessory buildings at or below grade. This includes dedicated circuits for garage door openers and refrigerators."
+        problems:
+          - id: gfci-p1
+            type: multiple_choice
+            question: "Per 210.8(A), which of the following dwelling locations does NOT require GFCI protection for 125V, 15/20A receptacles?"
+            options:
+              - "Bathrooms"
+              - "Bedrooms"
+              - "Garages"
+              - "Unfinished basements"
+            correct: 1
+            explanation: "Bedrooms are not listed in 210.8(A) as requiring GFCI protection. However, bedrooms do require AFCI protection per 210.12."
+          - id: gfci-p2
+            type: true_false
+            question: "GFCI protection is required for all kitchen countertop receptacles in dwelling units."
+            correct: "true"
+            explanation: "Per 210.8(A)(6), GFCI protection is required for receptacles that serve countertop surfaces in kitchens of dwelling units."
+
+  - id: afci-protection
+    name: "Article 210.12 — AFCI Protection Requirements"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [afci, protection, article-210]
+    sourceRef: "NEC 2023 Section 210.12"
+    prerequisites:
+      - gfci-protection
+    knowledgePoints:
+      - id: afci-locations
+        instruction: "Section 210.12(A) requires AFCI protection for all 120-volt, 15- and 20-ampere branch circuits supplying outlets and devices in dwelling unit rooms including: kitchens, family rooms, dining rooms, living rooms, parlors, libraries, dens, bedrooms, sunrooms, recreation rooms, closets, hallways, laundry areas, and similar rooms and areas. The 2023 NEC expanded AFCI requirements to include kitchens and laundry areas. AFCI breakers detect arcing faults (both series and parallel arcs) that can cause fires. AFCI protection can be provided by: an AFCI circuit breaker, an outlet branch-circuit AFCI (installed at the first outlet), or a combination of both."
+        problems:
+          - id: afci-p1
+            type: multiple_choice
+            question: "Per 210.12(A), which of the following dwelling unit areas requires AFCI protection?"
+            options:
+              - "Garage"
+              - "Bathroom"
+              - "Bedroom"
+              - "Outdoor patio"
+            correct: 2
+            explanation: "Per 210.12(A), bedrooms are specifically listed as requiring AFCI protection for 120V, 15- and 20-ampere branch circuits. Garages, bathrooms, and outdoor areas are not listed in 210.12."
+          - id: afci-p2
+            type: true_false
+            question: "The 2023 NEC requires AFCI protection for kitchen branch circuits in dwelling units."
+            correct: "true"
+            explanation: "The 2023 NEC expanded 210.12(A) to include kitchens and laundry areas, which were not previously required to have AFCI protection."
+
+  # ============================================================
+  # LOAD CALCULATIONS & SERVICE
+  # ============================================================
+
+  - id: dwelling-load-calculations
+    name: "Article 220 — Dwelling Unit Load Calculations"
+    difficulty: 7
+    estimatedMinutes: 35
+    tags: [load-calculations, dwelling, article-220]
+    sourceRef: "NEC 2023 Article 220, Parts I-III"
+    prerequisites:
+      - branch-circuits
+      - feeders
+    knowledgePoints:
+      - id: general-lighting
+        instruction: "Table 220.12 provides unit loads for general lighting by occupancy type. For dwellings, the unit load is 3 VA per square foot. This calculation: (floor area in sq ft) x 3 VA/sq ft = general lighting VA. Small-appliance circuits: per 220.52(A), each 20A small-appliance circuit is 1,500 VA (minimum 2 circuits = 3,000 VA). Laundry circuit: per 220.52(B), one 1,500 VA circuit. Total these and apply Table 220.42 demand factors: first 3,000 VA at 100%, remainder at 35%. Then add: electric range per Table 220.55 (maximum demand for one range up to 12kW rating is 8 kW), dryer at 5,000 VA or nameplate rating whichever is larger (220.54), AC and heating at the larger of the two (220.60), other fixed appliances at 75% if 4 or more (220.53)."
+        workedExample: "Example: 1,800 sq ft dwelling, electric range (12 kW), dryer (5 kW), AC (5 kW), heat (10 kW), water heater (4.5 kW). General lighting: 1800 x 3 = 5,400 VA. Small appliance: 3,000 VA. Laundry: 1,500 VA. Total general = 9,900 VA. Demand: first 3,000 at 100% = 3,000. Remaining 6,900 at 35% = 2,415. Subtotal = 5,415 VA. Range: 8,000 VA (Table 220.55). Dryer: 5,000 VA. Water heater: 4,500 VA. AC vs Heat: use larger = 10,000 VA. Total = 5,415 + 8,000 + 5,000 + 4,500 + 10,000 = 32,915 VA. Service amps at 240V: 32,915 / 240 = 137A. Minimum 150A service."
+        problems:
+          - id: load-p1
+            type: multiple_choice
+            question: "Per Table 220.12, what is the unit load for general lighting in a dwelling unit?"
+            options:
+              - "1 VA per square foot"
+              - "2 VA per square foot"
+              - "3 VA per square foot"
+              - "5 VA per square foot"
+            correct: 2
+            explanation: "Per Table 220.12, the unit load for general lighting in dwelling units is 3 VA per square foot."
+          - id: load-p2
+            type: multiple_choice
+            question: "Per Table 220.42, what demand factor applies to the first 3,000 VA of general lighting load in a dwelling?"
+            options:
+              - "35%"
+              - "50%"
+              - "75%"
+              - "100%"
+            correct: 3
+            explanation: "Per Table 220.42, for dwelling units, the first 3,000 VA is calculated at 100% demand factor. The portion from 3,001 to 120,000 VA is at 35%."
+      - id: range-demand
+        instruction: "Table 220.55 provides demand factors for household electric ranges, wall-mounted ovens, and counter-mounted cooking units. For a single range rated not more than 12 kW, the maximum demand is 8 kW. For ranges rated more than 12 kW but not more than 27 kW, add 5% to the 8 kW demand for each additional kW over 12 kW. Note 1 to Table 220.55: over 1-3/4 kW through 8-3/4 kW, the nameplate rating can be used for column C. Note 2: if the rating exceeds 12 kW, the maximum demand in Column C must be increased by 5% for each additional kW of rating over 12 kW."
+        problems:
+          - id: range-p1
+            type: multiple_choice
+            question: "Per Table 220.55, what is the maximum demand for a single 12 kW household electric range?"
+            options:
+              - "6 kW"
+              - "8 kW"
+              - "10 kW"
+              - "12 kW"
+            correct: 1
+            explanation: "Per Table 220.55, Column C, the maximum demand for one household electric range rated not more than 12 kW is 8 kW."
+
+  - id: service-entrance
+    name: "Article 230 — Service Entrance"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [service, article-230, disconnects]
+    sourceRef: "NEC 2023 Article 230"
+    prerequisites:
+      - dwelling-load-calculations
+      - overcurrent-protection
+    knowledgePoints:
+      - id: service-conductors
+        instruction: "Article 230 covers services -- the conductors and equipment for delivering electric energy from the utility. Service entrance conductors must have an ampacity not less than the maximum load to be served per 230.42(A). For a one-family dwelling, the minimum service is 100 amperes, 3-wire (230.79(C)). For all other installations, the minimum is 60 amperes (230.79(B)). Each service must have a means of disconnect that simultaneously disconnects all ungrounded service conductors (230.71). There can be up to six service disconnects per 230.71(A), grouped at one location. Service entrance conductors must be protected from physical damage (230.50) and must have overcurrent protection per 230.90."
+        workedExample: "Example: A 200A residential service has 2/0 copper service entrance conductors. Is this adequate? Per Table 310.16, 2/0 copper at 75C = 175A. This is less than 200A, so 2/0 is NOT adequate. You need at least 3/0 copper (200A at 75C) for a 200A service."
+        problems:
+          - id: service-p1
+            type: multiple_choice
+            question: "What is the minimum service size for a one-family dwelling per 230.79(C)?"
+            options:
+              - "60 amperes"
+              - "100 amperes"
+              - "150 amperes"
+              - "200 amperes"
+            correct: 1
+            explanation: "Per 230.79(C), for a one-family dwelling, the service disconnecting means must have a rating of not less than 100 amperes, 3-wire."
+          - id: service-p2
+            type: multiple_choice
+            question: "Per 230.71(A), what is the maximum number of service disconnects permitted?"
+            options:
+              - "Two"
+              - "Four"
+              - "Six"
+              - "Eight"
+            correct: 2
+            explanation: "Per 230.71(A), the service disconnecting means can consist of not more than six switches or six circuit breakers, grouped at one location."
+
+  - id: switches-controls
+    name: "Article 404 — Switches and Controls"
+    difficulty: 3
+    estimatedMinutes: 15
+    tags: [switches, article-404]
+    sourceRef: "NEC 2023 Article 404"
+    prerequisites:
+      - branch-circuits
+    knowledgePoints:
+      - id: switch-installation
+        instruction: "Article 404 covers the installation of switches, including snap switches, dimmers, and motor controllers. Switches must be installed to be accessible (404.8(A)) -- mounted with the center of the grip no more than 6 feet 7 inches above the floor or working platform. AC general-use snap switches must be rated for the voltage and current of the circuit. When controlling an inductive load (like a motor), the switch must be rated for the type of load. Three-way and four-way switches must be wired so that switching occurs only in the ungrounded conductor(s) (404.2(A)). A neutral conductor is now required at most switch locations per 404.2(C) to accommodate future smart switches and occupancy sensors, with some exceptions (switch loops in existing conduit, where impracticable, etc.)."
+        problems:
+          - id: switch-p1
+            type: multiple_choice
+            question: "Per 404.8(A), what is the maximum mounting height for a switch (center of grip) above the floor?"
+            options:
+              - "5 feet 6 inches"
+              - "6 feet 0 inches"
+              - "6 feet 7 inches"
+              - "7 feet 0 inches"
+            correct: 2
+            explanation: "Per 404.8(A), snap switches and dimmers must be installed so that they can be operated from a readily accessible place, with the center of the grip not more than 6 feet 7 inches (2.0 m) above the floor or working platform."
+          - id: switch-p2
+            type: true_false
+            question: "A neutral conductor is required at most switch locations in new construction per 404.2(C)."
+            correct: "true"
+            explanation: "Per 404.2(C), a grounded conductor (neutral) must be installed at the locations specified for lighting switches. This accommodates occupancy sensors, dimmers, and other devices that require a neutral for operation."
