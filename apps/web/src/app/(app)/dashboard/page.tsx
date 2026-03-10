@@ -6,6 +6,8 @@ import { headers } from "next/headers";
 import { CourseCard } from "@/components/app/course-card";
 import { StreakCounter } from "@/components/app/streak-counter";
 import { XPProgress } from "@/components/app/xp-progress";
+import { MasteryChart } from "@/components/app/mastery-chart";
+import { ContinueStudying } from "@/components/app/continue-studying";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -76,6 +78,40 @@ export default async function DashboardPage() {
         <StreakCounter streakDays={0} />
         <XPProgress earnedToday={0} dailyTarget={40} />
       </div>
+
+      {/* Continue studying — show for first course with progress */}
+      {courses.length > 0 && (() => {
+        const firstCourse = courses[0];
+        const profile = profiles.get(firstCourse.id);
+        if (profile && profile.completionPercent > 0) {
+          return (
+            <div className="mb-8">
+              <ContinueStudying courseId={firstCourse.id} courseName={firstCourse.name} />
+            </div>
+          );
+        }
+        return null;
+      })()}
+
+      {/* Mastery chart — show for first course with data */}
+      {courses.length > 0 && (() => {
+        const firstCourse = courses[0];
+        const profile = profiles.get(firstCourse.id);
+        if (profile && profile.totalConcepts > 0) {
+          return (
+            <div className="mb-8">
+              <MasteryChart
+                mastered={profile.mastered}
+                inProgress={profile.inProgress}
+                needsReview={profile.needsReview}
+                unstarted={profile.unstarted}
+                totalConcepts={profile.totalConcepts}
+              />
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* Courses */}
       <h2 className="text-xl font-semibold text-foreground mb-4">Your Courses</h2>
