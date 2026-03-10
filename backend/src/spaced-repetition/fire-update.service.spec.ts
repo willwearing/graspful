@@ -110,9 +110,11 @@ describe('FireUpdateService', () => {
       mockPrisma.encompassingEdge.findMany.mockResolvedValue([]);
       mockPrisma.studentConceptState.findMany.mockResolvedValue([]);
 
-      await expect(
-        service.propagateImplicitRepetition('u1', 'c1', 0.3, 'course1'),
-      ).resolves.not.toThrow();
+      // Should complete without throwing
+      await service.propagateImplicitRepetition('u1', 'c1', 0.3, 'course1');
+
+      // No updates should be made
+      expect(mockPrisma.studentConceptState.update).not.toHaveBeenCalled();
     });
   });
 });
