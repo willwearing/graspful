@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import { FireUpdateService } from '@/spaced-repetition/fire-update.service';
 import { ProblemSubmissionService } from './problem-submission.service';
 
 export interface ReviewSession {
@@ -26,6 +27,7 @@ export class ReviewService {
   constructor(
     private prisma: PrismaService,
     private problemSubmission: ProblemSubmissionService,
+    private fireUpdate: FireUpdateService,
   ) {}
 
   async startReview(userId: string, conceptId: string) {
@@ -148,7 +150,13 @@ export class ReviewService {
     const score = totalCount > 0 ? correctCount / totalCount : 0;
     const passed = score >= 0.6; // 60% pass threshold
 
-    // Update concept mastery state based on review result
+    // Get the concept's courseId for implicit propagation
+    const concept = await this.prisma.concept.findUnique({
+      where: { id: session.conceptId },
+      select: { courseId: true },
+    });
+
+    // Update mastery state
     const conceptState = await this.prisma.studentConceptState.findUnique({
       where: {
         userId_conceptId: {
@@ -159,39 +167,28 @@ export class ReviewService {
     });
 
     if (conceptState) {
-      if (passed) {
-        // Review passed: stays mastered, repNum increases
-        await this.prisma.studentConceptState.update({
-          where: {
-            userId_conceptId: {
-              userId: session.userId,
-              conceptId: session.conceptId,
-            },
+      await this.prisma.studentConceptState.update({
+        where: {
+          userId_conceptId: {
+            userId: session.userId,
+            conceptId: session.conceptId,
           },
-          data: {
-            masteryState: 'mastered',
-            repNum: { increment: 1 },
-            lastPracticedAt: new Date(),
-            failCount: 0,
-          },
-        });
-      } else {
-        // Review failed: needs_review
-        await this.prisma.studentConceptState.update({
-          where: {
-            userId_conceptId: {
-              userId: session.userId,
-              conceptId: session.conceptId,
-            },
-          },
-          data: {
-            masteryState: 'needs_review',
-            failCount: { increment: 1 },
-            lastPracticedAt: new Date(),
-          },
-        });
-      }
+        },
+        data: {
+          masteryState: passed ? 'mastered' : 'needs_review',
+          failCount: passed ? 0 : { increment: 1 },
+        },
+      });
     }
+
+    // FIRe update: update repNum, memory, interval + implicit propagation
+    await this.fireUpdate.updateAfterReview(
+      session.userId,
+      session.conceptId,
+      passed,
+      score, // quality = accuracy ratio
+      concept?.courseId,
+    );
 
     // Clean up session
     this.sessions.delete(sessionId);
