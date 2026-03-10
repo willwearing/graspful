@@ -9,15 +9,29 @@ function createMockPrisma() {
   const createdProblems: any[] = [];
   const createdPrereqEdges: any[] = [];
   const createdEncompEdges: any[] = [];
+  const deletedCourses: any[] = [];
+  let courseCounter = 0;
 
   return {
     $transaction: jest.fn(async (fn: (tx: any) => Promise<any>) => {
       const tx = {
         course: {
           create: jest.fn(async (args: any) => {
-            const course = { id: 'course-uuid', ...args.data };
+            courseCounter++;
+            const course = { id: `course-uuid-${courseCounter}`, ...args.data };
             createdCourses.push(course);
             return course;
+          }),
+          findUnique: jest.fn(async (args: any) => {
+            const where = args.where.orgId_slug;
+            if (!where) return null;
+            return createdCourses.find(
+              (c) => c.orgId === where.orgId && c.slug === where.slug,
+            ) || null;
+          }),
+          delete: jest.fn(async (args: any) => {
+            deletedCourses.push(args.where);
+            return {};
           }),
         },
         concept: {
@@ -56,7 +70,7 @@ function createMockPrisma() {
       };
       return fn(tx);
     }),
-    _created: { createdCourses, createdConcepts, createdKPs, createdProblems, createdPrereqEdges, createdEncompEdges },
+    _created: { createdCourses, createdConcepts, createdKPs, createdProblems, createdPrereqEdges, createdEncompEdges, deletedCourses },
   };
 }
 
@@ -83,7 +97,7 @@ concepts:
 `;
 
     const result = await service.importFromYaml(yaml, 'org-123');
-    expect(result.courseId).toBe('course-uuid');
+    expect(result.courseId).toBe('course-uuid-1');
     expect(mockPrisma._created.createdConcepts).toHaveLength(1);
     expect(mockPrisma._created.createdConcepts[0].slug).toBe('concept-a');
   });
@@ -241,5 +255,70 @@ concepts:
 `;
 
     await expect(service.importFromYaml(yaml, 'org-123')).rejects.toThrow(/cycle|invalid/i);
+  });
+
+  describe('importFromYaml - idempotent mode', () => {
+    it('should replace existing course when reimporting same slug', async () => {
+      const mockPrisma = createMockPrisma();
+      const validationService = new GraphValidationService();
+      const service = new CourseImporterService(mockPrisma as any, validationService);
+
+      const yaml = `
+course:
+  id: test-idempotent
+  name: Test Idempotent Course
+  description: A test
+  estimatedHours: 10
+  version: "1.0"
+concepts:
+  - id: concept-1
+    name: Concept One
+    difficulty: 3
+    estimatedMinutes: 15
+    knowledgePoints:
+      - id: kp-1
+        instruction: "Learn this"
+        problems:
+          - id: p-1
+            type: multiple_choice
+            question: "What is 1+1?"
+            options: ["1", "2", "3"]
+            correct: 1
+            explanation: "Basic math"
+`;
+      // First import
+      const result1 = await service.importFromYaml(yaml, 'org-123');
+      expect(result1.courseId).toBeDefined();
+      expect(result1.conceptCount).toBe(1);
+
+      // Second import with replace: true should succeed (not throw duplicate key error)
+      const result2 = await service.importFromYaml(yaml, 'org-123', { replace: true });
+      expect(result2.courseId).toBeDefined();
+      expect(result2.conceptCount).toBe(1);
+      // Should have deleted the old course
+      expect(mockPrisma._created.deletedCourses).toHaveLength(1);
+    });
+
+    it('should not delete existing course when replace is false', async () => {
+      const mockPrisma = createMockPrisma();
+      const validationService = new GraphValidationService();
+      const service = new CourseImporterService(mockPrisma as any, validationService);
+
+      const yaml = `
+course:
+  id: test-no-replace
+  name: Test No Replace
+  estimatedHours: 5
+  version: "1.0"
+concepts:
+  - id: c1
+    name: C1
+    difficulty: 1
+    estimatedMinutes: 5
+    knowledgePoints: []
+`;
+      await service.importFromYaml(yaml, 'org-123');
+      expect(mockPrisma._created.deletedCourses).toHaveLength(0);
+    });
   });
 });
