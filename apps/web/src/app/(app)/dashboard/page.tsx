@@ -8,6 +8,9 @@ import { StreakCounter } from "@/components/app/streak-counter";
 import { XPProgress } from "@/components/app/xp-progress";
 import { MasteryChart } from "@/components/app/mastery-chart";
 import { ContinueStudying } from "@/components/app/continue-studying";
+import { WeeklyXPChart } from "@/components/app/weekly-xp-chart";
+import { CompletionEstimate } from "@/components/app/completion-estimate";
+import { Leaderboard } from "@/components/app/leaderboard";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -26,6 +29,46 @@ interface Course {
   slug: string;
   name: string;
   description: string | null;
+}
+
+interface XPSummary {
+  today: number;
+  thisWeek: number;
+  total: number;
+  dailyTarget: number;
+  dailyCap: number;
+}
+
+interface StreakStatusResponse {
+  currentStreak: number;
+  longestStreak: number;
+  todayComplete: boolean;
+  todayXP: number;
+  dailyTarget: number;
+  freezeTokensRemaining: number;
+}
+
+interface DailyXP {
+  date: string;
+  xp: number;
+}
+
+interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  weeklyXP: number;
+}
+
+interface StatsResponse {
+  completionPercent: number;
+  totalConcepts: number;
+  masteredConcepts: number;
+  remainingConcepts: number;
+  averageDailyXP: number;
+  estimatedWeeksRemaining: number | null;
+  dailyXPTarget: number;
 }
 
 export default async function DashboardPage() {
@@ -66,6 +109,33 @@ export default async function DashboardPage() {
     // API may not be running -- show empty state
   }
 
+  // Fetch gamification data for first course
+  let xpSummary: XPSummary | null = null;
+  let streakStatus: StreakStatusResponse | null = null;
+  let weeklyXP: DailyXP[] = [];
+  let leaderboard: LeaderboardEntry[] = [];
+  let stats: StatsResponse | null = null;
+
+  if (courses.length > 0) {
+    const courseId = courses[0].id;
+    const basePath = `/orgs/${brand.orgId}/courses/${courseId}`;
+
+    const [xpRes, streakRes, weeklyRes, boardRes, statsRes] =
+      await Promise.allSettled([
+        apiFetch<XPSummary>(`${basePath}/xp`),
+        apiFetch<StreakStatusResponse>(`${basePath}/streak`),
+        apiFetch<DailyXP[]>(`${basePath}/xp/weekly`),
+        apiFetch<LeaderboardEntry[]>(`${basePath}/leaderboard`),
+        apiFetch<StatsResponse>(`${basePath}/stats`),
+      ]);
+
+    xpSummary = xpRes.status === "fulfilled" ? xpRes.value : null;
+    streakStatus = streakRes.status === "fulfilled" ? streakRes.value : null;
+    weeklyXP = weeklyRes.status === "fulfilled" ? weeklyRes.value : [];
+    leaderboard = boardRes.status === "fulfilled" ? boardRes.value : [];
+    stats = statsRes.status === "fulfilled" ? statsRes.value : null;
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 md:px-8">
       <h1 className="text-3xl font-bold text-foreground mb-2">Welcome back</h1>
@@ -75,9 +145,25 @@ export default async function DashboardPage() {
 
       {/* Stats row */}
       <div className="grid gap-4 sm:grid-cols-2 mb-8">
-        <StreakCounter streakDays={0} />
-        <XPProgress earnedToday={0} dailyTarget={40} />
+        <StreakCounter streakDays={streakStatus?.currentStreak ?? 0} />
+        <XPProgress
+          earnedToday={xpSummary?.today ?? 0}
+          dailyTarget={xpSummary?.dailyTarget ?? 40}
+        />
       </div>
+
+      {/* Completion estimate */}
+      {stats && (
+        <div className="mb-8">
+          <CompletionEstimate
+            completionPercent={stats.completionPercent}
+            estimatedWeeksRemaining={stats.estimatedWeeksRemaining}
+            averageDailyXP={stats.averageDailyXP}
+            masteredConcepts={stats.masteredConcepts}
+            totalConcepts={stats.totalConcepts}
+          />
+        </div>
+      )}
 
       {/* Continue studying — show for first course with progress */}
       {courses.length > 0 && (() => {
@@ -92,6 +178,13 @@ export default async function DashboardPage() {
         }
         return null;
       })()}
+
+      {/* Weekly XP chart */}
+      {weeklyXP.length > 0 && (
+        <div className="mb-8">
+          <WeeklyXPChart data={weeklyXP} />
+        </div>
+      )}
 
       {/* Mastery chart — show for first course with data */}
       {courses.length > 0 && (() => {
@@ -112,6 +205,13 @@ export default async function DashboardPage() {
         }
         return null;
       })()}
+
+      {/* Leaderboard */}
+      {leaderboard.length > 0 && (
+        <div className="mb-8">
+          <Leaderboard entries={leaderboard} currentUserId={user.id} />
+        </div>
+      )}
 
       {/* Courses */}
       <h2 className="text-xl font-semibold text-foreground mb-4">Your Courses</h2>
