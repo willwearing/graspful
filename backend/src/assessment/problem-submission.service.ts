@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '@/prisma/prisma.service';
 import { FireUpdateService } from '@/spaced-repetition/fire-update.service';
 import { calculateRawDelta } from '@/spaced-repetition/fire-equations';
+import { XPService } from '@/gamification/xp.service';
 import { evaluateAnswer } from './answer-evaluator';
 import { calculateXP, ActivityType } from './xp-calculator';
 import { updateSpeed, deriveSpeed, blendSpeed, SpeedState, ConceptParams } from './speed-updater';
@@ -32,6 +33,7 @@ export class ProblemSubmissionService {
   constructor(
     private prisma: PrismaService,
     private fireUpdate: FireUpdateService,
+    private xpService: XPService,
   ) {}
 
   async submitAnswer(input: SubmitAnswerInput): Promise<SubmitAnswerResult> {
@@ -117,12 +119,16 @@ export class ProblemSubmissionService {
       concept,
     );
 
-    // 8. Award XP to enrollment
+    // 8. Record XP event (handles enrollment update + daily cap + streak tracking)
     if (xpResult.xp > 0) {
-      await this.prisma.courseEnrollment.update({
-        where: { userId_courseId: { userId, courseId: concept.courseId } },
-        data: { totalXPEarned: { increment: xpResult.xp } },
+      const recorded = await this.xpService.recordXPEvent({
+        userId,
+        courseId: concept.courseId,
+        source: activityType === 'lesson' ? 'lesson' : 'review',
+        amount: xpResult.xp,
+        conceptId: concept.id,
       });
+      xpResult.xp = recorded.amount; // May be clamped by daily cap
     }
 
     // 9. Propagate implicit repetition to encompassed concepts

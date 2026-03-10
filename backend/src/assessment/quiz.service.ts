@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import { XPService } from '@/gamification/xp.service';
 import { evaluateAnswer } from './answer-evaluator';
 import { calculateQuizXP } from './xp-calculator';
 
@@ -35,7 +36,10 @@ const MAX_QUIZ_QUESTIONS = 15;
 export class QuizService {
   private sessions = new Map<string, QuizSession>();
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private xpService: XPService,
+  ) {}
 
   async generateQuiz(userId: string, courseId: string) {
     // Get the enrollment to check XP
@@ -257,15 +261,13 @@ export class QuizService {
     const xpResult = calculateQuizXP(totalCount, correctCount);
 
     if (xpResult.xp > 0) {
-      await this.prisma.courseEnrollment.update({
-        where: {
-          userId_courseId: {
-            userId: session.userId,
-            courseId: session.courseId,
-          },
-        },
-        data: { totalXPEarned: { increment: xpResult.xp } },
+      const recorded = await this.xpService.recordXPEvent({
+        userId: session.userId,
+        courseId: session.courseId,
+        source: 'quiz',
+        amount: xpResult.xp,
       });
+      xpResult.xp = recorded.amount; // May be clamped by daily cap
     }
 
     // Clean up session
