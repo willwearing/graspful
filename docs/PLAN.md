@@ -257,7 +257,7 @@ Learning engine first, then audio platform, then billing. Mobile is deferred ent
 
 ### Phase 6: Spaced Repetition -- FIRe (Week 10-12)
 
-**Status:** Not Started
+**Status:** Complete
 
 1. FIRe algorithm: core equations, memory decay
 2. Implicit repetition propagation through encompassing edges
