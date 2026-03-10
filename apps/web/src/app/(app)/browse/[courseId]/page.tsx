@@ -6,10 +6,10 @@ import { resolveBrand } from "@/lib/brand/resolve";
 import { ConceptList } from "@/components/app/concept-list";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-
-type MasteryState = "unstarted" | "in_progress" | "mastered" | "needs_review";
+import type { MasteryState } from "@/lib/types";
 
 interface Concept {
   id: string;
@@ -149,6 +149,19 @@ export default async function CourseDetailPage({
           </div>
         </div>
       )}
+
+      {/* Diagnostic CTA */}
+      <div className="rounded-lg border border-border p-6 mb-8 text-center">
+        <h2 className="text-lg font-semibold text-foreground mb-2">
+          Know some of this already?
+        </h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Take a diagnostic assessment to skip what you already know.
+        </p>
+        <Button render={<Link href={`/diagnostic/${courseId}`} />}>
+          Take Diagnostic
+        </Button>
+      </div>
 
       {/* Concept list */}
       <h2 className="text-xl font-semibold text-foreground mb-4">Concepts</h2>
