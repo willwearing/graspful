@@ -56,6 +56,7 @@ model User {
   conceptStates     StudentConceptState[]
   kpStates          StudentKPState[]
   problemAttempts   ProblemAttempt[]
+  xpEvents          XPEvent[]
 
   @@map("users")
 }
@@ -248,6 +249,7 @@ model UserStreak {
   date           DateTime @db.Date
   listenSeconds  Int      @default(0) @map("listen_seconds")
   itemsCompleted Int      @default(0) @map("items_completed")
+  xpEarned       Int      @default(0) @map("xp_earned")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -400,6 +402,7 @@ model Course {
   org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   concepts Concept[]
   enrollments CourseEnrollment[]
+  xpEvents    XPEvent[]
 
   @@unique([orgId, slug])
   @@index([orgId])
@@ -575,6 +578,7 @@ model CourseEnrollment {
   diagnosticCompletedAt DateTime? @map("diagnostic_completed_at") @db.Timestamptz
   dailyXPTarget        Int       @default(40) @map("daily_xp_target")
   totalXPEarned        Int       @default(0) @map("total_xp_earned")
+  streakFreezeTokens   Int       @default(1) @map("streak_freeze_tokens")
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -679,4 +683,35 @@ model Remediation {
   @@unique([userId, blockedConceptId, weakPrerequisiteId])
   @@index([userId, courseId, resolved])
   @@map("remediations")
+}
+
+// =============================================================================
+// GAMIFICATION — XP EVENTS
+// =============================================================================
+
+enum XPSource {
+  lesson
+  review
+  quiz
+  remediation
+  bonus
+
+  @@map("xp_source")
+}
+
+model XPEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  courseId   String   @map("course_id") @db.Uuid
+  source    XPSource
+  amount    Int
+  conceptId String?  @map("concept_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([userId, courseId, createdAt])
+  @@index([userId, createdAt])
+  @@map("xp_events")
 }
