@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { apiFetch, ApiError } from "@/lib/api";
-import { resolveBrand } from "@/lib/brand/resolve";
+import { resolvePageBrand } from "@/lib/brand/resolve";
 import { LessonFlow } from "@/components/app/lesson-flow";
 import { ArrowLeft } from "lucide-react";
 
@@ -22,9 +21,7 @@ export default async function LessonPage({
   const token = session?.access_token;
   if (!token) redirect("/sign-in");
 
-  const headersList = await headers();
-  const hostname = headersList.get("host") || "localhost";
-  const brand = await resolveBrand(hostname);
+  const brand = await resolvePageBrand();
   const orgId = brand.orgId;
 
   let lesson: any = null;

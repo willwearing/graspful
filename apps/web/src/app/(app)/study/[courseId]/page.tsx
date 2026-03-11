@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
-import { resolveBrand } from "@/lib/brand/resolve";
+import { resolvePageBrand } from "@/lib/brand/resolve";
 import { StudyRouter } from "@/components/app/study-router";
 
 export default async function StudyPage({
@@ -16,9 +15,7 @@ export default async function StudyPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/sign-in");
 
-  const headersList = await headers();
-  const hostname = headersList.get("host") || "localhost";
-  const brand = await resolveBrand(hostname);
+  const brand = await resolvePageBrand();
 
   let task = null;
   try {

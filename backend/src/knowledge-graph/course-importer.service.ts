@@ -184,7 +184,7 @@ export class CourseImporterService {
         encompassingEdgeCount: encompCount,
         warnings: validation.warnings,
       };
-    });
+    }, { maxWait: 30000, timeout: 60000 });
 
     return result;
   }

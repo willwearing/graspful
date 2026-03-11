@@ -12,9 +12,10 @@ function isPublicRoute(pathname: string): boolean {
 
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") || "localhost";
+  const cookieHeader = request.headers.get("cookie");
 
-  // 1. Resolve brand
-  const brand = await resolveBrand(hostname);
+  // 1. Resolve brand (passes cookies for dev-brand-override support)
+  const brand = await resolveBrand(hostname, cookieHeader);
 
   // 2. Create response with brand headers
   let response = NextResponse.next({ request });

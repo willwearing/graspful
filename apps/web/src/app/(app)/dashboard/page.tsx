@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
-import { resolveBrand } from "@/lib/brand/resolve";
-import { headers } from "next/headers";
+import { resolvePageBrand } from "@/lib/brand/resolve";
 import { CourseCard } from "@/components/app/course-card";
 import { StreakCounter } from "@/components/app/streak-counter";
 import { XPProgress } from "@/components/app/xp-progress";
@@ -80,9 +79,7 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/sign-in");
 
-  const headersList = await headers();
-  const hostname = headersList.get("host") || "localhost";
-  const brand = await resolveBrand(hostname);
+  const brand = await resolvePageBrand();
 
   // Fetch enrolled courses
   let courses: Course[] = [];

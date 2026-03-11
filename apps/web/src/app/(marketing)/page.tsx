@@ -1,5 +1,4 @@
-import { headers } from "next/headers";
-import { resolveBrand } from "@/lib/brand/resolve";
+import { resolvePageBrand } from "@/lib/brand/resolve";
 import { Hero } from "@/components/marketing/hero";
 import { Features } from "@/components/marketing/features";
 import { HowItWorks } from "@/components/marketing/how-it-works";
@@ -9,9 +8,7 @@ import { CTA } from "@/components/marketing/cta";
 import { CourseJsonLd, OrganizationJsonLd } from "@/components/seo/json-ld";
 
 export default async function LandingPage() {
-  const headersList = await headers();
-  const hostname = headersList.get("host") || "localhost";
-  const brand = await resolveBrand(hostname);
+  const brand = await resolvePageBrand();
 
   return (
     <div className="bg-background text-foreground">

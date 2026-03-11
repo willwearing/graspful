@@ -19,6 +19,11 @@ async function bootstrap() {
     }),
   );
 
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
+
   app.setGlobalPrefix('api/v1');
 
   const port = config.get<number>('PORT', 3000);
