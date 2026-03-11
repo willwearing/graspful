@@ -329,6 +329,13 @@ export class DiagnosticSessionService {
   private sanitizeProblem(problem: any) {
     // Strip correctAnswer and explanation from the response
     const { correctAnswer, explanation, explanationAudioUrl, ...safe } = problem;
+    // Transform options from string[] to { id, text }[] for frontend
+    if (Array.isArray(safe.options)) {
+      safe.options = safe.options.map((text: string, i: number) => ({
+        id: String(i),
+        text,
+      }));
+    }
     return safe;
   }
 }

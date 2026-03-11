@@ -1,0 +1,1624 @@
+course:
+  id: ab-nfpa-1001-ff1
+  name: "NFPA 1001 Fire Fighter Level I (Alberta)"
+  description: "Aligned to NFPA 1001-2019, Chapter 4. IFSAC/Pro Board accredited via Alberta Municipal Affairs."
+  estimatedHours: 40
+  version: "2024.1"
+  sourceDocument: "NFPA 1001-2019: Standard for Fire Fighter Professional Qualifications, Chapter 4"
+
+concepts:
+
+  # ============================================================
+  # 4.1 General Requirements
+  # ============================================================
+
+  - id: ppe-donning-doffing
+    name: "PPE Donning and Doffing"
+    difficulty: 2
+    estimatedMinutes: 20
+    tags: [s4.1-general, ppe, foundational]
+    sourceRef: "NFPA 1001-2019 JPR 4.1.1"
+    knowledgePoints:
+      - id: ppe-ensemble-components
+        problems:
+          - id: ppe-ensemble-p1
+            type: multiple_choice
+            question: "Which of the following is NOT a standard component of a firefighter's structural PPE ensemble?"
+            options:
+              - "Helmet with eye protection and ear flaps"
+              - "Turnout coat and pants with moisture barrier, thermal barrier, and outer shell"
+              - "Level A chemical encapsulating suit"
+              - "Gloves, hood, and NFPA-compliant boots"
+            correct: 2
+            explanation: "A Level A chemical encapsulating suit is hazmat PPE, not part of the structural firefighting ensemble. The structural ensemble includes helmet, hood, turnout coat and pants (each with three layers: outer shell, moisture barrier, thermal barrier), gloves, and boots — all compliant with NFPA 1971."
+          - id: ppe-ensemble-p2
+            type: true_false
+            question: "When doffing contaminated PPE after a fire, firefighters should remove gear in a clean area and avoid cross-contaminating the cab interior."
+            correct: "true"
+            explanation: "Contaminated PPE carries carcinogenic particulates from combustion products. Proper doffing in a designated area, bagging gear for cleaning, and keeping contaminated PPE out of the apparatus cab are essential cancer-prevention practices aligned with NFPA 1851 and modern decontamination protocols."
+
+  - id: knots-bends-hitches
+    name: "Knots, Bends, and Hitches"
+    difficulty: 3
+    estimatedMinutes: 25
+    tags: [s4.1-general, ropes, foundational]
+    sourceRef: "NFPA 1001-2019 JPR 4.1.2"
+    knowledgePoints:
+      - id: knot-types-applications
+        problems:
+          - id: knot-types-p1
+            type: multiple_choice
+            question: "Which knot is the MOST appropriate choice for creating a fixed loop at the end of a rope to attach to a tool for hoisting?"
+            options:
+              - "Clove hitch"
+              - "Bowline"
+              - "Sheet bend"
+              - "Water knot"
+            correct: 1
+            explanation: "The bowline creates a fixed, non-slipping loop at the end of a rope and is the standard knot for attaching to tools, equipment, or creating an anchor point for hoisting. It is easy to untie after loading. A clove hitch secures rope to an object but can slip. A sheet bend joins two ropes. A water knot is used for webbing."
+          - id: knot-types-p2
+            type: fill_blank
+            question: "A ___ is used to join two ropes of different diameters together."
+            correct: "sheet bend"
+            explanation: "The sheet bend (also called a becket bend) is specifically designed to join two ropes of unequal diameter. The thicker rope forms the bight, and the thinner rope passes through and around it. For critical loads, a double sheet bend adds security."
+
+  # ============================================================
+  # 4.2 Fire Department Communications
+  # ============================================================
+
+  - id: alarm-receiving-processing
+    name: "Receiving Telephone Calls and Alarm Processing"
+    difficulty: 2
+    estimatedMinutes: 15
+    tags: [s4.2-communications, dispatch]
+    sourceRef: "NFPA 1001-2019 JPR 4.2.1"
+    knowledgePoints:
+      - id: alarm-processing-procedures
+        problems:
+          - id: alarm-proc-p1
+            type: multiple_choice
+            question: "When receiving an emergency call at the fire station, what information is MOST critical to obtain first?"
+            options:
+              - "The caller's insurance information"
+              - "The exact location/address of the emergency and the nature of the incident"
+              - "The number of fire apparatus to respond"
+              - "The building's construction date"
+            correct: 1
+            explanation: "The location and nature of the emergency are the most critical pieces of information because they determine which resources to dispatch and how quickly. Without an accurate address, responders cannot find the scene. The nature of the incident (fire, medical, hazmat) determines the type and level of response."
+          - id: alarm-proc-p2
+            type: true_false
+            question: "A firefighter receiving a telephone alarm should keep the caller on the line as long as possible to gather additional information while units are being dispatched."
+            correct: "true"
+            explanation: "Keeping the caller on the line allows gathering additional details (number of occupants, location of fire within the building, hazards present) that can be relayed to responding units. Dispatch should be initiated immediately with the address and nature, but the caller can provide valuable supplemental information while units are en route."
+
+  - id: radio-communications
+    name: "Radio Communications (Transmit/Receive)"
+    difficulty: 3
+    estimatedMinutes: 15
+    tags: [s4.2-communications, radio]
+    sourceRef: "NFPA 1001-2019 JPR 4.2.2"
+    knowledgePoints:
+      - id: radio-procedures-fundamentals
+        problems:
+          - id: radio-proc-p1
+            type: multiple_choice
+            question: "When transmitting a radio message on the fireground, the correct procedure is to:"
+            options:
+              - "Press the transmit button and immediately begin speaking"
+              - "Press the transmit button, pause briefly (1 second), then speak clearly using plain language and the unit identifier"
+              - "Speak as quickly as possible to keep the channel clear"
+              - "Use 10-codes exclusively for all transmissions"
+            correct: 1
+            explanation: "The brief pause after keying the microphone allows the repeater or system to activate, preventing the first part of the message from being clipped. Plain language (per NIMS/ICS requirements) is preferred over 10-codes for interoperability. Clear, deliberate speech at moderate pace ensures the message is understood. Unit identification is required for accountability."
+          - id: radio-proc-p2
+            type: fill_blank
+            question: "The standard radio acknowledgment format when receiving an order from command is to ___ the message back to confirm understanding."
+            correct: "repeat"
+            explanation: "Repeating (echoing back) the message confirms that the receiver heard and understood the order correctly. This closed-loop communication prevents dangerous misunderstandings on the fireground. For example: Command says 'Engine 1, advance a line to the second floor.' Engine 1 responds: 'Engine 1 copies, advancing a line to the second floor.'"
+
+  - id: emergency-radio-mayday
+    name: "Emergency Radio Communications (Mayday Procedures)"
+    difficulty: 5
+    estimatedMinutes: 20
+    tags: [s4.2-communications, radio, mayday, emergency]
+    sourceRef: "NFPA 1001-2019 JPR 4.2.3"
+    prerequisites:
+      - radio-communications
+    knowledgePoints:
+      - id: mayday-procedures
+        problems:
+          - id: mayday-proc-p1
+            type: multiple_choice
+            question: "A firefighter is trapped and must declare a Mayday. Using the LUNAR report format, what information should be transmitted?"
+            options:
+              - "Location, Unit, Name, Assignment/Air supply, Resources needed"
+              - "Latitude, Utility status, Number of victims, Access route, Radio channel"
+              - "Ladder placement, Utility shutoff, Nozzle type, Apparatus number, Roof conditions"
+              - "Location, Unit, Nozzle pressure, Apparatus type, Rescue plan"
+            correct: 0
+            explanation: "LUNAR stands for Location (where you are), Unit (your unit designation), Name (your name), Assignment/Air supply (what you were doing and how much air you have), and Resources needed (what help you need). This standardized format gives incident command the essential information to initiate a rapid intervention team (RIT) deployment."
+          - id: mayday-proc-p2
+            type: true_false
+            question: "Any firefighter on the fireground can declare a Mayday — it is not limited to officers or incident command."
+            correct: "true"
+            explanation: "Any firefighter who is lost, trapped, injured, or in an immediately dangerous situation has both the authority and the obligation to declare a Mayday. Waiting for an officer to declare it could cost critical seconds. The Mayday declaration immediately triggers RIT activation and shifts incident priorities to firefighter rescue."
+
+  # ============================================================
+  # 4.3 Fireground Operations
+  # ============================================================
+
+  # --- SCBA cluster ---
+
+  - id: scba-donning-doffing-breathing
+    name: "SCBA Donning, Doffing, and Controlled Breathing"
+    difficulty: 4
+    estimatedMinutes: 30
+    tags: [s4.3-fireground, scba, ppe, foundational]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.1"
+    prerequisites:
+      - ppe-donning-doffing
+    knowledgePoints:
+      - id: scba-components
+        instruction: "content/ab-ff1/scba-components.md"
+        workedExample: "content/ab-ff1/scba-components-ex.md"
+        problems:
+          - id: scba-comp-p1
+            type: multiple_choice
+            question: "Which component of the SCBA regulates air pressure from the cylinder to a breathable level for the firefighter?"
+            options:
+              - "Regulator (first-stage reducer and second-stage regulator)"
+              - "Facepiece exhalation valve"
+              - "Cylinder valve handwheel"
+              - "PASS device sensor"
+            correct: 0
+            explanation: "The regulator system (first-stage reducer drops cylinder pressure to intermediate, second-stage demand valve delivers breathing air at ambient pressure) is the component that makes high-pressure cylinder air breathable."
+          - id: scba-comp-p2
+            type: multiple_choice
+            question: "What is the standard minimum rated service life of an SCBA air cylinder before it must be hydrostatically retested?"
+            options:
+              - "3 years"
+              - "5 years"
+              - "10 years"
+              - "15 years"
+            correct: 1
+            explanation: "DOT and CGA standards require hydrostatic testing of composite SCBA cylinders every 5 years. The cylinder's manufacture date and retest schedule are stamped on the cylinder itself."
+          - id: scba-comp-p3
+            type: fill_blank
+            question: "The low-air alarm on most SCBA activates when cylinder pressure drops to approximately ___ psi (25% of a standard 4500-psi cylinder)."
+            correct: "1125"
+            explanation: "The low-air alarm (audible bell or whistle) typically activates at approximately 25% of rated cylinder pressure. For a 4500-psi cylinder, that is roughly 1125 psi, signaling the firefighter to exit the hazardous atmosphere immediately."
+
+      - id: scba-donning-procedures
+        instruction: "content/ab-ff1/scba-donning.md"
+        workedExample: "content/ab-ff1/scba-donning-ex.md"
+        problems:
+          - id: scba-don-p1
+            type: multiple_choice
+            question: "When donning SCBA using the over-the-head method, what must be completed BEFORE placing the facepiece?"
+            options:
+              - "Open the cylinder valve fully, verify positive-pressure airflow, and check the gauge"
+              - "Seal the facepiece and take two test breaths"
+              - "Activate the PASS device manually"
+              - "Connect the regulator to the facepiece"
+            correct: 0
+            explanation: "Before facepiece placement, the firefighter must open the cylinder valve fully (listen for the low-air alarm to chirp briefly, confirming activation), verify the heads-up display or remote gauge shows adequate air supply, and confirm positive-pressure airflow. This ensures the system is functional before entering the IDLH atmosphere."
+          - id: scba-don-p2
+            type: multiple_choice
+            question: "After donning the SCBA facepiece, how should you verify a proper seal?"
+            options:
+              - "Listen for air leaks around the nose cup area"
+              - "Cover the regulator inlet with your palm and inhale — the facepiece should collapse slightly and hold negative pressure"
+              - "Exhale sharply and check that the exhalation valve opens"
+              - "Check the heads-up display for a green indicator light"
+            correct: 1
+            explanation: "The standard negative-pressure seal check is performed by covering the regulator inlet (or breathing tube opening) and inhaling. If the facepiece collapses slightly against your face and holds, the seal is good. Any air leaking in indicates a poor seal that must be corrected before entry."
+          - id: scba-don-p3
+            type: multiple_choice
+            question: "What is the PRIMARY reason for fully opening the cylinder valve before entering an IDLH environment?"
+            options:
+              - "To activate the PASS device automatically"
+              - "To ensure maximum airflow is available and to prevent a partially open valve from restricting air under high breathing demand"
+              - "To reset the low-air alarm"
+              - "To pressurize the backup regulator"
+            correct: 1
+            explanation: "A partially opened cylinder valve can restrict airflow when the firefighter is under heavy physical exertion and high breathing demand. Fully opening the valve ensures maximum air delivery. While opening the valve also arms the PASS device on many units, the primary safety reason is unrestricted airflow."
+
+      - id: scba-controlled-breathing
+        instruction: "content/ab-ff1/scba-breathing.md"
+        workedExample: "content/ab-ff1/scba-breathing-ex.md"
+        problems:
+          - id: scba-breath-p1
+            type: multiple_choice
+            question: "Which controlled breathing technique is MOST effective for conserving air while performing moderate work in SCBA?"
+            options:
+              - "Rapid shallow breaths to minimize volume per breath"
+              - "Slow, deep breaths (inhale through nose, exhale through mouth) with a brief pause between cycles"
+              - "Holding breath for as long as possible between tasks"
+              - "Breathing only through the mouth to maximize airflow"
+            correct: 1
+            explanation: "Slow, deep, rhythmic breathing (sometimes called 'skip breathing' in relaxed form) is the most effective technique. It maximizes gas exchange per breath, reduces dead space ventilation, and lowers the overall breathing rate. Rapid shallow breathing wastes air in dead space. Breath-holding causes CO2 buildup and dangerous reflex gasping."
+          - id: scba-breath-p2
+            type: multiple_choice
+            question: "A firefighter's air consumption rate increases MOST dramatically due to which factor?"
+            options:
+              - "Ambient temperature"
+              - "Physical exertion and stress/anxiety"
+              - "Cylinder age"
+              - "Facepiece brand"
+            correct: 1
+            explanation: "Physical exertion can increase air consumption from a resting rate of ~20 L/min to over 100 L/min during heavy work. Psychological stress and anxiety compound this by triggering rapid, shallow breathing. These are the dominant factors — far exceeding the influence of temperature or equipment variables."
+          - id: scba-breath-p3
+            type: fill_blank
+            question: "A standard 30-minute rated SCBA cylinder provides approximately ___ minutes of working air for a firefighter under heavy exertion."
+            correct: "15-20"
+            explanation: "The 30-minute rating is based on a standardized breathing rate of 40 L/min. Under heavy fireground exertion, a firefighter may consume 80-100+ L/min, reducing effective working time to roughly 15-20 minutes. This is why air management discipline and the rule of air (know your point of no return) are critical."
+
+      - id: scba-doffing-inspection
+        instruction: "content/ab-ff1/scba-doffing.md"
+        problems:
+          - id: scba-doff-p1
+            type: multiple_choice
+            question: "After doffing SCBA, what is the FIRST maintenance action a firefighter should perform?"
+            options:
+              - "Refill the cylinder immediately"
+              - "Close the cylinder valve and bleed remaining pressure from the system"
+              - "Remove and clean the facepiece lens"
+              - "Test the PASS device battery"
+            correct: 1
+            explanation: "After doffing, the cylinder valve must be closed and remaining pressure bled from the regulator and hose. This protects the regulator from prolonged pressure stress, prevents accidental activation, and sets the unit up for proper inspection and refilling."
+
+  - id: scba-emergency-procedures
+    name: "SCBA Emergency Procedures"
+    difficulty: 6
+    estimatedMinutes: 25
+    tags: [s4.3-fireground, scba, emergency, pass-device]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.1"
+    prerequisites:
+      - scba-donning-doffing-breathing
+    knowledgePoints:
+      - id: scba-emergency-actions
+        problems:
+          - id: scba-emerg-p1
+            type: multiple_choice
+            question: "If an SCBA facepiece lens becomes damaged or compromised in an IDLH atmosphere, the firefighter should IMMEDIATELY:"
+            options:
+              - "Remove the facepiece and breathe through a wet cloth"
+              - "Press the facepiece tightly against the face, activate the bypass/purge valve to maintain positive pressure, and withdraw to a safe atmosphere immediately"
+              - "Switch to a buddy-breathing connection with a partner"
+              - "Continue working while covering the damaged area with a gloved hand"
+            correct: 1
+            explanation: "Pressing the facepiece against the face and activating the bypass/purge valve creates continuous positive pressure flow that pushes contaminated air out through the damage rather than allowing it in. This buys the firefighter time to withdraw to clean air. Removing the facepiece in an IDLH atmosphere is immediately life-threatening."
+          - id: scba-emerg-p2
+            type: true_false
+            question: "The PASS (Personal Alert Safety System) device automatically activates its alarm when a firefighter remains motionless for approximately 30 seconds."
+            correct: "true"
+            explanation: "The PASS device is designed to detect a lack of motion. When a firefighter is motionless for approximately 30 seconds (varies by manufacturer), it emits a loud audible alarm to alert other firefighters that someone may be down, trapped, or incapacitated. This is a critical safety feature for rapid intervention."
+
+  - id: scba-restricted-passage
+    name: "SCBA Restricted Passage Operations"
+    difficulty: 6
+    estimatedMinutes: 20
+    tags: [s4.3-fireground, scba, confined-space]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.1"
+    prerequisites:
+      - scba-emergency-procedures
+    knowledgePoints:
+      - id: restricted-passage-techniques
+        problems:
+          - id: restrict-pass-p1
+            type: multiple_choice
+            question: "When navigating a restricted passage while wearing SCBA, the PREFERRED technique is to:"
+            options:
+              - "Remove the SCBA completely and push it ahead"
+              - "Reduce the profile by repositioning the SCBA to the side or in front while maintaining the facepiece connection and air supply"
+              - "Remove the facepiece temporarily to fit through the opening"
+              - "Use a different entry point — restricted passages should never be entered"
+            correct: 1
+            explanation: "Repositioning the SCBA (typically swinging the pack to one side or removing the harness and pushing the unit ahead while keeping the facepiece connected via the low-pressure hose) reduces the firefighter's profile. The facepiece must remain sealed and connected at all times in an IDLH atmosphere. Complete removal of SCBA or facepiece is not acceptable."
+          - id: restrict-pass-p2
+            type: fill_blank
+            question: "Before entering a restricted passage, a firefighter should check their ___ supply to ensure adequate reserves for the additional time and exertion required."
+            correct: "air"
+            explanation: "Navigating restricted passages is physically demanding and time-consuming, significantly increasing air consumption. Checking the remaining air supply before committing to a restricted passage is essential. If air reserves are insufficient, the firefighter must find an alternate route or withdraw."
+
+  # --- Scene management ---
+
+  - id: responding-on-apparatus
+    name: "Responding on Apparatus Safely"
+    difficulty: 2
+    estimatedMinutes: 15
+    tags: [s4.3-fireground, apparatus, safety]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.2"
+    prerequisites:
+      - ppe-donning-doffing
+    knowledgePoints:
+      - id: apparatus-response-safety
+        problems:
+          - id: apparatus-resp-p1
+            type: multiple_choice
+            question: "When riding on fire apparatus responding to an emergency, firefighters must:"
+            options:
+              - "Stand on the tailboard for quick dismount upon arrival"
+              - "Be seated with seatbelts securely fastened in an approved riding position at all times while the vehicle is in motion"
+              - "Sit in the cab but seatbelts are optional during emergency response"
+              - "Ride on the running boards if all interior seats are occupied"
+            correct: 1
+            explanation: "NFPA 1500 and NFPA 1901 require all firefighters to be seated and belted in approved riding positions whenever the apparatus is in motion. Standing on tailboards, riding running boards, or riding unbelted are prohibited. Firefighter fatalities from falls and ejections during response have driven these requirements."
+          - id: apparatus-resp-p2
+            type: true_false
+            question: "A firefighter may don SCBA while the apparatus is in motion, provided they remain seated and belted."
+            correct: "true"
+            explanation: "Many departments train firefighters to don the SCBA backpack assembly while seated and belted in the cab. The seat-mounted SCBA bracket allows the firefighter to slip into the harness while belted. This saves critical time on arrival. However, the firefighter must remain belted at all times — standing to don SCBA while the apparatus is moving is prohibited."
+
+  - id: scene-safety-traffic
+    name: "Scene Safety — Traffic Control"
+    difficulty: 3
+    estimatedMinutes: 15
+    tags: [s4.3-fireground, scene-safety, traffic]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.3"
+    prerequisites:
+      - ppe-donning-doffing
+    knowledgePoints:
+      - id: traffic-control-procedures
+        problems:
+          - id: traffic-ctrl-p1
+            type: multiple_choice
+            question: "When establishing a traffic control zone at a highway incident, apparatus should be positioned:"
+            options:
+              - "Parallel to the travel lanes with all lights off to avoid distracting drivers"
+              - "At an angle upstream of the incident to create a physical barrier (block position) between traffic and the work zone, with warning lights activated"
+              - "As close to the incident as possible regardless of traffic flow direction"
+              - "On the shoulder only, to keep travel lanes open"
+            correct: 1
+            explanation: "Apparatus is positioned at an angle upstream (between oncoming traffic and the work zone) to create a physical barrier that protects personnel. This 'block' position uses the apparatus as a shield. Warning lights, cones, and flares create an advance warning area. This practice follows the Manual on Uniform Traffic Control Devices (MUTCD) and NFPA 1500 guidelines."
+          - id: traffic-ctrl-p2
+            type: fill_blank
+            question: "Firefighters operating near traffic at an emergency scene must wear ANSI/ISEA-compliant high-visibility ___ vests."
+            correct: "safety"
+            explanation: "NFPA 1500 requires firefighters operating in or near traffic to wear ANSI/ISEA 207-compliant high-visibility safety vests. These fluorescent and retroreflective vests make firefighters visible to approaching motorists, significantly reducing the risk of being struck. Turnout gear alone does not meet highway visibility requirements."
+
+  - id: scene-safety-electrical
+    name: "Scene Safety — Electrical Hazards and Downed Wires"
+    difficulty: 4
+    estimatedMinutes: 15
+    tags: [s4.3-fireground, scene-safety, electrical]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.3"
+    prerequisites:
+      - ppe-donning-doffing
+    knowledgePoints:
+      - id: electrical-hazard-safety
+        problems:
+          - id: elec-hazard-p1
+            type: multiple_choice
+            question: "When encountering downed power lines at an emergency scene, the safe approach distance for firefighters without specialized training is:"
+            options:
+              - "3 metres (10 feet) in all directions from the wire"
+              - "A minimum of 10 metres (33 feet) in all directions — treat all downed wires as energized until the utility confirms de-energization"
+              - "Close enough to move the wire with a dry wooden pole"
+              - "5 metres (16 feet) on dry pavement only"
+            correct: 1
+            explanation: "All downed wires must be treated as energized and lethal. A minimum 10-metre (33-foot) safe zone in all directions is the standard. Ground gradient (step potential) can electrocute anyone within this zone, even without directly touching the wire. Only the utility company can confirm de-energization. Moving wires with any tool is extremely dangerous without specialized training."
+          - id: elec-hazard-p2
+            type: true_false
+            question: "A downed power line that is not sparking or arcing can be safely assumed to be de-energized."
+            correct: "false"
+            explanation: "A downed power line can be fully energized without any visible sparking, arcing, or movement. Automatic reclosers on the power grid can re-energize a line at any time without warning. The ONLY way to confirm a line is de-energized is through direct confirmation from the utility company. Always treat every downed wire as live and lethal."
+
+  # --- Forcible entry ---
+
+  - id: forcible-entry
+    name: "Forcible Entry Techniques"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s4.3-fireground, forcible-entry, tools]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.4"
+    prerequisites:
+      - ppe-donning-doffing
+    knowledgePoints:
+      - id: forcible-entry-methods
+        problems:
+          - id: force-entry-p1
+            type: multiple_choice
+            question: "The 'irons' (also called 'married irons') consist of which two tools carried together for forcible entry?"
+            options:
+              - "Pike pole and ceiling hook"
+              - "Flat-head axe and Halligan bar"
+              - "Bolt cutters and K-tool"
+              - "Sledgehammer and pry bar"
+            correct: 1
+            explanation: "The 'irons' are the flat-head axe and Halligan bar, carried together as a matched set. The flat-head axe can be used to strike the fork or adze of the Halligan to drive it into a door frame, while the Halligan provides prying capability. Together they can force virtually any conventional door. This combination is the most versatile forcible entry toolset in the fire service."
+          - id: force-entry-p2
+            type: fill_blank
+            question: "When forcing an inward-opening door, the Halligan bar is placed near the lock with the ___ end inserted between the door and the frame."
+            correct: "fork"
+            explanation: "The fork (also called the claw) end of the Halligan is inserted into the gap between the door and frame near the lock. Once set, it is driven in further using the flat-head axe striking the back of the Halligan, then pried to force the door open. The adze end is typically used on outward-opening doors."
+
+  # --- Emergency egress ---
+
+  - id: emergency-egress
+    name: "Emergency Egress from Hazardous Environments"
+    difficulty: 6
+    estimatedMinutes: 20
+    tags: [s4.3-fireground, egress, emergency, survival]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.5"
+    prerequisites:
+      - ppe-donning-doffing
+      - scba-donning-doffing-breathing
+    knowledgePoints:
+      - id: emergency-egress-techniques
+        problems:
+          - id: emerg-egress-p1
+            type: multiple_choice
+            question: "If a firefighter becomes disoriented in zero-visibility conditions and cannot locate a hose line, which technique should be used to find an exterior wall?"
+            options:
+              - "Stand up to look above the smoke layer"
+              - "Stay low and crawl in a straight line until contacting a wall, then follow the wall to locate a window or door"
+              - "Remove SCBA to fit through smaller openings"
+              - "Wait in place for conditions to improve"
+            correct: 1
+            explanation: "Staying low beneath the thermal layer and crawling in a straight line to reach a wall is the primary technique. Once a wall is reached, the firefighter follows it (maintaining wall contact) to locate a door, window, or other exit. Listening for sounds from outside, feeling for air movement, and transmitting a Mayday are also critical survival actions."
+          - id: emerg-egress-p2
+            type: true_false
+            question: "A firefighter who becomes trapped should activate their PASS device manually and transmit a Mayday before attempting self-rescue."
+            correct: "true"
+            explanation: "Activating the PASS device manually (rather than waiting for the motion sensor) immediately alerts nearby crews. Transmitting a Mayday with LUNAR information notifies incident command to deploy the RIT. These two actions take seconds and dramatically increase the chance of rescue, even while the firefighter simultaneously attempts self-rescue."
+
+  # --- Ladders ---
+
+  - id: ground-ladder-operations
+    name: "Ground Ladder Operations"
+    difficulty: 5
+    estimatedMinutes: 35
+    tags: [s4.3-fireground, ladders, foundational]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.6"
+    prerequisites:
+      - ppe-donning-doffing
+    knowledgePoints:
+      - id: ladder-types-construction
+        instruction: "content/ab-ff1/ladder-types.md"
+        workedExample: "content/ab-ff1/ladder-types-ex.md"
+        problems:
+          - id: ladder-type-p1
+            type: multiple_choice
+            question: "Which type of ground ladder is MOST appropriate for accessing a flat commercial roof at approximately 9 metres (30 feet)?"
+            options:
+              - "14-foot roof ladder"
+              - "24-foot extension ladder"
+              - "35-foot extension ladder"
+              - "10-foot folding (attic) ladder"
+            correct: 2
+            explanation: "A 35-foot extension ladder is appropriate for reaching a 30-foot roof. The working length of an extension ladder is reduced by overlap of fly sections and the requirement that the tip extend 3-5 rungs above the roofline. A 24-foot ladder would not have sufficient working height. Roof ladders and folding ladders serve different purposes."
+          - id: ladder-type-p2
+            type: multiple_choice
+            question: "What is the PRIMARY purpose of a roof (hook) ladder?"
+            options:
+              - "To extend reach beyond 40 feet"
+              - "To provide a stable working platform on a pitched roof by hooking retractable hooks over the ridge"
+              - "To bridge gaps between buildings"
+              - "To serve as a makeshift stretcher for victim removal"
+            correct: 1
+            explanation: "A roof ladder has retractable folding hooks at the tip that, when deployed, hook over the roof ridge. This distributes the firefighter's weight across multiple roof members and prevents sliding on a pitched roof, providing a stable working platform for vertical ventilation or rescue operations."
+          - id: ladder-type-p3
+            type: fill_blank
+            question: "The folding ladder (also called an ___ ladder) is designed for use in confined interior spaces such as accessing scuttle holes or attic openings."
+            correct: "attic"
+            explanation: "The folding (attic) ladder is a narrow, hinged ladder that can be carried through doorways and hallways, then unfolded for interior access to attics, lofts, or scuttle holes where standard ladders cannot be maneuvered."
+
+      - id: ladder-placement-angles
+        instruction: "content/ab-ff1/ladder-placement.md"
+        workedExample: "content/ab-ff1/ladder-placement-ex.md"
+        problems:
+          - id: ladder-place-p1
+            type: multiple_choice
+            question: "What is the correct climbing angle for a ground ladder placed against a structure?"
+            options:
+              - "Approximately 60 degrees — base distance equals one-half the working length"
+              - "Approximately 75 degrees — base distance equals one-quarter the working length"
+              - "Approximately 90 degrees — flush against the wall"
+              - "Approximately 45 degrees — base distance equals working length"
+            correct: 1
+            explanation: "The correct climbing angle is approximately 75 degrees from the ground. A quick field check: stand at the base with toes touching the beams, arms extended straight forward — your palms should rest comfortably on the rung at shoulder height. The base-to-wall distance should be approximately one-quarter of the working length."
+          - id: ladder-place-p2
+            type: multiple_choice
+            question: "When placing a ladder for roof access, how many rungs should extend above the roofline?"
+            options:
+              - "1-2 rungs"
+              - "3-5 rungs"
+              - "At least 7 rungs"
+              - "The tip should be flush with the roofline"
+            correct: 1
+            explanation: "3-5 rungs (approximately 3 feet / 1 metre) above the roofline provides a visible target for firefighters returning to the ladder, a stable handhold for transitioning from the roof to the ladder, and sufficient height for safe mounting and dismounting."
+          - id: ladder-place-p3
+            type: multiple_choice
+            question: "What is the MOST important consideration when selecting a ladder placement location on a fire building?"
+            options:
+              - "Proximity to the front door"
+              - "Wind direction"
+              - "Firm, level footing on a stable surface away from overhead hazards (power lines, falling debris)"
+              - "Shortest carry distance from the apparatus"
+            correct: 2
+            explanation: "A stable foundation is the most critical factor. A ladder placed on soft, uneven, or unstable ground can shift or sink under load, causing a catastrophic failure. Overhead hazards (power lines, falling debris) must also be assessed. While proximity and carry distance matter tactically, they never override safe placement."
+
+      - id: ladder-climbing-working
+        instruction: "content/ab-ff1/ladder-climbing.md"
+        problems:
+          - id: ladder-climb-p1
+            type: multiple_choice
+            question: "When climbing a ground ladder, the firefighter should maintain three points of contact and look:"
+            options:
+              - "Down at the rungs to ensure proper foot placement"
+              - "Straight ahead or slightly upward toward the objective"
+              - "At the base of the ladder to ensure stability"
+              - "Over their shoulder to monitor the fire"
+            correct: 1
+            explanation: "Climbers should look straight ahead or slightly upward toward the objective. Looking down can cause disorientation and slow climbing speed. Three points of contact (two hands and one foot, or two feet and one hand) must be maintained at all times. The climber's arms should slide along the beams, not grip individual rungs."
+
+      - id: ladder-heeling-securing
+        instruction: "content/ab-ff1/ladder-securing.md"
+        problems:
+          - id: ladder-heel-p1
+            type: multiple_choice
+            question: "If no firefighter is available to heel the ladder, what is the PREFERRED method to secure it?"
+            options:
+              - "Lean it at a shallower angle (60 degrees)"
+              - "Tie the halyard to a fixed object at the base"
+              - "Secure the tip to the structure using a roof hook or ladder strap, or tie off the base to a fixed anchor point"
+              - "Have the climber ascend quickly before it can shift"
+            correct: 2
+            explanation: "When no one can heel (foot) the ladder, securing both the tip and base is the standard. The tip can be tied to a structural member, secured with a ladder strap, or the hooks on a roof ladder engaged. The base can be tied to a fixed anchor. Simply adjusting the angle or rushing the climb introduces unacceptable risk."
+
+  # --- Vehicle fire ---
+
+  - id: vehicle-fire-attack
+    name: "Vehicle Fire Attack"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s4.3-fireground, vehicle-fire, hose-operations]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.7"
+    prerequisites:
+      - ppe-donning-doffing
+      - scba-donning-doffing-breathing
+    knowledgePoints:
+      - id: vehicle-fire-tactics
+        problems:
+          - id: veh-fire-p1
+            type: multiple_choice
+            question: "When approaching a vehicle fire, the attack team should approach from:"
+            options:
+              - "Directly from the front of the vehicle"
+              - "The upwind/uphill side at a 45-degree angle, avoiding the bumper areas due to strut/shock absorber and bumper piston hazards"
+              - "Directly from the rear for the best view of the fire"
+              - "Any direction — vehicle fires pose no directional hazards"
+            correct: 1
+            explanation: "Approaching at a 45-degree angle from upwind avoids toxic smoke inhalation and positions the team away from bumper areas where hydraulic struts, shock absorbers, and bumper pistons can explode under heat and become projectiles. The 45-degree angle also provides partial protection from potential fuel tank rupture or tire failure."
+          - id: veh-fire-p2
+            type: true_false
+            question: "Vehicle fires involving alternative fuel vehicles (hybrid/electric) may present electrical shock hazards from high-voltage battery systems."
+            correct: "true"
+            explanation: "Hybrid and electric vehicles contain high-voltage battery systems (typically 200-800 volts DC) that can present severe electrical shock hazards to firefighters. These batteries can reignite hours after extinguishment (thermal runaway). Firefighters should identify the vehicle type, consult Emergency Response Guides (ERG), avoid cutting into high-voltage cables (often orange), and use copious water for battery fires."
+
+  # --- Exterior fire attack ---
+
+  - id: exterior-class-a-fire-attack
+    name: "Exterior/Class A Fire Attack (Stacked Materials, Trash Containers)"
+    difficulty: 3
+    estimatedMinutes: 15
+    tags: [s4.3-fireground, exterior-fire, class-a]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.8"
+    prerequisites:
+      - ppe-donning-doffing
+    knowledgePoints:
+      - id: exterior-class-a-tactics
+        problems:
+          - id: ext-class-a-p1
+            type: multiple_choice
+            question: "When attacking an exterior Class A fire involving stacked lumber or pallets, the MOST effective approach is:"
+            options:
+              - "Apply a wide fog pattern from a distance to cool the entire stack"
+              - "Apply a straight stream to penetrate deep into the stack, then break apart (overhaul) the pile to expose and extinguish hidden pockets of fire"
+              - "Surround the pile with foam and let it smother"
+              - "Wait for the fire to burn down before applying water"
+            correct: 1
+            explanation: "Stacked materials require penetration to reach deep-seated fire. A straight stream delivers water into the core of the pile. After knockdown, the pile must be broken apart (pulled apart with pike poles or other tools) to expose hidden embers and hot spots, then fully extinguished. Surface application alone leaves fire burning deep inside."
+          - id: ext-class-a-p2
+            type: fill_blank
+            question: "Class A fires involve ___ combustible materials such as wood, paper, cloth, and rubber."
+            correct: "ordinary"
+            explanation: "Class A fires involve ordinary combustible materials — solids that leave ash when burned. These include wood, paper, cloth, rubber, and many plastics. They are extinguished primarily by cooling with water. This is distinguished from Class B (flammable liquids), Class C (energized electrical), Class D (combustible metals), and Class K (cooking oils)."
+
+  # --- Master streams ---
+
+  - id: master-stream-operations
+    name: "Master Stream Operations"
+    difficulty: 5
+    estimatedMinutes: 20
+    tags: [s4.3-fireground, master-stream, water-supply]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.8"
+    prerequisites:
+      - ppe-donning-doffing
+      - water-supply-hydrant
+    knowledgePoints:
+      - id: master-stream-deployment
+        problems:
+          - id: master-stream-p1
+            type: multiple_choice
+            question: "A master stream device is typically defined as any appliance delivering more than:"
+            options:
+              - "100 GPM (380 LPM)"
+              - "200 GPM (760 LPM)"
+              - "350 GPM (1325 LPM)"
+              - "500 GPM (1900 LPM)"
+            correct: 2
+            explanation: "Master stream devices (deck guns, portable monitors, ladder pipes) are defined as appliances capable of flowing more than 350 GPM (1325 LPM). They are used for defensive operations when fire conditions exceed the capability of hand-held attack lines. Their deployment typically signals a transition from offensive to defensive strategy."
+          - id: master-stream-p2
+            type: true_false
+            question: "When a master stream is being directed into a structure, no firefighters should be operating inside that structure."
+            correct: "true"
+            explanation: "Master stream deployment is a defensive tactic. The volume of water (350+ GPM) creates structural collapse hazards from water weight, can push fire and steam onto interior crews, and indicates conditions too dangerous for interior operations. All interior crews must be withdrawn and accounted for before master streams are deployed. Operating interior crews and master streams simultaneously is a critical safety violation."
+
+  # --- Search and rescue ---
+
+  - id: search-rescue-techniques
+    name: "Search and Rescue Techniques"
+    difficulty: 7
+    estimatedMinutes: 30
+    tags: [s4.3-fireground, search, rescue, interior]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.9"
+    prerequisites:
+      - scba-donning-doffing-breathing
+      - ppe-donning-doffing
+      - forcible-entry
+    encompassing:
+      - concept: scba-donning-doffing-breathing
+        weight: 0.5
+      - concept: forcible-entry
+        weight: 0.3
+      - concept: emergency-egress
+        weight: 0.4
+    knowledgePoints:
+      - id: search-techniques-fundamentals
+        problems:
+          - id: search-tech-p1
+            type: multiple_choice
+            question: "What is the PRIMARY difference between a primary search and a secondary search?"
+            options:
+              - "Primary search uses thermal imaging; secondary does not"
+              - "Primary search is a rapid, systematic search for victims conducted under fire conditions; secondary search is a thorough, slower search after fire control to ensure no victims were missed"
+              - "Primary search covers only the fire floor; secondary covers all floors"
+              - "Primary search is conducted by the first engine; secondary by the truck company only"
+            correct: 1
+            explanation: "The primary search is a rapid, aggressive search conducted as soon as possible — often under active fire conditions — focusing on areas most likely to have viable victims (bedrooms, areas near the fire). The secondary search is a thorough, methodical search conducted after fire control to confirm that every space has been checked and no victims were missed."
+          - id: search-tech-p2
+            type: fill_blank
+            question: "During a primary search in zero visibility, firefighters maintain contact with a wall using one hand and sweep the floor with the other hand or a tool. This technique is called a ___ search pattern."
+            correct: "wall"
+            explanation: "The wall (or perimeter) search pattern involves the search team entering a room and systematically following the walls while sweeping inward with a tool or free hand. This ensures complete coverage of the room's perimeter and prevents disorientation. The team maintains a reference point (the wall) at all times to ensure they can find their way back to the entry point."
+
+  - id: victim-rescue-from-ladder
+    name: "Victim Rescue from a Ladder"
+    difficulty: 6
+    estimatedMinutes: 20
+    tags: [s4.3-fireground, rescue, ladders]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.9"
+    prerequisites:
+      - ground-ladder-operations
+      - ppe-donning-doffing
+    knowledgePoints:
+      - id: ladder-rescue-techniques
+        problems:
+          - id: ladder-rescue-p1
+            type: multiple_choice
+            question: "When removing an unconscious victim down a ground ladder, the rescuer should:"
+            options:
+              - "Carry the victim over one shoulder in a fireman's carry"
+              - "Place the victim between the rescuer and the ladder with the victim's feet on the rungs and the rescuer's arms under the victim's armpits, descending rung by rung"
+              - "Lower the victim headfirst on a rope alongside the ladder"
+              - "Slide the victim down the beams of the ladder"
+            correct: 1
+            explanation: "The standard unconscious victim ladder removal technique positions the victim between the rescuer and the ladder. The victim's feet rest on the rungs with the rescuer's arms threaded under the victim's armpits and hands gripping the rungs. This distributes the weight, maintains three points of contact, and allows controlled descent. A second firefighter should heel the ladder during the operation."
+          - id: ladder-rescue-p2
+            type: true_false
+            question: "When performing a ladder rescue, the ladder should be heeled by a second firefighter or mechanically secured at all times."
+            correct: "true"
+            explanation: "The combined weight of rescuer and victim, along with the dynamic forces of descent, place extreme loads on the ladder. A heeled or secured ladder prevents shifting, sliding, or collapse. If a second firefighter is not available to heel the ladder, it must be tied off or mechanically secured before the rescue descent begins."
+
+  # --- Fire behavior (prerequisite for interior ops and ventilation) ---
+
+  - id: fire-behavior-fundamentals
+    name: "Fire Behavior Fundamentals"
+    difficulty: 3
+    estimatedMinutes: 25
+    tags: [s4.3-fireground, fire-science, foundational]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.10"
+    knowledgePoints:
+      - id: fire-behavior-principles
+        problems:
+          - id: fire-behav-p1
+            type: multiple_choice
+            question: "The fire tetrahedron consists of four elements required to sustain combustion. Which of the following correctly identifies all four?"
+            options:
+              - "Heat, fuel, oxygen, and water"
+              - "Heat, fuel, oxygen, and a chemical chain reaction"
+              - "Heat, fuel, carbon dioxide, and a chemical chain reaction"
+              - "Fuel, oxygen, smoke, and radiant heat"
+            correct: 1
+            explanation: "The fire tetrahedron includes heat (energy to raise fuel to ignition temperature), fuel (combustible material), oxygen (oxidizing agent), and a self-sustaining chemical chain reaction. Removing any one of these four elements extinguishes the fire. The tetrahedron superseded the older fire triangle by adding the chemical chain reaction as a distinct element."
+          - id: fire-behav-p2
+            type: fill_blank
+            question: "The phenomenon in which all exposed combustible materials in a room simultaneously ignite due to radiant heat feedback is called ___."
+            correct: "flashover"
+            explanation: "Flashover occurs when the heat flux from the hot gas layer and burning materials raises all exposed combustible surfaces in a room to their ignition temperature simultaneously. This transition from a growing fire to a fully developed fire is extremely rapid and unsurvivable for unprotected occupants. Temperatures at floor level can exceed 600 degrees Celsius (1100 degrees Fahrenheit)."
+
+  # --- Interior fire attack ---
+
+  - id: interior-fire-attack-grade
+    name: "Interior Fire Attack — Grade Level"
+    difficulty: 8
+    estimatedMinutes: 40
+    tags: [s4.3-fireground, interior-fire, hose-operations, tactics]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.10"
+    prerequisites:
+      - scba-donning-doffing-breathing
+      - ppe-donning-doffing
+      - forcible-entry
+      - hose-line-management
+      - water-supply-hydrant
+      - fire-behavior-fundamentals
+      - search-rescue-techniques
+    encompassing:
+      - concept: scba-donning-doffing-breathing
+        weight: 0.5
+      - concept: hose-line-management
+        weight: 0.6
+      - concept: forcible-entry
+        weight: 0.4
+      - concept: search-rescue-techniques
+        weight: 0.3
+      - concept: fire-behavior-fundamentals
+        weight: 0.5
+      - concept: ppe-donning-doffing
+        weight: 0.3
+    knowledgePoints:
+      - id: interior-attack-size-up
+        instruction: "content/ab-ff1/interior-attack-sizeup.md"
+        workedExample: "content/ab-ff1/interior-attack-sizeup-ex.md"
+        problems:
+          - id: int-atk-p1
+            type: multiple_choice
+            question: "Before making entry for an interior fire attack at grade level, a firefighter should confirm all of the following EXCEPT:"
+            options:
+              - "A charged backup line is in place or being deployed"
+              - "The building's property tax assessment value"
+              - "Two-in/two-out rule is satisfied (two firefighters inside, two outside ready for rescue)"
+              - "Water supply is established or apparatus tank has adequate capacity for initial attack"
+            correct: 1
+            explanation: "OSHA's two-in/two-out requirement (29 CFR 1910.134), confirmed water supply, and a backup line are all critical pre-entry checks. The property tax assessment is not a fireground consideration. Size-up focuses on construction type, fire conditions, life safety, and resource readiness."
+          - id: int-atk-p2
+            type: multiple_choice
+            question: "What does the 'two-in/two-out' rule require?"
+            options:
+              - "Two engines and two trucks on scene before beginning operations"
+              - "A minimum of two firefighters operating inside the IDLH atmosphere, with at least two firefighters outside equipped and ready to perform rescue"
+              - "Two hose lines and two ladders deployed before entry"
+              - "Two ventilation openings created before entry"
+            correct: 1
+            explanation: "The two-in/two-out rule (OSHA 29 CFR 1910.134(g)(4)) mandates that when firefighters operate in an IDLH atmosphere, at least two must enter together and at least two must remain outside, fully equipped and ready for immediate rescue. The only exception is a confirmed life-safety rescue situation."
+
+      - id: interior-attack-hose-advance
+        instruction: "content/ab-ff1/interior-attack-hose.md"
+        workedExample: "content/ab-ff1/interior-attack-hose-ex.md"
+        problems:
+          - id: int-hose-p1
+            type: multiple_choice
+            question: "When advancing a charged attack line through an interior doorway into a fire room, the nozzle operator should:"
+            options:
+              - "Open the door fully and advance quickly into the center of the room"
+              - "Stay low, crack the door to read conditions (heat, smoke), apply a brief burst toward the ceiling if needed, then advance along the wall maintaining orientation"
+              - "Stand upright at the doorway threshold and apply a straight stream directly at the base of visible flames"
+              - "Wait outside the door until the fire self-ventilates through a window"
+            correct: 1
+            explanation: "Staying low keeps the firefighter below the thermal layer. Cracking the door first allows reading fire conditions and prevents sudden introduction of air that could worsen conditions. A brief ceiling-level burst (penciling) can cool the thermal layer. Advancing along the wall maintains orientation and a known path back to the exit."
+          - id: int-hose-p2
+            type: multiple_choice
+            question: "Which nozzle pattern is MOST appropriate for an initial interior attack on a room-and-contents fire at grade level?"
+            options:
+              - "Wide fog pattern to maximize water distribution"
+              - "Straight stream or narrow fog for reach, penetration, and minimal steam production in the occupied space"
+              - "Full fog pattern to create a water curtain shield"
+              - "It does not matter — all patterns are equally effective"
+            correct: 1
+            explanation: "A straight stream or narrow fog provides the best combination of reach, penetration into the fuel package, and minimal disruption of the thermal balance. A wide fog pattern can push heat and steam onto firefighters and victims, disrupt thermal layering, and reduce forward reach. Stream selection is a deliberate tactical choice."
+
+      - id: interior-attack-team-coordination
+        instruction: "content/ab-ff1/interior-attack-coordination.md"
+        problems:
+          - id: int-coord-p1
+            type: multiple_choice
+            question: "An interior attack team has advanced to the seat of the fire. The low-air alarm activates on the nozzle operator's SCBA. The correct action is:"
+            options:
+              - "The nozzle operator passes the nozzle to the backup firefighter and continues working"
+              - "The entire team withdraws together along the hose line to the exit, communicating the withdrawal to command via radio"
+              - "The nozzle operator exits alone while the backup firefighter continues the attack"
+              - "The nozzle operator silences the alarm and continues for 5 more minutes"
+            correct: 1
+            explanation: "When any team member's low-air alarm activates, the entire team withdraws together. No firefighter should be left operating alone in an IDLH atmosphere. The team follows the hose line out (it's their lifeline to the exit) and communicates the withdrawal to incident command. Silencing the alarm and continuing is never acceptable."
+          - id: int-coord-p2
+            type: fill_blank
+            question: "During interior fire attack, the hose line serves two critical functions: delivering water to the fire and acting as a ___ for the attack team to follow back to the exit point."
+            correct: "lifeline"
+            explanation: "In zero-visibility conditions, the hose line is the attack team's primary orientation tool and escape route. Firefighters maintain contact with the hose at all times. If disoriented, the coupling lugs indicate direction — the male coupling points toward the nozzle (fire), the female coupling points toward the exit (water supply)."
+
+      - id: interior-attack-reading-fire
+        instruction: "content/ab-ff1/interior-attack-reading-fire.md"
+        problems:
+          - id: int-read-p1
+            type: multiple_choice
+            question: "Dark, turbulent smoke pushing rapidly from all openings and pulsing indicates which dangerous fire condition?"
+            options:
+              - "The fire is nearly extinguished"
+              - "Normal free-burning stage"
+              - "Conditions consistent with impending flashover or backdraft"
+              - "A ventilation-limited fire that is dying out"
+            correct: 2
+            explanation: "Pulsing, turbulent, dark (carbon-rich) smoke pushing under pressure from openings indicates a ventilation-limited fire with massive heat energy and unburned fuel gases accumulating. These are classic warning signs of impending flashover or backdraft. Recognizing these conditions and adjusting tactics (do not introduce air, cool from exterior, ventilate before entry) is a critical survival skill."
+          - id: int-read-p2
+            type: multiple_choice
+            question: "Which of the following is a primary indicator that flashover is imminent?"
+            options:
+              - "Decreasing smoke volume from the structure"
+              - "Rollover (flames rolling across the ceiling in the hot gas layer)"
+              - "The fire is contained to a single object"
+              - "Ambient room temperature is comfortable at floor level"
+            correct: 1
+            explanation: "Rollover — flames appearing in and moving through the hot gas layer at ceiling level — is one of the most reliable indicators that flashover is imminent. When unburned pyrolysis products in the smoke layer reach ignition temperature, they ignite and rapidly spread across the ceiling. Upon seeing rollover, crews should apply water to cool the overhead gases or withdraw immediately."
+
+  - id: interior-fire-attack-above-grade
+    name: "Interior Fire Attack — Above Grade"
+    difficulty: 8
+    estimatedMinutes: 25
+    tags: [s4.3-fireground, interior-fire, above-grade, multi-story]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.10"
+    prerequisites:
+      - interior-fire-attack-grade
+      - ground-ladder-operations
+    encompassing:
+      - concept: interior-fire-attack-grade
+        weight: 0.6
+      - concept: ground-ladder-operations
+        weight: 0.3
+    knowledgePoints:
+      - id: above-grade-attack-tactics
+        problems:
+          - id: above-grade-p1
+            type: multiple_choice
+            question: "When conducting an interior fire attack above grade in a multi-story building, the attack line should be advanced to which position before charging?"
+            options:
+              - "The ground floor entrance"
+              - "One floor below the fire floor, then advanced up the stairwell to the fire floor"
+              - "Directly to the fire floor via the elevator"
+              - "The roof via an exterior ladder"
+            correct: 1
+            explanation: "The attack line is advanced uncharged to one floor below the fire floor (the staging floor), then charged before advancing up the stairwell to the fire floor. This prevents the heavy, charged line from needing to be dragged up multiple flights, provides a safe staging area, and keeps the stairwell — the primary egress route — accessible. Elevators are never used during active fire operations."
+          - id: above-grade-p2
+            type: true_false
+            question: "Firefighters should never use elevators during active fire operations in a multi-story building."
+            correct: "true"
+            explanation: "Elevators can malfunction, open on the fire floor due to heat-activated call buttons, lose power, or fill with smoke — trapping firefighters in a lethal environment. Stairwells are the standard means of accessing upper floors during fire operations. If an elevator must be used (e.g., high-rise standpipe operations), strict protocols are followed and it is stopped two floors below the fire floor."
+
+  - id: interior-fire-attack-below-grade
+    name: "Interior Fire Attack — Below Grade"
+    difficulty: 8
+    estimatedMinutes: 25
+    tags: [s4.3-fireground, interior-fire, below-grade, basement]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.10"
+    prerequisites:
+      - interior-fire-attack-grade
+    encompassing:
+      - concept: interior-fire-attack-grade
+        weight: 0.6
+      - concept: scba-emergency-procedures
+        weight: 0.4
+    knowledgePoints:
+      - id: below-grade-attack-tactics
+        problems:
+          - id: below-grade-p1
+            type: multiple_choice
+            question: "What makes below-grade (basement) fire attack significantly more dangerous than grade-level attacks?"
+            options:
+              - "Basement fires burn cooler than grade-level fires"
+              - "Firefighters must descend into the heat and products of combustion (which rise), limiting egress options to the same stairway used for entry"
+              - "Water supply pressure is always insufficient for basement operations"
+              - "Basements are always unoccupied, so there is no rescue urgency"
+            correct: 1
+            explanation: "In basement fires, heat and toxic gases naturally rise toward the stairway — the same path firefighters must use for both entry and egress. This means the attack team descends into worsening conditions, and their escape route becomes increasingly hazardous. Limited alternative egress (typically only one stairway and possibly small windows), reduced visibility, and difficulty ventilating compound the danger."
+          - id: below-grade-p2
+            type: fill_blank
+            question: "Before committing to an interior basement fire attack, the incident commander should consider requesting ___ operations to address heat and smoke banking on the first floor above the fire."
+            correct: "ventilation"
+            explanation: "Ventilation of the basement and the floor above is critical before or coordinated with interior attack. Without ventilation, heat and smoke accumulate on the first floor (making conditions untenable there too) and bank down the stairwell into the attack team's path. Horizontal ventilation of basement windows and vertical ventilation through the first floor can improve conditions dramatically."
+
+  # --- Hose line management ---
+
+  - id: hose-line-management
+    name: "Hose Line Management"
+    difficulty: 5
+    estimatedMinutes: 30
+    tags: [s4.3-fireground, hose-operations, nozzles]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.10"
+    prerequisites:
+      - ppe-donning-doffing
+      - water-supply-hydrant
+    knowledgePoints:
+      - id: hose-line-fundamentals
+        problems:
+          - id: hose-mgmt-p1
+            type: multiple_choice
+            question: "For an interior attack on a typical residential structure fire, the MINIMUM recommended attack line size is:"
+            options:
+              - "1-inch booster line"
+              - "1-1/2 inch or 1-3/4 inch attack line flowing a minimum of 150 GPM"
+              - "2-1/2 inch supply line"
+              - "3-inch large diameter hose"
+            correct: 1
+            explanation: "A 1-3/4 inch (or 1-1/2 inch) attack line flowing a minimum of 150 GPM is the standard for residential interior attack. This provides adequate flow to overcome the heat release rate of a typical room-and-contents fire while remaining manageable for a two-person crew. Booster lines lack adequate flow. Larger lines are used for commercial or heavy fire conditions."
+          - id: hose-mgmt-p2
+            type: true_false
+            question: "When flaking out (deploying) a hose line for interior attack, excess hose should be pre-positioned at the entry point so the attack team has enough hose to reach the seat of the fire without needing to pull more from outside."
+            correct: "true"
+            explanation: "Pre-positioning (flaking) sufficient hose at the entry point — typically the full working length needed to reach the farthest point of the building — prevents the attack team from running short inside. Running out of hose before reaching the fire stalls the attack, wastes air, and can leave the team in an untenable position. Proper hose estimation and deployment is a fundamental fireground skill."
+
+  - id: hose-replace-burst-section
+    name: "Hose Operations — Replace Burst Section"
+    difficulty: 4
+    estimatedMinutes: 15
+    tags: [s4.3-fireground, hose-operations, emergency]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.10"
+    prerequisites:
+      - hose-line-management
+    knowledgePoints:
+      - id: burst-hose-replacement
+        problems:
+          - id: burst-hose-p1
+            type: multiple_choice
+            question: "When a section of charged hose line bursts during firefighting operations, the FIRST action is to:"
+            options:
+              - "Abandon the hose line and deploy a new line from the apparatus"
+              - "Notify the pump operator to shut down the line, then clamp or replace the burst section"
+              - "Ignore the burst and continue the attack with reduced water flow"
+              - "Disconnect all hose sections and start over"
+            correct: 1
+            explanation: "The pump operator must shut down (gate off) the affected line immediately to stop water loss and allow the burst section to be replaced. The damaged section is disconnected, a replacement section is inserted, and the line is recharged. Meanwhile, the backup line provides continued fire protection. Communication with the pump operator is critical throughout."
+          - id: burst-hose-p2
+            type: fill_blank
+            question: "A hose ___ can be applied to a small leak or pinhole in a hose line as a temporary repair to maintain water flow during active operations."
+            correct: "clamp"
+            explanation: "A hose clamp can be applied to temporarily seal a small leak or pinhole, allowing continued operations until the line can be shut down and the damaged section properly replaced. For a complete burst, replacement of the section is required. Hose clamps are a standard tool carried on most apparatus."
+
+  - id: hose-extend-line
+    name: "Hose Operations — Extend a Line"
+    difficulty: 4
+    estimatedMinutes: 15
+    tags: [s4.3-fireground, hose-operations]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.10"
+    prerequisites:
+      - hose-line-management
+    knowledgePoints:
+      - id: extending-hose-line
+        problems:
+          - id: extend-line-p1
+            type: multiple_choice
+            question: "To extend a hose line that is too short to reach the fire, the correct procedure is to:"
+            options:
+              - "Stretch the existing hose to make it longer"
+              - "Shut down the line, disconnect at the last coupling, add one or more sections, reconnect, and recharge the line"
+              - "Use a nozzle with longer reach instead"
+              - "Simply drag the apparatus closer to the fire"
+            correct: 1
+            explanation: "Extending a hose line requires shutting down the line (by the pump operator), breaking the last coupling, adding additional sections of matching diameter hose, reconnecting, and recharging. The nozzle team must notify command and maintain a safe position during the shutdown. The backup line provides fire protection during this operation."
+          - id: extend-line-p2
+            type: true_false
+            question: "When extending a hose line, the additional sections should be the same diameter as the existing attack line to maintain consistent flow and pressure."
+            correct: "true"
+            explanation: "Mismatched hose diameters cause friction loss changes that affect nozzle pressure and flow rate. Using the same diameter hose maintains the hydraulic calculations the pump operator has set. Adding smaller diameter hose reduces flow; adding larger diameter is wasteful and creates coupling compatibility issues. Consistent diameter ensures predictable performance."
+
+  - id: hose-advance-uncharged-stairway
+    name: "Hose Operations — Advance Uncharged Line Up Stairway"
+    difficulty: 5
+    estimatedMinutes: 15
+    tags: [s4.3-fireground, hose-operations, above-grade]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.10"
+    prerequisites:
+      - hose-line-management
+    knowledgePoints:
+      - id: stairway-hose-advance
+        problems:
+          - id: stair-hose-p1
+            type: multiple_choice
+            question: "When advancing an uncharged hose line up a stairway for an above-grade fire attack, the recommended technique is to:"
+            options:
+              - "Charge the line first, then drag it up the stairs"
+              - "Flake sufficient hose at the base of the stairs, advance the uncharged line up the stairwell keeping it along the wall, and charge it only after reaching the fire floor landing"
+              - "Throw the bundled hose up the stairwell from the bottom"
+              - "Use the elevator to transport the hose to the fire floor"
+            correct: 1
+            explanation: "An uncharged line is significantly lighter and easier to maneuver up stairways. Sufficient hose is flaked at the stairway base to avoid snags. The line is advanced along the wall (keeping the stairway passable for egress) to the landing below the fire floor. It is charged only after the team is in position and ready to advance, ensuring the crew has water when they need it."
+          - id: stair-hose-p2
+            type: fill_blank
+            question: "When advancing hose up a stairway, the line should be positioned along the ___ to keep the center of the stairway clear for egress."
+            correct: "wall"
+            explanation: "Keeping the hose line along the wall (typically the outside wall of the stairwell) leaves the center and handrail side of the stairway clear for firefighter egress. In an emergency evacuation, a charged hose line in the center of a stairway is a serious tripping hazard that can delay escape. Good hose discipline saves lives."
+
+  - id: hose-advance-up-ladder
+    name: "Hose Operations — Advance Hose Up a Ladder"
+    difficulty: 6
+    estimatedMinutes: 15
+    tags: [s4.3-fireground, hose-operations, ladders]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.10"
+    prerequisites:
+      - hose-line-management
+      - ground-ladder-operations
+    knowledgePoints:
+      - id: ladder-hose-advance
+        problems:
+          - id: ladder-hose-p1
+            type: multiple_choice
+            question: "When advancing an uncharged hose line up a ground ladder, the firefighter should:"
+            options:
+              - "Carry the hose over one shoulder and climb with one hand"
+              - "Secure the hose to the ladder using a hose strap or utility strap at the tip, then climb with the hose draped over the shoulder, maintaining three points of contact"
+              - "Have a second firefighter throw the hose up from the ground"
+              - "Charge the line first, then climb with it"
+            correct: 1
+            explanation: "Securing the hose at the ladder tip with a strap prevents it from sliding back down. The climbing firefighter drapes the hose over the climbing shoulder, maintaining three points of contact at all times. The line should be uncharged for the climb — a charged line is extremely heavy and creates dangerous reaction forces if the nozzle opens accidentally."
+          - id: ladder-hose-p2
+            type: true_false
+            question: "A hose line should always be charged before it is advanced up a ground ladder."
+            correct: "false"
+            explanation: "A charged hose line is extremely heavy (a 50-foot section of 1-3/4 inch hose weighs approximately 80 pounds when charged vs. 20 pounds dry) and creates dangerous nozzle reaction forces. The line should be advanced up the ladder uncharged and only charged once the nozzle operator is in position and secured at the top. Charging first creates an unsafe climbing situation."
+
+  - id: hose-operate-charged-from-ladder
+    name: "Hose Operations — Operate Charged Line from Ladder"
+    difficulty: 6
+    estimatedMinutes: 15
+    tags: [s4.3-fireground, hose-operations, ladders]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.10"
+    prerequisites:
+      - hose-advance-up-ladder
+      - ground-ladder-operations
+    knowledgePoints:
+      - id: charged-line-from-ladder
+        problems:
+          - id: charged-ladder-p1
+            type: multiple_choice
+            question: "When operating a charged hose line from a ground ladder, the firefighter must:"
+            options:
+              - "Stand on the top rung for maximum reach"
+              - "Secure themselves to the ladder with a leg lock or ladder belt, brace for nozzle reaction, and ensure the ladder is heeled or tied"
+              - "Hold the nozzle with one hand and the ladder with the other"
+              - "Operate from the middle of the ladder to distribute weight evenly"
+            correct: 1
+            explanation: "Nozzle reaction force (approximately 60-75 pounds for a 150 GPM flow at 100 psi) will push the firefighter backward off the ladder if not properly secured. A leg lock (wrapping one leg around a rung and behind the beam) or ladder belt provides the necessary anchorage. The ladder must be heeled or mechanically secured to handle the lateral forces."
+          - id: charged-ladder-p2
+            type: fill_blank
+            question: "The technique of wrapping one leg around a rung and behind the beam of a ladder to free both hands for tool or nozzle operation is called a ___."
+            correct: "leg lock"
+            explanation: "The leg lock secures the firefighter to the ladder by threading one leg over the rung above, behind the beam, and hooking the foot on the rung below (or the same rung). This frees both hands for operating a nozzle, breaking a window, or using tools. It is a fundamental ladder skill that must be practiced until automatic."
+
+  # --- Ventilation ---
+
+  - id: positive-pressure-ventilation
+    name: "Positive Pressure Ventilation (Horizontal)"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s4.3-fireground, ventilation, ppv, horizontal]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.11"
+    prerequisites:
+      - ppe-donning-doffing
+      - fire-behavior-fundamentals
+    knowledgePoints:
+      - id: ppv-operations
+        problems:
+          - id: ppv-p1
+            type: multiple_choice
+            question: "When setting up a positive pressure ventilation (PPV) fan at a doorway, the fan should be positioned:"
+            options:
+              - "Inside the doorway, aimed outward"
+              - "Outside the doorway, set back far enough to cover the entire door opening with the cone of air (typically 4-6 feet from the opening)"
+              - "Directly in the doorway threshold"
+              - "On the roof, aimed downward"
+            correct: 1
+            explanation: "The PPV fan is positioned outside the structure, set back from the doorway so the cone of air seals the entire opening. This creates positive pressure inside, pushing smoke and heat out through a designated exhaust opening. If the fan is too close, air leaks around the edges of the door. The exhaust opening must be created (or opened) before or simultaneously with fan activation."
+          - id: ppv-p2
+            type: true_false
+            question: "Positive pressure ventilation should only be initiated after coordinating with the interior attack team and ensuring an exhaust opening has been established."
+            correct: "true"
+            explanation: "Uncoordinated PPV can push fire and smoke onto interior crews, spread fire to uninvolved areas, or worsen conditions by introducing fresh air without an adequate exhaust path. The exhaust opening (typically a window on the fire floor) must be established, and the interior team must be ready for the change in conditions. Communication between ventilation and attack teams is essential."
+
+  - id: negative-pressure-ventilation
+    name: "Negative Pressure Forced Ventilation"
+    difficulty: 4
+    estimatedMinutes: 15
+    tags: [s4.3-fireground, ventilation, negative-pressure]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.11"
+    prerequisites:
+      - ppe-donning-doffing
+      - fire-behavior-fundamentals
+    knowledgePoints:
+      - id: negative-ventilation-ops
+        problems:
+          - id: neg-vent-p1
+            type: multiple_choice
+            question: "Negative pressure ventilation involves placing an exhaust fan or smoke ejector:"
+            options:
+              - "Outside the building aimed at the entry door"
+              - "Inside the building at the exhaust opening (typically a window), pulling smoke and gases out of the structure"
+              - "On the roof aimed at a vent hole"
+              - "In the basement aimed upward"
+            correct: 1
+            explanation: "Negative pressure ventilation places the fan at the exhaust point (typically a window), pulling contaminated air out of the structure. This creates negative pressure inside, drawing fresh air in through other openings. It is less efficient than PPV but is useful when PPV cannot be used or as a supplement. The fan must be positioned inside the window opening to be effective."
+          - id: neg-vent-p2
+            type: fill_blank
+            question: "Negative pressure ventilation is also commonly referred to as ___ ejector ventilation."
+            correct: "smoke"
+            explanation: "Smoke ejectors are fans specifically designed for negative pressure ventilation. They are placed in a window or opening to pull (exhaust) smoke and heated gases from the interior. While PPV has become more common due to its efficiency, smoke ejectors remain an important tool, especially for post-fire ventilation and overhaul operations."
+
+  - id: hydraulic-ventilation
+    name: "Hydraulic Ventilation"
+    difficulty: 4
+    estimatedMinutes: 15
+    tags: [s4.3-fireground, ventilation, hydraulic, hose-operations]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.11"
+    prerequisites:
+      - ppe-donning-doffing
+      - hose-line-management
+      - fire-behavior-fundamentals
+    knowledgePoints:
+      - id: hydraulic-ventilation-technique
+        problems:
+          - id: hydra-vent-p1
+            type: multiple_choice
+            question: "Hydraulic ventilation is performed by directing a fog stream out a window opening. For maximum effectiveness, the fog pattern should cover approximately what percentage of the window opening?"
+            options:
+              - "25%"
+              - "50%"
+              - "85-90%"
+              - "100%"
+            correct: 2
+            explanation: "The fog pattern should cover 85-90% of the window opening. This creates maximum air movement (venturi effect) while leaving a small gap around the edges for additional air to be entrained by the moving water droplets. Covering 100% blocks airflow. Covering less than 85% significantly reduces effectiveness."
+          - id: hydra-vent-p2
+            type: true_false
+            question: "Hydraulic ventilation can be performed using the existing attack line, making it immediately available without additional equipment."
+            correct: "true"
+            explanation: "One of the primary advantages of hydraulic ventilation is that it uses the hose line already in place. After fire knockdown, the nozzle operator simply directs a wide fog pattern out a window to exhaust smoke. No additional fans or equipment are needed. This makes it the fastest ventilation method to deploy in many situations, though it does commit the attack line to ventilation duty temporarily."
+
+  - id: vertical-ventilation-flat-roof
+    name: "Vertical Ventilation (Flat Roof)"
+    difficulty: 7
+    estimatedMinutes: 25
+    tags: [s4.3-fireground, ventilation, vertical, flat-roof]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.12"
+    prerequisites:
+      - ppe-donning-doffing
+      - ground-ladder-operations
+      - fire-behavior-fundamentals
+    encompassing:
+      - concept: ground-ladder-operations
+        weight: 0.7
+      - concept: ppe-donning-doffing
+        weight: 0.3
+      - concept: hoisting-tools-rope
+        weight: 0.5
+    knowledgePoints:
+      - id: flat-roof-ventilation
+        problems:
+          - id: flat-roof-vent-p1
+            type: multiple_choice
+            question: "When cutting a ventilation hole in a flat roof, the hole should be positioned:"
+            options:
+              - "At the lowest point of the roof"
+              - "Directly over the fire, as close to the seat of the fire as can be safely determined"
+              - "At the edge of the roof near the parapet wall"
+              - "As far from the fire as possible to avoid collapse"
+            correct: 1
+            explanation: "The ventilation opening must be directly over the fire to effectively release the heat, smoke, and gases trapped beneath the roof. An opening placed away from the fire will not vent the fire compartment effectively and may create horizontal air movement that spreads the fire. Sounding the roof for structural integrity before and during cutting is essential."
+          - id: flat-roof-vent-p2
+            type: fill_blank
+            question: "Before stepping onto a flat roof for vertical ventilation, a firefighter must ___ the roof surface with a tool to assess structural integrity."
+            correct: "sound"
+            explanation: "Sounding the roof involves striking the surface with an axe or tool while reading the feel and sound of the response. A solid roof produces a firm, solid sound and feel. A compromised (spongy, soft, or hollow-sounding) roof indicates structural weakening from fire below and is unsafe to walk on. Firefighters should sound the roof continuously as they move across it."
+
+  - id: vertical-ventilation-pitched-roof
+    name: "Vertical Ventilation (Pitched Roof)"
+    difficulty: 7
+    estimatedMinutes: 25
+    tags: [s4.3-fireground, ventilation, vertical, pitched-roof]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.12"
+    prerequisites:
+      - ppe-donning-doffing
+      - ground-ladder-operations
+      - fire-behavior-fundamentals
+    encompassing:
+      - concept: ground-ladder-operations
+        weight: 0.7
+      - concept: ppe-donning-doffing
+        weight: 0.3
+      - concept: hoisting-tools-rope
+        weight: 0.5
+    knowledgePoints:
+      - id: pitched-roof-ventilation
+        problems:
+          - id: pitched-roof-vent-p1
+            type: multiple_choice
+            question: "When performing vertical ventilation on a pitched roof, the firefighter works from a roof ladder to:"
+            options:
+              - "Get closer to the chimney"
+              - "Distribute their weight across multiple structural members and prevent sliding on the sloped surface"
+              - "Avoid damaging the roof shingles"
+              - "Create a platform for staging tools only"
+            correct: 1
+            explanation: "A roof ladder hooks over the ridge and distributes the firefighter's weight across multiple rafters, reducing the risk of localized collapse. It also provides secure footing on the sloped surface, preventing the firefighter from sliding off the roof. Working from a roof ladder is mandatory on pitched roofs — walking directly on the roof surface concentrates weight and provides no fall protection."
+          - id: pitched-roof-vent-p2
+            type: true_false
+            question: "On a pitched roof, the ventilation cut should be made on the leeward side (downwind) to prevent wind from pushing smoke and heat back onto the cutting crew."
+            correct: "true"
+            explanation: "Positioning the ventilation opening on the leeward side allows wind to carry heat and smoke away from the crew working on the roof. If the cut is made on the windward side, wind pushes the venting heat and gases directly into the cutting crew, creating an extremely dangerous situation. Wind direction assessment is a critical part of ventilation planning."
+
+  # --- Overhaul ---
+
+  - id: overhaul-operations
+    name: "Overhaul Operations"
+    difficulty: 5
+    estimatedMinutes: 20
+    tags: [s4.3-fireground, overhaul, investigation]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.13"
+    prerequisites:
+      - scba-donning-doffing-breathing
+      - forcible-entry
+      - search-rescue-techniques
+    encompassing:
+      - concept: hose-line-management
+        weight: 0.4
+      - concept: salvage-property-conservation
+        weight: 0.3
+      - concept: scene-safety-electrical
+        weight: 0.2
+    knowledgePoints:
+      - id: overhaul-procedures
+        problems:
+          - id: overhaul-p1
+            type: multiple_choice
+            question: "During overhaul, why must firefighters continue wearing SCBA even though visible fire has been extinguished?"
+            options:
+              - "For protection against falling debris only"
+              - "The atmosphere remains IDLH due to carbon monoxide, hydrogen cyanide, and other toxic products of combustion that persist after visible fire is out"
+              - "SCBA is only needed if smoke is still visible"
+              - "SCBA is optional during overhaul if windows are open"
+            correct: 1
+            explanation: "Toxic gases — particularly carbon monoxide (CO) and hydrogen cyanide (HCN) — remain at dangerous concentrations long after visible fire is extinguished. These are odorless/colorless at hazardous levels and cause acute poisoning. SCBA must be worn until air monitoring confirms the atmosphere is safe. Natural ventilation alone does not guarantee safe air quality. Cancer-causing particulates are also present."
+          - id: overhaul-p2
+            type: fill_blank
+            question: "During overhaul, firefighters use pike poles and other tools to open walls and ceilings to check for hidden ___ extension."
+            correct: "fire"
+            explanation: "Fire can travel through concealed spaces — wall cavities, ceiling voids, pipe chases, and attic spaces — without being visible from the interior. During overhaul, these spaces must be opened and inspected for hidden fire extension. Using thermal imaging cameras (TICs) can guide this process, but physical opening and inspection remain necessary to confirm complete extinguishment."
+
+  # --- Salvage ---
+
+  - id: salvage-property-conservation
+    name: "Salvage and Property Conservation"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s4.3-fireground, salvage, property-conservation]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.14"
+    prerequisites:
+      - ppe-donning-doffing
+    knowledgePoints:
+      - id: salvage-techniques
+        problems:
+          - id: salvage-p1
+            type: multiple_choice
+            question: "Which salvage cover deployment technique is MOST appropriate for protecting a large area of room contents from water damage?"
+            options:
+              - "Balloon throw — two firefighters deploy the cover by trapping air underneath to float it over the contents"
+              - "Rolling the cover tightly and sliding it across the floor"
+              - "Draping individual items one at a time"
+              - "Duct-taping plastic sheeting to each piece of furniture"
+            correct: 0
+            explanation: "The balloon throw (also called balloon toss) is the standard technique for deploying a salvage cover over a large area. Two firefighters fold and then unfurl the cover, trapping air beneath it to create a balloon effect that floats the cover over furniture and contents. This is fast, covers a large area in one deployment, and minimizes handling of contents."
+          - id: salvage-p2
+            type: true_false
+            question: "Salvage operations should begin as early as possible during fireground operations — they do not need to wait until the fire is fully extinguished."
+            correct: "true"
+            explanation: "Salvage operations can and should begin concurrent with fire attack. Water damage from hose operations often causes more property damage than the fire itself. Deploying salvage covers in unaffected rooms, channeling water out of the building with water chutes, and moving valuable items can all be done while the fire attack is underway, provided it does not interfere with firefighting operations or compromise crew safety."
+
+  # --- Water supply ---
+
+  - id: water-supply-hydrant
+    name: "Water Supply — Hydrant Operations"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s4.3-fireground, water-supply, hydrant]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.15"
+    prerequisites:
+      - ppe-donning-doffing
+    knowledgePoints:
+      - id: hydrant-operations
+        problems:
+          - id: hydrant-ops-p1
+            type: multiple_choice
+            question: "When connecting to a fire hydrant, what is the correct sequence of operations?"
+            options:
+              - "Open the hydrant fully, then connect the supply line"
+              - "Remove the cap, inspect the outlet and threads, connect the supply line hand-tight, then signal the driver/operator to charge the line, then fully open the hydrant valve"
+              - "Partially open the hydrant to flush debris, close it, connect the hose, then open fully"
+              - "Connect the hose to the steamer port only, then open to half-turn"
+            correct: 2
+            explanation: "The correct sequence includes flushing the hydrant briefly (partially opening to clear debris and sediment from the barrel), closing it, making connections on clean threads, then fully opening the hydrant valve. Flushing prevents debris from entering the hose and apparatus pump. Connections should be hand-tight to allow emergency disconnection. The hydrant valve is opened fully to prevent cavitation."
+          - id: hydrant-ops-p2
+            type: fill_blank
+            question: "The large outlet on a fire hydrant (typically 4 or 4.5 inches) used for connecting large diameter supply hose is called the ___ connection."
+            correct: "steamer"
+            explanation: "The steamer connection (also called the pumper connection) is the large-diameter outlet (typically 4 or 4.5 inches) on a fire hydrant. It provides the maximum flow capacity and is used to supply the apparatus via large diameter hose (LDH). The smaller outlets (typically 2.5 inches) are used for direct hose connections or when LDH is not available."
+
+  - id: water-supply-static-drafting
+    name: "Water Supply — Static Source (Drafting)"
+    difficulty: 5
+    estimatedMinutes: 20
+    tags: [s4.3-fireground, water-supply, drafting, static-source]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.15"
+    prerequisites:
+      - water-supply-hydrant
+    encompassing:
+      - concept: water-supply-hydrant
+        weight: 0.5
+    knowledgePoints:
+      - id: drafting-operations
+        problems:
+          - id: drafting-p1
+            type: multiple_choice
+            question: "When drafting water from a static source (pond, lake, or portable tank), the hard suction hose strainer must be:"
+            options:
+              - "Placed flat on the bottom of the water source"
+              - "Submerged at least 24 inches (60 cm) below the water surface and kept off the bottom to prevent clogging with debris"
+              - "Floating on the surface of the water"
+              - "Placed above the waterline to prevent priming issues"
+            correct: 1
+            explanation: "The strainer must be fully submerged (at least 24 inches below the surface) to prevent air entrainment through surface vortex, and elevated off the bottom (using a rope or the strainer's built-in feet) to prevent debris from blocking the screen. Air leaks anywhere in the hard suction line will break the prime and stop water flow."
+          - id: drafting-p2
+            type: true_false
+            question: "A fire apparatus can draft water from a static source that is higher than the pump intake — gravity will feed the water into the pump."
+            correct: "false"
+            explanation: "Drafting relies on atmospheric pressure pushing water up into the pump when the pump creates a partial vacuum. The pump must be positioned above the water source, and there is a maximum practical lift of approximately 20-25 feet vertically. Water cannot be 'drafted' from a source above the pump — that would be a pressurized or gravity-fed supply, not drafting."
+
+  # --- Fire extinguishers ---
+
+  - id: fire-extinguisher-operations
+    name: "Fire Extinguisher Operations (Class A, B, C)"
+    difficulty: 2
+    estimatedMinutes: 15
+    tags: [s4.3-fireground, extinguishers, foundational]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.16"
+    prerequisites:
+      - ppe-donning-doffing
+    knowledgePoints:
+      - id: extinguisher-use
+        problems:
+          - id: extinguisher-p1
+            type: multiple_choice
+            question: "The PASS technique for operating a portable fire extinguisher stands for:"
+            options:
+              - "Push, Aim, Spray, Sweep"
+              - "Pull the pin, Aim at the base of the fire, Squeeze the handle, Sweep side to side"
+              - "Point, Activate, Spray, Stop"
+              - "Prepare, Approach, Squeeze, Secure"
+            correct: 1
+            explanation: "PASS stands for: Pull the pin (or remove the safety device), Aim the nozzle at the base of the fire (not at the flames), Squeeze the handle to discharge the agent, and Sweep side to side across the base of the fire. Aiming at the base is critical because the fire must be attacked at its fuel source, not at the visible flames above."
+          - id: extinguisher-p2
+            type: fill_blank
+            question: "A Class ___ fire extinguisher is appropriate for fires involving energized electrical equipment."
+            correct: "C"
+            explanation: "Class C extinguishers are rated for fires involving energized electrical equipment. The extinguishing agent (typically CO2 or dry chemical) is non-conductive, preventing electrical shock to the operator. Once the electrical equipment is de-energized, the fire becomes a Class A or B fire depending on the fuel involved. ABC-rated dry chemical extinguishers cover all three classes."
+
+  # --- Scene support ---
+
+  - id: emergency-scene-illumination
+    name: "Emergency Scene Illumination"
+    difficulty: 2
+    estimatedMinutes: 10
+    tags: [s4.3-fireground, scene-support, lighting]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.17"
+    prerequisites:
+      - ppe-donning-doffing
+    knowledgePoints:
+      - id: scene-lighting-operations
+        problems:
+          - id: scene-light-p1
+            type: multiple_choice
+            question: "When deploying portable scene lighting at a nighttime emergency, lights should be positioned to:"
+            options:
+              - "Shine directly into the eyes of approaching traffic for maximum visibility"
+              - "Illuminate the work area without blinding firefighters or oncoming traffic, and be placed on stable ground away from trip hazards"
+              - "Point upward to create general ambient light"
+              - "Be placed as high as possible regardless of stability"
+            correct: 1
+            explanation: "Effective scene lighting illuminates the work area while avoiding glare that can blind firefighters, victims, or drivers. Lights are positioned at the perimeter of the work zone, angled to illuminate the scene. They must be on stable surfaces to prevent tipping. Generators powering the lights should be placed downwind to keep exhaust fumes away from the work area."
+          - id: scene-light-p2
+            type: true_false
+            question: "Portable generators used for scene lighting should be grounded according to the manufacturer's instructions to prevent electrical shock."
+            correct: "true"
+            explanation: "Portable generators must be properly grounded per manufacturer specifications and electrical safety standards. Operating a generator without proper grounding creates electrical shock hazards, particularly in wet conditions common on the fireground. Ground fault circuit interrupters (GFCIs) should be used on all circuits when available."
+
+  - id: building-utilities-shutoff
+    name: "Building Utilities — Shut-Off Procedures"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s4.3-fireground, utilities, gas, electric, water]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.18"
+    prerequisites:
+      - ppe-donning-doffing
+      - scene-safety-electrical
+    knowledgePoints:
+      - id: utilities-shutoff-procedures
+        problems:
+          - id: utilities-p1
+            type: multiple_choice
+            question: "When shutting off natural gas to a building at an emergency scene, the gas meter valve is turned to the OFF position using:"
+            options:
+              - "Bare hands only"
+              - "A crescent wrench or gas shut-off wrench, turning the valve one-quarter turn so the handle is perpendicular to the pipe"
+              - "A flat-head screwdriver inserted into the valve"
+              - "The building's electrical main breaker"
+            correct: 1
+            explanation: "The gas meter valve is turned one-quarter turn with an adjustable wrench or specialized gas key so the valve handle sits perpendicular (crosswise) to the pipe, indicating the closed position. When the handle is parallel to the pipe, gas is flowing. Only the gas utility company should restore gas service after a shutoff — firefighters shut off but do not turn gas back on."
+          - id: utilities-p2
+            type: fill_blank
+            question: "After shutting off electrical power to a building at the main breaker panel, firefighters should treat all wiring as ___ until confirmed de-energized by the utility company."
+            correct: "energized"
+            explanation: "Even after shutting off the main breaker, other power sources may exist — solar panels, backup generators, battery systems, or utility-side wiring that remains live above the main breaker. Treat all wiring as energized until the utility company confirms complete de-energization. This conservative approach prevents electrocution from unexpected power sources."
+
+  # --- Wildland ---
+
+  - id: ground-cover-wildland-fire
+    name: "Ground Cover and Wildland Fire Operations"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s4.3-fireground, wildland, ground-cover, interface]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.19"
+    prerequisites:
+      - ppe-donning-doffing
+      - fire-behavior-fundamentals
+    knowledgePoints:
+      - id: wildland-fire-fundamentals
+        problems:
+          - id: wildland-p1
+            type: multiple_choice
+            question: "The three environmental factors that most influence wildland fire behavior are:"
+            options:
+              - "Humidity, cloud cover, and soil moisture"
+              - "Weather (wind, temperature, humidity), topography (slope, aspect), and fuel (type, moisture, arrangement)"
+              - "Time of day, season, and latitude"
+              - "Proximity to water sources, soil type, and elevation"
+            correct: 1
+            explanation: "The wildland fire behavior triangle consists of weather (particularly wind speed/direction, temperature, and relative humidity), topography (slope accelerates fire spread uphill, aspect affects fuel moisture), and fuel (type, arrangement, moisture content, and loading). These three factors interact to determine fire intensity, rate of spread, and behavior. Understanding this triangle is fundamental to wildland firefighting safety."
+          - id: wildland-p2
+            type: true_false
+            question: "Fire spreads faster uphill than downhill because the slope preheats fuels above the fire through radiant heat and convection."
+            correct: "true"
+            explanation: "On sloped terrain, flames lean toward the uphill fuels, preheating them through radiant heat and convection. The steeper the slope, the faster the fire spreads uphill. As a general rule, the rate of spread doubles for every 10-degree increase in slope. This is why firefighters are trained to never position themselves above a fire on a slope — an uphill run of fire can be extremely fast and deadly."
+
+  # --- Rope operations ---
+
+  - id: hoisting-tools-rope
+    name: "Hoisting Tools and Equipment with Rope"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s4.3-fireground, ropes, hoisting, tools]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.20"
+    prerequisites:
+      - knots-bends-hitches
+      - ppe-donning-doffing
+    knowledgePoints:
+      - id: hoisting-techniques
+        problems:
+          - id: hoist-tech-p1
+            type: multiple_choice
+            question: "When hoisting an axe to a roof using a rope, the correct rigging method is to:"
+            options:
+              - "Tie the rope around the axe handle only"
+              - "Secure the axe head with a clove hitch and half hitches on the handle, with the blade guarded, and attach a tag/guide line"
+              - "Place the axe in a bucket and hoist the bucket"
+              - "Throw the axe up to the firefighter on the roof"
+            correct: 1
+            explanation: "The axe head is secured with a clove hitch near the head, followed by half hitches along the handle to prevent swinging. The blade should be guarded or positioned away from the rope. A tag line allows the ground crew to guide the tool during hoisting, preventing it from swinging into windows or striking the building. Never throw tools — they can cause injury or damage."
+          - id: hoist-tech-p2
+            type: fill_blank
+            question: "A ___ line is a secondary rope attached to a hoisted tool or equipment to allow ground personnel to guide and steady the load during raising and lowering."
+            correct: "tag"
+            explanation: "A tag line (also called a guide line) is attached to the tool or equipment being hoisted. Ground personnel use it to control swinging, guide the load away from obstructions, and position it for the receiving firefighter. Without a tag line, hoisted equipment swings freely and can strike the building, break windows, or injure personnel."
+
+  # --- Air monitoring ---
+
+  - id: air-monitoring-atmospheric
+    name: "Air Monitoring and Atmospheric Assessment"
+    difficulty: 5
+    estimatedMinutes: 20
+    tags: [s4.3-fireground, air-monitoring, hazmat, safety]
+    sourceRef: "NFPA 1001-2019 JPR 4.3.1"
+    prerequisites:
+      - ppe-donning-doffing
+      - scba-donning-doffing-breathing
+    knowledgePoints:
+      - id: air-monitoring-fundamentals
+        problems:
+          - id: air-mon-p1
+            type: multiple_choice
+            question: "A four-gas atmospheric monitor typically measures which four gases?"
+            options:
+              - "Nitrogen, argon, helium, and neon"
+              - "Oxygen (O2), carbon monoxide (CO), hydrogen sulfide (H2S), and lower explosive limit (LEL/combustible gases)"
+              - "Carbon dioxide, methane, propane, and acetylene"
+              - "Oxygen, nitrogen, water vapor, and ozone"
+            correct: 1
+            explanation: "A standard four-gas monitor measures oxygen concentration (normal is 20.9%, danger below 19.5% or above 23.5%), carbon monoxide (toxic at low concentrations), hydrogen sulfide (highly toxic, common in confined spaces), and the lower explosive limit (percentage of combustible gas concentration relative to its ignition point). These four readings provide a basic hazard assessment for atmospheric safety."
+          - id: air-mon-p2
+            type: fill_blank
+            question: "The normal oxygen concentration in ambient air is ___%, and an atmosphere is considered oxygen-deficient below 19.5%."
+            correct: "20.9"
+            explanation: "Normal atmospheric oxygen is 20.9%. OSHA defines an oxygen-deficient atmosphere as below 19.5% and an oxygen-enriched atmosphere as above 23.5%. Both are hazardous. Oxygen-deficient atmospheres cause impaired judgment, loss of consciousness, and death. Oxygen-enriched atmospheres dramatically increase fire and explosion risk. Continuous monitoring is required in any potentially compromised atmosphere."
+
+  # ============================================================
+  # 4.5 Maintenance
+  # ============================================================
+
+  - id: equipment-inspection-cleaning
+    name: "Equipment Inspection and Cleaning (Ladders, Ropes, SCBA, Tools)"
+    difficulty: 2
+    estimatedMinutes: 20
+    tags: [s4.5-maintenance, inspection, cleaning]
+    sourceRef: "NFPA 1001-2019 JPR 4.5.1"
+    prerequisites:
+      - ppe-donning-doffing
+    knowledgePoints:
+      - id: equipment-maintenance-basics
+        problems:
+          - id: equip-maint-p1
+            type: multiple_choice
+            question: "During a post-incident inspection of a ground ladder, which finding would require the ladder to be immediately removed from service?"
+            options:
+              - "Dirt or soot on the beams"
+              - "A bent or cracked rung, heat damage/discoloration, or a frayed halyard"
+              - "Minor paint scratches on the beams"
+              - "A loose label or decal"
+            correct: 1
+            explanation: "A bent or cracked rung, heat damage (indicated by discoloration, blistering, or delamination), or a frayed halyard indicates structural compromise that could cause catastrophic failure under load. These conditions require the ladder to be tagged out of service immediately and sent for professional repair or replacement. Cosmetic issues (dirt, paint scratches, labels) do not affect structural integrity."
+          - id: equip-maint-p2
+            type: true_false
+            question: "Life safety rope that has been used to support a load during emergency operations must be retired from life safety use."
+            correct: "true"
+            explanation: "Per NFPA 1983, life safety rope that has been subjected to impact loading or has supported a load during an emergency must be removed from life safety service. It may be downgraded to utility use, but it can never again be used where failure would result in death or serious injury. This is because internal fiber damage may not be visible externally but can significantly reduce the rope's strength."
+
+  - id: fire-hose-inspection-service
+    name: "Fire Hose Inspection, Cleaning, and Return to Service"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s4.5-maintenance, hose, inspection, cleaning]
+    sourceRef: "NFPA 1001-2019 JPR 4.5.2"
+    prerequisites:
+      - hose-line-management
+    knowledgePoints:
+      - id: hose-inspection-procedures
+        problems:
+          - id: hose-insp-p1
+            type: multiple_choice
+            question: "After a fire, hose should be cleaned and inspected before being returned to service. Which of the following is a reason to remove a section of hose from service?"
+            options:
+              - "The hose is wet"
+              - "The jacket shows cuts, abrasion wear-through, or the coupling is damaged (cracked swivel, damaged threads, or a leaking gasket that cannot be replaced)"
+              - "The hose is a different color than other sections"
+              - "The hose was used on a vehicle fire"
+            correct: 1
+            explanation: "Physical damage to the jacket (cuts, abrasion through to the liner), liner damage (delamination, bubbling under pressure), and coupling damage (cracked swivels, damaged threads, non-replaceable gasket damage) are all grounds for removing hose from service. Minor gasket replacement is routine maintenance, but structural damage to the hose or couplings compromises pressure integrity and firefighter safety."
+          - id: hose-insp-p2
+            type: fill_blank
+            question: "Fire hose should be tested annually at its rated service test pressure, a process known as ___ testing."
+            correct: "service"
+            explanation: "Annual service testing (also called proof testing) involves pressurizing each section of hose to its rated service test pressure (typically 250 psi for attack hose, 200 psi for supply hose) and inspecting for leaks, bulges, or coupling slippage. Hose that fails service testing is removed from service. This annual test is required by NFPA 1962 and ensures hose reliability under fireground conditions."
