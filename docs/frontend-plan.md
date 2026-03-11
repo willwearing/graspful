@@ -8,6 +8,10 @@
 
 **Tech Stack:** Next.js 15 (App Router), React 19, Tailwind CSS 4, shadcn/ui, Vercel (hosting + custom domains), Supabase (auth + DB), PostHog (analytics), IndexedDB (offline audio cache).
 
+**Status:** Phase 7 (Core Shell) Complete — Phase 8 (Learning Experience) Complete — Phase 9 (Audio Pipeline) Complete — Phase 10 (Billing) Complete — Phase 11 (Gamification) Complete
+
+> **Note:** The web frontend is mobile-responsive. There is no separate native mobile app for the initial release. See mobile-plan.md (deferred) for future native app plans.
+
 ---
 
 ## Table of Contents
@@ -109,6 +113,7 @@ src/
 | **Landing page** | Single static page | Templated, data-driven per brand |
 | **Middleware** | Auth only | Auth + tenant detection + brand resolution |
 | **Layout** | Single page with PlayerBar | Shell layout with sidebar + persistent PlayerBar |
+| **Learning UI** | None (audio playback only) | Adaptive learning: diagnostic tests, practice problems, study sessions, knowledge graph visualization |
 
 ---
 
@@ -1621,6 +1626,14 @@ Offline support is progressive:
 
 ### Phase 1: Project Scaffolding and White-Label Foundation
 
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Frontend plan (this doc), try-listening codebase for reference
+> - **Outputs:** Scaffolded Next.js project, BrandConfig type, theme injection, brand resolution
+> - **Dependencies:** None
+
 #### Task 1: Initialize Next.js Project with shadcn/ui
 
 **Files:**
@@ -2015,6 +2028,14 @@ git commit -m "feat: wire root layout with runtime brand theme injection"
 
 ### Phase 2: Landing Page Template
 
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Brand config system from Phase 1, try-listening landing page components
+> - **Outputs:** Marketing layout, hero, features, how-it-works, testimonials, FAQ, CTA, assembled landing page
+> - **Dependencies:** Phase 1
+
 #### Task 7: Marketing Layout (Nav + Footer)
 
 **Files:**
@@ -2071,6 +2092,14 @@ git commit -m "feat: wire root layout with runtime brand theme injection"
 
 ### Phase 3: Auth and Middleware
 
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Brand resolution from Phase 1, try-listening middleware and Supabase auth
+> - **Outputs:** Multi-tenant middleware, Supabase client/server setup, sign-in page, auth callback
+> - **Dependencies:** Phase 1
+
 #### Task 12: Multi-Tenant Middleware
 
 **Files:**
@@ -2093,6 +2122,14 @@ git commit -m "feat: wire root layout with runtime brand theme injection"
 ---
 
 ### Phase 4: App Shell and Dashboard
+
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Auth middleware from Phase 3, brand context from Phase 1
+> - **Outputs:** App layout with responsive sidebar, dashboard page with progress/streak/recommendations
+> - **Dependencies:** Phase 3
 
 #### Task 14: App Layout with Sidebar
 
@@ -2117,6 +2154,14 @@ git commit -m "feat: wire root layout with runtime brand theme injection"
 ---
 
 ### Phase 5: Audio Player
+
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** App shell from Phase 4, try-listening audio player/hooks/PlayerBar
+> - **Outputs:** AudioPlayerProvider context, PlayerBar component, media session hook, playback persistence
+> - **Dependencies:** Phase 4
 
 #### Task 16: Port Audio Player Hook
 
@@ -2150,6 +2195,14 @@ git commit -m "feat: wire root layout with runtime brand theme injection"
 
 ### Phase 6: Content Browser
 
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** App shell from Phase 4, content model design from Section 8
+> - **Outputs:** Content types, query functions, three-level browse pages (exams → topics → sections/items)
+> - **Dependencies:** Phase 4
+
 #### Task 19: Content Types and Queries
 
 **Files:**
@@ -2176,6 +2229,14 @@ git commit -m "feat: wire root layout with runtime brand theme injection"
 
 ### Phase 7: Offline Support
 
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Audio player from Phase 5, try-listening IDB store and offline hook
+> - **Outputs:** IndexedDB audio store, useOfflineAudio hook adapted for R2 URLs
+> - **Dependencies:** Phase 5
+
 #### Task 21: Port IndexedDB Audio Store
 
 **Files:**
@@ -2197,6 +2258,14 @@ git commit -m "feat: wire root layout with runtime brand theme injection"
 ---
 
 ### Phase 8: SEO and Polish
+
+**Status:** Not Started
+
+> **Agent Boundary**
+> - **Skill:** `/writing-plans` → `/subagent-driven-development`
+> - **Inputs:** Landing page from Phase 2, app shell from Phase 4, brand config from Phase 1
+> - **Outputs:** Dynamic sitemap, robots.txt, structured data, PostHog analytics, settings page
+> - **Dependencies:** Phase 2, Phase 4
 
 #### Task 23: SEO Infrastructure
 

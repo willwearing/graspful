@@ -9,6 +9,11 @@ import { StudentModelModule } from './student-model/student-model.module';
 import { DiagnosticModule } from './diagnostic/diagnostic.module';
 import { AssessmentModule } from './assessment/assessment.module';
 import { LearningEngineModule } from './learning-engine/learning-engine.module';
+import { TtsModule } from './tts/tts.module';
+import { AudioModule } from './audio/audio.module';
+import { AudioGenerationModule } from './audio-generation/audio-generation.module';
+import { BillingModule } from './billing/billing.module';
+import { GamificationModule } from './gamification/gamification.module';
 
 @Module({
   imports: [
@@ -24,6 +29,11 @@ import { LearningEngineModule } from './learning-engine/learning-engine.module';
     DiagnosticModule,
     AssessmentModule,
     LearningEngineModule,
+    TtsModule,
+    AudioModule,
+    AudioGenerationModule,
+    BillingModule,
+    GamificationModule,
   ],
 })
 export class AppModule {}

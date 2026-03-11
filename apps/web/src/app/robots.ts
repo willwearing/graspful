@@ -1,0 +1,24 @@
+import type { MetadataRoute } from "next";
+
+const BASE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://electricianprep.audio";
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+        disallow: [
+          "/dashboard",
+          "/study",
+          "/browse",
+          "/settings",
+          "/diagnostic",
+          "/auth",
+        ],
+      },
+    ],
+    sitemap: `${BASE_URL}/sitemap.xml`,
+  };
+}

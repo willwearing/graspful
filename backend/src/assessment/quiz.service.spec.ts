@@ -4,6 +4,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 describe('QuizService', () => {
   let service: QuizService;
   let mockPrisma: any;
+  let mockXPService: any;
 
   const mockConceptStates = [
     { conceptId: 'c1', masteryState: 'mastered', concept: { id: 'c1', courseId: 'course-1' } },
@@ -47,7 +48,11 @@ describe('QuizService', () => {
       },
     };
 
-    service = new QuizService(mockPrisma);
+    mockXPService = {
+      recordXPEvent: jest.fn().mockResolvedValue({ amount: 20 }),
+    };
+
+    service = new QuizService(mockPrisma, mockXPService);
   });
 
   describe('generateQuiz', () => {
@@ -218,7 +223,7 @@ describe('QuizService', () => {
       const result = await service.completeQuiz(quiz.quizId);
 
       expect(result.xpAwarded).toBeGreaterThan(0);
-      expect(mockPrisma.courseEnrollment.update).toHaveBeenCalled();
+      expect(mockXPService.recordXPEvent).toHaveBeenCalled();
     });
 
     it('should throw for non-existent quiz', async () => {

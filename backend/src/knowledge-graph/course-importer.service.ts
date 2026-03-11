@@ -15,6 +15,10 @@ export interface ImportResult {
   warnings: string[];
 }
 
+export interface ImportOptions {
+  replace?: boolean;
+}
+
 @Injectable()
 export class CourseImporterService {
   constructor(
@@ -22,7 +26,11 @@ export class CourseImporterService {
     private graphValidation: GraphValidationService,
   ) {}
 
-  async importFromYaml(yamlContent: string, orgId: string): Promise<ImportResult> {
+  async importFromYaml(
+    yamlContent: string,
+    orgId: string,
+    options: ImportOptions = {},
+  ): Promise<ImportResult> {
     // 1. Parse YAML
     const raw = yaml.load(yamlContent);
 
@@ -56,6 +64,16 @@ export class CourseImporterService {
     let problemCount = 0;
 
     const result = await this.prisma.$transaction(async (tx) => {
+      // If replace mode, delete existing course with same slug
+      if (options.replace) {
+        const existing = await tx.course.findUnique({
+          where: { orgId_slug: { orgId, slug: data.course.id } },
+        });
+        if (existing) {
+          await tx.course.delete({ where: { id: existing.id } });
+        }
+      }
+
       // Create course
       const course = await tx.course.create({
         data: {

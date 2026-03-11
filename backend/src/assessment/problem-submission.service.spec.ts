@@ -5,6 +5,7 @@ describe('ProblemSubmissionService', () => {
   let service: ProblemSubmissionService;
   let mockPrisma: any;
   let mockFireUpdate: any;
+  let mockXPService: any;
 
   const mockProblem = {
     id: 'prob-1',
@@ -76,7 +77,11 @@ describe('ProblemSubmissionService', () => {
       propagateImplicitRepetition: jest.fn().mockResolvedValue(undefined),
     };
 
-    service = new ProblemSubmissionService(mockPrisma, mockFireUpdate);
+    mockXPService = {
+      recordXPEvent: jest.fn().mockResolvedValue({ amount: 15 }),
+    };
+
+    service = new ProblemSubmissionService(mockPrisma, mockFireUpdate, mockXPService);
   });
 
   it('should evaluate a correct MC answer and create attempt', async () => {
@@ -286,11 +291,11 @@ describe('ProblemSubmissionService', () => {
       activityType: 'lesson',
     });
 
-    expect(mockPrisma.courseEnrollment.update).toHaveBeenCalledWith(
+    expect(mockXPService.recordXPEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          totalXPEarned: expect.any(Object),
-        }),
+        userId: 'user-1',
+        courseId: 'course-1',
+        source: 'lesson',
       }),
     );
   });

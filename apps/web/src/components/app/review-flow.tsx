@@ -1,0 +1,163 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { apiClientFetch } from "@/lib/api-client";
+import { ProblemRenderer, type ProblemFeedback } from "@/components/app/problems/problem-renderer";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import type { Problem, ProblemAnswer } from "@/lib/types";
+import Link from "next/link";
+import { CheckCircle, XCircle } from "lucide-react";
+
+interface ReviewData {
+  sessionId: string;
+  totalProblems: number;
+  problemNumber: number;
+  currentProblem: Problem;
+}
+
+interface ReviewFlowProps {
+  orgId: string;
+  courseId: string;
+  conceptId: string;
+  token: string;
+  initialData: ReviewData;
+}
+
+interface ReviewResult {
+  conceptId: string;
+  passed: boolean;
+  score: number;
+  correctCount: number;
+  totalCount: number;
+  updatedMasteryState: string;
+}
+
+export function ReviewFlow({ orgId, courseId, conceptId, token, initialData }: ReviewFlowProps) {
+  const router = useRouter();
+  const [sessionId] = useState(initialData.sessionId);
+  const [problem, setProblem] = useState<Problem>(initialData.currentProblem);
+  const [problemNumber, setProblemNumber] = useState(initialData.problemNumber);
+  const [totalProblems] = useState(initialData.totalProblems);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [feedback, setFeedback] = useState<ProblemFeedback | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<ReviewResult | null>(null);
+
+  const basePath = `/orgs/${orgId}/courses/${courseId}`;
+
+  async function handleSubmit(answer: ProblemAnswer) {
+    if (submitting) return;
+    setSubmitting(true);
+
+    try {
+      const response = await apiClientFetch<any>(
+        `${basePath}/reviews/${conceptId}/answer`,
+        token,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            sessionId,
+            problemId: problem.id,
+            answer,
+            responseTimeMs: 5000,
+          }),
+        }
+      );
+
+      const wasCorrect = response.correct;
+      if (wasCorrect) setCorrectCount((prev) => prev + 1);
+      setFeedback({ wasCorrect, explanation: response.feedback });
+
+      setTimeout(async () => {
+        setFeedback(null);
+
+        if (response.hasMore && response.nextProblem) {
+          setProblem(response.nextProblem);
+          setProblemNumber(response.problemNumber);
+          setSubmitting(false);
+        } else {
+          // Complete the review
+          try {
+            const completeResult = await apiClientFetch<ReviewResult>(
+              `${basePath}/reviews/${conceptId}/complete`,
+              token,
+              {
+                method: "POST",
+                body: JSON.stringify({ sessionId }),
+              }
+            );
+            setResult(completeResult);
+          } catch {
+            // Still show what we have
+            setResult({
+              conceptId,
+              passed: false,
+              score: 0,
+              correctCount,
+              totalCount: totalProblems,
+              updatedMasteryState: "in_progress",
+            });
+          }
+          setSubmitting(false);
+        }
+      }, 1500);
+    } catch {
+      setSubmitting(false);
+    }
+  }
+
+  // Completion screen
+  if (result) {
+    return (
+      <div className="mx-auto max-w-md text-center space-y-6 py-8">
+        {result.passed ? (
+          <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+        ) : (
+          <XCircle className="h-16 w-16 text-destructive mx-auto" />
+        )}
+        <h2 className="text-2xl font-bold text-foreground">
+          {result.passed ? "Review Passed!" : "Review Not Passed"}
+        </h2>
+        <p className="text-muted-foreground">
+          You got {result.correctCount} of {result.totalCount} correct ({Math.round(result.score * 100)}%).
+        </p>
+        <div className="flex gap-3 justify-center">
+          {!result.passed && (
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          )}
+          <Button render={<Link href={`/study/${courseId}`} />}>
+            Continue Studying
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const progressPercent = (problemNumber / totalProblems) * 100;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">
+          Problem {problemNumber} of {totalProblems}
+        </span>
+        <span className="text-sm text-muted-foreground">
+          {correctCount} correct
+        </span>
+      </div>
+
+      <Progress value={progressPercent} className="h-2" />
+
+      <ProblemRenderer
+        problem={problem}
+        onSubmit={handleSubmit}
+        disabled={submitting || !!feedback}
+        feedback={feedback ?? undefined}
+      />
+    </div>
+  );
+}
