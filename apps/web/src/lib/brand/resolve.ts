@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import type { BrandConfig } from "./config";
 import { defaultBrand, firefighterBrand, electricianBrand, javascriptBrand } from "./defaults";
 
@@ -8,17 +9,37 @@ const brandsByDomain = new Map<string, BrandConfig>([
   ["jsprep.audio", javascriptBrand],
 ]);
 
-const brandsById = new Map<string, BrandConfig>([
+export const brandsById = new Map<string, BrandConfig>([
   ["firefighter", firefighterBrand],
   ["electrician", electricianBrand],
   ["javascript", javascriptBrand],
 ]);
 
-export async function resolveBrand(hostname: string): Promise<BrandConfig> {
+/**
+ * Resolve the active brand from hostname.
+ *
+ * In dev, checks for a `dev-brand-override` cookie first (set by the DevBrandSwitcher widget),
+ * then falls back to the DEV_BRAND_ID env var, then to the default brand.
+ *
+ * Pass cookieHeader when calling from middleware/server context to enable cookie override.
+ */
+export async function resolveBrand(
+  hostname: string,
+  cookieHeader?: string | null,
+): Promise<BrandConfig> {
   const host = hostname.split(":")[0];
 
-  // Development: localhost resolves via DEV_BRAND_ID env var
+  // Development: check cookie override, then env var
   if (host === "localhost" || host === "127.0.0.1") {
+    // Check dev-brand-override cookie
+    if (cookieHeader) {
+      const match = cookieHeader.match(/dev-brand-override=([^;]+)/);
+      if (match) {
+        const overrideBrand = brandsById.get(match[1]);
+        if (overrideBrand) return overrideBrand;
+      }
+    }
+
     const devBrandId =
       typeof process !== "undefined"
         ? process.env.DEV_BRAND_ID || "firefighter"
@@ -28,4 +49,15 @@ export async function resolveBrand(hostname: string): Promise<BrandConfig> {
 
   // Production: resolve by domain
   return brandsByDomain.get(host) ?? defaultBrand;
+}
+
+/**
+ * Server Component helper — reads hostname and cookies from Next.js headers automatically.
+ * Use this in page components instead of manually plumbing headers.
+ */
+export async function resolvePageBrand(): Promise<BrandConfig> {
+  const headersList = await headers();
+  const hostname = headersList.get("host") || "localhost";
+  const cookieHeader = headersList.get("cookie");
+  return resolveBrand(hostname, cookieHeader);
 }

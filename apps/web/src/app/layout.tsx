@@ -6,6 +6,7 @@ import { BrandProvider } from "@/lib/brand/context";
 import { BrandThemeStyle } from "@/lib/brand/theme-style";
 import { resolveBrand } from "@/lib/brand/resolve";
 import { PostHogProvider } from "@/lib/posthog/provider";
+import { DevBrandSwitcher } from "@/components/dev/brand-switcher";
 import "./globals.css";
 
 const inter = Inter({
@@ -16,7 +17,8 @@ const inter = Inter({
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = await headers();
   const hostname = headersList.get("host") || "localhost";
-  const brand = await resolveBrand(hostname);
+  const cookieHeader = headersList.get("cookie");
+  const brand = await resolveBrand(hostname, cookieHeader);
 
   return {
     metadataBase: new URL(`https://${brand.domain}`),
@@ -39,7 +41,8 @@ export default async function RootLayout({
 }) {
   const headersList = await headers();
   const hostname = headersList.get("host") || "localhost";
-  const brand = await resolveBrand(hostname);
+  const cookieHeader = headersList.get("cookie");
+  const brand = await resolveBrand(hostname, cookieHeader);
 
   return (
     <html lang="en" className={inter.variable}>
@@ -52,6 +55,7 @@ export default async function RootLayout({
           <Suspense fallback={null}>
             <PostHogProvider>{children}</PostHogProvider>
           </Suspense>
+          <DevBrandSwitcher />
         </BrandProvider>
       </body>
     </html>

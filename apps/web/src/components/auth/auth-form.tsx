@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useBrand } from "@/lib/brand/context";
 import { trackSignUp } from "@/lib/posthog/events";
+import { apiClientFetch } from "@/lib/api.client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -48,6 +49,12 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (data.session) {
           // Auto-confirm is on (dev) — redirect immediately
           trackSignUp(data.session.user.id);
+          // Auto-join the brand's org
+          try {
+            await apiClientFetch(`/orgs/${brand.orgId}/join`, data.session.access_token, { method: "POST" });
+          } catch {
+            // Non-fatal
+          }
           router.push(redirectTo);
           router.refresh();
         } else {
@@ -55,11 +62,19 @@ export function AuthForm({ mode }: AuthFormProps) {
           setError("Check your email for a confirmation link.");
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
+        // Auto-join the brand's org on sign-in (idempotent)
+        if (data.session) {
+          try {
+            await apiClientFetch(`/orgs/${brand.orgId}/join`, data.session.access_token, { method: "POST" });
+          } catch {
+            // Non-fatal
+          }
+        }
         router.push(redirectTo);
         router.refresh();
       }

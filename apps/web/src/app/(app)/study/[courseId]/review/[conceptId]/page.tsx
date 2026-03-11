@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
-import { resolveBrand } from "@/lib/brand/resolve";
+import { resolvePageBrand } from "@/lib/brand/resolve";
 import { ReviewFlow } from "@/components/app/review-flow";
 
 export default async function ReviewPage({
@@ -20,9 +19,7 @@ export default async function ReviewPage({
   const token = session?.access_token;
   if (!token) redirect("/sign-in");
 
-  const headersList = await headers();
-  const hostname = headersList.get("host") || "localhost";
-  const brand = await resolveBrand(hostname);
+  const brand = await resolvePageBrand();
   const orgId = brand.orgId;
 
   const reviewData = await apiFetch<any>(

@@ -3,11 +3,8 @@
 import { useMemo } from "react";
 import {
   ReactFlow,
-  Controls,
   MiniMap,
   Background,
-  useNodesState,
-  useEdgesState,
   Position,
   MarkerType,
 } from "@xyflow/react";
@@ -46,16 +43,110 @@ const MASTERY_LABELS: Record<MasteryState, string> = {
   unstarted: "Unstarted",
 };
 
+const NODE_WIDTH = 150;
+const NODE_HEIGHT = 50;
+const HORIZONTAL_GAP = 40;
+const VERTICAL_GAP = 80;
+
+/**
+ * Hierarchical DAG layout via topological layering.
+ * Layer = 1 + max(layer of prerequisites). Roots at top, leaves at bottom.
+ * Within each layer, nodes are spread horizontally and centered.
+ */
+function computeHierarchicalLayout(
+  concepts: ConceptNode[],
+  edges: PrereqEdge[]
+): { id: string; x: number; y: number }[] {
+  const ids = new Set(concepts.map((c) => c.id));
+
+  // Build adjacency: parent -> children, child -> parents
+  const children = new Map<string, string[]>();
+  const parents = new Map<string, string[]>();
+  for (const id of ids) {
+    children.set(id, []);
+    parents.set(id, []);
+  }
+  for (const e of edges) {
+    if (!ids.has(e.sourceConceptId) || !ids.has(e.targetConceptId)) continue;
+    children.get(e.sourceConceptId)!.push(e.targetConceptId);
+    parents.get(e.targetConceptId)!.push(e.sourceConceptId);
+  }
+
+  // Assign layers: layer[node] = 0 if root, else 1 + max(layer of parents)
+  const layer = new Map<string, number>();
+  const visited = new Set<string>();
+
+  function assignLayer(id: string): number {
+    if (layer.has(id)) return layer.get(id)!;
+    if (visited.has(id)) return 0; // cycle guard
+    visited.add(id);
+
+    const pars = parents.get(id) ?? [];
+    const myLayer =
+      pars.length === 0 ? 0 : 1 + Math.max(...pars.map(assignLayer));
+    layer.set(id, myLayer);
+    return myLayer;
+  }
+
+  for (const id of ids) assignLayer(id);
+
+  // Group by layer
+  const layers = new Map<number, string[]>();
+  for (const [id, l] of layer) {
+    if (!layers.has(l)) layers.set(l, []);
+    layers.get(l)!.push(id);
+  }
+
+  // Sort layers in reverse so roots are at the bottom
+  const sortedLayerKeys = [...layers.keys()].sort((a, b) => a - b);
+  const maxLayer = sortedLayerKeys[sortedLayerKeys.length - 1] ?? 0;
+
+  // Find the widest layer to center everything
+  const maxNodesInLayer = Math.max(
+    ...sortedLayerKeys.map((k) => layers.get(k)!.length)
+  );
+  const totalWidth = maxNodesInLayer * (NODE_WIDTH + HORIZONTAL_GAP);
+
+  // Position nodes: centered per layer
+  const positions: { id: string; x: number; y: number }[] = [];
+
+  for (const layerKey of sortedLayerKeys) {
+    const nodesInLayer = layers.get(layerKey)!;
+    const layerWidth =
+      nodesInLayer.length * (NODE_WIDTH + HORIZONTAL_GAP) - HORIZONTAL_GAP;
+    const startX = (totalWidth - layerWidth) / 2;
+
+    for (let i = 0; i < nodesInLayer.length; i++) {
+      positions.push({
+        id: nodesInLayer[i],
+        x: startX + i * (NODE_WIDTH + HORIZONTAL_GAP),
+        y: (maxLayer - layerKey) * (NODE_HEIGHT + VERTICAL_GAP),
+      });
+    }
+  }
+
+  return positions;
+}
+
 export function KnowledgeGraph({ concepts, edges }: KnowledgeGraphProps) {
-  const initialNodes = useMemo(
-    () =>
-      concepts.map((c, i) => ({
+  const safeEdges = edges ?? [];
+
+  const initialNodes = useMemo(() => {
+    const positions = computeHierarchicalLayout(concepts, safeEdges);
+    const posMap = new Map(positions.map((p) => [p.id, { x: p.x, y: p.y }]));
+
+    return concepts.map((c, i) => {
+      const pos = posMap.get(c.id) ?? {
+        x: (i % 5) * 200,
+        y: Math.floor(i / 5) * 120,
+      };
+      return {
         id: c.id,
-        position: {
-          x: (i % 5) * 200 + 50,
-          y: Math.floor(i / 5) * 120 + 50,
-        },
+        position: pos,
         data: { label: c.name },
+        draggable: false,
+        connectable: false,
+        selectable: false,
         style: {
           background: MASTERY_COLORS[c.masteryState],
           border: "1px solid var(--border)",
@@ -66,52 +157,63 @@ export function KnowledgeGraph({ concepts, edges }: KnowledgeGraphProps) {
             c.masteryState === "mastered" || c.masteryState === "in_progress"
               ? "#fff"
               : "var(--foreground)",
-          minWidth: "120px",
+          minWidth: `${NODE_WIDTH}px`,
+          maxWidth: `${NODE_WIDTH}px`,
           textAlign: "center" as const,
         },
-        sourcePosition: Position.Bottom,
-        targetPosition: Position.Top,
-      })),
-    [concepts],
-  );
+        sourcePosition: Position.Top,
+        targetPosition: Position.Bottom,
+      };
+    });
+  }, [concepts, safeEdges]);
 
   const initialEdges = useMemo(
     () =>
-      edges.map((e) => ({
+      safeEdges.map((e) => ({
         id: `${e.sourceConceptId}-${e.targetConceptId}`,
         source: e.sourceConceptId,
         target: e.targetConceptId,
         markerEnd: { type: MarkerType.ArrowClosed },
-        style: { stroke: "var(--border)" },
+        style: { stroke: "var(--border)", strokeWidth: 1.5 },
+        selectable: false,
       })),
-    [edges],
+    [safeEdges]
   );
-
-  const [nodes, , onNodesChange] = useNodesState(initialNodes);
-  const [flowEdges, , onEdgesChange] = useEdgesState(initialEdges);
 
   return (
     <Card className="border-border">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium">Knowledge Graph</CardTitle>
+        <CardTitle className="text-base font-medium">
+          Knowledge Graph
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[400px] rounded-lg border border-border overflow-hidden">
+        <div className="h-[500px] rounded-lg border border-border overflow-hidden">
           <ReactFlow
-            nodes={nodes}
-            edges={flowEdges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
+            nodes={initialNodes}
+            edges={initialEdges}
             fitView
+            fitViewOptions={{ padding: 0.15 }}
             panOnDrag
             zoomOnPinch
-            minZoom={0.3}
+            zoomOnScroll
+            minZoom={0.2}
             maxZoom={2}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            nodesFocusable={false}
+            edgesFocusable={false}
+            elementsSelectable={false}
+            proOptions={{ hideAttribution: true }}
           >
-            <Controls />
             <MiniMap
-              nodeColor={(node: any) => node.style?.background as string ?? "#e5e7eb"}
+              nodeColor={
+                (node: any) =>
+                  (node.style?.background as string) ?? "#e5e7eb"
+              }
               maskColor="var(--background)"
+              pannable
+              zoomable={false}
             />
             <Background />
           </ReactFlow>
@@ -128,7 +230,7 @@ export function KnowledgeGraph({ concepts, edges }: KnowledgeGraphProps) {
                 />
                 <span className="text-xs text-muted-foreground">{label}</span>
               </div>
-            ),
+            )
           )}
         </div>
       </CardContent>

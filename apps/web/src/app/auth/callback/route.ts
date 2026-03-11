@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { getServerPostHog } from "@/lib/posthog/server";
+import { resolveBrand } from "@/lib/brand/resolve";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -51,6 +52,23 @@ export async function GET(request: NextRequest) {
           await ph.shutdown();
         }
       }
+      // Auto-join the brand's org so the user has access to this site's content
+      const token = data?.session?.access_token;
+      if (token) {
+        const hostname = request.headers.get("host") || "localhost";
+        const cookieHeader = request.headers.get("cookie");
+        const brand = await resolveBrand(hostname, cookieHeader);
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
+        try {
+          await fetch(`${backendUrl}/orgs/${brand.orgId}/join`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } catch {
+          // Non-fatal: membership may already exist or backend may be down
+        }
+      }
+
       return NextResponse.redirect(new URL(redirect, origin));
     }
   }

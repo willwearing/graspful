@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
-import { resolveBrand } from "@/lib/brand/resolve";
+import { resolvePageBrand } from "@/lib/brand/resolve";
 import { PricingSection } from "@/components/marketing/pricing";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const headersList = await headers();
-  const hostname = headersList.get("host") || "localhost";
-  const brand = await resolveBrand(hostname);
+  const brand = await resolvePageBrand();
 
   return {
     title: `Pricing -- ${brand.name}`,

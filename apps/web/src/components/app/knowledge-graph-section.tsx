@@ -16,7 +16,11 @@ interface GraphData {
     name: string;
     masteryState: "unstarted" | "in_progress" | "mastered" | "needs_review";
   }>;
-  edges: Array<{
+  edges?: Array<{
+    sourceConceptId: string;
+    targetConceptId: string;
+  }>;
+  prerequisiteEdges?: Array<{
     sourceConceptId: string;
     targetConceptId: string;
   }>;
@@ -52,5 +56,6 @@ export function KnowledgeGraphSection({
 
   if (!data || data.concepts.length === 0) return null;
 
-  return <KnowledgeGraph concepts={data.concepts} edges={data.edges} />;
+  const edges = data.edges ?? data.prerequisiteEdges ?? [];
+  return <KnowledgeGraph concepts={data.concepts} edges={edges} />;
 }

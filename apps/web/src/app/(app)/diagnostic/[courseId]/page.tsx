@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { apiFetch, ApiError } from "@/lib/api";
-import { resolveBrand } from "@/lib/brand/resolve";
+import { resolvePageBrand } from "@/lib/brand/resolve";
 import { DiagnosticFlow } from "@/components/app/diagnostic-flow";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -23,9 +22,7 @@ export default async function DiagnosticPage({
   const token = session?.access_token;
   if (!token) redirect("/sign-in");
 
-  const headersList = await headers();
-  const hostname = headersList.get("host") || "localhost";
-  const brand = await resolveBrand(hostname);
+  const brand = await resolvePageBrand();
   const orgId = brand.orgId;
 
   const basePath = `/orgs/${orgId}/courses/${courseId}`;
