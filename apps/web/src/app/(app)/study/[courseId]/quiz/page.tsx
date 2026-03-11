@@ -26,7 +26,8 @@ export default async function QuizPage({
   const orgId = brand.orgId;
 
   const quizData = await apiFetch<any>(
-    `/orgs/${orgId}/courses/${courseId}/quizzes/generate`
+    `/orgs/${orgId}/courses/${courseId}/quizzes/generate`,
+    { method: "POST" }
   );
 
   return (

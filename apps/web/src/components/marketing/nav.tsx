@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useBrand } from "@/lib/brand/context";
-import { Button } from "@/components/ui/button";
 
 export function MarketingNav() {
   const brand = useBrand();
@@ -22,9 +21,12 @@ export function MarketingNav() {
           >
             Sign In
           </Link>
-          <Button size="sm" render={<Link href="/sign-up" />}>
+          <Link
+            href="/sign-up"
+            className="inline-flex items-center justify-center rounded-lg bg-primary px-2.5 h-7 text-sm font-medium text-primary-foreground hover:bg-primary/80 transition-colors"
+          >
             Get Started
-          </Button>
+          </Link>
         </div>
       </div>
     </nav>

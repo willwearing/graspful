@@ -69,8 +69,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // 5. Redirect authenticated users from landing to dashboard
-  if (user && pathname === "/") {
+  // 5. Redirect authenticated users from landing and auth pages to dashboard
+  const AUTH_PAGES = ["/", "/sign-in", "/sign-up"];
+  if (user && AUTH_PAGES.includes(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
@@ -81,6 +82,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|images|icon|api).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|images|icon|api|sitemap\\.xml|robots\\.txt).*)",
   ],
 };

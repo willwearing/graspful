@@ -57,23 +57,22 @@ async function main() {
   console.log(`  Encompassing Edges: ${result.encompassingEdgeCount}`);
 
   // 3. Upsert free subscription for the org
-  const existingSub = await prisma.subscription.findUnique({
+  const sub = await prisma.subscription.upsert({
     where: { orgId: org.id },
+    update: {
+      plan: 'free',
+      status: 'active',
+      maxMembers: 1000,
+    },
+    create: {
+      orgId: org.id,
+      stripeCustomerId: `cus_seed_${org.slug}`,
+      plan: 'free',
+      status: 'active',
+      maxMembers: 1000,
+    },
   });
-  if (!existingSub) {
-    await prisma.subscription.create({
-      data: {
-        orgId: org.id,
-        stripeCustomerId: `cus_seed_${org.slug}`,
-        plan: 'free',
-        status: 'active',
-        maxMembers: 1000,
-      },
-    });
-    console.log('Created free subscription for org');
-  } else {
-    console.log('Subscription already exists -- skipping');
-  }
+  console.log(`Subscription: ${sub.id} (${sub.plan})`);
 
   await app.close();
   console.log('Done!');

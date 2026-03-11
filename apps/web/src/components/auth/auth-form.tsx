@@ -47,7 +47,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (error) throw error;
         if (data.session) {
           // Auto-confirm is on (dev) — redirect immediately
-          trackSignUp(data.session.user.id, email);
+          trackSignUp(data.session.user.id);
           router.push(redirectTo);
           router.refresh();
         } else {

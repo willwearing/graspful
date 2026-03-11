@@ -33,12 +33,12 @@ The key efficiency innovation. Advanced concepts implicitly practice their prere
 
 ## Architecture
 
-- **Frontend:** Next.js 15, shadcn/ui, Tailwind -- single Vercel deployment, custom domains per niche
+- **Frontend:** Next.js 15, shadcn/ui, Tailwind -- single Vercel deployment, custom domains per niche, mobile-responsive
 - **Backend:** NestJS (TypeScript), Prisma, Supabase -- DDD bounded contexts
-- **Mobile:** React Native (Expo) -- one app per niche in app stores
 - **Audio:** Kokoro TTS on Modal -- batch pre-generation
 - **Adaptive Learning:** Knowledge graph + FIRe spaced repetition + mastery enforcement
 - **Billing:** Stripe
+- **Mobile:** Deferred (see [mobile-plan.md](docs/mobile-plan.md))
 
 ## Docs
 
@@ -48,9 +48,16 @@ The key efficiency innovation. Advanced concepts implicitly practice their prere
 | [adaptive-learning-architecture.md](docs/adaptive-learning-architecture.md) | Full adaptive learning system design -- knowledge graph, FIRe algorithm, diagnostic, mastery, DDD contexts, data model, API |
 | [backend-plan.md](docs/backend-plan.md) | NestJS backend architecture, Prisma schema, API design, content pipeline |
 | [frontend-plan.md](docs/frontend-plan.md) | Next.js frontend, white-label theming, audio player, 25 tasks |
-| [mobile-plan.md](docs/mobile-plan.md) | React Native (Expo), offline audio, background playback, 25 tasks |
 | [white-label-architecture-research.md](docs/white-label-architecture-research.md) | 4 approaches to white-labeling, recommendation |
 | [market-research.md](market-research.md) | 18+ niche markets analyzed, tier rankings |
+| [mobile-plan.md](docs/mobile-plan.md) | React Native (Expo), offline audio, background playback, 25 tasks (Deferred) |
+
+## Development Workflow
+
+- Each phase is executed by a separate Claude Code agent
+- Workflow: `/writing-plans` to create detailed specs, then `/subagent-driven-development` or `/executing-plans` to build
+- All phases use TDD with two-stage review
+- Status tracked per phase in [PLAN.md](docs/PLAN.md)
 
 ## Inspired By
 

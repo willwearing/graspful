@@ -2,10 +2,11 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as jwt from 'jsonwebtoken';
+import { createRemoteJWKSet, jwtVerify, FlattenedJWSInput, JWSHeaderParameters, GetKeyFunction } from 'jose';
 
 export interface AuthUser {
   userId: string;
@@ -13,10 +14,24 @@ export interface AuthUser {
 }
 
 @Injectable()
-export class SupabaseAuthGuard implements CanActivate {
+export class SupabaseAuthGuard implements CanActivate, OnModuleInit {
+  private jwks!: GetKeyFunction<JWSHeaderParameters, FlattenedJWSInput>;
+
   constructor(private config: ConfigService) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  onModuleInit() {
+    const supabaseUrl = this.config.get('SUPABASE_URL');
+    this.jwks = createRemoteJWKSet(
+      new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`),
+    );
+  }
+
+  /** Allow injecting a custom JWKS for testing */
+  setJwks(jwks: GetKeyFunction<JWSHeaderParameters, FlattenedJWSInput>) {
+    this.jwks = jwks;
+  }
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization;
 
@@ -27,10 +42,9 @@ export class SupabaseAuthGuard implements CanActivate {
     const token = authHeader.slice(7);
 
     try {
-      const payload = jwt.verify(token, this.config.get('SUPABASE_JWT_SECRET')!, {
-        algorithms: ['HS256'],
+      const { payload } = await jwtVerify(token, this.jwks, {
         audience: 'authenticated',
-      }) as jwt.JwtPayload;
+      });
 
       if (!payload.sub) {
         throw new UnauthorizedException('Token missing subject');
@@ -38,7 +52,7 @@ export class SupabaseAuthGuard implements CanActivate {
 
       request.user = {
         userId: payload.sub,
-        email: payload.email,
+        email: payload.email as string,
       } satisfies AuthUser;
 
       return true;

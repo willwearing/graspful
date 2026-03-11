@@ -35,7 +35,7 @@ export function Matching({ problem, onSubmit, disabled, feedback }: MatchingProp
           <div key={left} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
             <span className="text-sm font-medium text-foreground sm:w-1/3">{left}</span>
             <select
-              role="combobox"
+              aria-label={`Match for ${left}`}
               value={selections[left] ?? ""}
               onChange={(e) => handleSelect(left, e.target.value)}
               disabled={disabled}

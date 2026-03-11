@@ -33,10 +33,23 @@ export class OrgMembershipGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
-    const orgId = request.params.orgId;
+    let orgId = request.params.orgId;
 
     if (!user || !orgId) {
       throw new ForbiddenException('Missing user or org context');
+    }
+
+    // Support slug-based orgId — resolve to UUID if not a valid UUID
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(orgId)) {
+      const org = await this.prisma.organization.findUnique({
+        where: { slug: orgId },
+        select: { id: true },
+      });
+      if (!org) {
+        throw new ForbiddenException('Organization not found');
+      }
+      orgId = org.id;
     }
 
     const membership = await this.prisma.orgMembership.findUnique({

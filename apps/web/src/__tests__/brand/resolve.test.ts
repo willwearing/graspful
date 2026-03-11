@@ -18,4 +18,25 @@ describe("resolveBrand", () => {
     const brand = await resolveBrand("localhost:3001");
     expect(brand.id).toBe("firefighter");
   });
+
+  it("resolves known domain firefighterprep.audio", async () => {
+    const brand = await resolveBrand("firefighterprep.audio");
+    expect(brand.id).toBe("firefighter");
+    expect(brand.name).toBe("FirefighterPrep");
+  });
+
+  it("falls back to default brand for unknown domains", async () => {
+    const brand = await resolveBrand("totally-random-site.org");
+    expect(brand).toEqual(defaultBrand);
+  });
+
+  it("brand config has correct orgId", async () => {
+    const brand = await resolveBrand("localhost");
+    expect(brand.orgId).toBe("firefighter-prep");
+  });
+
+  it("resolves 127.0.0.1 the same as localhost", async () => {
+    const brand = await resolveBrand("127.0.0.1:3001");
+    expect(brand.id).toBe("firefighter");
+  });
 });

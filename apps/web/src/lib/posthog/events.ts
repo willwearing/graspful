@@ -4,10 +4,18 @@ function isLoaded(): boolean {
   return typeof window !== "undefined" && posthog.__loaded;
 }
 
-export function trackSignUp(userId: string, email: string) {
+export function trackSignUp(userId: string) {
   if (!isLoaded()) return;
-  posthog.identify(userId, { email });
+  posthog.identify(userId);
   posthog.capture("sign_up", { method: "email" });
+}
+
+export function captureError(message: string, source?: string) {
+  if (!isLoaded()) return;
+  posthog.capture("$exception", {
+    message,
+    ...(source ? { source } : {}),
+  });
 }
 
 export function trackEnrollment(courseId: string, courseName: string) {

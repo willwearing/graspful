@@ -45,7 +45,7 @@ export function Ordering({ problem, onSubmit, disabled, feedback }: OrderingProp
                 aria-label="Move up"
                 onClick={() => moveItem(index, -1)}
                 disabled={disabled || index === 0}
-                className="rounded p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                className="rounded p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30"
               >
                 <ChevronUp className="h-4 w-4" />
               </button>
@@ -54,7 +54,7 @@ export function Ordering({ problem, onSubmit, disabled, feedback }: OrderingProp
                 aria-label="Move down"
                 onClick={() => moveItem(index, 1)}
                 disabled={disabled || index === items.length - 1}
-                className="rounded p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                className="rounded p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30"
               >
                 <ChevronDown className="h-4 w-4" />
               </button>

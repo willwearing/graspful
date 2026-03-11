@@ -2,6 +2,10 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
+**Status:** Deferred
+
+> **This plan is deferred.** The web platform (mobile-responsive) will be built and validated first. Native mobile apps will be built after the web platform has paying users. See PLAN.md for the current execution order.
+
 **Goal:** Build a production mobile app for audio exam prep that works offline, plays in the background, and shares maximum code with the existing Next.js web frontend.
 
 **Architecture:** React Native (Expo) app using react-native-track-player for background audio, WatermelonDB for offline storage with sync, and a monorepo structure that shares TypeScript business logic, API clients, and types between web and mobile. White-label theming is driven by runtime config, matching the web approach.

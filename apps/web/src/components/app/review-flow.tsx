@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { apiClientFetch } from "@/lib/api-client";
 import { ProblemRenderer, type ProblemFeedback } from "@/components/app/problems/problem-renderer";
@@ -44,6 +44,8 @@ export function ReviewFlow({ orgId, courseId, conceptId, token, initialData }: R
   const [feedback, setFeedback] = useState<ProblemFeedback | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ReviewResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const startTimeRef = useRef(Date.now());
 
   const basePath = `/orgs/${orgId}/courses/${courseId}`;
 
@@ -61,7 +63,7 @@ export function ReviewFlow({ orgId, courseId, conceptId, token, initialData }: R
             sessionId,
             problemId: problem.id,
             answer,
-            responseTimeMs: 5000,
+            responseTimeMs: Date.now() - startTimeRef.current,
           }),
         }
       );
@@ -76,6 +78,7 @@ export function ReviewFlow({ orgId, courseId, conceptId, token, initialData }: R
         if (response.hasMore && response.nextProblem) {
           setProblem(response.nextProblem);
           setProblemNumber(response.problemNumber);
+          startTimeRef.current = Date.now();
           setSubmitting(false);
         } else {
           // Complete the review
@@ -104,6 +107,7 @@ export function ReviewFlow({ orgId, courseId, conceptId, token, initialData }: R
         }
       }, 1500);
     } catch {
+      setError("Something went wrong. Please try again.");
       setSubmitting(false);
     }
   }
@@ -151,6 +155,13 @@ export function ReviewFlow({ orgId, courseId, conceptId, token, initialData }: R
       </div>
 
       <Progress value={progressPercent} className="h-2" />
+
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          {error}
+          <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
+        </div>
+      )}
 
       <ProblemRenderer
         problem={problem}

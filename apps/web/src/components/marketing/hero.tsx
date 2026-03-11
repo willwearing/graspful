@@ -10,15 +10,15 @@ export function Hero({ headline, subheadline, ctaText }: HeroProps) {
   const words = headline.split(" ");
 
   return (
-    <section className="relative overflow-hidden">
-      <div className="gradient-mesh">
+    <section className="relative">
+      <div className="gradient-mesh overflow-hidden">
         <div className="orb-1" />
         <div className="orb-2" />
         <div className="orb-3" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-5xl px-6 pt-32 pb-36 text-center md:pt-44 md:pb-48">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl xl:text-7xl">
+        <h1 className="text-4xl font-bold leading-[1.25] tracking-tight sm:text-5xl lg:text-6xl xl:text-7xl">
           {words.map((word, i) => (
             <span
               key={i}

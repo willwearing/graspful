@@ -1,0 +1,1411 @@
+# NY State Real Estate Salesperson — 77-hour pre-licensing syllabus
+# Based on DOS 77-hour syllabus (2022 edition)
+
+course:
+  id: ny-re-salesperson
+  name: "New York State Real Estate Salesperson"
+  description: "Based on the DOS 77-hour pre-licensing syllabus (2022 edition)"
+  estimatedHours: 77
+  version: "2024.1"
+  sourceDocument: "NY DOS Real Estate Salesperson Syllabus 2022"
+
+concepts:
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 1: License Law & Regulations (3 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: licensing-categories
+    name: "Licensing Categories"
+    difficulty: 2
+    estimatedMinutes: 20
+    tags: [s01-license-law, licensing]
+    sourceRef: "DOS Syllabus Subject 1: License Law & Regulations"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: maintaining-license
+    name: "Maintaining a Real Estate License"
+    difficulty: 2
+    estimatedMinutes: 15
+    tags: [s01-license-law, continuing-education]
+    sourceRef: "DOS Syllabus Subject 1: License Law & Regulations"
+    prerequisites:
+      - licensing-categories
+    knowledgePoints: [] # KPs to be authored
+
+  - id: dos-regulations
+    name: "Department of State Regulations"
+    difficulty: 3
+    estimatedMinutes: 25
+    tags: [s01-license-law, regulations]
+    sourceRef: "DOS Syllabus Subject 1: License Law & Regulations"
+    prerequisites:
+      - licensing-categories
+    knowledgePoints: [] # KPs to be authored
+
+  - id: license-law-violations
+    name: "License Law Violations & Penalties"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s01-license-law, violations]
+    sourceRef: "DOS Syllabus Subject 1: License Law & Regulations"
+    prerequisites:
+      - dos-regulations
+    knowledgePoints: [] # KPs to be authored
+
+  - id: property-condition-disclosure-act
+    name: "Property Condition Disclosure Act (PCDA)"
+    difficulty: 3
+    estimatedMinutes: 15
+    tags: [s01-license-law, disclosure]
+    sourceRef: "DOS Syllabus Subject 1: License Law & Regulations"
+    prerequisites:
+      - licensing-categories
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 2: Law of Agency (11 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: fiduciary-duties
+    name: "Fiduciary Duties of an Agent"
+    difficulty: 5
+    estimatedMinutes: 45
+    tags: [s02-agency, fiduciary]
+    sourceRef: "DOS Syllabus Subject 2: Law of Agency"
+    prerequisites:
+      - licensing-categories
+    knowledgePoints:
+      - id: fiduciary-oldcar
+        instruction: "content/ny-re/fiduciary-oldcar.md"
+        workedExample: "content/ny-re/fiduciary-oldcar-ex.md"
+        problems:
+          - id: fid-p1
+            type: multiple_choice
+            question: "Which acronym summarizes the six fiduciary duties an agent owes a principal?"
+            options:
+              - "OLDCAR — Obedience, Loyalty, Disclosure, Confidentiality, Accountability, Reasonable care"
+              - "BRRETA — Buyer Representation, Responsibility, Ethics, Trust, Accountability"
+              - "CLUE — Confidentiality, Loyalty, Undivided attention, Equity"
+              - "FIDAR — Fiduciary, Integrity, Diligence, Accountability, Representation"
+            correct: 0
+            explanation: "OLDCAR stands for Obedience, Loyalty, Disclosure, Confidentiality, Accountability, and Reasonable care/skill. These are the six fiduciary duties an agent owes to a principal."
+          - id: fid-p2
+            type: multiple_choice
+            question: "A seller tells their listing agent that they will accept $20,000 less than the asking price. The agent shares this with a prospective buyer. Which fiduciary duty was violated?"
+            options:
+              - "Obedience"
+              - "Loyalty"
+              - "Confidentiality"
+              - "Accountability"
+            correct: 2
+            explanation: "The agent violated the duty of Confidentiality by disclosing the seller's bottom-line price to the buyer. An agent must never reveal information that could weaken the principal's negotiating position."
+          - id: fid-p3
+            type: multiple_choice
+            question: "A buyer's agent learns through the MLS that a property has a cracked foundation. They do not mention it to the buyer. Which duty is violated?"
+            options:
+              - "Confidentiality"
+              - "Disclosure"
+              - "Obedience"
+              - "Accountability"
+            correct: 1
+            explanation: "The agent violated the duty of Disclosure. Agents must disclose all material facts that could affect the principal's decision, including known property defects."
+          - id: fid-p4
+            type: fill_blank
+            question: "The fiduciary duty of ___ requires an agent to follow all lawful instructions of their principal."
+            correct: "Obedience"
+            explanation: "Obedience means the agent must carry out the principal's lawful instructions. An agent may refuse only if the instruction is illegal or unethical."
+      - id: fiduciary-vs-customer
+        instruction: "content/ny-re/fiduciary-vs-customer.md"
+        problems:
+          - id: fvc-p1
+            type: multiple_choice
+            question: "What level of service does an agent owe to a customer (non-client)?"
+            options:
+              - "Full fiduciary duties identical to those owed to a client"
+              - "Honesty, fair dealing, and disclosure of material facts"
+              - "No duties whatsoever"
+              - "Only the duty of confidentiality"
+            correct: 1
+            explanation: "An agent owes a customer (non-client) honesty, fair dealing, and disclosure of material facts—but not the full OLDCAR fiduciary duties reserved for clients."
+
+  - id: creation-of-agency
+    name: "Creation of Agency Relationships"
+    difficulty: 4
+    estimatedMinutes: 35
+    tags: [s02-agency, agency-creation]
+    sourceRef: "DOS Syllabus Subject 2: Law of Agency"
+    prerequisites:
+      - fiduciary-duties
+    knowledgePoints: [] # KPs to be authored
+
+  - id: sellers-agent
+    name: "Seller's Agent Relationship"
+    difficulty: 4
+    estimatedMinutes: 30
+    tags: [s02-agency, sellers-agent]
+    sourceRef: "DOS Syllabus Subject 2: Law of Agency"
+    prerequisites:
+      - creation-of-agency
+    knowledgePoints: [] # KPs to be authored
+
+  - id: buyers-agent
+    name: "Buyer's Agent Relationship"
+    difficulty: 4
+    estimatedMinutes: 30
+    tags: [s02-agency, buyers-agent]
+    sourceRef: "DOS Syllabus Subject 2: Law of Agency"
+    prerequisites:
+      - creation-of-agency
+    knowledgePoints: [] # KPs to be authored
+
+  - id: dual-agency
+    name: "Dual Agency"
+    difficulty: 6
+    estimatedMinutes: 35
+    tags: [s02-agency, dual-agency]
+    sourceRef: "DOS Syllabus Subject 2: Law of Agency"
+    prerequisites:
+      - sellers-agent
+      - buyers-agent
+    knowledgePoints: [] # KPs to be authored
+
+  - id: designated-agency
+    name: "Designated Agency"
+    difficulty: 6
+    estimatedMinutes: 30
+    tags: [s02-agency, designated-agency]
+    sourceRef: "DOS Syllabus Subject 2: Law of Agency"
+    prerequisites:
+      - dual-agency
+    knowledgePoints: [] # KPs to be authored
+
+  - id: subagency-vs-buyer-broker
+    name: "Subagency vs Buyer's Broker"
+    difficulty: 5
+    estimatedMinutes: 30
+    tags: [s02-agency, subagency]
+    sourceRef: "DOS Syllabus Subject 2: Law of Agency"
+    prerequisites:
+      - sellers-agent
+      - buyers-agent
+    knowledgePoints: [] # KPs to be authored
+
+  - id: dual-agency-informed-consent
+    name: "Dual Agency Informed Consent"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s02-agency, dual-agency, consent]
+    sourceRef: "DOS Syllabus Subject 2: Law of Agency"
+    prerequisites:
+      - dual-agency
+    knowledgePoints: [] # KPs to be authored
+
+  - id: rpl-443-disclosure
+    name: "RPL Section 443 Agency Disclosure"
+    difficulty: 4
+    estimatedMinutes: 30
+    tags: [s02-agency, disclosure, rpl-443]
+    sourceRef: "DOS Syllabus Subject 2: Law of Agency"
+    prerequisites:
+      - creation-of-agency
+    knowledgePoints: [] # KPs to be authored
+
+  - id: independent-contractor-vs-employee
+    name: "Independent Contractor vs Employee"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s02-agency, employment-status]
+    sourceRef: "DOS Syllabus Subject 2: Law of Agency"
+    prerequisites:
+      - licensing-categories
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 3: Legal Issues (10 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: fee-simple-estates
+    name: "Fee Simple Estates"
+    difficulty: 3
+    estimatedMinutes: 25
+    tags: [s03-legal, estates, fee-simple]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: life-estates
+    name: "Life Estates"
+    difficulty: 4
+    estimatedMinutes: 25
+    tags: [s03-legal, estates, life-estate]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    prerequisites:
+      - fee-simple-estates
+    knowledgePoints: [] # KPs to be authored
+
+  - id: forms-of-co-ownership
+    name: "Forms of Co-Ownership"
+    difficulty: 5
+    estimatedMinutes: 40
+    tags: [s03-legal, estates, co-ownership]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    prerequisites:
+      - fee-simple-estates
+    knowledgePoints:
+      - id: tenancy-in-common
+        instruction: "content/ny-re/tenancy-in-common.md"
+        workedExample: "content/ny-re/tenancy-in-common-ex.md"
+        problems:
+          - id: tic-p1
+            type: multiple_choice
+            question: "In a tenancy in common, what happens to a deceased owner's interest?"
+            options:
+              - "It automatically passes to the surviving co-owners by right of survivorship"
+              - "It passes to the deceased owner's heirs or devisees through probate"
+              - "It reverts to the state through escheat"
+              - "It is divided equally among all remaining tenants"
+            correct: 1
+            explanation: "Tenancy in common does NOT include a right of survivorship. A deceased tenant's interest passes through their estate (to heirs via intestacy or devisees via will)."
+          - id: tic-p2
+            type: multiple_choice
+            question: "Which statement is TRUE about tenancy in common?"
+            options:
+              - "All owners must hold equal shares"
+              - "Owners may hold unequal shares"
+              - "Owners cannot sell their individual interest"
+              - "It requires the four unities of time, title, interest, and possession"
+            correct: 1
+            explanation: "Tenants in common may hold unequal shares (e.g., one holds 60%, another 40%). The only shared unity is possession—each tenant has the right to use the entire property."
+      - id: joint-tenancy
+        instruction: "content/ny-re/joint-tenancy.md"
+        workedExample: "content/ny-re/joint-tenancy-ex.md"
+        problems:
+          - id: jt-p1
+            type: multiple_choice
+            question: "What are the four unities required to create a joint tenancy?"
+            options:
+              - "Time, Title, Interest, and Possession"
+              - "Consent, Consideration, Capacity, and Legality"
+              - "Offer, Acceptance, Consideration, and Mutual Assent"
+              - "Ownership, Lien, Deed, and Conveyance"
+            correct: 0
+            explanation: "Joint tenancy requires the four unities: Time (acquired at the same time), Title (same deed), Interest (equal shares), and Possession (equal right to possess the whole). If any unity is broken, the joint tenancy converts to a tenancy in common."
+          - id: jt-p2
+            type: fill_blank
+            question: "The key feature that distinguishes joint tenancy from tenancy in common is the right of ___."
+            correct: "survivorship"
+            explanation: "The right of survivorship means that when one joint tenant dies, their interest automatically passes to the surviving joint tenant(s) outside of probate."
+      - id: tenancy-by-entirety
+        instruction: "content/ny-re/tenancy-by-entirety.md"
+        problems:
+          - id: tbe-p1
+            type: multiple_choice
+            question: "Tenancy by the entirety is available only to:"
+            options:
+              - "Business partners"
+              - "Married couples"
+              - "Blood relatives"
+              - "Any two individuals"
+            correct: 1
+            explanation: "Tenancy by the entirety is a special form of joint ownership available only to married couples (and in NY, also to domestic partners in some contexts). Neither spouse can convey or encumber their interest without the other's consent."
+      - id: community-property-vs-ny
+        instruction: "content/ny-re/community-property-vs-ny.md"
+        problems:
+          - id: cp-p1
+            type: multiple_choice
+            question: "Does New York follow community property rules?"
+            options:
+              - "Yes, all marital property is community property"
+              - "No, New York is an equitable distribution state"
+              - "Yes, but only for real property"
+              - "No, New York follows common-law dower/curtesy"
+            correct: 1
+            explanation: "New York is an equitable distribution state, not a community property state. Upon divorce, marital property is divided equitably (fairly, not necessarily equally) by the court."
+
+  - id: general-liens
+    name: "General Liens"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s03-legal, liens, general-liens]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: specific-liens
+    name: "Specific Liens"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s03-legal, liens, specific-liens]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: mechanics-liens
+    name: "Mechanic's Liens"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s03-legal, liens, mechanics-lien]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    prerequisites:
+      - specific-liens
+    knowledgePoints: [] # KPs to be authored
+
+  - id: tax-liens
+    name: "Tax Liens"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s03-legal, liens, tax-liens]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    prerequisites:
+      - specific-liens
+    knowledgePoints: [] # KPs to be authored
+
+  - id: easement-appurtenant
+    name: "Easement Appurtenant"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s03-legal, easements]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    prerequisites:
+      - fee-simple-estates
+    knowledgePoints: [] # KPs to be authored
+
+  - id: easement-in-gross
+    name: "Easement in Gross"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s03-legal, easements]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    prerequisites:
+      - fee-simple-estates
+    knowledgePoints: [] # KPs to be authored
+
+  - id: easement-by-prescription
+    name: "Easement by Prescription"
+    difficulty: 5
+    estimatedMinutes: 20
+    tags: [s03-legal, easements, adverse-possession]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    prerequisites:
+      - easement-appurtenant
+    knowledgePoints: [] # KPs to be authored
+
+  - id: deed-types
+    name: "Types of Deeds"
+    difficulty: 4
+    estimatedMinutes: 30
+    tags: [s03-legal, deeds]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    prerequisites:
+      - fee-simple-estates
+    knowledgePoints: [] # KPs to be authored
+
+  - id: deed-essential-elements
+    name: "Essential Elements of a Valid Deed"
+    difficulty: 4
+    estimatedMinutes: 25
+    tags: [s03-legal, deeds]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    prerequisites:
+      - deed-types
+    knowledgePoints: [] # KPs to be authored
+
+  - id: legal-descriptions
+    name: "Legal Descriptions of Property"
+    difficulty: 5
+    estimatedMinutes: 30
+    tags: [s03-legal, deeds, legal-descriptions]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    prerequisites:
+      - deed-essential-elements
+    knowledgePoints: [] # KPs to be authored
+
+  - id: title-closing-costs
+    name: "Title Closing and Costs"
+    difficulty: 5
+    estimatedMinutes: 30
+    tags: [s03-legal, closing]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    prerequisites:
+      - deed-types
+      - general-liens
+      - specific-liens
+    knowledgePoints: [] # KPs to be authored
+
+  - id: respa
+    name: "RESPA (Real Estate Settlement Procedures Act)"
+    difficulty: 4
+    estimatedMinutes: 25
+    tags: [s03-legal, closing, federal-law]
+    sourceRef: "DOS Syllabus Subject 3: Legal Issues"
+    prerequisites:
+      - title-closing-costs
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 4: Contracts of Sale & Leases (3 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: lease-types
+    name: "Types of Leases"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s04-contracts, leases]
+    sourceRef: "DOS Syllabus Subject 4: Contracts of Sale & Leases"
+    prerequisites:
+      - fee-simple-estates
+    knowledgePoints: [] # KPs to be authored
+
+  - id: etpa-rent-stabilization
+    name: "ETPA and Rent Stabilization"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s04-contracts, leases, rent-stabilization]
+    sourceRef: "DOS Syllabus Subject 4: Contracts of Sale & Leases"
+    prerequisites:
+      - lease-types
+    knowledgePoints: [] # KPs to be authored
+
+  - id: contract-essentials
+    name: "Essential Elements of a Valid Contract"
+    difficulty: 4
+    estimatedMinutes: 25
+    tags: [s04-contracts, contract-law]
+    sourceRef: "DOS Syllabus Subject 4: Contracts of Sale & Leases"
+    prerequisites:
+      - fiduciary-duties
+      - fee-simple-estates
+    encompassing:
+      - concept: fiduciary-duties
+        weight: 0.3
+    knowledgePoints: [] # KPs to be authored
+
+  - id: statute-of-frauds
+    name: "Statute of Frauds"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s04-contracts, contract-law]
+    sourceRef: "DOS Syllabus Subject 4: Contracts of Sale & Leases"
+    prerequisites:
+      - contract-essentials
+    knowledgePoints: [] # KPs to be authored
+
+  - id: contract-preparation
+    name: "Contract Preparation and Provisions"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s04-contracts, contract-law]
+    sourceRef: "DOS Syllabus Subject 4: Contracts of Sale & Leases"
+    prerequisites:
+      - contract-essentials
+      - rpl-443-disclosure
+    encompassing:
+      - concept: rpl-443-disclosure
+        weight: 0.4
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 5: Real Estate Finance (5 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: mortgage-basics
+    name: "Mortgage Fundamentals"
+    difficulty: 3
+    estimatedMinutes: 25
+    tags: [s05-finance, mortgages]
+    sourceRef: "DOS Syllabus Subject 5: Real Estate Finance"
+    prerequisites:
+      - specific-liens
+    knowledgePoints: [] # KPs to be authored
+
+  - id: fixed-rate-mortgages
+    name: "Fixed-Rate Mortgages"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s05-finance, mortgages, fixed-rate]
+    sourceRef: "DOS Syllabus Subject 5: Real Estate Finance"
+    prerequisites:
+      - mortgage-basics
+    knowledgePoints: [] # KPs to be authored
+
+  - id: adjustable-rate-mortgages
+    name: "Adjustable-Rate Mortgages (ARMs)"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s05-finance, mortgages, arm]
+    sourceRef: "DOS Syllabus Subject 5: Real Estate Finance"
+    prerequisites:
+      - mortgage-basics
+    knowledgePoints: [] # KPs to be authored
+
+  - id: balloon-mortgages
+    name: "Balloon Mortgages"
+    difficulty: 4
+    estimatedMinutes: 15
+    tags: [s05-finance, mortgages, balloon]
+    sourceRef: "DOS Syllabus Subject 5: Real Estate Finance"
+    prerequisites:
+      - mortgage-basics
+    knowledgePoints: [] # KPs to be authored
+
+  - id: fha-loans
+    name: "FHA Loans"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s05-finance, government-loans, fha]
+    sourceRef: "DOS Syllabus Subject 5: Real Estate Finance"
+    prerequisites:
+      - mortgage-basics
+    knowledgePoints: [] # KPs to be authored
+
+  - id: va-loans
+    name: "VA Loans"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s05-finance, government-loans, va]
+    sourceRef: "DOS Syllabus Subject 5: Real Estate Finance"
+    prerequisites:
+      - mortgage-basics
+    knowledgePoints: [] # KPs to be authored
+
+  - id: sonyma
+    name: "SONYMA Programs"
+    difficulty: 4
+    estimatedMinutes: 15
+    tags: [s05-finance, government-loans, sonyma]
+    sourceRef: "DOS Syllabus Subject 5: Real Estate Finance"
+    prerequisites:
+      - mortgage-basics
+    knowledgePoints: [] # KPs to be authored
+
+  - id: secondary-mortgage-market
+    name: "Secondary Mortgage Market"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s05-finance, secondary-market]
+    sourceRef: "DOS Syllabus Subject 5: Real Estate Finance"
+    prerequisites:
+      - mortgage-basics
+    knowledgePoints: [] # KPs to be authored
+
+  - id: truth-in-lending-reg-z
+    name: "Truth in Lending / Regulation Z"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s05-finance, federal-law, tila]
+    sourceRef: "DOS Syllabus Subject 5: Real Estate Finance"
+    prerequisites:
+      - mortgage-basics
+    knowledgePoints: [] # KPs to be authored
+
+  - id: predatory-lending
+    name: "Predatory Lending Practices"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s05-finance, predatory-lending]
+    sourceRef: "DOS Syllabus Subject 5: Real Estate Finance"
+    prerequisites:
+      - truth-in-lending-reg-z
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 6: Land Use Regulations (3 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: zoning-fundamentals
+    name: "Zoning Fundamentals"
+    difficulty: 3
+    estimatedMinutes: 25
+    tags: [s06-land-use, zoning]
+    sourceRef: "DOS Syllabus Subject 6: Land Use Regulations"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: planning-board
+    name: "Planning Board Role & Functions"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s06-land-use, planning]
+    sourceRef: "DOS Syllabus Subject 6: Land Use Regulations"
+    prerequisites:
+      - zoning-fundamentals
+    knowledgePoints: [] # KPs to be authored
+
+  - id: variances-use-and-area
+    name: "Use Variances vs Area Variances"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s06-land-use, zoning, variances]
+    sourceRef: "DOS Syllabus Subject 6: Land Use Regulations"
+    prerequisites:
+      - zoning-fundamentals
+    knowledgePoints: [] # KPs to be authored
+
+  - id: planned-unit-development
+    name: "Planned Unit Development (PUD)"
+    difficulty: 4
+    estimatedMinutes: 15
+    tags: [s06-land-use, pud]
+    sourceRef: "DOS Syllabus Subject 6: Land Use Regulations"
+    prerequisites:
+      - zoning-fundamentals
+    knowledgePoints: [] # KPs to be authored
+
+  - id: seqr
+    name: "SEQR (State Environmental Quality Review)"
+    difficulty: 5
+    estimatedMinutes: 20
+    tags: [s06-land-use, environmental, seqr]
+    sourceRef: "DOS Syllabus Subject 6: Land Use Regulations"
+    prerequisites:
+      - planning-board
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 7: Construction & Environmental (5 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: building-construction-basics
+    name: "Building Construction Basics"
+    difficulty: 3
+    estimatedMinutes: 25
+    tags: [s07-construction, building-systems]
+    sourceRef: "DOS Syllabus Subject 7: Construction & Environmental"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: hvac-systems
+    name: "HVAC Systems"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s07-construction, building-systems, hvac]
+    sourceRef: "DOS Syllabus Subject 7: Construction & Environmental"
+    prerequisites:
+      - building-construction-basics
+    knowledgePoints: [] # KPs to be authored
+
+  - id: electrical-systems
+    name: "Electrical Systems"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s07-construction, building-systems, electrical]
+    sourceRef: "DOS Syllabus Subject 7: Construction & Environmental"
+    prerequisites:
+      - building-construction-basics
+    knowledgePoints: [] # KPs to be authored
+
+  - id: plumbing-systems
+    name: "Plumbing Systems"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s07-construction, building-systems, plumbing]
+    sourceRef: "DOS Syllabus Subject 7: Construction & Environmental"
+    prerequisites:
+      - building-construction-basics
+    knowledgePoints: [] # KPs to be authored
+
+  - id: asbestos-hazards
+    name: "Asbestos Hazards"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s07-construction, environmental-hazards, asbestos]
+    sourceRef: "DOS Syllabus Subject 7: Construction & Environmental"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: lead-based-paint
+    name: "Lead-Based Paint Hazards"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s07-construction, environmental-hazards, lead]
+    sourceRef: "DOS Syllabus Subject 7: Construction & Environmental"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: radon
+    name: "Radon Gas"
+    difficulty: 3
+    estimatedMinutes: 15
+    tags: [s07-construction, environmental-hazards, radon]
+    sourceRef: "DOS Syllabus Subject 7: Construction & Environmental"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: mold-hazards
+    name: "Mold Hazards"
+    difficulty: 3
+    estimatedMinutes: 15
+    tags: [s07-construction, environmental-hazards, mold]
+    sourceRef: "DOS Syllabus Subject 7: Construction & Environmental"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: pcbs-and-usts
+    name: "PCBs and Underground Storage Tanks"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s07-construction, environmental-hazards, pcbs, usts]
+    sourceRef: "DOS Syllabus Subject 7: Construction & Environmental"
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 8: Valuation & Pricing (3 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: market-value-definition
+    name: "Market Value Definition"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s08-valuation, market-value]
+    sourceRef: "DOS Syllabus Subject 8: Valuation & Pricing"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: sales-comparison-approach
+    name: "Sales Comparison Approach"
+    difficulty: 5
+    estimatedMinutes: 30
+    tags: [s08-valuation, appraisal, sales-comparison]
+    sourceRef: "DOS Syllabus Subject 8: Valuation & Pricing"
+    prerequisites:
+      - market-value-definition
+    knowledgePoints: [] # KPs to be authored
+
+  - id: cost-approach
+    name: "Cost Approach to Value"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s08-valuation, appraisal, cost-approach]
+    sourceRef: "DOS Syllabus Subject 8: Valuation & Pricing"
+    prerequisites:
+      - market-value-definition
+    knowledgePoints: [] # KPs to be authored
+
+  - id: income-approach
+    name: "Income Approach to Value"
+    difficulty: 6
+    estimatedMinutes: 30
+    tags: [s08-valuation, appraisal, income-approach]
+    sourceRef: "DOS Syllabus Subject 8: Valuation & Pricing"
+    prerequisites:
+      - market-value-definition
+    knowledgePoints: [] # KPs to be authored
+
+  - id: comparative-market-analysis
+    name: "Comparative Market Analysis (CMA)"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s08-valuation, cma]
+    sourceRef: "DOS Syllabus Subject 8: Valuation & Pricing"
+    prerequisites:
+      - sales-comparison-approach
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 9: Human Rights & Fair Housing (6 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: civil-rights-act-1866
+    name: "Civil Rights Act of 1866"
+    difficulty: 3
+    estimatedMinutes: 15
+    tags: [s09-fair-housing, federal-law, civil-rights]
+    sourceRef: "DOS Syllabus Subject 9: Human Rights & Fair Housing"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: fair-housing-act-1968
+    name: "Fair Housing Act of 1968"
+    difficulty: 4
+    estimatedMinutes: 30
+    tags: [s09-fair-housing, federal-law, fair-housing]
+    sourceRef: "DOS Syllabus Subject 9: Human Rights & Fair Housing"
+    prerequisites:
+      - civil-rights-act-1866
+    knowledgePoints: [] # KPs to be authored
+
+  - id: fha-amendment-1988
+    name: "Fair Housing Amendment Act of 1988"
+    difficulty: 4
+    estimatedMinutes: 25
+    tags: [s09-fair-housing, federal-law, fha-amendment]
+    sourceRef: "DOS Syllabus Subject 9: Human Rights & Fair Housing"
+    prerequisites:
+      - fair-housing-act-1968
+    knowledgePoints: [] # KPs to be authored
+
+  - id: ny-human-rights-law
+    name: "New York Human Rights Law"
+    difficulty: 5
+    estimatedMinutes: 30
+    tags: [s09-fair-housing, ny-law, human-rights]
+    sourceRef: "DOS Syllabus Subject 9: Human Rights & Fair Housing"
+    prerequisites:
+      - fair-housing-act-1968
+    knowledgePoints: [] # KPs to be authored
+
+  - id: protected-classes
+    name: "Federal and State Protected Classes"
+    difficulty: 4
+    estimatedMinutes: 25
+    tags: [s09-fair-housing, protected-classes]
+    sourceRef: "DOS Syllabus Subject 9: Human Rights & Fair Housing"
+    prerequisites:
+      - fair-housing-act-1968
+      - ny-human-rights-law
+    knowledgePoints: [] # KPs to be authored
+
+  - id: steering
+    name: "Steering"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s09-fair-housing, discrimination, steering]
+    sourceRef: "DOS Syllabus Subject 9: Human Rights & Fair Housing"
+    prerequisites:
+      - protected-classes
+    knowledgePoints: [] # KPs to be authored
+
+  - id: blockbusting
+    name: "Blockbusting"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s09-fair-housing, discrimination, blockbusting]
+    sourceRef: "DOS Syllabus Subject 9: Human Rights & Fair Housing"
+    prerequisites:
+      - protected-classes
+    knowledgePoints: [] # KPs to be authored
+
+  - id: redlining
+    name: "Redlining"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s09-fair-housing, discrimination, redlining]
+    sourceRef: "DOS Syllabus Subject 9: Human Rights & Fair Housing"
+    prerequisites:
+      - protected-classes
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 10: Real Estate Math (1 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: commission-calculations
+    name: "Commission Calculations"
+    difficulty: 4
+    estimatedMinutes: 15
+    tags: [s10-math, commissions]
+    sourceRef: "DOS Syllabus Subject 10: Real Estate Math"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: area-calculations
+    name: "Area and Volume Calculations"
+    difficulty: 4
+    estimatedMinutes: 15
+    tags: [s10-math, area]
+    sourceRef: "DOS Syllabus Subject 10: Real Estate Math"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: tax-calculations
+    name: "Tax Calculations"
+    difficulty: 5
+    estimatedMinutes: 15
+    tags: [s10-math, taxes]
+    sourceRef: "DOS Syllabus Subject 10: Real Estate Math"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: mortgage-qualifying-math
+    name: "Mortgage Qualifying Ratios"
+    difficulty: 6
+    estimatedMinutes: 15
+    tags: [s10-math, mortgage-qualifying]
+    sourceRef: "DOS Syllabus Subject 10: Real Estate Math"
+    prerequisites:
+      - mortgage-basics
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 11: Municipal Agencies (2 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: municipal-planning-board
+    name: "Municipal Planning Board"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s11-municipal, planning-board]
+    sourceRef: "DOS Syllabus Subject 11: Municipal Agencies"
+    prerequisites:
+      - zoning-fundamentals
+    knowledgePoints: [] # KPs to be authored
+
+  - id: zoning-board-of-appeals
+    name: "Zoning Board of Appeals"
+    difficulty: 4
+    estimatedMinutes: 25
+    tags: [s11-municipal, zba]
+    sourceRef: "DOS Syllabus Subject 11: Municipal Agencies"
+    prerequisites:
+      - variances-use-and-area
+    knowledgePoints: [] # KPs to be authored
+
+  - id: building-department
+    name: "Building Department"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s11-municipal, building-dept]
+    sourceRef: "DOS Syllabus Subject 11: Municipal Agencies"
+    prerequisites:
+      - building-construction-basics
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 12: Property Insurance (1 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: homeowner-policy-types
+    name: "Homeowner Policy Types (HO-1 through HO-8)"
+    difficulty: 4
+    estimatedMinutes: 25
+    tags: [s12-insurance, policy-types]
+    sourceRef: "DOS Syllabus Subject 12: Property Insurance"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: actual-cash-value-vs-replacement
+    name: "Actual Cash Value vs Replacement Cost"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s12-insurance, valuation]
+    sourceRef: "DOS Syllabus Subject 12: Property Insurance"
+    prerequisites:
+      - homeowner-policy-types
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 13: Licensee Safety (1 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: personal-safety
+    name: "Personal Safety for Licensees"
+    difficulty: 2
+    estimatedMinutes: 20
+    tags: [s13-safety, personal-safety]
+    sourceRef: "DOS Syllabus Subject 13: Licensee Safety"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: cyber-security-identity-theft
+    name: "Cyber Security and Identity Theft"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s13-safety, cyber-security]
+    sourceRef: "DOS Syllabus Subject 13: Licensee Safety"
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 14: Taxes & Assessments (3 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: tax-calculation-process
+    name: "Property Tax Calculation Process"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s14-taxes, tax-calculation]
+    sourceRef: "DOS Syllabus Subject 14: Taxes & Assessments"
+    knowledgePoints: [] # KPs to be authored
+
+  - id: assessment-ratio
+    name: "Assessment Ratio and Equalization Rate"
+    difficulty: 6
+    estimatedMinutes: 25
+    tags: [s14-taxes, assessment]
+    sourceRef: "DOS Syllabus Subject 14: Taxes & Assessments"
+    prerequisites:
+      - tax-calculation-process
+    knowledgePoints: [] # KPs to be authored
+
+  - id: star-program
+    name: "STAR Program (School Tax Relief)"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s14-taxes, star, exemptions]
+    sourceRef: "DOS Syllabus Subject 14: Taxes & Assessments"
+    prerequisites:
+      - tax-calculation-process
+    knowledgePoints: [] # KPs to be authored
+
+  - id: tax-liens-priority
+    name: "Tax Liens and Priority"
+    difficulty: 5
+    estimatedMinutes: 20
+    tags: [s14-taxes, tax-liens]
+    sourceRef: "DOS Syllabus Subject 14: Taxes & Assessments"
+    prerequisites:
+      - tax-liens
+      - tax-calculation-process
+    knowledgePoints: [] # KPs to be authored
+
+  - id: protesting-assessments
+    name: "Protesting Assessments (Grievance Process)"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s14-taxes, grievance]
+    sourceRef: "DOS Syllabus Subject 14: Taxes & Assessments"
+    prerequisites:
+      - assessment-ratio
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 15: Condos & Cooperatives (4 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: condo-ownership
+    name: "Condominium Ownership (Real Property)"
+    difficulty: 4
+    estimatedMinutes: 30
+    tags: [s15-condos-coops, condo]
+    sourceRef: "DOS Syllabus Subject 15: Condos & Cooperatives"
+    prerequisites:
+      - fee-simple-estates
+      - contract-essentials
+    encompassing:
+      - concept: fee-simple-estates
+        weight: 0.4
+    knowledgePoints: [] # KPs to be authored
+
+  - id: coop-ownership
+    name: "Cooperative Ownership (Shares + Proprietary Lease)"
+    difficulty: 5
+    estimatedMinutes: 30
+    tags: [s15-condos-coops, coop]
+    sourceRef: "DOS Syllabus Subject 15: Condos & Cooperatives"
+    prerequisites:
+      - fee-simple-estates
+      - lease-types
+      - contract-essentials
+    encompassing:
+      - concept: lease-types
+        weight: 0.4
+    knowledgePoints: [] # KPs to be authored
+
+  - id: offering-plans
+    name: "Offering Plans (Attorney General Filing)"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s15-condos-coops, offering-plan]
+    sourceRef: "DOS Syllabus Subject 15: Condos & Cooperatives"
+    prerequisites:
+      - condo-ownership
+      - coop-ownership
+    knowledgePoints: [] # KPs to be authored
+
+  - id: board-applications
+    name: "Board Applications and Approval Process"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s15-condos-coops, board-approval]
+    sourceRef: "DOS Syllabus Subject 15: Condos & Cooperatives"
+    prerequisites:
+      - coop-ownership
+    knowledgePoints: [] # KPs to be authored
+
+  - id: condops
+    name: "Condops (Condo-Coop Hybrids)"
+    difficulty: 5
+    estimatedMinutes: 15
+    tags: [s15-condos-coops, condop]
+    sourceRef: "DOS Syllabus Subject 15: Condos & Cooperatives"
+    prerequisites:
+      - condo-ownership
+      - coop-ownership
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 16: Commercial & Investment Properties (10 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: net-operating-income
+    name: "Net Operating Income (NOI)"
+    difficulty: 6
+    estimatedMinutes: 35
+    tags: [s16-commercial, noi, investment-analysis]
+    sourceRef: "DOS Syllabus Subject 16: Commercial & Investment Properties"
+    prerequisites:
+      - income-approach
+      - mortgage-basics
+    encompassing:
+      - concept: income-approach
+        weight: 0.5
+    knowledgePoints: [] # KPs to be authored
+
+  - id: cap-rate-and-noi
+    name: "Cap Rate and NOI Calculations"
+    difficulty: 7
+    estimatedMinutes: 45
+    tags: [s16-commercial, cap-rate, investment-analysis]
+    sourceRef: "DOS Syllabus Subject 16: Commercial & Investment Properties"
+    prerequisites:
+      - net-operating-income
+      - income-approach
+    encompassing:
+      - concept: net-operating-income
+        weight: 0.6
+      - concept: income-approach
+        weight: 0.5
+    knowledgePoints:
+      - id: cap-rate-formula
+        instruction: "content/ny-re/cap-rate-formula.md"
+        workedExample: "content/ny-re/cap-rate-formula-ex.md"
+        problems:
+          - id: cr-p1
+            type: multiple_choice
+            question: "A property generates $120,000 in NOI and is valued at $1,500,000. What is the capitalization rate?"
+            options:
+              - "6%"
+              - "8%"
+              - "10%"
+              - "12.5%"
+            correct: 1
+            explanation: "Cap Rate = NOI / Value = $120,000 / $1,500,000 = 0.08 = 8%. The cap rate represents the expected rate of return on an investment property."
+          - id: cr-p2
+            type: multiple_choice
+            question: "A property has an NOI of $85,000 and comparable properties are selling at a 7% cap rate. What is the estimated value?"
+            options:
+              - "$595,000"
+              - "$1,000,000"
+              - "$1,214,286"
+              - "$850,000"
+            correct: 2
+            explanation: "Value = NOI / Cap Rate = $85,000 / 0.07 = $1,214,286 (rounded). When you know the NOI and the market cap rate, you can derive value by dividing NOI by the cap rate."
+          - id: cr-p3
+            type: fill_blank
+            question: "The formula for capitalization rate is Cap Rate = ___ / Property Value."
+            correct: "NOI"
+            explanation: "Cap Rate = NOI (Net Operating Income) / Property Value. This can be rearranged: Value = NOI / Cap Rate, or NOI = Value x Cap Rate."
+      - id: cap-rate-relationships
+        instruction: "content/ny-re/cap-rate-relationships.md"
+        problems:
+          - id: crr-p1
+            type: multiple_choice
+            question: "All else being equal, if the cap rate for an area decreases from 8% to 6%, what happens to property values?"
+            options:
+              - "Values decrease by 25%"
+              - "Values increase by 33%"
+              - "Values remain the same"
+              - "Values increase by 25%"
+            correct: 1
+            explanation: "Lower cap rates mean higher values. At 8% cap, a $100K NOI property = $1,250,000. At 6%, the same NOI yields $100K/0.06 = $1,666,667—a 33% increase. Cap rate and value have an inverse relationship."
+          - id: crr-p2
+            type: multiple_choice
+            question: "An investor wants at least a 9% return. A property generates $72,000 NOI. What is the MAXIMUM price the investor should pay?"
+            options:
+              - "$648,000"
+              - "$720,000"
+              - "$800,000"
+              - "$900,000"
+            correct: 2
+            explanation: "Maximum price = NOI / Minimum Cap Rate = $72,000 / 0.09 = $800,000. If the investor pays more, their actual return falls below their 9% target."
+      - id: noi-calculation-detail
+        instruction: "content/ny-re/noi-calculation-detail.md"
+        workedExample: "content/ny-re/noi-calculation-detail-ex.md"
+        problems:
+          - id: noi-p1
+            type: multiple_choice
+            question: "Which of the following is subtracted when calculating NOI?"
+            options:
+              - "Mortgage payments (debt service)"
+              - "Operating expenses (taxes, insurance, maintenance)"
+              - "Income taxes"
+              - "Depreciation"
+            correct: 1
+            explanation: "NOI = Effective Gross Income - Operating Expenses. Operating expenses include property taxes, insurance, maintenance, management fees, and utilities. Mortgage payments (debt service), income taxes, and depreciation are NOT subtracted when calculating NOI."
+          - id: noi-p2
+            type: multiple_choice
+            question: "A building has potential gross income of $200,000, a 5% vacancy rate, and $80,000 in operating expenses. What is the NOI?"
+            options:
+              - "$110,000"
+              - "$120,000"
+              - "$100,000"
+              - "$190,000"
+            correct: 0
+            explanation: "Effective Gross Income = $200,000 - ($200,000 x 0.05) = $200,000 - $10,000 = $190,000. NOI = $190,000 - $80,000 = $110,000."
+
+  - id: cash-flow-analysis
+    name: "Cash Flow Analysis"
+    difficulty: 7
+    estimatedMinutes: 35
+    tags: [s16-commercial, cash-flow, investment-analysis]
+    sourceRef: "DOS Syllabus Subject 16: Commercial & Investment Properties"
+    prerequisites:
+      - cap-rate-and-noi
+      - mortgage-basics
+    encompassing:
+      - concept: cap-rate-and-noi
+        weight: 0.5
+      - concept: mortgage-basics
+        weight: 0.4
+    knowledgePoints: [] # KPs to be authored
+
+  - id: commercial-lease-types
+    name: "Commercial Lease Types (Net, Gross, Percentage)"
+    difficulty: 5
+    estimatedMinutes: 35
+    tags: [s16-commercial, leases]
+    sourceRef: "DOS Syllabus Subject 16: Commercial & Investment Properties"
+    prerequisites:
+      - lease-types
+    encompassing:
+      - concept: lease-types
+        weight: 0.5
+    knowledgePoints: [] # KPs to be authored
+
+  - id: escalation-clauses
+    name: "Escalation Clauses"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s16-commercial, leases, escalation]
+    sourceRef: "DOS Syllabus Subject 16: Commercial & Investment Properties"
+    prerequisites:
+      - commercial-lease-types
+    knowledgePoints: [] # KPs to be authored
+
+  - id: commercial-square-footage
+    name: "Square Footage Calculations (Usable vs Rentable)"
+    difficulty: 6
+    estimatedMinutes: 30
+    tags: [s16-commercial, square-footage, math]
+    sourceRef: "DOS Syllabus Subject 16: Commercial & Investment Properties"
+    prerequisites:
+      - commercial-lease-types
+      - area-calculations
+    encompassing:
+      - concept: area-calculations
+        weight: 0.5
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 17: Income Tax Issues (3 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: capital-gains-exclusion
+    name: "Capital Gains Exclusion ($250K/$500K)"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s17-income-tax, capital-gains]
+    sourceRef: "DOS Syllabus Subject 17: Income Tax Issues"
+    prerequisites:
+      - mortgage-basics
+    knowledgePoints: [] # KPs to be authored
+
+  - id: 1031-exchange
+    name: "1031 Like-Kind Exchange"
+    difficulty: 7
+    estimatedMinutes: 35
+    tags: [s17-income-tax, 1031-exchange]
+    sourceRef: "DOS Syllabus Subject 17: Income Tax Issues"
+    prerequisites:
+      - capital-gains-exclusion
+      - net-operating-income
+    encompassing:
+      - concept: capital-gains-exclusion
+        weight: 0.4
+      - concept: net-operating-income
+        weight: 0.3
+    knowledgePoints: [] # KPs to be authored
+
+  - id: 1031-exchange-timelines
+    name: "1031 Exchange Timelines (45-Day/180-Day Rules)"
+    difficulty: 6
+    estimatedMinutes: 25
+    tags: [s17-income-tax, 1031-exchange, timelines]
+    sourceRef: "DOS Syllabus Subject 17: Income Tax Issues"
+    prerequisites:
+      - 1031-exchange
+    knowledgePoints: [] # KPs to be authored
+
+  - id: depreciation-residential
+    name: "Depreciation — Residential (27.5 Years)"
+    difficulty: 6
+    estimatedMinutes: 25
+    tags: [s17-income-tax, depreciation, residential]
+    sourceRef: "DOS Syllabus Subject 17: Income Tax Issues"
+    prerequisites:
+      - mortgage-basics
+      - net-operating-income
+    encompassing:
+      - concept: mortgage-basics
+        weight: 0.3
+    knowledgePoints: [] # KPs to be authored
+
+  - id: depreciation-nonresidential
+    name: "Depreciation — Non-Residential (39 Years)"
+    difficulty: 6
+    estimatedMinutes: 20
+    tags: [s17-income-tax, depreciation, commercial]
+    sourceRef: "DOS Syllabus Subject 17: Income Tax Issues"
+    prerequisites:
+      - depreciation-residential
+      - commercial-lease-types
+    encompassing:
+      - concept: depreciation-residential
+        weight: 0.6
+      - concept: commercial-lease-types
+        weight: 0.3
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 18: Mortgage Brokerage (1 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: mortgage-broker-vs-banker
+    name: "Mortgage Broker vs Mortgage Banker"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s18-mortgage-brokerage, broker-banker]
+    sourceRef: "DOS Syllabus Subject 18: Mortgage Brokerage"
+    prerequisites:
+      - mortgage-basics
+    knowledgePoints: [] # KPs to be authored
+
+  - id: mortgage-broker-disclosure
+    name: "Mortgage Broker Disclosure Requirements"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s18-mortgage-brokerage, disclosure]
+    sourceRef: "DOS Syllabus Subject 18: Mortgage Brokerage"
+    prerequisites:
+      - mortgage-broker-vs-banker
+      - truth-in-lending-reg-z
+    knowledgePoints: [] # KPs to be authored
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Subject 19: Property Management (2 hr)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: management-agreements
+    name: "Property Management Agreements"
+    difficulty: 4
+    estimatedMinutes: 25
+    tags: [s19-property-mgmt, management-agreement]
+    sourceRef: "DOS Syllabus Subject 19: Property Management"
+    prerequisites:
+      - fiduciary-duties
+      - contract-essentials
+    encompassing:
+      - concept: fiduciary-duties
+        weight: 0.3
+    knowledgePoints: [] # KPs to be authored
+
+  - id: landlord-tenant-relations
+    name: "Landlord-Tenant Relations"
+    difficulty: 4
+    estimatedMinutes: 25
+    tags: [s19-property-mgmt, landlord-tenant]
+    sourceRef: "DOS Syllabus Subject 19: Property Management"
+    prerequisites:
+      - lease-types
+    encompassing:
+      - concept: lease-types
+        weight: 0.4
+    knowledgePoints: [] # KPs to be authored
+
+  - id: property-management-budgets
+    name: "Property Management Budgets"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s19-property-mgmt, budgets]
+    sourceRef: "DOS Syllabus Subject 19: Property Management"
+    prerequisites:
+      - net-operating-income
+      - management-agreements
+    encompassing:
+      - concept: net-operating-income
+        weight: 0.4
+    knowledgePoints: [] # KPs to be authored

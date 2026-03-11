@@ -23,7 +23,7 @@ function createMockContext(user: any, orgId: string | undefined): ExecutionConte
 describe('OrgMembershipGuard', () => {
   it('should throw ForbiddenException when user is missing', async () => {
     const guard = new OrgMembershipGuard(createMockPrisma(null), new Reflector());
-    const ctx = createMockContext(undefined, 'org-1');
+    const ctx = createMockContext(undefined, '00000000-0000-0000-0000-000000000001');
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
   });
 
@@ -35,19 +35,19 @@ describe('OrgMembershipGuard', () => {
 
   it('should throw ForbiddenException when user is not a member', async () => {
     const guard = new OrgMembershipGuard(createMockPrisma(null), new Reflector());
-    const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, 'org-1');
+    const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, '00000000-0000-0000-0000-000000000001');
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
   });
 
   it('should allow member when no minRole is set', async () => {
     const guard = new OrgMembershipGuard(createMockPrisma({ role: 'member' }), new Reflector());
-    const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, 'org-1');
+    const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, '00000000-0000-0000-0000-000000000001');
     const result = await guard.canActivate(ctx);
     expect(result).toBe(true);
     expect(ctx.switchToHttp().getRequest().orgContext).toEqual({
       userId: 'user-1',
       email: 'a@b.com',
-      orgId: 'org-1',
+      orgId: '00000000-0000-0000-0000-000000000001',
       role: 'member',
     });
   });
@@ -56,7 +56,7 @@ describe('OrgMembershipGuard', () => {
     const reflector = new Reflector();
     jest.spyOn(reflector, 'get').mockReturnValue('admin');
     const guard = new OrgMembershipGuard(createMockPrisma({ role: 'member' }), reflector);
-    const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, 'org-1');
+    const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, '00000000-0000-0000-0000-000000000001');
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
   });
 
@@ -64,7 +64,7 @@ describe('OrgMembershipGuard', () => {
     const reflector = new Reflector();
     jest.spyOn(reflector, 'get').mockReturnValue('admin');
     const guard = new OrgMembershipGuard(createMockPrisma({ role: 'owner' }), reflector);
-    const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, 'org-1');
+    const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, '00000000-0000-0000-0000-000000000001');
     const result = await guard.canActivate(ctx);
     expect(result).toBe(true);
   });
@@ -73,7 +73,7 @@ describe('OrgMembershipGuard', () => {
     const reflector = new Reflector();
     jest.spyOn(reflector, 'get').mockReturnValue('admin');
     const guard = new OrgMembershipGuard(createMockPrisma({ role: 'admin' }), reflector);
-    const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, 'org-1');
+    const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, '00000000-0000-0000-0000-000000000001');
     const result = await guard.canActivate(ctx);
     expect(result).toBe(true);
   });
@@ -82,7 +82,7 @@ describe('OrgMembershipGuard', () => {
     const reflector = new Reflector();
     jest.spyOn(reflector, 'get').mockReturnValue('owner');
     const guard = new OrgMembershipGuard(createMockPrisma({ role: 'admin' }), reflector);
-    const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, 'org-1');
+    const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, '00000000-0000-0000-0000-000000000001');
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
   });
 });

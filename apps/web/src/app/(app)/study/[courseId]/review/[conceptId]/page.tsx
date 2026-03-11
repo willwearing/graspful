@@ -26,7 +26,8 @@ export default async function ReviewPage({
   const orgId = brand.orgId;
 
   const reviewData = await apiFetch<any>(
-    `/orgs/${orgId}/courses/${courseId}/reviews/${conceptId}/start`
+    `/orgs/${orgId}/courses/${courseId}/reviews/${conceptId}/start`,
+    { method: "POST" }
   );
 
   return (

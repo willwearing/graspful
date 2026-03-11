@@ -1,6 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-
-type MasteryState = "unstarted" | "in_progress" | "mastered" | "needs_review";
+import type { MasteryState } from "@/lib/types";
 
 const config: Record<MasteryState, { label: string; className: string }> = {
   unstarted: {

@@ -6,8 +6,12 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   DIRECT_URL: z.string().url().optional(),
   SUPABASE_URL: z.string().url(),
-  SUPABASE_JWT_SECRET: z.string().min(32),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(32),
+  KOKORO_TTS_URL: z.string().url().optional(),
+  MODAL_AUTH_KEY: z.string().optional(),
+  MODAL_AUTH_SECRET: z.string().optional(),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

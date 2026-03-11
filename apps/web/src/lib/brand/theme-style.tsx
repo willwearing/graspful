@@ -6,17 +6,17 @@ function camelToKebab(str: string): string {
 
 export function BrandThemeStyle({ brand }: { brand: BrandConfig }) {
   const lightVars = Object.entries(brand.theme.light)
-    .map(([key, value]) => `--${camelToKebab(key)}: ${value};`)
+    .map(([key, value]) => `--${camelToKebab(key)}: hsl(${value});`)
     .join("\n    ");
 
   const darkVars = Object.entries(brand.theme.dark)
-    .map(([key, value]) => `--${camelToKebab(key)}: ${value};`)
+    .map(([key, value]) => `--${camelToKebab(key)}: hsl(${value});`)
     .join("\n    ");
 
   const css = `
     :root {
       ${lightVars}
-      --brand-radius: ${brand.theme.radius};
+      --radius: ${brand.theme.radius};
     }
     .dark {
       ${darkVars}

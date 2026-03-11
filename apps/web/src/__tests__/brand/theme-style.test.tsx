@@ -8,8 +8,8 @@ describe("BrandThemeStyle", () => {
     const { container } = render(<BrandThemeStyle brand={firefighterBrand} />);
     const style = container.querySelector("style");
     expect(style).toBeTruthy();
-    expect(style!.textContent).toContain("--primary: 16 100% 50%");
-    expect(style!.textContent).toContain("--brand-radius: 0.5rem");
+    expect(style!.textContent).toContain("--primary: hsl(16 100% 50%)");
+    expect(style!.textContent).toContain("--radius: 0.5rem");
   });
 
   it("includes both light and dark mode variables", () => {

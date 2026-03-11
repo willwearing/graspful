@@ -25,8 +25,10 @@ export function StudyRouter({ courseId, task }: StudyRouterProps) {
 
     switch (task.taskType) {
       case "lesson":
-      case "remediation":
         if (task.conceptId) router.push(`/study/${courseId}/lesson/${task.conceptId}`);
+        break;
+      case "remediation":
+        if (task.conceptId) router.push(`/study/${courseId}/lesson/${task.conceptId}?mode=remediation`);
         break;
       case "review":
         if (task.conceptId) router.push(`/study/${courseId}/review/${task.conceptId}`);

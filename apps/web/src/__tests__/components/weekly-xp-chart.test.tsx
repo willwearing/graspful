@@ -35,8 +35,20 @@ describe("WeeklyXPChart", () => {
     expect(screen.getByText(/weekly xp/i)).toBeTruthy();
   });
 
-  it("handles empty data", () => {
+  it("shows empty state when all XP is zero", () => {
+    const zeroData = [
+      { date: "2026-03-04", xp: 0 },
+      { date: "2026-03-05", xp: 0 },
+    ];
+    render(<WeeklyXPChart data={zeroData} />);
+    expect(screen.getByText("0")).toBeTruthy();
+    expect(screen.getByText(/no xp earned/i)).toBeTruthy();
+    expect(screen.queryByTestId("chart-container")).toBeNull();
+  });
+
+  it("shows empty state for empty data array", () => {
     render(<WeeklyXPChart data={[]} />);
     expect(screen.getByText("0")).toBeTruthy();
+    expect(screen.getByText(/no xp earned/i)).toBeTruthy();
   });
 });

@@ -9,9 +9,13 @@ export interface BrandThemeColors {
   foreground: string;
   card: string;
   cardForeground: string;
+  popover: string;
+  popoverForeground: string;
   muted: string;
   mutedForeground: string;
+  destructive: string;
   border: string;
+  input: string;
   ring: string;
 }
 
@@ -64,6 +68,13 @@ export interface BrandConfig {
     title: string;
     description: string;
     keywords: string[];
+  };
+
+  pricing: {
+    monthly: number;
+    yearly: number;
+    currency: string;
+    trialDays: number;
   };
 
   contentScope: {

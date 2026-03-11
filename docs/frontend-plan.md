@@ -8,7 +8,7 @@
 
 **Tech Stack:** Next.js 15 (App Router), React 19, Tailwind CSS 4, shadcn/ui, Vercel (hosting + custom domains), Supabase (auth + DB), PostHog (analytics), IndexedDB (offline audio cache).
 
-**Status:** Phase 7 (Core Shell) Complete — Phase 8 (Learning Experience) Complete — Phase 9 (Audio Pipeline) Complete — Phase 10 (Billing) Complete — Phase 11 (Gamification) Complete
+**Status:** Phase 7 (Core Shell) Complete — Phase 8 (Learning Experience) Complete — Phase 9 (Audio Pipeline) Complete — Phase 10 (Billing) Complete — Phase 11 (Gamification) Complete — Phase 12 (Launch Prep) Complete — 181 tests passing (35 files)
 
 > **Note:** The web frontend is mobile-responsive. There is no separate native mobile app for the initial release. See mobile-plan.md (deferred) for future native app plans.
 

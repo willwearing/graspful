@@ -19,10 +19,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const brand = await resolveBrand(hostname);
 
   return {
+    metadataBase: new URL(`https://${brand.domain}`),
     title: brand.seo.title,
     description: brand.seo.description,
     keywords: brand.seo.keywords,
     openGraph: {
+      type: "website",
       title: brand.seo.title,
       description: brand.seo.description,
       ...(brand.ogImageUrl ? { images: [{ url: brand.ogImageUrl }] } : {}),

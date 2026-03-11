@@ -13,20 +13,30 @@ export class ApiError extends Error {
 }
 
 /** Server-side API fetch with Supabase JWT attached */
-export async function apiFetch<T>(path: string): Promise<T> {
+export async function apiFetch<T>(path: string, options?: { method?: string; body?: unknown }): Promise<T> {
   const supabase = await createSupabaseServerClient();
+
+  // getUser() verifies the JWT server-side; getSession() alone trusts the client
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let accessToken: string | undefined;
+  if (user) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    accessToken = session?.access_token;
+  }
 
   const res = await fetch(`${BACKEND_URL}${path}`, {
+    method: options?.method ?? "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(session?.access_token
-        ? { Authorization: `Bearer ${session.access_token}` }
-        : {}),
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
-    next: { revalidate: 60 },
+    ...(options?.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
+    cache: "no-store",
   });
 
   if (!res.ok) {

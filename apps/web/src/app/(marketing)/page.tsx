@@ -35,7 +35,7 @@ export default async function LandingPage() {
         name={brand.name}
         url={`https://${brand.domain}`}
         description={brand.seo.description}
-        logoUrl={brand.logoUrl}
+        logoUrl={`https://${brand.domain}${brand.logoUrl}`}
       />
     </div>
   );

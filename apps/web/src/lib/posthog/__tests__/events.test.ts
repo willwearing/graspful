@@ -5,6 +5,7 @@ vi.mock("posthog-js", () => ({
   default: {
     capture: vi.fn(),
     identify: vi.fn(),
+    isFeatureEnabled: vi.fn(),
     __loaded: true,
   },
 }));
@@ -16,6 +17,7 @@ import {
   trackQuizComplete,
   trackSubscription,
   trackDiagnosticComplete,
+  captureError,
 } from "../events";
 import posthog from "posthog-js";
 
@@ -24,13 +26,26 @@ describe("PostHog event helpers", () => {
     vi.clearAllMocks();
   });
 
-  it("trackSignUp captures sign_up event", () => {
-    trackSignUp("user-123", "test@example.com");
-    expect(posthog.identify).toHaveBeenCalledWith("user-123", {
-      email: "test@example.com",
-    });
+  it("trackSignUp identifies user without PII and captures sign_up event", () => {
+    trackSignUp("user-123");
+    expect(posthog.identify).toHaveBeenCalledWith("user-123");
     expect(posthog.capture).toHaveBeenCalledWith("sign_up", {
       method: "email",
+    });
+  });
+
+  it("captureError sends $exception event", () => {
+    captureError("Something broke", "auth-form");
+    expect(posthog.capture).toHaveBeenCalledWith("$exception", {
+      message: "Something broke",
+      source: "auth-form",
+    });
+  });
+
+  it("captureError omits source when not provided", () => {
+    captureError("Oops");
+    expect(posthog.capture).toHaveBeenCalledWith("$exception", {
+      message: "Oops",
     });
   });
 

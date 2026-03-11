@@ -41,30 +41,37 @@ export function WeeklyXPChart({ data }: WeeklyXPChartProps) {
       </CardHeader>
       <CardContent>
         <div className="h-[160px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
-              <XAxis
-                dataKey="day"
-                tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis hide />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--card)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                  color: "var(--foreground)",
-                }}
-              />
-              <Bar
-                dataKey="xp"
-                fill="var(--accent)"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          {total === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+              <p className="text-sm">No XP earned this week</p>
+              <p className="text-xs mt-1">Start a lesson to begin tracking progress</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <XAxis
+                  dataKey="day"
+                  tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis hide />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "8px",
+                    color: "var(--foreground)",
+                  }}
+                />
+                <Bar
+                  dataKey="xp"
+                  fill="var(--accent)"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </CardContent>
     </Card>
