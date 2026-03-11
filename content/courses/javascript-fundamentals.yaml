@@ -1,0 +1,537 @@
+course:
+  id: javascript-fundamentals
+  name: "JavaScript Fundamentals"
+  description: "Core JavaScript concepts for web developers. Covers ES2024, from variables and types through async patterns, closures, and the event loop."
+  estimatedHours: 30
+  version: "2024.1"
+  sourceDocument: "ECMAScript 2024 Language Specification (ECMA-262)"
+
+concepts:
+
+  # ============================================================
+  # 1. Variables & Types
+  # ============================================================
+
+  - id: variables-and-declarations
+    name: "Variables and Declarations (let, const, var)"
+    difficulty: 1
+    estimatedMinutes: 15
+    tags: [s01-basics, variables, foundational]
+    sourceRef: "ECMA-262 §14.3"
+    knowledgePoints:
+      - id: let-const-var-differences
+        instruction: "JavaScript has three ways to declare variables: `var`, `let`, and `const`. `var` is function-scoped and hoisted. `let` and `const` are block-scoped. `const` prevents reassignment but does not make objects immutable. In modern JS, default to `const`, use `let` when you need reassignment, and avoid `var`."
+        problems:
+          - id: var-decl-p1
+            type: multiple_choice
+            question: "What happens when you try to access a `let` variable before its declaration in the same block?"
+            options:
+              - "It returns undefined (like var)"
+              - "It throws a ReferenceError (temporal dead zone)"
+              - "It returns null"
+              - "It silently creates a global variable"
+            correct: 1
+            explanation: "Variables declared with `let` and `const` exist in a 'temporal dead zone' from the start of the block until the declaration is reached. Accessing them before declaration throws a ReferenceError. This is different from `var`, which is hoisted and initialized to undefined."
+          - id: var-decl-p2
+            type: true_false
+            question: "A variable declared with `const` that holds an object can still have its properties modified."
+            correct: "true"
+            explanation: "`const` prevents reassignment of the variable binding, not mutation of the value. `const obj = {a: 1}; obj.a = 2;` is perfectly valid. To prevent mutation, use Object.freeze()."
+          - id: var-decl-p3
+            type: multiple_choice
+            question: "Which declaration is function-scoped rather than block-scoped?"
+            options:
+              - "let"
+              - "const"
+              - "var"
+              - "All three are block-scoped"
+            correct: 2
+            explanation: "`var` is function-scoped — it's visible throughout the entire function it's declared in, ignoring block boundaries like if/for. `let` and `const` are block-scoped, confined to the nearest enclosing `{}`."
+
+  - id: primitive-types
+    name: "Primitive Types and Type Coercion"
+    difficulty: 2
+    estimatedMinutes: 20
+    tags: [s01-basics, types, foundational]
+    sourceRef: "ECMA-262 §6.1"
+    prerequisites: [variables-and-declarations]
+    knowledgePoints:
+      - id: seven-primitives
+        instruction: "JavaScript has 7 primitive types: string, number, bigint, boolean, undefined, null, and symbol. Everything else is an object. Primitives are immutable and compared by value. The `typeof` operator returns a string indicating the type, with the famous quirk that `typeof null` returns 'object'."
+        problems:
+          - id: primitives-p1
+            type: multiple_choice
+            question: "What does `typeof null` return in JavaScript?"
+            options:
+              - "'null'"
+              - "'undefined'"
+              - "'object'"
+              - "'NaN'"
+            correct: 2
+            explanation: "This is a well-known bug inherited from the first version of JavaScript. `typeof null` returns 'object' even though null is a primitive. This has never been fixed because too much existing code depends on this behavior."
+          - id: primitives-p2
+            type: fill_blank
+            question: "JavaScript has ___ primitive types."
+            correct: "7"
+            explanation: "The 7 primitives are: string, number, bigint, boolean, undefined, null, and symbol. BigInt was added in ES2020 and Symbol in ES2015."
+          - id: primitives-p3
+            type: true_false
+            question: "The expression `0 == ''` evaluates to true in JavaScript."
+            correct: "true"
+            explanation: "The loose equality operator (==) performs type coercion. The empty string '' is coerced to the number 0, so `0 == ''` is true. This is why you should use strict equality (===) which does not coerce types."
+
+  # ============================================================
+  # 2. Functions
+  # ============================================================
+
+  - id: function-declarations
+    name: "Function Declarations, Expressions, and Arrow Functions"
+    difficulty: 2
+    estimatedMinutes: 20
+    tags: [s02-functions, foundational]
+    sourceRef: "ECMA-262 §15.2"
+    prerequisites: [variables-and-declarations]
+    knowledgePoints:
+      - id: three-ways-to-define
+        instruction: "Functions can be defined three ways: declarations (`function foo() {}`), expressions (`const foo = function() {}`), and arrow functions (`const foo = () => {}`). Declarations are hoisted — you can call them before they appear in code. Expressions and arrows are not. Arrow functions don't have their own `this` — they inherit it from the enclosing scope."
+        problems:
+          - id: func-decl-p1
+            type: multiple_choice
+            question: "Which of the following can be called before it appears in the source code?"
+            options:
+              - "const greet = function() { return 'hi'; }"
+              - "function greet() { return 'hi'; }"
+              - "const greet = () => 'hi';"
+              - "All of the above"
+            correct: 1
+            explanation: "Only function declarations are hoisted completely (both the name and the body). Function expressions and arrow functions assigned to variables are hoisted as variable declarations only — the value is undefined until the assignment executes."
+          - id: func-decl-p2
+            type: true_false
+            question: "Arrow functions have their own `this` binding."
+            correct: "false"
+            explanation: "Arrow functions do not create their own `this` context. They lexically inherit `this` from the enclosing scope. This makes them ideal for callbacks where you want to preserve the outer `this`, but unsuitable as object methods or constructors."
+          - id: func-decl-p3
+            type: fill_blank
+            question: "Arrow functions cannot be used as ___ because they lack a [[Construct]] internal method."
+            correct: "constructors"
+            explanation: "Arrow functions don't have a [[Construct]] method, so calling `new` on them throws a TypeError. They also don't have a `prototype` property. Use regular function declarations or class syntax when you need constructors."
+
+  - id: closures
+    name: "Closures and Lexical Scope"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s02-functions, closures, core-concept]
+    sourceRef: "ECMA-262 §9.2"
+    prerequisites: [function-declarations]
+    knowledgePoints:
+      - id: closure-definition
+        instruction: "A closure is a function that retains access to variables from its outer (enclosing) scope even after the outer function has returned. Every function in JavaScript forms a closure over its lexical environment. This is how data privacy, factory functions, and module patterns work."
+        workedExample: "function makeCounter() { let count = 0; return { increment() { return ++count; }, get() { return count; } }; } — The returned object's methods close over `count`. Each call to makeCounter() creates a separate `count` variable."
+        problems:
+          - id: closure-p1
+            type: multiple_choice
+            question: "What does this code output? `function make() { let x = 1; return function() { return x++; }; } const fn = make(); console.log(fn(), fn());`"
+            options:
+              - "1, 1"
+              - "1, 2"
+              - "undefined, undefined"
+              - "ReferenceError"
+            correct: 1
+            explanation: "The inner function closes over `x`. First call returns 1 (then increments x to 2). Second call returns 2 (then increments to 3). The variable `x` persists in the closure's scope between calls."
+          - id: closure-p2
+            type: true_false
+            question: "Each call to an outer function creates a new closure with its own copy of the enclosed variables."
+            correct: "true"
+            explanation: "Every invocation of the outer function creates a new lexical environment with fresh variable bindings. So `make()` called twice produces two independent closures, each with its own `x`."
+          - id: closure-p3
+            type: multiple_choice
+            question: "Which pattern relies on closures to provide data privacy?"
+            options:
+              - "Prototype chain"
+              - "Module pattern (IIFE returning public API)"
+              - "Event delegation"
+              - "CSS-in-JS"
+            correct: 1
+            explanation: "The module pattern uses an IIFE that returns an object exposing only public methods. Private variables declared inside the IIFE are accessible to the returned methods via closure but invisible to outside code."
+
+  # ============================================================
+  # 3. Objects & Arrays
+  # ============================================================
+
+  - id: objects-and-prototypes
+    name: "Objects, Prototypes, and the Prototype Chain"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s03-objects, prototypes, core-concept]
+    sourceRef: "ECMA-262 §10.1"
+    prerequisites: [primitive-types, function-declarations]
+    knowledgePoints:
+      - id: prototype-chain
+        instruction: "Every JavaScript object has an internal [[Prototype]] link to another object (or null). When you access a property, the engine walks up the prototype chain until it finds the property or reaches null. `Object.create(proto)` creates an object with a specific prototype. Constructor functions set the prototype via their `.prototype` property."
+        problems:
+          - id: proto-p1
+            type: multiple_choice
+            question: "What is at the top of every prototype chain in JavaScript?"
+            options:
+              - "Object"
+              - "Object.prototype"
+              - "null"
+              - "undefined"
+            correct: 2
+            explanation: "The prototype chain ends at null. Object.prototype's [[Prototype]] is null. So the chain is: your object → ... → Object.prototype → null."
+          - id: proto-p2
+            type: true_false
+            question: "`Object.create(null)` creates an object with no prototype chain — it has no inherited methods like toString() or hasOwnProperty()."
+            correct: "true"
+            explanation: "Object.create(null) creates a 'pure dictionary' object with [[Prototype]] set to null. It has no inherited properties at all. This is sometimes used for clean lookup tables."
+          - id: proto-p3
+            type: fill_blank
+            question: "The method `obj.hasOwnProperty('key')` returns true only for properties defined directly on ___, not inherited from the prototype chain."
+            correct: "obj"
+            explanation: "hasOwnProperty checks only the object's own properties, skipping anything inherited through the prototype chain. In modern JS, `Object.hasOwn(obj, 'key')` is preferred as it works even on objects created with Object.create(null)."
+
+  - id: array-methods
+    name: "Array Methods (map, filter, reduce, and Friends)"
+    difficulty: 3
+    estimatedMinutes: 20
+    tags: [s03-objects, arrays, foundational]
+    sourceRef: "ECMA-262 §23.1"
+    prerequisites: [function-declarations]
+    knowledgePoints:
+      - id: functional-array-methods
+        instruction: "The key functional array methods: `map` transforms each element and returns a new array. `filter` returns a new array with elements that pass a test. `reduce` accumulates values into a single result. `find` returns the first matching element. `some`/`every` return booleans. None of these mutate the original array."
+        problems:
+          - id: array-p1
+            type: multiple_choice
+            question: "What does `[1,2,3].map(x => x * 2).filter(x => x > 2)` return?"
+            options:
+              - "[2, 4, 6]"
+              - "[4, 6]"
+              - "[2, 6]"
+              - "[1, 2, 3]"
+            correct: 1
+            explanation: "map doubles each: [2, 4, 6]. Then filter keeps values > 2: [4, 6]."
+          - id: array-p2
+            type: true_false
+            question: "`Array.prototype.sort()` mutates the original array."
+            correct: "true"
+            explanation: "sort() is one of the few array methods that mutates in place. It returns the same array reference, not a copy. Use `[...arr].sort()` or `arr.toSorted()` (ES2023) for a non-mutating sort."
+          - id: array-p3
+            type: fill_blank
+            question: "The array method ___ combines all elements into a single value using an accumulator function."
+            correct: "reduce"
+            explanation: "reduce takes a callback(accumulator, currentValue) and an optional initial value. It iterates through the array, passing the return value of each iteration as the accumulator to the next."
+
+  # ============================================================
+  # 4. this, Classes, and OOP
+  # ============================================================
+
+  - id: this-keyword
+    name: "The `this` Keyword and Binding Rules"
+    difficulty: 6
+    estimatedMinutes: 25
+    tags: [s04-oop, this, core-concept]
+    sourceRef: "ECMA-262 §8.3"
+    prerequisites: [function-declarations, objects-and-prototypes]
+    knowledgePoints:
+      - id: four-binding-rules
+        instruction: "The value of `this` depends on how a function is called, not where it's defined. Four rules, in precedence order: (1) `new` binding — `this` is the new object. (2) Explicit binding — `call`, `apply`, `bind` set `this`. (3) Implicit binding — `obj.method()` sets `this` to `obj`. (4) Default binding — standalone call, `this` is `undefined` in strict mode, `globalThis` in sloppy mode. Arrow functions skip all rules and use lexical `this`."
+        problems:
+          - id: this-p1
+            type: multiple_choice
+            question: "In strict mode, what is `this` inside a standalone function call like `foo()`?"
+            options:
+              - "The global object (window/globalThis)"
+              - "undefined"
+              - "null"
+              - "The function itself"
+            correct: 1
+            explanation: "In strict mode, the default binding sets `this` to undefined. In sloppy mode, it would be the global object. This is a common source of bugs when extracting methods from objects."
+          - id: this-p2
+            type: multiple_choice
+            question: "Given `const obj = { name: 'A', greet() { return this.name; } }; const fn = obj.greet; fn();` — what happens in strict mode?"
+            options:
+              - "Returns 'A'"
+              - "Returns undefined"
+              - "Throws TypeError (cannot read property 'name' of undefined)"
+              - "Returns an empty string"
+            correct: 2
+            explanation: "Assigning obj.greet to fn loses the implicit binding. Calling fn() standalone in strict mode sets this to undefined. Accessing undefined.name throws a TypeError."
+          - id: this-p3
+            type: fill_blank
+            question: "The method `fn.___()` creates a new function with `this` permanently set to a specific value."
+            correct: "bind"
+            explanation: "Function.prototype.bind() returns a new function with `this` fixed to the provided value. Unlike call/apply which invoke immediately, bind returns a function for later use."
+
+  - id: classes-and-inheritance
+    name: "ES6 Classes and Inheritance"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s04-oop, classes]
+    sourceRef: "ECMA-262 §15.7"
+    prerequisites: [this-keyword]
+    knowledgePoints:
+      - id: class-syntax
+        instruction: "ES6 classes are syntactic sugar over prototype-based inheritance. `class Foo { constructor() {} method() {} }` creates a constructor function with methods on its prototype. `class Bar extends Foo` sets up the prototype chain. `super()` calls the parent constructor. Private fields use `#` prefix (ES2022). Static methods belong to the class itself, not instances."
+        problems:
+          - id: class-p1
+            type: true_false
+            question: "ES6 classes introduce a new object-oriented inheritance model different from JavaScript's prototype chain."
+            correct: "false"
+            explanation: "Classes are syntactic sugar over the existing prototype-based system. `class Foo {}` still creates a constructor function with a .prototype object. The prototype chain works exactly the same way underneath."
+          - id: class-p2
+            type: multiple_choice
+            question: "What happens if a child class constructor doesn't call `super()` before accessing `this`?"
+            options:
+              - "this is undefined"
+              - "It uses the parent's default values"
+              - "ReferenceError is thrown"
+              - "It works fine with default values"
+            correct: 2
+            explanation: "In a derived class, `this` is uninitialized until `super()` is called. Accessing `this` before `super()` throws a ReferenceError. This ensures the parent constructor initializes the object first."
+          - id: class-p3
+            type: fill_blank
+            question: "Private class fields in modern JavaScript are declared with the ___ prefix."
+            correct: "#"
+            explanation: "ES2022 introduced truly private fields: `#name` is only accessible inside the class body. Unlike the _ convention, # fields are enforced by the engine — accessing them from outside throws a SyntaxError."
+
+  # ============================================================
+  # 5. Async JavaScript
+  # ============================================================
+
+  - id: event-loop
+    name: "The Event Loop, Call Stack, and Task Queues"
+    difficulty: 7
+    estimatedMinutes: 30
+    tags: [s05-async, event-loop, core-concept]
+    sourceRef: "HTML Living Standard §8.1.7"
+    prerequisites: [closures]
+    knowledgePoints:
+      - id: event-loop-mechanics
+        instruction: "JavaScript is single-threaded. The event loop manages concurrency by processing one task at a time from the call stack. When the stack is empty, it checks: (1) the microtask queue (Promises, queueMicrotask) — drained completely, then (2) the macrotask queue (setTimeout, setInterval, I/O) — one task. Microtasks always run before the next macrotask. This is why Promise.then() fires before setTimeout(..., 0)."
+        problems:
+          - id: evloop-p1
+            type: multiple_choice
+            question: "What's the output? `console.log('A'); setTimeout(() => console.log('B'), 0); Promise.resolve().then(() => console.log('C')); console.log('D');`"
+            options:
+              - "A, B, C, D"
+              - "A, D, B, C"
+              - "A, D, C, B"
+              - "A, C, D, B"
+            correct: 2
+            explanation: "Synchronous code runs first: A, D. Then the microtask queue (Promise.then): C. Then the macrotask queue (setTimeout): B. Microtasks always drain before the next macrotask."
+          - id: evloop-p2
+            type: true_false
+            question: "A `setTimeout(fn, 0)` guarantees the callback runs immediately after the current synchronous code finishes."
+            correct: "false"
+            explanation: "setTimeout(fn, 0) schedules a macrotask. Any pending microtasks (Promise callbacks, MutationObserver) run first. The actual delay is also subject to browser-imposed minimums (usually 4ms for nested timeouts)."
+          - id: evloop-p3
+            type: fill_blank
+            question: "Promise callbacks (.then, .catch, .finally) are placed in the ___ queue, which has higher priority than setTimeout callbacks."
+            correct: "microtask"
+            explanation: "The microtask queue (also called the job queue) is drained completely after each task. Promise handlers, queueMicrotask(), and MutationObserver callbacks all go here."
+
+  - id: promises
+    name: "Promises"
+    difficulty: 5
+    estimatedMinutes: 25
+    tags: [s05-async, promises, core-concept]
+    sourceRef: "ECMA-262 §27.2"
+    prerequisites: [closures, event-loop]
+    knowledgePoints:
+      - id: promise-lifecycle
+        instruction: "A Promise represents a value that may not exist yet. It's in one of three states: pending, fulfilled, or rejected. Once settled (fulfilled or rejected), it never changes. `.then()` handles fulfillment, `.catch()` handles rejection, `.finally()` runs either way. Promises chain — each `.then()` returns a new Promise. `Promise.all()` waits for all, `Promise.race()` for the first, `Promise.allSettled()` for all regardless of outcome."
+        problems:
+          - id: promise-p1
+            type: multiple_choice
+            question: "What does `Promise.all()` do if one of the input promises rejects?"
+            options:
+              - "Returns an array with the error in the rejected position"
+              - "Waits for all promises to settle, then rejects"
+              - "Rejects immediately with the first rejection reason"
+              - "Ignores the rejection and returns fulfilled results"
+            correct: 2
+            explanation: "Promise.all() is 'fail-fast' — it rejects as soon as any input promise rejects, with that rejection reason. Use Promise.allSettled() if you want to wait for all promises regardless of outcome."
+          - id: promise-p2
+            type: true_false
+            question: "A Promise can transition from fulfilled back to pending."
+            correct: "false"
+            explanation: "Promises are settled exactly once. Once a Promise is fulfilled or rejected, its state and value are locked forever. This immutability is a core design principle."
+          - id: promise-p3
+            type: fill_blank
+            question: "`Promise.___()` returns a promise that resolves after ALL input promises settle, giving you the status and value/reason of each."
+            correct: "allSettled"
+            explanation: "Promise.allSettled() never rejects. It resolves with an array of {status, value} or {status, reason} objects for each input promise. Added in ES2020."
+
+  - id: async-await
+    name: "async/await"
+    difficulty: 4
+    estimatedMinutes: 20
+    tags: [s05-async, async-await]
+    sourceRef: "ECMA-262 §27.7"
+    prerequisites: [promises]
+    knowledgePoints:
+      - id: async-await-mechanics
+        instruction: "`async` functions always return a Promise. `await` pauses execution of the async function until the Promise settles — but it doesn't block the thread. The rest of the function is scheduled as a microtask. Error handling uses try/catch instead of .catch(). Top-level await is available in ES modules."
+        problems:
+          - id: async-p1
+            type: multiple_choice
+            question: "What does an `async` function return if you `return 42` from it?"
+            options:
+              - "The number 42"
+              - "A Promise that resolves to 42"
+              - "undefined"
+              - "A Promise that resolves to undefined"
+            correct: 1
+            explanation: "async functions always wrap the return value in a Promise. `return 42` becomes `Promise.resolve(42)`. If you return a Promise, it's not double-wrapped — the engine unwraps it."
+          - id: async-p2
+            type: true_false
+            question: "`await` blocks the JavaScript main thread until the awaited Promise resolves."
+            correct: "false"
+            explanation: "await suspends only the async function's execution, not the entire thread. The event loop continues processing other tasks. When the awaited Promise settles, the rest of the async function is queued as a microtask."
+          - id: async-p3
+            type: multiple_choice
+            question: "How do you handle errors from an awaited Promise?"
+            options:
+              - "Use .catch() after await"
+              - "Wrap the await in try/catch"
+              - "Use window.onerror"
+              - "Errors are silently ignored"
+            correct: 1
+            explanation: "try/catch is the standard pattern with async/await. If the awaited Promise rejects, the rejection reason is thrown as an exception. You can also add .catch() to the Promise before awaiting, or use a wrapper utility."
+
+  # ============================================================
+  # 6. Scope, Modules, and Modern Features
+  # ============================================================
+
+  - id: destructuring-and-spread
+    name: "Destructuring, Spread, and Rest"
+    difficulty: 3
+    estimatedMinutes: 15
+    tags: [s06-modern, destructuring]
+    sourceRef: "ECMA-262 §13.15"
+    prerequisites: [variables-and-declarations, array-methods]
+    knowledgePoints:
+      - id: destructuring-patterns
+        instruction: "Destructuring extracts values from arrays and objects into variables. Array: `const [a, b] = [1, 2]`. Object: `const {name, age} = person`. You can set defaults, rename (`{name: n}`), and nest. Spread (`...`) copies/merges arrays and objects. Rest (`...rest`) collects remaining items in destructuring or function params."
+        problems:
+          - id: destr-p1
+            type: multiple_choice
+            question: "What does `const {a: x, b: y} = {a: 1, b: 2}` create?"
+            options:
+              - "Variables a=1 and b=2"
+              - "Variables x=1 and y=2"
+              - "Variables a=x and b=y"
+              - "A SyntaxError"
+            correct: 1
+            explanation: "In object destructuring, {a: x} means 'take property a, assign it to variable x'. The left side of the colon is the source property, the right side is the target variable name."
+          - id: destr-p2
+            type: true_false
+            question: "The spread operator `{...obj}` creates a deep copy of the object."
+            correct: "false"
+            explanation: "Spread creates a shallow copy. Nested objects are still shared references. For deep cloning, use structuredClone() (modern browsers) or a library."
+          - id: destr-p3
+            type: fill_blank
+            question: "In `function sum(...nums) {}`, the `...nums` syntax is called the ___ parameter."
+            correct: "rest"
+            explanation: "Rest parameters collect all remaining arguments into an array. Unlike the deprecated `arguments` object, rest gives you a real Array with all array methods. A function can only have one rest parameter, and it must be last."
+
+  - id: modules
+    name: "ES Modules (import/export)"
+    difficulty: 3
+    estimatedMinutes: 15
+    tags: [s06-modern, modules]
+    sourceRef: "ECMA-262 §16.2"
+    prerequisites: [variables-and-declarations]
+    knowledgePoints:
+      - id: module-syntax
+        instruction: "ES Modules use `export` and `import` for code sharing. Named exports: `export function foo() {}` / `import { foo } from './mod'`. Default exports: `export default class Foo {}` / `import Foo from './mod'`. Modules are strict mode by default, have their own scope (no global leaking), and are evaluated once (singleton). Dynamic import: `const mod = await import('./mod')` for code splitting."
+        problems:
+          - id: module-p1
+            type: multiple_choice
+            question: "How many default exports can a module have?"
+            options:
+              - "Unlimited"
+              - "One"
+              - "Zero (default exports aren't real)"
+              - "One per function type"
+            correct: 1
+            explanation: "Each module can have exactly one default export. It's syntactic sugar for a named export called 'default'. You can have one default export alongside any number of named exports."
+          - id: module-p2
+            type: true_false
+            question: "ES Modules are executed in strict mode automatically."
+            correct: "true"
+            explanation: "Module code is always strict mode — no need for 'use strict'. This means no implicit globals, no `with` statement, and `this` at the top level is undefined."
+          - id: module-p3
+            type: fill_blank
+            question: "`const module = await ___('./heavy-lib.js')` loads a module dynamically at runtime."
+            correct: "import"
+            explanation: "Dynamic import() returns a Promise that resolves to the module's namespace object. It's useful for code splitting, lazy loading, and conditional imports. Unlike static import declarations, it can be used anywhere in your code."
+
+  # ============================================================
+  # 7. Error Handling & Iteration
+  # ============================================================
+
+  - id: error-handling
+    name: "Error Handling (try/catch/finally)"
+    difficulty: 3
+    estimatedMinutes: 15
+    tags: [s07-patterns, errors]
+    sourceRef: "ECMA-262 §14.15"
+    prerequisites: [function-declarations]
+    knowledgePoints:
+      - id: try-catch-patterns
+        instruction: "try/catch catches synchronous errors. The `catch` block receives the error object. `finally` always runs — even if there's a return in try or catch. For async code, use try/catch with await. Custom errors extend the Error class. Unhandled rejections can be caught globally with `unhandledrejection` event."
+        problems:
+          - id: error-p1
+            type: true_false
+            question: "The `finally` block runs even if the `try` block contains a `return` statement."
+            correct: "true"
+            explanation: "finally always executes — after try, after catch, even after return or throw. The return value is still the one from try/catch, but finally runs before the function actually returns. If finally also has a return, it overrides the try/catch return."
+          - id: error-p2
+            type: multiple_choice
+            question: "Which is the correct way to create a custom error type?"
+            options:
+              - "const err = new Error(); err.type = 'custom';"
+              - "class CustomError extends Error { constructor(msg) { super(msg); this.name = 'CustomError'; } }"
+              - "function CustomError(msg) { return Error(msg); }"
+              - "throw 'custom error string';"
+            correct: 1
+            explanation: "Extending Error gives you proper stack traces, instanceof checks, and the standard name/message/stack properties. Always call super(message) in the constructor."
+          - id: error-p3
+            type: fill_blank
+            question: "The `window.addEventListener('___', handler)` event catches unhandled Promise rejections in the browser."
+            correct: "unhandledrejection"
+            explanation: "The 'unhandledrejection' event fires when a Promise rejects and there's no .catch() handler. In Node.js, use process.on('unhandledRejection', handler). Always handle your rejections to avoid silent failures."
+
+  - id: iterators-and-generators
+    name: "Iterators and Generators"
+    difficulty: 6
+    estimatedMinutes: 25
+    tags: [s07-patterns, iterators, generators]
+    sourceRef: "ECMA-262 §27.1"
+    prerequisites: [closures, objects-and-prototypes]
+    knowledgePoints:
+      - id: iterator-protocol
+        instruction: "An iterable is any object with a `[Symbol.iterator]()` method that returns an iterator. An iterator has a `next()` method returning `{value, done}`. Arrays, strings, Maps, Sets are all iterable. `for...of` works on iterables. Generators (`function*`) create iterators with `yield` to pause/resume. They're lazy — values are computed on demand."
+        problems:
+          - id: iter-p1
+            type: multiple_choice
+            question: "What method must an object implement to be used in a `for...of` loop?"
+            options:
+              - "forEach()"
+              - "[Symbol.iterator]()"
+              - "next()"
+              - "entries()"
+            correct: 1
+            explanation: "for...of calls [Symbol.iterator]() on the object to get an iterator, then repeatedly calls .next() on that iterator until done is true. Any object implementing this protocol is iterable."
+          - id: iter-p2
+            type: true_false
+            question: "Generators execute their entire body when called — `yield` is just an alternative to `return`."
+            correct: "false"
+            explanation: "Generators are lazy. Calling a generator function returns an iterator but doesn't execute the body. The body runs only when .next() is called, executing until the next yield, then pausing. This enables lazy evaluation and infinite sequences."
+          - id: iter-p3
+            type: fill_blank
+            question: "A generator function is declared with the `function___` syntax (no space)."
+            correct: "*"
+            explanation: "function* myGen() {} declares a generator. The asterisk can be placed anywhere between function and the name: function* gen, function *gen, function * gen are all valid. Inside, yield pauses execution and produces a value."

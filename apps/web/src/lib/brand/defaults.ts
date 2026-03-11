@@ -311,5 +311,161 @@ export const electricianBrand: BrandConfig = {
   },
 };
 
+export const javascriptBrand: BrandConfig = {
+  id: "javascript",
+  name: "JSPrep",
+  domain: "jsprep.audio",
+  tagline: "Master JavaScript. Listen. Code. Ship.",
+  logoUrl: "/images/logo-javascript.svg",
+  faviconUrl: "/favicon.ico",
+  ogImageUrl: "/images/og-javascript.png",
+  orgId: "javascript-prep",
+
+  theme: {
+    light: {
+      primary: "50 100% 50%",
+      primaryForeground: "0 0% 0%",
+      secondary: "220 13% 18%",
+      secondaryForeground: "0 0% 100%",
+      accent: "50 100% 93%",
+      accentForeground: "50 100% 25%",
+      background: "0 0% 100%",
+      foreground: "222 47% 11%",
+      card: "0 0% 100%",
+      cardForeground: "222 47% 11%",
+      popover: "0 0% 100%",
+      popoverForeground: "222 47% 11%",
+      muted: "50 20% 96%",
+      mutedForeground: "220 9% 46%",
+      destructive: "0 84% 60%",
+      border: "50 20% 90%",
+      input: "50 20% 90%",
+      ring: "50 100% 50%",
+    },
+    dark: {
+      primary: "50 100% 55%",
+      primaryForeground: "0 0% 0%",
+      secondary: "220 13% 26%",
+      secondaryForeground: "0 0% 100%",
+      accent: "220 13% 17%",
+      accentForeground: "50 100% 70%",
+      background: "220 13% 4%",
+      foreground: "210 40% 98%",
+      card: "220 13% 6%",
+      cardForeground: "210 40% 98%",
+      popover: "220 13% 6%",
+      popoverForeground: "210 40% 98%",
+      muted: "220 13% 17%",
+      mutedForeground: "215 20% 65%",
+      destructive: "0 63% 31%",
+      border: "220 13% 17%",
+      input: "220 13% 17%",
+      ring: "50 100% 55%",
+    },
+    radius: "0.5rem",
+  },
+
+  landing: {
+    hero: {
+      headline: "Master JavaScript. Listen. Code. Ship.",
+      subheadline:
+        "Audio-first adaptive learning for JavaScript fundamentals. Study closures, async, and the event loop while you commute.",
+      ctaText: "Start Learning Free",
+    },
+    features: [
+      {
+        title: "Audio-First JS Concepts",
+        description:
+          "Listen to clear explanations of closures, prototypes, async/await, and more. Study on the go.",
+        icon: "Headphones",
+      },
+      {
+        title: "Adaptive Learning Engine",
+        description:
+          "AI identifies gaps in your JavaScript knowledge and focuses your study time there.",
+        icon: "Brain",
+      },
+      {
+        title: "Spaced Repetition",
+        description:
+          "Scientifically-timed reviews lock tricky concepts like `this` binding and the event loop into long-term memory.",
+        icon: "Timer",
+      },
+      {
+        title: "ES2024 Coverage",
+        description:
+          "From var vs let to generators and modules. 14 core concepts with 40+ practice problems.",
+        icon: "Code",
+      },
+    ],
+    howItWorks: [
+      {
+        title: "Take a Diagnostic",
+        description:
+          "Quick quiz identifies what JS concepts you already know and where to focus.",
+      },
+      {
+        title: "Study Adaptively",
+        description:
+          "Listen to lessons on closures, promises, prototypes -- whatever you need most.",
+      },
+      {
+        title: "Build Confidence",
+        description:
+          "Spaced repetition ensures you deeply understand JS, not just recognize syntax.",
+      },
+    ],
+    faq: [
+      {
+        question: "What level is this for?",
+        answer:
+          "Beginner to intermediate. We cover fundamentals through advanced concepts like closures, the event loop, and generators. Great for junior devs, bootcamp grads, or anyone filling JS knowledge gaps.",
+      },
+      {
+        question: "Is this for a specific certification?",
+        answer:
+          "No specific cert -- this builds deep JavaScript fluency that applies to interviews, day-to-day coding, and frameworks like React or Node.js.",
+      },
+      {
+        question: "Can I listen while coding?",
+        answer:
+          "Absolutely. Audio explanations work great as background learning while you practice. Many users listen during commutes and code in the evening.",
+      },
+      {
+        question: "Is there a free trial?",
+        answer:
+          "Yes -- 7-day free trial with full access. No credit card required to start.",
+      },
+    ],
+  },
+
+  seo: {
+    title: "JSPrep -- Audio-First JavaScript Learning",
+    description:
+      "Master JavaScript fundamentals with audio-first adaptive learning. Closures, async/await, prototypes, and more -- study hands-free.",
+    keywords: [
+      "javascript learning",
+      "learn javascript",
+      "javascript fundamentals",
+      "javascript audio course",
+      "closures",
+      "async await",
+      "event loop",
+      "audio learning",
+    ],
+  },
+
+  pricing: {
+    monthly: 14.99,
+    yearly: 149,
+    currency: "USD",
+    trialDays: 7,
+  },
+
+  contentScope: {
+    courseIds: [],
+  },
+};
+
 /** Default brand used as fallback */
 export const defaultBrand: BrandConfig = firefighterBrand;
