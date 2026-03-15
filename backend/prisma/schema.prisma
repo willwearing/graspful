@@ -52,11 +52,12 @@ model User {
   bookmarks     UserBookmark[]
   invitesSent   InviteToken[]   @relation("InviteSender")
   triggeredJobs AudioGenerationJob[] @relation("JobTriggeredBy")
-  enrollments       CourseEnrollment[]
-  conceptStates     StudentConceptState[]
-  kpStates          StudentKPState[]
-  problemAttempts   ProblemAttempt[]
-  xpEvents          XPEvent[]
+  enrollments          CourseEnrollment[]
+  conceptStates        StudentConceptState[]
+  kpStates             StudentKPState[]
+  problemAttempts      ProblemAttempt[]
+  xpEvents             XPEvent[]
+  diagnosticSessions   DiagnosticSession[]
 
   @@map("users")
 }
@@ -402,8 +403,9 @@ model Course {
   org         Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
   sections    CourseSection[]
   concepts    Concept[]
-  enrollments CourseEnrollment[]
-  xpEvents    XPEvent[]
+  enrollments        CourseEnrollment[]
+  xpEvents           XPEvent[]
+  diagnosticSessions DiagnosticSession[]
 
   @@unique([orgId, slug])
   @@index([orgId])
@@ -463,7 +465,8 @@ model Concept {
   prerequisiteFor    PrerequisiteEdge[] @relation("PrerequisiteTarget")
   encompassedBy      EncompassingEdge[] @relation("EncompassingSource")
   encompasses        EncompassingEdge[] @relation("EncompassingTarget")
-  studentStates StudentConceptState[]
+  studentStates          StudentConceptState[]
+  diagnosticSnapshots    DiagnosticMasterySnapshot[]
 
   @@unique([courseId, slug])
   @@index([orgId])
@@ -584,8 +587,9 @@ model Problem {
   createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz
 
-  knowledgePoint KnowledgePoint @relation(fields: [knowledgePointId], references: [id], onDelete: Cascade)
-  attempts ProblemAttempt[]
+  knowledgePoint     KnowledgePoint      @relation(fields: [knowledgePointId], references: [id], onDelete: Cascade)
+  attempts           ProblemAttempt[]
+  diagnosticSessions DiagnosticSession[]
 
   @@index([knowledgePointId])
   @@map("problems")
@@ -739,4 +743,55 @@ model XPEvent {
   @@index([userId, courseId, createdAt])
   @@index([userId, createdAt])
   @@map("xp_events")
+}
+
+// =============================================================================
+// DIAGNOSTIC SESSIONS
+// =============================================================================
+
+enum DiagnosticSessionStatus {
+  in_progress
+  completed
+  abandoned
+
+  @@map("diagnostic_session_status")
+}
+
+model DiagnosticSession {
+  id               String                  @id @default(uuid()) @db.Uuid
+  userId           String                  @map("user_id") @db.Uuid
+  courseId          String                  @map("course_id") @db.Uuid
+  orgId            String                  @map("org_id") @db.Uuid
+  status           DiagnosticSessionStatus @default(in_progress)
+  questionCount    Int                     @default(0) @map("question_count")
+  currentProblemId String?                 @map("current_problem_id") @db.Uuid
+  currentConceptId String?                 @map("current_concept_id") @db.Uuid
+  responses        Json                    @default("[]")
+  createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime                @updatedAt @map("updated_at") @db.Timestamptz
+  completedAt      DateTime?               @map("completed_at") @db.Timestamptz
+
+  user             User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course           Course                      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  currentProblem   Problem?                    @relation(fields: [currentProblemId], references: [id])
+  masterySnapshots DiagnosticMasterySnapshot[]
+
+  @@index([userId, courseId])
+  @@map("diagnostic_sessions")
+}
+
+model DiagnosticMasterySnapshot {
+  id                  String  @id @default(uuid()) @db.Uuid
+  diagnosticSessionId String  @map("diagnostic_session_id") @db.Uuid
+  conceptId           String  @map("concept_id") @db.Uuid
+  pL                  Float   @map("p_l")
+  tested              Boolean @default(false)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  session DiagnosticSession @relation(fields: [diagnosticSessionId], references: [id], onDelete: Cascade)
+  concept Concept            @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  @@unique([diagnosticSessionId, conceptId])
+  @@index([diagnosticSessionId])
+  @@map("diagnostic_mastery_snapshots")
 }
