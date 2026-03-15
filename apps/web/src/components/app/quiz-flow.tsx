@@ -196,6 +196,7 @@ export function QuizFlow({ orgId, courseId, token, quizData }: QuizFlowProps) {
       )}
 
       <ProblemRenderer
+        key={problem.id}
         problem={problem}
         onSubmit={handleSubmit}
         disabled={submitting}

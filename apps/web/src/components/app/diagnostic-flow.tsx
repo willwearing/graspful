@@ -180,6 +180,7 @@ export function DiagnosticFlow({ orgId, courseId, token, initialData }: Diagnost
 
       {state.question && (
         <ProblemRenderer
+          key={state.question.id}
           problem={state.question}
           onSubmit={handleSubmit}
           disabled={submitting || !!feedback}

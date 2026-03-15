@@ -21,6 +21,7 @@ import {
   bootstrapSpeedParameters,
   DiagnosticResponse,
 } from './speed-bootstrap';
+import { evaluateAnswer } from '../assessment/answer-evaluator';
 
 interface DiagnosticSession {
   userId: string;
@@ -134,7 +135,7 @@ export class DiagnosticSessionService {
     }
 
     // Evaluate correctness
-    const correct = this.evaluateAnswer(currentProblem, input.answer);
+    const correct = this.evaluateAnswerForProblem(currentProblem, input.answer);
 
     // Determine guess rate based on problem type
     const pGuess =
@@ -314,16 +315,8 @@ export class DiagnosticSessionService {
     return problems[Math.floor(Math.random() * problems.length)];
   }
 
-  private evaluateAnswer(problem: any, answer: any): boolean {
-    const correct = problem.correctAnswer;
-
-    // Handle different problem types
-    if (typeof correct === 'string' && typeof answer === 'string') {
-      return correct.toLowerCase().trim() === answer.toLowerCase().trim();
-    }
-
-    // JSON comparison for structured answers
-    return JSON.stringify(correct) === JSON.stringify(answer);
+  private evaluateAnswerForProblem(problem: any, answer: any): boolean {
+    return evaluateAnswer(problem.type, answer, problem.correctAnswer).correct;
   }
 
   private sanitizeProblem(problem: any) {
