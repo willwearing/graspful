@@ -29,7 +29,7 @@ export class DiagnosticController {
     @Body() body: { sessionId: string; answer: any; responseTimeMs: number },
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.diagnosticSession.submitAnswer(body.sessionId, {
+    return this.diagnosticSession.submitAnswer(body.sessionId, org.userId, {
       answer: body.answer,
       responseTimeMs: body.responseTimeMs,
     });
@@ -41,6 +41,6 @@ export class DiagnosticController {
     @Param('sessionId') sessionId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.diagnosticSession.getResult(sessionId);
+    return this.diagnosticSession.getResult(sessionId, org.userId);
   }
 }

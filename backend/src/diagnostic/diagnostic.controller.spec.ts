@@ -65,7 +65,7 @@ describe('DiagnosticController', () => {
       const result = await controller.submitAnswer('course-1', body, orgCtx as any);
 
       expect(result).toEqual(answerResult);
-      expect(mockDiagnostic.submitAnswer).toHaveBeenCalledWith('sess-1', {
+      expect(mockDiagnostic.submitAnswer).toHaveBeenCalledWith('sess-1', 'u1', {
         answer: 'A',
         responseTimeMs: 5000,
       });
@@ -85,6 +85,7 @@ describe('DiagnosticController', () => {
       const result = await controller.getResult('course-1', 'sess-1', orgCtx as any);
 
       expect(result).toEqual(diagnosticResult);
+      expect(mockDiagnostic.getResult).toHaveBeenCalledWith('sess-1', 'u1');
     });
   });
 });

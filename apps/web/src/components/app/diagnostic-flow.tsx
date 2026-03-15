@@ -188,8 +188,26 @@ export function DiagnosticFlow({ orgId, courseId, token, initialData }: Diagnost
         />
       )}
 
+      {state.question && !feedback && (
+        <button
+          onClick={() => handleSubmit("__I_DONT_KNOW__")}
+          disabled={submitting}
+          className="mx-auto block py-2 px-6 text-sm text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent hover:border-border rounded-md transition-colors disabled:opacity-50"
+        >
+          I don't know this yet
+        </button>
+      )}
+
       {feedback && (
         <p className="text-sm text-muted-foreground text-center">Loading next question...</p>
+      )}
+
+      {!feedback && (
+        <div className="mt-4 rounded-lg bg-muted/50 px-4 py-3 text-center">
+          <p className="text-xs text-muted-foreground">
+            Don't guess — if you're not sure, tap <span className="font-medium text-foreground">"I don't know this yet"</span> so we can teach you properly.
+          </p>
+        </div>
       )}
     </div>
   );
