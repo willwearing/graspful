@@ -43,6 +43,7 @@ async function main() {
 
   console.log('Import complete:');
   console.log(`  Course ID: ${result.courseId}`);
+  console.log(`  Sections: ${result.sectionCount}`);
   console.log(`  Concepts: ${result.conceptCount}`);
   console.log(`  Knowledge Points: ${result.knowledgePointCount}`);
   console.log(`  Problems: ${result.problemCount}`);

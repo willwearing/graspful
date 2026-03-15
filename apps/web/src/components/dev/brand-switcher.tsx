@@ -8,6 +8,7 @@ const BRANDS = [
   { id: "firefighter", name: "FirefighterPrep", emoji: "🔥", orgId: "firefighter-prep" },
   { id: "electrician", name: "ElectricianPrep", emoji: "⚡", orgId: "electrician-prep" },
   { id: "javascript", name: "JSPrep", emoji: "🟨", orgId: "javascript-prep" },
+  { id: "posthog", name: "PostHog TAM", emoji: "🦔", orgId: "posthog-tam" },
 ];
 
 /**

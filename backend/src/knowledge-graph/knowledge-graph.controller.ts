@@ -42,7 +42,11 @@ export class KnowledgeGraphController {
     });
     if (!course) throw new NotFoundException('Course not found');
 
-    const [concepts, prerequisiteEdges, encompassingEdges] = await Promise.all([
+    const [sections, concepts, prerequisiteEdges, encompassingEdges] = await Promise.all([
+      this.prisma.courseSection.findMany({
+        where: { courseId },
+        orderBy: { sortOrder: 'asc' },
+      }),
       this.prisma.concept.findMany({
         where: { courseId },
         orderBy: { sortOrder: 'asc' },
@@ -59,7 +63,7 @@ export class KnowledgeGraphController {
       }),
     ]);
 
-    return { course, concepts, prerequisiteEdges, encompassingEdges };
+    return { course, sections, concepts, prerequisiteEdges, encompassingEdges };
   }
 
   @Get(':courseId/concepts')

@@ -467,5 +467,151 @@ export const javascriptBrand: BrandConfig = {
   },
 };
 
+export const posthogBrand: BrandConfig = {
+  id: "posthog",
+  name: "PostHog TAM",
+  domain: "posthog-tam.audio",
+  tagline: "Master PostHog. Technically.",
+  logoUrl: "/images/logo-firefighter.svg",
+  faviconUrl: "/favicon.ico",
+  ogImageUrl: "/images/og-firefighter.png",
+  orgId: "posthog-tam",
+
+  theme: {
+    light: {
+      primary: "12 100% 55%",
+      primaryForeground: "0 0% 100%",
+      secondary: "220 14% 20%",
+      secondaryForeground: "0 0% 100%",
+      accent: "42 100% 55%",
+      accentForeground: "0 0% 0%",
+      background: "0 0% 100%",
+      foreground: "222 47% 11%",
+      card: "0 0% 100%",
+      cardForeground: "222 47% 11%",
+      popover: "0 0% 100%",
+      popoverForeground: "222 47% 11%",
+      muted: "220 14% 96%",
+      mutedForeground: "220 9% 46%",
+      destructive: "0 84% 60%",
+      border: "220 13% 91%",
+      input: "220 13% 91%",
+      ring: "12 100% 55%",
+    },
+    dark: {
+      primary: "12 100% 60%",
+      primaryForeground: "0 0% 100%",
+      secondary: "220 14% 28%",
+      secondaryForeground: "0 0% 100%",
+      accent: "220 13% 17%",
+      accentForeground: "12 100% 70%",
+      background: "220 14% 4%",
+      foreground: "210 40% 98%",
+      card: "220 14% 6%",
+      cardForeground: "210 40% 98%",
+      popover: "220 14% 6%",
+      popoverForeground: "210 40% 98%",
+      muted: "220 13% 17%",
+      mutedForeground: "215 20% 65%",
+      destructive: "0 63% 31%",
+      border: "220 13% 17%",
+      input: "220 13% 17%",
+      ring: "12 100% 60%",
+    },
+    radius: "0.5rem",
+  },
+
+  landing: {
+    hero: {
+      headline: "Master PostHog. Technically.",
+      subheadline:
+        "Technical onboarding for PostHog TAMs — data models, ingestion pipelines, identification, group analytics, and more.",
+      ctaText: "Start Learning",
+    },
+    features: [
+      {
+        title: "Data Model Foundations",
+        description:
+          "Learn entities, attributes, keys, and relationships before diving into PostHog specifics.",
+        icon: "Database",
+      },
+      {
+        title: "Ingestion Pipeline Deep-Dive",
+        description:
+          "Understand how events flow from SDKs through Kafka to ClickHouse — with architecture diagrams.",
+        icon: "Workflow",
+      },
+      {
+        title: "Identification Mastery",
+        description:
+          "Anonymous vs identified events, person merging, distinct_id — the concepts customers struggle with most.",
+        icon: "UserCheck",
+      },
+      {
+        title: "Adaptive Learning",
+        description:
+          "AI-driven spaced repetition focuses on your weak areas. 37 concepts, 149 practice problems.",
+        icon: "Brain",
+      },
+    ],
+    howItWorks: [
+      {
+        title: "Take a Diagnostic",
+        description: "Quick assessment identifies what PostHog concepts you already know.",
+      },
+      {
+        title: "Study Adaptively",
+        description: "Lessons build from data modeling fundamentals to PostHog-specific architecture.",
+      },
+      {
+        title: "Help Customers",
+        description: "Deep technical understanding means faster, better customer conversations.",
+      },
+    ],
+    faq: [
+      {
+        question: "Who is this for?",
+        answer:
+          "PostHog Technical Account Managers who want deep technical fluency with the product's data model, ingestion pipeline, and identification system.",
+      },
+      {
+        question: "What does it cover?",
+        answer:
+          "8 sections: Data Modeling, Pipelines, PostHog Data Model, Ingestion Pipeline, Identification, Group Analytics, CDP, and Querying.",
+      },
+      {
+        question: "How long does it take?",
+        answer:
+          "Estimated 12 hours total. Study at your own pace — the adaptive engine adjusts to what you already know.",
+      },
+    ],
+  },
+
+  seo: {
+    title: "PostHog TAM Technical Onboarding",
+    description:
+      "Master PostHog's data model, ingestion pipeline, and identification system with adaptive learning.",
+    keywords: [
+      "posthog",
+      "technical account manager",
+      "onboarding",
+      "data model",
+      "ingestion pipeline",
+      "analytics",
+    ],
+  },
+
+  pricing: {
+    monthly: 0,
+    yearly: 0,
+    currency: "USD",
+    trialDays: 0,
+  },
+
+  contentScope: {
+    courseIds: [],
+  },
+};
+
 /** Default brand used as fallback */
 export const defaultBrand: BrandConfig = firefighterBrand;

@@ -10,6 +10,14 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { MasteryState } from "@/lib/types";
 
+interface CourseSection {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+}
+
 interface Concept {
   id: string;
   name: string;
@@ -17,6 +25,7 @@ interface Concept {
   difficulty: number;
   sortOrder: number;
   slug: string;
+  sectionId: string | null;
 }
 
 interface ConceptState {
@@ -30,6 +39,7 @@ interface CourseGraph {
     name: string;
     description: string | null;
   };
+  sections: CourseSection[];
   concepts: Concept[];
 }
 
@@ -176,7 +186,12 @@ export default async function CourseDetailPage({
 
       {/* Concept list */}
       <h2 className="text-xl font-semibold text-foreground mb-4">Concepts</h2>
-      <ConceptList concepts={conceptsWithMastery} courseId={courseId} />
+      <ConceptList
+        concepts={conceptsWithMastery}
+        sections={graph.sections ?? []}
+        courseId={courseId}
+        locked={!profile || profile.completionPercent === 0}
+      />
     </div>
   );
 }
