@@ -7,3 +7,6 @@ dist/
 coverage/
 .env.local
 .env.*.local
+playwright-report/
+*.tsbuildinfo
+tasks/
