@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import {
   ReactFlow,
-  MiniMap,
   Background,
   Position,
   MarkerType,
@@ -206,15 +205,6 @@ export function KnowledgeGraph({ concepts, edges }: KnowledgeGraphProps) {
             elementsSelectable={false}
             proOptions={{ hideAttribution: true }}
           >
-            <MiniMap
-              nodeColor={
-                (node: any) =>
-                  (node.style?.background as string) ?? "#e5e7eb"
-              }
-              maskColor="var(--background)"
-              pannable
-              zoomable={false}
-            />
             <Background />
           </ReactFlow>
         </div>
