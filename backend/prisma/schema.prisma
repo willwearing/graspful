@@ -399,14 +399,37 @@ model Course {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  concepts Concept[]
+  org         Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  sections    CourseSection[]
+  concepts    Concept[]
   enrollments CourseEnrollment[]
   xpEvents    XPEvent[]
 
   @@unique([orgId, slug])
   @@index([orgId])
   @@map("courses")
+}
+
+// =============================================================================
+// KNOWLEDGE GRAPH — COURSE SECTIONS
+// =============================================================================
+
+model CourseSection {
+  id          String   @id @default(uuid()) @db.Uuid
+  courseId     String   @map("course_id") @db.Uuid
+  slug        String
+  name        String
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  concepts Concept[]
+
+  @@unique([courseId, slug])
+  @@index([courseId])
+  @@map("course_sections")
 }
 
 // =============================================================================
@@ -417,6 +440,7 @@ model Concept {
   id                String   @id @default(uuid()) @db.Uuid
   courseId           String   @map("course_id") @db.Uuid
   orgId              String   @map("org_id") @db.Uuid
+  sectionId          String?  @map("section_id") @db.Uuid
   slug               String
   name               String
   description        String?
@@ -433,6 +457,7 @@ model Concept {
   updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   course             Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  section            CourseSection?  @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   knowledgePoints    KnowledgePoint[]
   prerequisiteOf     PrerequisiteEdge[] @relation("PrerequisiteSource")
   prerequisiteFor    PrerequisiteEdge[] @relation("PrerequisiteTarget")

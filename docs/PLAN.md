@@ -93,7 +93,7 @@ White-labeled Next.js on Vercel, single deployment serving all brands. Key decis
 - **Separate custom domains** per niche for SEO (not subdomains)
 - **Mobile-responsive** -- no native app, responsive web covers mobile use cases
 
-### [mobile-plan.md](./mobile-plan.md) -- Mobile Architecture (DEFERRED)
+### [mobile-plan.md](./future-plans/mobile-plan.md) -- Mobile Architecture (DEFERRED)
 React Native (Expo) with one app per niche in app stores. **Deferred until web platform is validated.** Preserved for reference.
 
 ### [adaptive-learning-architecture.md](./adaptive-learning-architecture.md) -- Adaptive Learning System
@@ -135,7 +135,9 @@ niche-audio-prep/
 │   ├── market-research.md
 │   ├── backend-plan.md
 │   ├── frontend-plan.md
-│   ├── mobile-plan.md      # DEFERRED
+│   ├── future-plans/       # Deferred work
+│   │   ├── mobile-plan.md
+│   │   └── zoomable-course-graph.md
 │   └── adaptive-learning-architecture.md
 ├── backend/                 # NestJS API server
 │   ├── src/
@@ -400,13 +402,13 @@ Learning engine first, then audio platform, then billing. Mobile is deferred ent
 
 **Status:** Deferred
 
-React Native (Expo) with one app per niche in app stores. See [mobile-plan.md](./mobile-plan.md) for the full plan.
+React Native (Expo) with one app per niche in app stores. See [mobile-plan.md](./future-plans/mobile-plan.md) for the full plan.
 
 Will be built after the web platform is validated with paying users. The web app is mobile-responsive, which covers the core use case until native features (background audio, offline downloads, push notifications) justify the investment.
 
 > **Agent Boundary**
 > - **Skill:** `/writing-plans` → `/subagent-driven-development`
-> - **Inputs:** docs/mobile-plan.md, all backend APIs, validated web platform
+> - **Inputs:** docs/future-plans/mobile-plan.md, all backend APIs, validated web platform
 > - **Outputs:** Expo app with RNTP audio, WatermelonDB offline sync, per-niche App Store builds
 > - **Dependencies:** Phases 1-12 complete, web platform validated with paying users
 > - **Estimated tasks:** 25 (each 2-5 min)
@@ -435,7 +437,7 @@ Will be built after the web platform is validated with paying users. The web app
 
 ## What We're NOT Building (Yet)
 
-- **Mobile app** -- deferred until web is validated (see mobile-plan.md)
+- **Mobile app** -- deferred until web is validated (see future-plans/mobile-plan.md)
 - User-generated content (paste your own URLs) -- that's try-listening
 - AI tutoring / chat
 - Community features (forums, study groups)

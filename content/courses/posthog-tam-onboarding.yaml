@@ -1,0 +1,2526 @@
+course:
+  id: posthog-tam-onboarding
+  name: PostHog TAM Technical Onboarding
+  description: >-
+    Comprehensive technical onboarding for PostHog Technical Account Managers — from data modeling fundamentals through the PostHog data model, ingestion pipeline, identification, group analytics,
+    CDP, and querying.
+  estimatedHours: 12
+  version: '2025.1'
+  sourceDocument: PostHog Documentation (posthog.com/docs)
+sections:
+  - id: data-modeling-basics
+    name: Data Modeling Basics
+    description: Entities, attributes, and keys — the building blocks of any data model.
+  - id: data-modeling-design
+    name: Data Modeling Design
+    description: Relationships, cardinality, join tables, and the design process.
+  - id: pipeline-basics
+    name: Pipeline Basics
+    description: What data pipelines are, where data comes from, and where it's stored.
+  - id: pipeline-architecture
+    name: Pipeline Architecture
+    description: Transformation patterns, orchestration, and the tradeoffs that shape pipeline design.
+  - id: posthog-data-model
+    name: PostHog Data Model
+    description: PostHog's specific entities — events, persons, properties, sessions, and actions.
+  - id: posthog-ingestion
+    name: PostHog Ingestion Pipeline
+    description: How events flow from capture through Kafka to ClickHouse storage.
+  - id: identification
+    name: Identification
+    description: Anonymous vs identified events, the identify call, person merging, and common pitfalls.
+  - id: group-analytics
+    name: Group Analytics
+    description: Modeling organizations and B2B analytics with PostHog groups.
+  - id: posthog-cdp
+    name: PostHog CDP
+    description: Data pipelines in PostHog — sources, transformations, and destinations.
+  - id: querying
+    name: Querying Foundations
+    description: Cohorts and HogQL for practical analysis.
+concepts:
+  - id: entities
+    name: Entities — Things That Exist
+    difficulty: 2
+    estimatedMinutes: 10
+    tags:
+      - foundational
+      - data-modeling
+    prerequisites: []
+    encompassing: []
+    knowledgePoints:
+      - id: what-is-an-entity
+        instruction: >-
+          An entity is anything you need to store information about in a system. Entities are the nouns — the people, places, things, and concepts that matter to your business. If you find yourself
+          wanting to describe something with multiple facts (attributes), you are looking at an entity. A Customer is an entity because you want to track their name, email, and signup date. An Order
+          is an entity because it has an order number, total, and status. A Product is an entity because it has a SKU, price, and description. Entities are not actions or verbs — those become
+          relationships later. The key test: can you have more than one of this thing, and do you need to tell them apart? If yes, it is an entity. In a hospital system, Patient, Doctor, Appointment,
+          and Medication are all entities. In a music streaming app, User, Song, Playlist, and Artist are entities. Recognizing entities is the first and most important step in data modeling because
+          everything else — attributes, keys, relationships — hangs off of them.
+        problems:
+          - id: entities-p1
+            type: multiple_choice
+            question: Which of the following best describes an entity in data modeling?
+            options:
+              - A verb that describes an action in the system
+              - A thing you need to store information about, like a Customer or Order
+              - A single data value, like a name or email address
+              - A rule that governs how data is validated
+            correct: 1
+            explanation: >-
+              An entity is a noun — a thing you need to store information about. Customer, Order, and Product are classic examples. Verbs become relationships, single values become attributes, and
+              rules become constraints.
+          - id: entities-p2
+            type: true_false
+            question: In data modeling, an entity represents a single data value like a phone number or email address.
+            correct: 'false'
+            explanation: >-
+              A single data value like a phone number is an attribute, not an entity. An entity is a thing (like a Customer) that has multiple attributes (name, phone number, email). Entities are the
+              nouns; attributes are the facts about those nouns.
+          - id: entities-p3
+            type: scenario
+            question: You are building a project management tool. Users create projects, add tasks to projects, and assign tasks to team members. Which of the following is NOT an entity in this system?
+            options:
+              - User
+              - Project
+              - Assigns (the act of assigning a task)
+              - Task
+            correct: 2
+            explanation: >-
+              'Assigns' is a verb describing the relationship between a User and a Task — it is a relationship, not an entity. User, Project, and Task are all nouns that you would store information
+              about, making them entities.
+      - id: identifying-entities
+        instruction: >-
+          The first step in any data modeling exercise is identifying entities. A reliable technique: read or write a plain-English description of the system and circle the nouns. In the sentence
+          'Customers place orders for products,' the nouns are Customer, Order, and Product — those are your candidate entities. Verbs like 'place' and 'for' hint at relationships you will define
+          later. Not every noun becomes an entity. A good entity has multiple instances (there are many customers, not just one), needs to be uniquely identified (Customer 42 vs Customer 43), and has
+          its own attributes worth tracking. If a noun is really just a single attribute of another entity, it is not its own entity. For example, 'color' is probably an attribute of Product, not a
+          standalone entity — unless your system needs to track detailed information about each color (name, hex code, pantone number), in which case it might become one.
+        workedExample: >-
+          Consider an e-commerce system described as: 'Customers browse a catalog of products. They add items to a shopping cart and place orders. Each order contains one or more line items, and
+          payments are processed for each order.' Step 1: Circle the nouns — Customer, Catalog, Product, Shopping Cart, Order, Line Item, Payment. Step 2: Evaluate each. Catalog is probably just the
+          collection of products, not a separate entity. Shopping Cart might be an entity or might be a temporary state of an Order. The strong entities are: Customer, Product, Order, Line Item, and
+          Payment. Each has multiple instances, needs unique identification, and has its own attributes.
+        problems:
+          - id: identifying-entities-p1
+            type: multiple_choice
+            question: In the sentence 'Students enroll in courses taught by professors,' how many entities can you identify?
+            options:
+              - 1 — only Student
+              - 2 — Student and Course
+              - 3 — Student, Course, and Professor
+              - 4 — Student, Course, Professor, and Enroll
+            correct: 2
+            explanation: Student, Course, and Professor are the three entities (nouns that need to be tracked). 'Enroll' and 'taught by' are verbs describing relationships, not entities.
+          - id: identifying-entities-p2
+            type: fill_blank
+            question: The first step in data modeling is to identify entities by looking for the ___ in a system description.
+            correct: nouns
+            explanation: Entities are the nouns in your system — the people, places, things, and concepts you need to store information about. Verbs become relationships.
+    section: data-modeling-basics
+  - id: attributes
+    name: Attributes — Properties of Entities
+    difficulty: 2
+    estimatedMinutes: 10
+    tags:
+      - foundational
+      - data-modeling
+    prerequisites:
+      - entities
+    encompassing: []
+    knowledgePoints:
+      - id: what-are-attributes
+        instruction: >-
+          Attributes are the individual facts or properties that describe an entity. A Customer entity might have attributes like first_name, last_name, email, phone, and signup_date. An Order entity
+          might have order_number, total_amount, status, and created_at. Good attributes follow three rules. First, they are atomic — each attribute holds one indivisible piece of data. A field called
+          'name_and_address' violates atomicity; break it into first_name, last_name, street, city, state, and zip. Second, each attribute describes exactly one thing about the entity. Third, each
+          attribute belongs to one entity — if you find the same attribute appearing on multiple entities, it might indicate a missing relationship or a shared reference entity. Attributes have data
+          types (string, integer, date, boolean, etc.) and constraints (required vs optional, unique vs non-unique). Choosing the right attributes and keeping them atomic is essential for clean data
+          that can be queried, filtered, and aggregated effectively.
+        problems:
+          - id: attributes-p1
+            type: multiple_choice
+            question: Which of the following is the best set of attributes for a Product entity in an e-commerce system?
+            options:
+              - product_info (containing name, price, and description in one field)
+              - sku, name, price, description, category, created_at
+              - product, details, misc_data
+              - name, order_id, customer_email
+            correct: 1
+            explanation: >-
+              Good attributes are atomic (one fact each), descriptive, and belong to the entity. Option B has clear, atomic attributes that all describe a Product. Option A violates atomicity by
+              combining values. Option C is too vague. Option D mixes in attributes from other entities (order_id, customer_email).
+          - id: attributes-p2
+            type: true_false
+            question: An attribute called 'full_address' that stores '123 Main St, Springfield, IL 62704' follows good data modeling practice.
+            correct: 'false'
+            explanation: >-
+              This violates the atomicity principle. A good data model would break this into separate attributes: street, city, state, and zip_code. Atomic attributes make it possible to query,
+              filter, and sort by individual components (e.g., find all customers in Illinois).
+          - id: attributes-p3
+            type: multiple_choice
+            question: If you find the attribute 'customer_name' appearing on both the Order entity and the Invoice entity, what does this likely indicate?
+            options:
+              - This is good practice — data should be duplicated for safety
+              - A missing relationship — both entities should reference the Customer entity instead
+              - The Order and Invoice entities should be combined into one
+              - customer_name should be removed from both entities
+            correct: 1
+            explanation: >-
+              When the same attribute appears on multiple entities, it usually means there is a missing relationship. Both Order and Invoice should reference a Customer entity via a foreign key,
+              rather than duplicating the customer's name.
+    section: data-modeling-basics
+  - id: keys-and-identity
+    name: Keys — Uniquely Identifying Things
+    difficulty: 3
+    estimatedMinutes: 10
+    tags:
+      - foundational
+      - data-modeling
+    prerequisites:
+      - entities
+      - attributes
+    encompassing: []
+    knowledgePoints:
+      - id: primary-keys
+        instruction: >-
+          Every entity needs a primary key — an attribute (or combination of attributes) that uniquely identifies each instance. Customer 42 is different from Customer 43 because they have different
+          primary keys. Primary keys serve two critical purposes: they guarantee uniqueness (no two instances share the same key) and they allow other entities to reference this one (via foreign
+          keys). Good primary keys have three properties. They are unique — no duplicates allowed. They are stable — they do not change over time. They are never null — every instance must have a
+          value. Common choices include auto-incrementing integers (user_id = 1, 2, 3...), UUIDs (universally unique identifiers like '550e8400-e29b-41d4-a716-446655440000'), or natural keys from the
+          business domain (like email or Social Security Number, though these can be problematic if they change). Surrogate keys (system-generated IDs with no business meaning) are generally preferred
+          because they are guaranteed stable and unique, unlike natural keys which can change (people change emails, companies change names).
+        problems:
+          - id: keys-p1
+            type: multiple_choice
+            question: What is the primary purpose of a primary key in data modeling?
+            options:
+              - To store the most important attribute of an entity
+              - To uniquely identify each instance of an entity
+              - To encrypt sensitive data in the entity
+              - To define the data type of each attribute
+            correct: 1
+            explanation: >-
+              A primary key uniquely identifies each instance of an entity. It ensures no two records are the same and allows other entities to reference it. It is not about importance, encryption, or
+              data types.
+          - id: keys-p2
+            type: fill_blank
+            question: A system-generated ID with no business meaning (like an auto-incrementing integer) is called a ___ key.
+            correct: surrogate
+            explanation: >-
+              A surrogate key is a system-generated identifier with no inherent business meaning. It is preferred over natural keys (like email or SSN) because surrogate keys are guaranteed to be
+              stable and unique.
+          - id: keys-p3
+            type: true_false
+            question: Using an email address as a primary key is always a good choice because every user has a unique email.
+            correct: 'false'
+            explanation: >-
+              Email addresses can change (users switch providers, companies rebrand). A good primary key must be stable over time. Additionally, email uniqueness depends on business rules — shared
+              accounts or typos can cause issues. Surrogate keys (auto-generated IDs) are generally safer.
+    section: data-modeling-basics
+  - id: relationships
+    name: Relationships — How Entities Connect
+    difficulty: 3
+    estimatedMinutes: 12
+    tags:
+      - foundational
+      - data-modeling
+    prerequisites:
+      - entities
+      - keys-and-identity
+    encompassing: []
+    knowledgePoints:
+      - id: what-are-relationships
+        instruction: >-
+          A relationship describes how two entities interact or connect. In the sentence 'Customers place Orders,' the verb 'places' is the relationship between the Customer entity and the Order
+          entity. Relationships are the verbs and prepositions in your system description. They have a direction (Customer places Order, not the reverse) and a name that describes the interaction.
+          Relationships are implemented through foreign keys — an attribute on one entity that references the primary key of another. For example, the Order entity would have a customer_id attribute
+          that points to the Customer entity's primary key. This is how you 'connect' two entities in a database. Without relationships, your entities would be isolated silos of data with no way to
+          answer questions like 'which customer placed this order?' or 'what orders does this customer have?'
+        problems:
+          - id: relationships-p1
+            type: multiple_choice
+            question: In data modeling, how are relationships between entities typically implemented?
+            options:
+              - By storing all related data in a single large table
+              - By using foreign keys — an attribute on one entity that references the primary key of another
+              - By duplicating data across multiple entities
+              - By creating a separate configuration file
+            correct: 1
+            explanation: >-
+              Relationships are implemented through foreign keys. A foreign key is an attribute on one entity (like customer_id on Order) that references the primary key of another entity (Customer).
+              This creates a link between the two without duplicating data.
+          - id: relationships-p2
+            type: scenario
+            question: >-
+              You are designing a blog platform. Posts are written by Authors, and each Post can have many Comments. A junior developer suggests storing the author's name and email directly on every
+              Post record instead of using a foreign key to an Author entity. What is the main problem with this approach?
+            options:
+              - It makes the Post table too wide
+              - It creates data duplication — if the author changes their email, you must update every Post
+              - It violates naming conventions
+              - It makes the database slower to read
+            correct: 1
+            explanation: >-
+              Duplicating author data on every Post creates an update anomaly — if the author changes their email, you must find and update every Post record. Using a foreign key (author_id on Post
+              referencing the Author entity) means the email is stored once and changes propagate automatically.
+      - id: optional-vs-mandatory
+        instruction: >-
+          Relationships can be optional or mandatory. A mandatory relationship means every instance of one entity must be connected to the other. An Order must have a Customer — it makes no sense to
+          have an order with no buyer. An optional relationship means the connection may or may not exist. A Customer may have zero orders (they signed up but never purchased). These participation
+          rules reflect real business logic and prevent invalid data. In database terms, mandatory relationships translate to NOT NULL foreign keys — the foreign key column cannot be empty. Optional
+          relationships allow NULL foreign keys. Getting this right matters for data quality. If your model says 'every order must have a customer' but the database allows null customer_id, you will
+          eventually get orphaned orders that break reports and analytics.
+        problems:
+          - id: optional-mandatory-p1
+            type: multiple_choice
+            question: In a system where every Invoice must belong to a Customer, but a Customer may have zero invoices, which statement is correct?
+            options:
+              - Both sides of the relationship are mandatory
+              - The Invoice-to-Customer side is mandatory; the Customer-to-Invoice side is optional
+              - Both sides of the relationship are optional
+              - The Customer-to-Invoice side is mandatory; the Invoice-to-Customer side is optional
+            correct: 1
+            explanation: >-
+              Every Invoice must have a Customer (mandatory from Invoice side — the foreign key customer_id cannot be null). But a Customer can exist without any Invoices (optional from Customer
+              side). This asymmetry is very common in real data models.
+          - id: optional-mandatory-p2
+            type: true_false
+            question: If a relationship is optional on one side, it must also be optional on the other side.
+            correct: 'false'
+            explanation: Relationships can have different participation on each side. An Order must have a Customer (mandatory), but a Customer may have zero Orders (optional). The two sides are independent.
+    section: data-modeling-design
+  - id: cardinality
+    name: Cardinality — How Many of Each?
+    difficulty: 4
+    estimatedMinutes: 15
+    tags:
+      - foundational
+      - data-modeling
+    prerequisites:
+      - relationships
+    encompassing: []
+    knowledgePoints:
+      - id: cardinality-types
+        instruction: >-
+          Cardinality answers the question: 'how many instances of one entity can relate to how many instances of another?' There are three types. One-to-one (1:1): each instance of Entity A relates
+          to exactly one instance of Entity B, and vice versa. Example: a Person has one Passport, and each Passport belongs to one Person. These are rare and sometimes indicate the two entities
+          should be merged. One-to-many (1:N): one instance of Entity A relates to many instances of Entity B, but each B relates to only one A. Example: one Customer has many Orders, but each Order
+          belongs to one Customer. This is the most common cardinality and the workhorse of data modeling. It is implemented by putting a foreign key on the 'many' side (Order gets a customer_id
+          column). Many-to-many (M:N): instances of Entity A can relate to many instances of Entity B, and vice versa. Example: Students can enroll in many Courses, and each Course has many Students.
+          Many-to-many relationships cannot be directly implemented with a simple foreign key — they require a join table (covered in the next concept).
+        problems:
+          - id: cardinality-p1
+            type: multiple_choice
+            question: A single Author can write many Books, but each Book has exactly one Author. What is the cardinality of this relationship?
+            options:
+              - One-to-one
+              - One-to-many
+              - Many-to-many
+              - Many-to-one
+            correct: 1
+            explanation: One Author to many Books is a one-to-many (1:N) relationship. The foreign key (author_id) goes on the Book entity — the 'many' side.
+          - id: cardinality-p2
+            type: matching
+            question: Match each real-world scenario to its cardinality type.
+            options:
+              - Person and Social Security Number|One-to-one
+              - Department and Employees|One-to-many
+              - Students and Courses|Many-to-many
+              - Country and Capital City|One-to-one
+            correct: 0,1,2,3
+            explanation: >-
+              A Person has one SSN and vice versa (1:1). A Department has many Employees, each Employee in one Department (1:N). Students take many Courses and Courses have many Students (M:N). A
+              Country has one Capital and each Capital belongs to one Country (1:1).
+          - id: cardinality-p3
+            type: scenario
+            question: >-
+              You are modeling a music streaming service. Users can create many Playlists, and each Playlist belongs to one User. However, each Playlist can contain many Songs, and each Song can
+              appear in many Playlists. Which relationship is many-to-many?
+            options:
+              - User to Playlist
+              - Playlist to Song
+              - User to Song
+              - Both User to Playlist and Playlist to Song
+            correct: 1
+            explanation: >-
+              Playlist to Song is many-to-many: a Playlist contains many Songs, and a Song can appear in many Playlists. User to Playlist is one-to-many: one User creates many Playlists, but each
+              Playlist has one creator.
+          - id: cardinality-p4
+            type: multiple_choice
+            question: In a one-to-many relationship, where does the foreign key go?
+            options:
+              - On the 'one' side
+              - On the 'many' side
+              - On both sides
+              - In a separate table
+            correct: 1
+            explanation: The foreign key always goes on the 'many' side. In Customer (one) to Orders (many), the Order table gets a customer_id foreign key. Each Order points to its one Customer.
+    section: data-modeling-design
+  - id: associative-entities
+    name: Associative Entities — Join Tables
+    difficulty: 4
+    estimatedMinutes: 10
+    tags:
+      - foundational
+      - data-modeling
+    prerequisites:
+      - cardinality
+    encompassing: []
+    knowledgePoints:
+      - id: resolving-many-to-many
+        instruction: >-
+          Many-to-many relationships cannot be implemented with a simple foreign key. You need a third entity — called an associative entity (or join table) — that sits between the two original
+          entities. It converts one many-to-many into two one-to-many relationships. Example: Students and Courses have a many-to-many relationship. You create an Enrollment entity with student_id and
+          course_id as foreign keys. Now it is: Student (one) to Enrollment (many) and Course (one) to Enrollment (many). The associative entity often has its own attributes beyond the two foreign
+          keys. Enrollment might also store grade, enrolled_at, and dropped_at. These attributes belong to the relationship itself, not to either original entity — a grade is not a property of the
+          Student or the Course, it is a property of the specific enrollment of that student in that course. Common examples: OrderLineItem (between Order and Product), PlaylistTrack (between Playlist
+          and Song), RoleAssignment (between User and Role).
+        problems:
+          - id: assoc-p1
+            type: multiple_choice
+            question: Why can't a many-to-many relationship be implemented with a simple foreign key?
+            options:
+              - Foreign keys only support numeric data types
+              - A single foreign key column can only point to one record, but many-to-many requires pointing to multiple records on both sides
+              - Most databases do not support foreign keys
+              - Many-to-many relationships are not allowed in data modeling
+            correct: 1
+            explanation: >-
+              A foreign key column holds one value pointing to one record. In a many-to-many, each Student relates to multiple Courses and vice versa — a single column cannot represent this. A join
+              table with rows for each pairing solves the problem.
+          - id: assoc-p2
+            type: fill_blank
+            question: An associative entity that resolves a many-to-many relationship between Order and Product is commonly called an ___.
+            correct: OrderLineItem
+            explanation: OrderLineItem (or line_item) is the classic join table between Order and Product. Each row represents one product in one order, with its own attributes like quantity and unit_price.
+          - id: assoc-p3
+            type: scenario
+            question: >-
+              A hospital system has Doctors and Patients with a many-to-many relationship (a doctor treats many patients, a patient sees many doctors). You need to track the date of each visit and the
+              diagnosis. Where should these attributes live?
+            options:
+              - On the Doctor entity
+              - On the Patient entity
+              - On an associative entity (e.g., Visit) between Doctor and Patient
+              - In a separate configuration table
+            correct: 2
+            explanation: >-
+              Visit date and diagnosis describe the specific interaction between a Doctor and a Patient — they belong on the associative entity (Visit). They are not properties of the Doctor or
+              Patient alone, but of the relationship between them.
+    section: data-modeling-design
+  - id: data-modeling-process
+    name: The Data Modeling Design Process
+    difficulty: 3
+    estimatedMinutes: 12
+    tags:
+      - foundational
+      - data-modeling
+    prerequisites:
+      - associative-entities
+    encompassing: []
+    knowledgePoints:
+      - id: five-step-workflow
+        instruction: >-
+          Data modeling follows a five-step workflow. Step 1: Identify entities — read the system description and find the nouns. Step 2: List attributes for each entity — what facts do you need to
+          store? Step 3: Define relationships between entities — find the verbs connecting your nouns. Step 4: Determine cardinality for each relationship — one-to-one, one-to-many, or many-to-many?
+          Step 5: Resolve many-to-many relationships into join tables — create associative entities with their own attributes. The core philosophy is: design the data model before writing any code,
+          creating any tables, or writing any SQL. A data model is simply: things (entities) + their properties (attributes) + how they connect (relationships) + the rules that govern them
+          (cardinality and participation). This process works at any scale — from a simple to-do app to a complex enterprise system. The investment in upfront modeling pays off in cleaner queries,
+          fewer bugs, and easier evolution of the system over time.
+        workedExample: >-
+          Model a simple library system. Step 1 — Entities: Book, Member, Loan. Step 2 — Attributes: Book (isbn, title, author, published_year), Member (member_id, name, email, joined_date), Loan
+          (loan_id, borrowed_date, due_date, returned_date). Step 3 — Relationships: Members borrow Books (via Loans). Step 4 — Cardinality: One Member has many Loans. One Book has many Loans (it can
+          be borrowed many times). Each Loan links one Member to one Book. Step 5 — Loan is already our associative entity resolving the many-to-many between Member and Book. It has member_id and
+          book_id as foreign keys, plus its own attributes (borrowed_date, due_date, returned_date).
+        problems:
+          - id: process-p1
+            type: ordering
+            question: Place these data modeling steps in the correct order.
+            options:
+              - Determine cardinality for each relationship
+              - Identify entities
+              - Resolve many-to-many into join tables
+              - List attributes for each entity
+              - Define relationships between entities
+            correct: 1,3,4,0,2
+            explanation: >-
+              The five steps in order: (1) Identify entities, (2) List attributes, (3) Define relationships, (4) Determine cardinality, (5) Resolve many-to-many. You must know your entities before
+              their attributes, and relationships before their cardinality.
+          - id: process-p2
+            type: scenario
+            question: >-
+              A startup asks you to model their system: 'Users create Projects. Each Project has many Tasks. Users can be assigned to Tasks, and each Task can have multiple Users assigned.' You have
+              identified User, Project, and Task as entities. What is the next modeling decision you need to make?
+            options:
+              - Choose a database vendor
+              - Write SQL CREATE TABLE statements
+              - Recognize that User-to-Task is many-to-many and create an associative entity (e.g., TaskAssignment)
+              - Delete the Task entity since it is redundant with Project
+            correct: 2
+            explanation: >-
+              User-to-Task is many-to-many (one User has many Tasks, one Task has many Users). You need an associative entity like TaskAssignment with user_id, task_id, and potentially attributes like
+              assigned_date and role. This is step 5 of the data modeling process.
+          - id: process-p3
+            type: multiple_choice
+            question: What is the main benefit of designing a data model before writing code or SQL?
+            options:
+              - It guarantees the system will never need changes
+              - It produces cleaner queries, fewer bugs, and a system that is easier to evolve
+              - It eliminates the need for a database entirely
+              - It makes the system run faster at the hardware level
+            correct: 1
+            explanation: >-
+              Upfront data modeling produces a well-structured foundation. This leads to cleaner queries (data is in the right tables), fewer bugs (relationships and constraints catch bad data), and
+              easier evolution (adding features maps to extending the model, not hacking around it).
+    section: data-modeling-design
+  - id: what-is-a-pipeline
+    name: What Is a Data Pipeline?
+    difficulty: 2
+    estimatedMinutes: 10
+    tags:
+      - foundational
+      - pipelines
+    prerequisites:
+      - data-modeling-process
+    encompassing: []
+    knowledgePoints:
+      - id: pipeline-definition-and-flow
+        instruction: >-
+          A data pipeline is a system that moves and transforms data from sources to destinations. Think of it like plumbing: data flows from where it is produced to where it is needed, passing
+          through stages along the way. The typical flow has four stages: Collect (ingest data from sources), Store (land it somewhere durable), Process (clean, transform, aggregate), and Deliver
+          (serve it to consumers like dashboards, ML models, or analytics tools). A more detailed version: Source, Ingest, Store, Transform, Serve, Analyze. Common sources include application
+          databases, APIs, event streams (like user clickstreams), log files, and SaaS tools. Common destinations include data warehouses (BigQuery, Snowflake), dashboards (Looker, Metabase), machine
+          learning systems, and product analytics platforms. Every analytics product you have ever used — Google Analytics, Mixpanel, Amplitude, PostHog — has a data pipeline at its core.
+          Understanding how pipelines work helps you reason about data freshness, troubleshoot missing data, and explain latency to customers.
+        problems:
+          - id: pipeline-p1
+            type: multiple_choice
+            question: What is a data pipeline?
+            options:
+              - A type of database optimized for storing large files
+              - A system that moves and transforms data from sources to destinations
+              - A programming language for writing SQL queries
+              - A physical cable connecting two servers
+            correct: 1
+            explanation: >-
+              A data pipeline is a system that moves data from where it is produced (sources) to where it is needed (destinations), transforming it along the way. It is a logical system, not a
+              physical object or a language.
+          - id: pipeline-p2
+            type: ordering
+            question: Place these data pipeline stages in the typical order.
+            options:
+              - Transform
+              - Ingest
+              - Serve/Analyze
+              - Store
+            correct: 1,3,0,2
+            explanation: >-
+              The typical flow is: Ingest (collect from sources), Store (land somewhere durable), Transform (clean and process), Serve/Analyze (deliver to consumers). Data must be collected before
+              stored, stored before transformed, and transformed before served.
+          - id: pipeline-p3
+            type: true_false
+            question: A data pipeline only moves data — it never modifies or transforms data along the way.
+            correct: 'false'
+            explanation: Pipelines both move AND transform data. Transformation is a core stage — cleaning, filtering, aggregating, joining, and reshaping data as it flows from source to destination.
+    section: pipeline-basics
+  - id: sources-and-ingestion
+    name: Sources & Ingestion Patterns
+    difficulty: 3
+    estimatedMinutes: 15
+    tags:
+      - foundational
+      - pipelines
+    prerequisites:
+      - what-is-a-pipeline
+    encompassing: []
+    knowledgePoints:
+      - id: where-data-comes-from
+        instruction: >-
+          Data sources are any system that produces data your pipeline needs to consume. Common sources include: application databases (PostgreSQL, MySQL — the operational databases your app writes
+          to), event streams (user clicks, pageviews, API calls — real-time actions), third-party APIs (Stripe for payments, Salesforce for CRM data), flat files (CSVs, JSON exports), and server logs
+          (access logs, error logs). Sources differ in how they produce data. Batch sources produce data in chunks at intervals — a nightly database export, a weekly CSV from a vendor. Streaming
+          sources produce data continuously in real-time — user clickstreams, IoT sensor readings, application event logs. Batch is simpler to build and operate but introduces latency (data can be
+          hours or days old). Streaming is faster (near real-time) but harder to build, debug, and operate. Most real-world pipelines use a mix of both.
+        problems:
+          - id: sources-p1
+            type: multiple_choice
+            question: Which of the following is an example of a streaming data source?
+            options:
+              - A nightly CSV export from a vendor
+              - A weekly database backup
+              - Real-time user clickstream events from a web application
+              - A monthly financial report
+            correct: 2
+            explanation: >-
+              User clickstream events are produced continuously in real-time as users interact with the application — this is a streaming source. The other options are all batch sources (periodic
+              exports at fixed intervals).
+          - id: sources-p2
+            type: matching
+            question: Match each data source to its category.
+            options:
+              - User clickstream events|Streaming
+              - Nightly database export|Batch
+              - IoT sensor readings|Streaming
+              - Weekly CSV from a vendor|Batch
+            correct: 0,1,2,3
+            explanation: Clickstreams and IoT sensors produce data continuously (streaming). Nightly exports and weekly CSVs are produced at intervals (batch).
+      - id: ingestion-approaches
+        instruction: >-
+          Ingestion is the process of collecting data from sources into your pipeline. There are three main patterns. Pull-based ingestion: the pipeline periodically requests data from the source.
+          Example: a scheduled job that queries an API every hour, or a cron job that fetches new rows from a database. The pipeline controls the timing. Push-based ingestion: the source sends data to
+          the pipeline as it is produced. Example: a web application sends events to an analytics endpoint, or a webhook fires when a payment succeeds. The source controls the timing. Change Data
+          Capture (CDC): a specialized technique that watches a database's transaction log (WAL in PostgreSQL, binlog in MySQL) and captures every INSERT, UPDATE, and DELETE as it happens. CDC gives
+          you streaming-like freshness from a batch source (a database) without querying the database directly — it reads the log instead. Most product analytics tools (including PostHog) use
+          push-based ingestion: your application sends events to their API.
+        problems:
+          - id: ingestion-p1
+            type: multiple_choice
+            question: In push-based ingestion, who initiates the data transfer?
+            options:
+              - The pipeline requests data on a schedule
+              - The source sends data as it is produced
+              - A third-party orchestrator triggers both sides
+              - The database log is read directly
+            correct: 1
+            explanation: In push-based ingestion, the source sends data to the pipeline. A web app posting events to an analytics API is a classic example. The source controls the timing, not the pipeline.
+          - id: ingestion-p2
+            type: scenario
+            question: >-
+              Your company uses a third-party CRM (like Salesforce) that does not support webhooks. You need updated deal data in your warehouse every few hours. Which ingestion pattern is most
+              appropriate?
+            options:
+              - Push-based — have Salesforce send data to your pipeline
+              - Pull-based — schedule your pipeline to query the Salesforce API periodically
+              - Change Data Capture — read Salesforce's database logs
+              - Manual — have someone export a CSV daily
+            correct: 1
+            explanation: >-
+              Without webhook support, you cannot use push-based ingestion. You do not have access to Salesforce's database logs for CDC. Pull-based is the right choice: schedule your pipeline to call
+              the Salesforce API every few hours to fetch updated records.
+          - id: ingestion-p3
+            type: true_false
+            question: Change Data Capture (CDC) works by periodically querying a database for new rows.
+            correct: 'false'
+            explanation: >-
+              CDC does NOT query the database. It reads the database's transaction log (WAL/binlog) to capture every INSERT, UPDATE, and DELETE as it happens. This avoids putting query load on the
+              production database and provides near real-time data.
+    section: pipeline-basics
+  - id: storage-layers
+    name: Storage Layers — Where Data Lives
+    difficulty: 3
+    estimatedMinutes: 12
+    tags:
+      - foundational
+      - pipelines
+    prerequisites:
+      - sources-and-ingestion
+    encompassing: []
+    knowledgePoints:
+      - id: raw-lake-warehouse
+        instruction: >-
+          Data passes through different storage layers as it moves through a pipeline, becoming more structured and query-optimized at each stage. Raw storage (landing zone): the first place data
+          lands after ingestion. It preserves the original data exactly as received — no transformation, no cleaning. This is your safety net: if something goes wrong downstream, you can always
+          re-process from raw. Data lake: large, cheap storage (like S3 or Google Cloud Storage) that holds raw and semi-structured data. Data lakes are flexible — they can store JSON, CSV, Parquet,
+          images, anything. They are optimized for storage cost, not query speed. Data warehouse: a database optimized for analytical queries. Data is structured into tables with defined schemas,
+          indexed for fast aggregation, and designed for questions like 'how many users signed up last month by region?' Examples include BigQuery, Snowflake, Redshift, and ClickHouse. Data typically
+          flows: raw to lake to warehouse, getting more structured and query-friendly at each stage. Some modern architectures (like the 'lakehouse') blur the line between lake and warehouse.
+        problems:
+          - id: storage-p1
+            type: multiple_choice
+            question: What is the primary advantage of keeping a raw storage layer in your pipeline?
+            options:
+              - Raw storage is the fastest to query
+              - It preserves original data so you can reprocess if something goes wrong downstream
+              - It eliminates the need for a data warehouse
+              - Raw storage automatically cleans and transforms data
+            correct: 1
+            explanation: >-
+              Raw storage is your safety net. By preserving the original data untouched, you can always go back and reprocess it if a transformation bug corrupts downstream data. Raw storage is not
+              fast to query — that is the warehouse's job.
+          - id: storage-p2
+            type: matching
+            question: Match each storage layer to its primary characteristic.
+            options:
+              - Raw storage|Preserves original data exactly as received
+              - Data lake|Cheap, flexible storage for semi-structured data
+              - Data warehouse|Optimized for fast analytical queries
+              - Landing zone|First place data lands after ingestion
+            correct: 0,1,2,3
+            explanation: >-
+              Raw storage and landing zone both describe the initial ingestion target (preserving original data). Data lakes prioritize cheap, flexible storage. Data warehouses prioritize fast
+              analytical queries with structured schemas.
+          - id: storage-p3
+            type: true_false
+            question: A data warehouse is optimized for cheap storage of unstructured data like images and videos.
+            correct: 'false'
+            explanation: >-
+              A data warehouse is optimized for fast analytical queries on structured data (tables with defined schemas). Cheap storage of unstructured data is the role of a data lake (like S3).
+              Warehouses trade storage cost for query speed.
+    section: pipeline-basics
+  - id: transformation-etl-elt
+    name: Transformation — ETL vs ELT
+    difficulty: 4
+    estimatedMinutes: 15
+    tags:
+      - foundational
+      - pipelines
+    prerequisites:
+      - storage-layers
+    encompassing: []
+    knowledgePoints:
+      - id: what-transformation-does
+        instruction: >-
+          Transformation is the stage where raw data becomes usable data. It is where you clean, reshape, enrich, and aggregate. Common transformation operations include: cleaning (removing
+          duplicates, fixing null values, correcting data types), filtering (dropping irrelevant records), joining (combining data from multiple sources — e.g., enriching events with user attributes),
+          aggregating (summing, counting, averaging — turning raw events into metrics), and normalizing (standardizing formats like dates, currencies, or country codes). For example, raw event data
+          might look like individual 'user_clicked_button' records with timestamps. After transformation, you might have an aggregated table of 'daily_clicks_per_user' that is much easier to query for
+          analytics. Transformation is where business logic lives. The rules about what counts as an 'active user' or how 'revenue' is calculated are encoded in transformation steps.
+        problems:
+          - id: transform-p1
+            type: multiple_choice
+            question: Which of the following is NOT a common transformation operation?
+            options:
+              - Removing duplicate records
+              - Aggregating raw events into daily summaries
+              - Collecting data from a third-party API
+              - Joining event data with user profile data
+            correct: 2
+            explanation: >-
+              Collecting data from an API is ingestion, not transformation. Transformation operates on data already in the pipeline — deduplication, aggregation, and joining are all transformation
+              operations.
+          - id: transform-p2
+            type: fill_blank
+            question: The transformation stage is where ___ logic is encoded — rules like what counts as an active user or how revenue is calculated.
+            correct: business
+            explanation: >-
+              Business logic lives in the transformation layer. Definitions like 'active user = logged in within last 30 days' or 'MRR = sum of all active subscription amounts' are transformation
+              rules that turn raw data into meaningful metrics.
+      - id: etl-vs-elt
+        instruction: >-
+          There are two major approaches to when transformation happens. ETL (Extract, Transform, Load): data is extracted from sources, transformed in a separate processing system, and then loaded
+          into the destination (warehouse). This was the traditional approach when storage was expensive — you only stored the clean, transformed data. ELT (Extract, Load, Transform): data is
+          extracted from sources, loaded raw into the destination, and then transformed inside the warehouse using SQL or the warehouse's own compute engine. This is the modern approach. Cheap cloud
+          storage (S3, GCS) makes it practical to keep all raw data and transform on demand. The advantage of ELT is flexibility: if your business logic changes, you can re-transform from the raw data
+          without re-ingesting. You also preserve the original data for auditing. Most modern analytics systems, including PostHog, use an ELT-like pattern: events are ingested raw, stored in
+          ClickHouse, and then queried/transformed at read time using HogQL.
+        problems:
+          - id: etl-elt-p1
+            type: multiple_choice
+            question: What is the key difference between ETL and ELT?
+            options:
+              - ETL uses SQL; ELT uses Python
+              - ETL transforms data before loading it into the warehouse; ELT loads raw data first and transforms inside the warehouse
+              - ETL is for batch data; ELT is for streaming data
+              - ETL is open source; ELT is proprietary
+            correct: 1
+            explanation: >-
+              The difference is when transformation happens. ETL transforms before loading (data enters the warehouse already clean). ELT loads raw data first and transforms inside the warehouse. ELT
+              is the modern approach enabled by cheap storage.
+          - id: etl-elt-p2
+            type: true_false
+            question: ELT became practical because cloud storage costs dropped, making it affordable to store raw data and transform later.
+            correct: 'true'
+            explanation: >-
+              Cheap cloud storage (S3, GCS, Azure Blob) is the key enabler of ELT. When storage was expensive, you had to transform before loading to minimize what you stored (ETL). Now you can afford
+              to keep everything raw and transform on demand.
+          - id: etl-elt-p3
+            type: scenario
+            question: Your company realizes their definition of 'active user' was wrong for the past 6 months. Under which approach can you fix the historical data without re-ingesting from the source?
+            options:
+              - ETL — because the transformed data is already clean
+              - ELT — because the raw data is preserved in the warehouse and you can re-transform it
+              - Neither — you must always re-ingest from the source
+              - Both — there is no difference for this scenario
+            correct: 1
+            explanation: >-
+              ELT preserves the raw data in the warehouse. When business logic changes, you can re-run transformations on the existing raw data. With ETL, raw data is discarded after transformation,
+              so you would need to re-ingest from the source (if it is even still available).
+    section: pipeline-architecture
+  - id: orchestration-and-serving
+    name: Orchestration & Serving Data
+    difficulty: 3
+    estimatedMinutes: 10
+    tags:
+      - foundational
+      - pipelines
+    prerequisites:
+      - transformation-etl-elt
+    encompassing: []
+    knowledgePoints:
+      - id: workflow-orchestration
+        instruction: >-
+          Pipelines have multiple steps that must run in a specific order with specific dependencies. Orchestration is the coordination of these steps. An orchestrator schedules and manages the
+          execution: extract data from source A, then transform it, then load it, then refresh the dashboard. If the extract step fails, the transform step should not run. Tasks are organized as a DAG
+          — a Directed Acyclic Graph. 'Directed' means edges have a direction (step A must complete before step B). 'Acyclic' means there are no loops (step B cannot depend on step C which depends on
+          step B). Common orchestration tools include Apache Airflow, Dagster, Prefect, and dbt for transformation-specific orchestration. The orchestrator handles scheduling (run this pipeline every
+          hour), dependency management (only run step B after step A succeeds), retries (if a step fails, retry it 3 times), and alerting (notify the team if a pipeline fails).
+        problems:
+          - id: orch-p1
+            type: multiple_choice
+            question: What does DAG stand for in the context of pipeline orchestration?
+            options:
+              - Data Aggregation Gateway
+              - Directed Acyclic Graph
+              - Distributed Analytics Grid
+              - Dynamic Allocation Group
+            correct: 1
+            explanation: >-
+              DAG stands for Directed Acyclic Graph. 'Directed' means steps have a defined order. 'Acyclic' means there are no circular dependencies. Pipeline tasks form a DAG where each step depends
+              on previous steps completing.
+          - id: orch-p2
+            type: true_false
+            question: In a pipeline DAG, it is acceptable for step B to depend on step C, and step C to depend on step B.
+            correct: 'false'
+            explanation: A DAG is acyclic — no circular dependencies are allowed. If B depends on C and C depends on B, neither can ever start. This is a cycle, which the orchestrator would reject.
+      - id: serving-data
+        instruction: >-
+          Once data is processed, it must be delivered to the people and systems that need it. This is the serving layer. Common consumers include: BI dashboards (Looker, Metabase, Grafana) for
+          business metrics and KPIs, data scientists and ML engineers who need clean datasets for model training, product analytics tools for understanding user behavior, internal applications for
+          reporting, billing, or customer-facing features. Common serving patterns include: direct warehouse access (users query the warehouse with SQL), semantic/metrics layers (a shared definition
+          of metrics that dashboards and tools can reference), APIs (REST or GraphQL endpoints that serve processed data to applications), and cached materialized views (pre-computed query results for
+          frequently accessed data). The choice of serving layer depends on the consumer. Analysts want SQL access. Product managers want dashboards. Applications want APIs.
+        problems:
+          - id: serving-p1
+            type: multiple_choice
+            question: Which serving pattern is most appropriate for a product manager who needs a weekly KPI dashboard?
+            options:
+              - Direct SQL access to the data warehouse
+              - A BI dashboard tool (like Looker or Metabase) connected to the warehouse
+              - A raw data dump to their email
+              - An API endpoint returning JSON
+            correct: 1
+            explanation: >-
+              BI dashboards are designed for non-technical consumers who need visual, regularly updated KPI views. Direct SQL access suits analysts. APIs suit applications. Raw data dumps are not
+              user-friendly.
+          - id: serving-p2
+            type: matching
+            question: Match each data consumer to their ideal serving pattern.
+            options:
+              - Data analyst|Direct SQL access to the warehouse
+              - Product manager|BI dashboard
+              - Mobile app|REST API endpoint
+              - ML engineer|Clean dataset export or warehouse access
+            correct: 0,1,2,3
+            explanation: Analysts want SQL flexibility. PMs want visual dashboards. Apps need programmatic API access. ML engineers need structured datasets for training.
+    section: pipeline-architecture
+  - id: pipeline-tradeoffs
+    name: Pipeline Tradeoffs — Latency, Cost, Complexity
+    difficulty: 4
+    estimatedMinutes: 10
+    tags:
+      - foundational
+      - pipelines
+    prerequisites:
+      - orchestration-and-serving
+    encompassing: []
+    knowledgePoints:
+      - id: three-tensions
+        instruction: >-
+          Every pipeline design involves tradeoffs across three dimensions. Latency: how fresh is the data? Real-time pipelines deliver data in seconds but cost more and are harder to operate. Batch
+          pipelines deliver data in hours but are simpler and cheaper. Most analytics use cases are fine with minutes-to-hours of latency — you do not need real-time data to answer 'how many users
+          signed up last week?' Cost: streaming infrastructure (Kafka, Flink, real-time compute) is more expensive than batch infrastructure (scheduled jobs, warehouse compute). Every increase in
+          freshness has a cost. Complexity: real-time systems have more failure modes, are harder to debug, and require more operational expertise. Simpler pipelines are almost always better unless
+          you have a proven need for low latency. Two additional principles matter. Idempotency: a pipeline should be safe to rerun without creating duplicate data. If a job fails halfway and you
+          restart it, the result should be the same as if it ran once. Monitoring: every production pipeline needs checks for failures, slow jobs, missing data, unexpected row counts, null values, and
+          schema changes. A pipeline without monitoring is a ticking time bomb.
+        problems:
+          - id: tradeoffs-p1
+            type: multiple_choice
+            question: Which of the following correctly describes the tradeoff between batch and streaming pipelines?
+            options:
+              - Batch is always better because it is faster
+              - Streaming is always better because it is cheaper
+              - Streaming offers lower latency but higher cost and complexity compared to batch
+              - There is no meaningful difference between batch and streaming
+            correct: 2
+            explanation: >-
+              Streaming delivers data faster (lower latency) but costs more to build and operate (higher cost and complexity). Batch is simpler and cheaper but data is less fresh. The right choice
+              depends on your requirements.
+          - id: tradeoffs-p2
+            type: scenario
+            question: >-
+              Your pipeline occasionally fails halfway through processing. When restarted, it creates duplicate rows in the warehouse. A colleague suggests making the pipeline idempotent. What does
+              this mean?
+            options:
+              - The pipeline should run faster to avoid failures
+              - The pipeline should be safe to rerun without creating duplicate data
+              - The pipeline should skip failed records and continue
+              - The pipeline should send an alert when it fails
+            correct: 1
+            explanation: >-
+              Idempotency means the pipeline produces the same result whether it runs once or multiple times. If restarted after a failure, it should not create duplicates. Techniques include upserts
+              (INSERT ... ON CONFLICT UPDATE) and deduplication checks.
+          - id: tradeoffs-p3
+            type: true_false
+            question: For most analytics use cases, real-time data freshness (sub-second latency) is required.
+            correct: 'false'
+            explanation: >-
+              Most analytics questions ('how many users signed up last week?', 'what is our conversion rate?') are fine with minutes-to-hours of latency. Real-time is needed for specific use cases
+              like fraud detection or live dashboards. Defaulting to batch is cheaper and simpler.
+    section: pipeline-architecture
+  - id: ph-events
+    name: PostHog Events — The Atomic Unit
+    difficulty: 3
+    estimatedMinutes: 15
+    tags:
+      - posthog
+      - data-model
+    sourceRef: https://posthog.com/docs/new-to-posthog/understand-posthog
+    prerequisites:
+      - pipeline-tradeoffs
+    encompassing: []
+    knowledgePoints:
+      - id: what-is-a-posthog-event
+        instruction: >-
+          An event is the atomic unit of data in PostHog — a single record of something that happened at a specific point in time. Every event has four required components: an event name (like
+          '$pageview', 'user_signed_up', or 'purchase_completed'), a timestamp (when it happened), a distinct_id (who did it — the identifier for the user or device), and properties (a JSON object of
+          key-value metadata providing context). Events in PostHog are immutable — once captured, they cannot be changed or updated. This is a fundamental design choice: events represent facts about
+          the past, and the past does not change. Events with names prefixed by '$' are PostHog defaults, automatically captured by the SDKs: '$pageview' (page was loaded), '$pageleave' (user
+          navigated away), '$autocapture' (user clicked, changed input, or submitted a form), '$identify' (user was identified), '$set' (person properties were set). Custom events are ones you define
+          in your code: posthog.capture('user_signed_up', { plan: 'pro' }). In data modeling terms, Event is the central entity in PostHog. All other entities (Persons, Sessions, Groups) exist in
+          relation to events. See the PostHog data model overview at https://posthog.com/docs/new-to-posthog/understand-posthog for a visual of how these entities connect.
+        workedExample: >-
+          A user visits your pricing page. PostHog's JS SDK automatically captures a '$pageview' event. The event looks like this internally: event name = '$pageview', timestamp =
+          '2025-01-15T14:32:00Z', distinct_id = '018d4f2a-random-uuid', properties = { '$current_url': 'https://example.com/pricing', '$browser': 'Chrome', '$os': 'Mac OS X', '$device_type':
+          'Desktop', '$referrer': 'https://google.com', '$referring_domain': 'google.com' }. Every one of these properties was set automatically by the SDK — the developer did not write any code
+          beyond initializing PostHog.
+        problems:
+          - id: ph-events-p1
+            type: multiple_choice
+            question: What are the four required components of every PostHog event?
+            options:
+              - Name, description, category, and priority
+              - Event name, timestamp, distinct_id, and properties
+              - Source, destination, payload, and status code
+              - User ID, session ID, page URL, and browser
+            correct: 1
+            explanation: Every PostHog event has an event name (what happened), a timestamp (when), a distinct_id (who), and properties (context/metadata). These four fields are present on every single event.
+          - id: ph-events-p2
+            type: true_false
+            question: PostHog events can be updated after they are captured to correct mistakes.
+            correct: 'false'
+            explanation: >-
+              Events in PostHog are immutable — once captured, they cannot be changed. This is by design: events represent facts about the past. If you capture incorrect data, you must capture new
+              corrected events going forward.
+          - id: ph-events-p3
+            type: fill_blank
+            question: Events with names prefixed by ___ are PostHog defaults, automatically captured by the SDKs.
+            correct: $
+            explanation: 'The dollar sign ($) prefix indicates PostHog default events: $pageview, $autocapture, $identify, $pageleave, etc. Custom events you define do not use the $ prefix.'
+          - id: ph-events-p4
+            type: multiple_choice
+            question: In PostHog's data model, which entity is the central building block that all other entities relate to?
+            options:
+              - Person
+              - Session
+              - Event
+              - Action
+            correct: 2
+            explanation: >-
+              The Event is the atomic unit and central entity in PostHog. Persons are built by aggregating events. Sessions group events by visit. Actions are saved groupings of events. Everything
+              revolves around events.
+      - id: custom-vs-autocapture
+        instruction: >-
+          PostHog offers two ways to capture events: autocapture and custom events. Autocapture is enabled by default in the JS web SDK. It automatically captures user interactions — clicks, form
+          submissions, input changes — without any code. The event name is '$autocapture', and the properties include the element's tag, text, CSS classes, and href. Autocapture is great for getting
+          started quickly and for exploratory analysis — you can retroactively analyze interactions you did not think to track. The downside: autocapture events are tied to UI elements. If a button's
+          text changes from 'Sign Up' to 'Get Started,' your analysis breaks because the identifying property changed. Custom events are explicitly captured in your code:
+          posthog.capture('user_signed_up', { plan: 'pro', source: 'landing_page' }). You control the event name and properties. Custom events are stable (the name does not change when the UI
+          changes), intentional (you track what matters to the business), and carry richer context (you can attach any properties you want). Best practice: use autocapture for discovery and
+          exploration, but define custom events for important business actions like signups, purchases, upgrades, and key feature usage. See https://posthog.com/docs/product-analytics/capture-events
+          for SDK examples and best practices.
+        problems:
+          - id: ph-autocapture-p1
+            type: multiple_choice
+            question: What is the main risk of relying solely on autocapture for critical business metrics?
+            options:
+              - Autocapture does not work in web browsers
+              - Autocapture events break when UI text or element structure changes
+              - Autocapture is too expensive to use
+              - Autocapture only works on mobile apps
+            correct: 1
+            explanation: >-
+              Autocapture identifies elements by their text, CSS classes, and position. When a button changes from 'Sign Up' to 'Get Started,' the autocapture event properties change too, breaking any
+              analysis that relied on the old text. Custom events avoid this because you control the event name.
+          - id: ph-autocapture-p2
+            type: scenario
+            question: >-
+              A customer wants to track how many users complete their checkout flow. They currently rely on autocapture to detect clicks on the 'Place Order' button. Their frontend team is about to
+              redesign the checkout page. What do you recommend?
+            options:
+              - Keep using autocapture — it will adapt to the new design automatically
+              - Add a custom event like posthog.capture('order_completed') that fires on successful checkout, independent of UI elements
+              - Disable autocapture entirely to save costs
+              - Ask the frontend team not to change the button text
+            correct: 1
+            explanation: >-
+              A custom event like 'order_completed' is tied to the business action (a successful checkout), not the UI element (a button with specific text). It will survive any redesign. Autocapture
+              is fragile for critical metrics because it depends on element properties that change with UI updates.
+          - id: ph-autocapture-p3
+            type: true_false
+            question: Autocapture and custom events are mutually exclusive — you must choose one or the other.
+            correct: 'false'
+            explanation: >-
+              You can (and should) use both. Autocapture gives you broad coverage for exploration and discovery. Custom events give you reliable, stable tracking for critical business actions. They
+              complement each other.
+    section: posthog-data-model
+  - id: ph-event-properties
+    name: Event Properties — Metadata on Events
+    difficulty: 3
+    estimatedMinutes: 12
+    tags:
+      - posthog
+      - data-model
+    sourceRef: https://posthog.com/docs/product-analytics/capture-events
+    prerequisites:
+      - ph-events
+    encompassing: []
+    knowledgePoints:
+      - id: default-vs-custom-properties
+        instruction: >-
+          Every PostHog event carries properties — a JSON object of key-value pairs that provide context about the event. Properties come in two flavors. Default properties are set automatically by
+          the SDK with no code from you. These include: '$browser' (Chrome, Firefox, Safari), '$os' (Mac OS X, Windows, iOS), '$current_url' (the page URL when the event fired), '$referrer' (the
+          referring page), '$referring_domain' (the referring domain), '$device_type' (Desktop, Mobile, Tablet), '$screen_height' and '$screen_width', '$timestamp' (when the event was captured), and
+          '$lib' (which SDK sent it, like 'web' or 'node'). Custom properties are ones you define when capturing events: posthog.capture('purchase', { plan: 'pro', amount: 99, currency: 'USD' }).
+          Custom properties let you attach business context that the SDK cannot infer. Properties are the backbone of analysis — you use them to filter events ('show me purchases where plan = pro'),
+          break down metrics ('pageviews by browser'), and segment users. Without properties, events would be bare 'something happened' records with no useful context. See
+          https://posthog.com/docs/product-analytics/capture-events for the full list of default properties.
+        problems:
+          - id: ph-props-p1
+            type: multiple_choice
+            question: Which of the following is a default property automatically set by the PostHog JS SDK?
+            options:
+              - plan
+              - amount
+              - $browser
+              - signup_source
+            correct: 2
+            explanation: >-
+              $browser is automatically set by the SDK based on the user's browser. 'plan', 'amount', and 'signup_source' are custom properties that a developer would need to explicitly include when
+              capturing events.
+          - id: ph-props-p2
+            type: fill_blank
+            question: To filter insights by the page where an event occurred, you would use the default property ___.
+            correct: $current_url
+            explanation: $current_url is the default property that captures the full URL of the page when the event was fired. It is automatically set by the JS SDK on every event.
+          - id: ph-props-p3
+            type: true_false
+            question: Custom event properties must be defined in the PostHog UI before they can be used in code.
+            correct: 'false'
+            explanation: >-
+              Custom properties are schemaless — you can send any key-value pair in your capture call and PostHog will accept it. No pre-registration or UI configuration is needed. Properties appear
+              in the UI automatically after the first event containing them is captured.
+      - id: event-vs-person-properties
+        instruction: >-
+          PostHog has two types of properties that are often confused: event properties and person properties. Event properties are attached to a specific event and describe the context of that action
+          at that moment. They are per-event — each event carries its own snapshot. Example: '$current_url', 'button_text', 'cart_value'. If a user visits page A, the event has $current_url = /page-a.
+          If they visit page B, that event has $current_url = /page-b. Each event has its own value. Person properties are stored on the person profile and describe the user across all their events.
+          They persist and apply globally. Example: 'email', 'plan', 'company_name'. A user on the 'pro' plan has that property on their profile, and every analysis that uses person properties will
+          see 'pro' regardless of which event you are looking at. The rule of thumb: 'Is this fact about the user generally, across all events?' Use a person property. 'Is this fact about this
+          specific action, right now?' Use an event property. Event properties do not retroactively change — each event is an immutable snapshot. Person properties are mutable — when you change
+          someone's plan from 'free' to 'pro', the person property updates immediately. See https://posthog.com/docs/product-analytics/person-properties for detailed guidance.
+        problems:
+          - id: ph-evperson-p1
+            type: multiple_choice
+            question: A user's subscription plan (free, pro, enterprise) should be stored as which type of property?
+            options:
+              - Event property — it describes what happened
+              - Person property — it describes the user across all events
+              - Session property — it describes the visit
+              - Group property — it describes the company
+            correct: 1
+            explanation: >-
+              A subscription plan describes the user generally, not a specific action. It should be a person property so it persists on the user's profile. If stored as an event property, you would
+              need to attach it to every single event.
+          - id: ph-evperson-p2
+            type: scenario
+            question: >-
+              A customer tracks the page URL where a button was clicked. They store this as a person property ($set: { last_clicked_page: '/pricing' }). Every time the user clicks a different button
+              on a different page, the person property updates. When they build a funnel analysis, they see unexpected results because the person property reflects the latest click, not the click at
+              each funnel step. What went wrong?
+            options:
+              - They should have used a group property instead
+              - Page URL at click time is per-event context and should be an event property, not a person property
+              - They need to use $set_once instead of $set
+              - Funnel analysis does not support properties
+            correct: 1
+            explanation: >-
+              Page URL at click time is event-specific context — it varies per event. Storing it as a person property overwrites on every click, losing the history. It should be an event property so
+              each event preserves the URL at the time of that specific click.
+          - id: ph-evperson-p3
+            type: matching
+            question: Classify each property as event property or person property.
+            options:
+              - $current_url (page URL at event time)|Event property
+              - email (user's email address)|Person property
+              - cart_value (value of items in cart at checkout)|Event property
+              - plan (user's subscription tier)|Person property
+            correct: 0,1,2,3
+            explanation: $current_url and cart_value are snapshots of context at event time (event properties). Email and plan describe the user generally and persist across events (person properties).
+    section: posthog-data-model
+  - id: ph-persons
+    name: Persons & Person Profiles
+    difficulty: 4
+    estimatedMinutes: 15
+    tags:
+      - posthog
+      - data-model
+    sourceRef: https://posthog.com/docs/data/persons
+    prerequisites:
+      - ph-events
+      - keys-and-identity
+      - relationships
+    encompassing: []
+    knowledgePoints:
+      - id: what-is-a-person
+        instruction: >-
+          A person in PostHog represents a user — a single human being (or bot, or device) whose events, sessions, and properties are aggregated into one identity profile. Person profiles are created
+          when a user is identified through one of these actions: calling posthog.identify(), calling posthog.alias(), calling posthog.group(), or setting person properties via $set or $set_once.
+          Crucially, not all events require a person profile. PostHog can capture events with just a distinct_id and no associated person record. These are 'anonymous' events — they are tracked and
+          queryable but not linked to a person profile. In data modeling terms: Person is an entity with a one-to-many relationship to Events (one person has many events). The relationship is optional
+          on the Person side — events can exist without a person profile. Person profiles enable PostHog's most powerful features: person properties for segmentation, feature flags for targeting,
+          experiments for A/B testing, and cohorts for grouping users. Without a person profile, you can still analyze aggregate event data, but you lose the ability to analyze individual user
+          journeys or target specific users. See https://posthog.com/docs/data/persons for the full documentation on person profiles.
+        problems:
+          - id: ph-persons-p1
+            type: multiple_choice
+            question: Which of the following actions does NOT create a person profile in PostHog?
+            options:
+              - Calling posthog.identify()
+              - Setting person properties with $set
+              - Capturing an event with posthog.capture() without any identification
+              - Calling posthog.group()
+            correct: 2
+            explanation: >-
+              A plain posthog.capture() call without identification only creates an event with a distinct_id. It does not create a person profile (when using identified_only mode). identify(), $set,
+              and group() all trigger person profile creation.
+          - id: ph-persons-p2
+            type: true_false
+            question: Every event in PostHog must have an associated person profile.
+            correct: 'false'
+            explanation: >-
+              Events can exist without a person profile. Anonymous events have a distinct_id but no person record. This is especially true in 'identified_only' mode where person profiles are only
+              created when explicit identification occurs.
+          - id: ph-persons-p3
+            type: multiple_choice
+            question: Which PostHog features require a person profile to function?
+            options:
+              - Viewing raw event data
+              - Feature flags, experiments, and cohort targeting
+              - Counting total pageviews
+              - Viewing the project settings page
+            correct: 1
+            explanation: >-
+              Feature flags need to know who the user is to decide which flag variant to serve. Experiments need person profiles for consistent bucketing. Cohorts group users by properties. All of
+              these require person profiles. Raw event counting works without them.
+      - id: viewing-person-profiles
+        instruction: >-
+          In the PostHog UI, navigate to People (or Persons) to see all person profiles. Each profile displays: all distinct_ids associated with the person (there can be multiple — see the distinct_id
+          concept), all person properties (both standard and custom), the person's complete event history (every event attributed to them), session recordings (if Session Replay is enabled), feature
+          flag evaluations (which flags are active for this person), and groups the person belongs to. You can search for specific persons by distinct_id, email, or any person property. You can also
+          manually merge duplicate profiles if two profiles represent the same human — select both and merge them. This is useful for fixing identification mistakes. Person profiles are the hub that
+          connects all of a user's data in PostHog. When a customer asks 'what did user X do?' or 'why is user X seeing this feature flag?', the person profile is where you look.
+        problems:
+          - id: ph-viewing-p1
+            type: multiple_choice
+            question: Where in the PostHog UI can you see all distinct_ids associated with a person, their properties, event history, and feature flag evaluations?
+            options:
+              - The Events tab
+              - The Person profile page (under People/Persons)
+              - The Dashboard settings
+              - The Project settings page
+            correct: 1
+            explanation: >-
+              The Person profile page is the central view for an individual user. It shows all distinct_ids, person properties, event history, session recordings, and feature flag evaluations in one
+              place.
+          - id: ph-viewing-p2
+            type: true_false
+            question: If two person profiles in PostHog represent the same real human, they can be manually merged in the UI.
+            correct: 'true'
+            explanation: PostHog supports manual merging of person profiles. This is useful for fixing identification mistakes where the same user accidentally created two separate profiles.
+    section: posthog-data-model
+  - id: ph-person-properties
+    name: Person Properties — $set and $set_once
+    difficulty: 4
+    estimatedMinutes: 15
+    tags:
+      - posthog
+      - data-model
+    sourceRef: https://posthog.com/docs/product-analytics/person-properties
+    prerequisites:
+      - ph-persons
+    encompassing: []
+    knowledgePoints:
+      - id: setting-person-properties
+        instruction: >-
+          Person properties are key-value pairs stored on a person's profile that persist across events and sessions. They describe who the user is, not what they did. There are three main ways to set
+          person properties. First, through the identify() call: posthog.identify('user_42', { email: 'jane@co.com', plan: 'pro' }) — the second argument sets properties using $set semantics. Second,
+          through the SDK helper: posthog.setPersonProperties({ plan: 'enterprise' }). Third, through the $set and $set_once special properties on any event: posthog.capture('upgrade', { $set: { plan:
+          'enterprise' }, $set_once: { first_upgrade_date: '2025-01-15' } }). The critical distinction: $set always overwrites the current value. Use it for properties that change: plan, last_login,
+          subscription_status. $set_once only sets the value if it does not already exist on the profile. Use it for 'first touch' data that should never be overwritten: signup_source,
+          initial_referrer, first_seen_url. This distinction is essential for attribution analysis — you want to know the original source that brought a user, even after they return via other
+          channels. See https://posthog.com/docs/product-analytics/person-properties for the full API reference.
+        workedExample: >-
+          A user signs up through a Google Ads campaign. Your code runs: posthog.identify('user_42', { $set: { plan: 'free' }, $set_once: { signup_source: 'google_ads', signup_date: '2025-01-15' } }).
+          Later, the user upgrades to Pro and you run: posthog.capture('upgrade', { $set: { plan: 'pro' }, $set_once: { signup_source: 'email_campaign' } }). The result: plan is now 'pro' (overwritten
+          by $set). But signup_source is still 'google_ads' (not overwritten because $set_once does not touch existing values). This preserves the true original attribution.
+        problems:
+          - id: ph-personprops-p1
+            type: multiple_choice
+            question: What is the difference between $set and $set_once in PostHog?
+            options:
+              - $set is for strings and $set_once is for numbers
+              - $set always overwrites the value; $set_once only sets it if no value exists yet
+              - $set works on events and $set_once works on persons
+              - $set is synchronous and $set_once is asynchronous
+            correct: 1
+            explanation: >-
+              $set always overwrites the current value, regardless of what was there before. $set_once only writes the value if the property does not already exist on the person profile. Use $set for
+              changing data (plan, status) and $set_once for first-touch data (signup_source, initial_referrer).
+          - id: ph-personprops-p2
+            type: scenario
+            question: >-
+              A customer wants to track each user's original marketing channel (the first channel that brought them) and their current subscription plan. The marketing channel should never change once
+              set, but the plan updates on upgrade/downgrade. Which approach is correct?
+            options:
+              - Use $set for both properties
+              - Use $set_once for both properties
+              - Use $set_once for marketing channel and $set for plan
+              - Use event properties for both instead of person properties
+            correct: 2
+            explanation: >-
+              $set_once for marketing channel ensures the original value is preserved forever, even if the user returns via other channels. $set for plan ensures it always reflects the current
+              subscription tier.
+          - id: ph-personprops-p3
+            type: true_false
+            question: If you call $set_once with a property that already has a value on the person profile, PostHog will overwrite it with the new value.
+            correct: 'false'
+            explanation: >-
+              $set_once explicitly does NOT overwrite existing values. If the property already has a value, $set_once silently does nothing. That is the entire point — it preserves the first value
+              that was set.
+          - id: ph-personprops-p4
+            type: fill_blank
+            question: To set person properties that should never change after their initial value (like signup_source), use the ___ operator.
+            correct: $set_once
+            explanation: $set_once is designed for 'first touch' properties. It only writes if the property does not already exist, preserving the original value for attribution and historical analysis.
+    section: posthog-data-model
+  - id: ph-distinct-id
+    name: distinct_id — Linking Events to Persons
+    difficulty: 5
+    estimatedMinutes: 15
+    tags:
+      - posthog
+      - data-model
+    sourceRef: https://posthog.com/docs/data/persons
+    prerequisites:
+      - ph-persons
+      - keys-and-identity
+    encompassing: []
+    knowledgePoints:
+      - id: what-is-distinct-id
+        instruction: >-
+          The distinct_id is PostHog's primary key for linking events to users. Every single event has a distinct_id field — it is how PostHog answers the question 'who did this?' In data modeling
+          terms, distinct_id is the foreign key on the Event entity that points to a Person entity. Frontend SDKs (JS web, React Native, iOS, Android) automatically generate a random UUID as the
+          distinct_id on a user's first visit and persist it in local storage or cookies. This means even before a user logs in, their events are linked to a consistent anonymous ID. Backend SDKs
+          (Node, Python, Go, etc.) do NOT auto-generate a distinct_id — you must provide one explicitly on every capture() call. This is a critical difference: if you forget to pass distinct_id on a
+          server-side event, PostHog cannot associate it with any user. When you call posthog.identify('user-db-id-123'), you are telling PostHog: 'the current auto-generated distinct_id and
+          user-db-id-123 are the same person.' PostHog links them together so all events — past anonymous ones and future identified ones — belong to one person profile. See
+          https://posthog.com/docs/data/persons for details on how distinct_ids map to persons.
+        problems:
+          - id: ph-did-p1
+            type: multiple_choice
+            question: What happens when a frontend PostHog SDK initializes for the first time on a user's device?
+            options:
+              - It waits for the user to log in before generating an ID
+              - It generates a random UUID as the distinct_id and persists it locally
+              - It uses the user's IP address as the distinct_id
+              - It sends events without any distinct_id
+            correct: 1
+            explanation: >-
+              Frontend SDKs generate a random UUID immediately on first load and store it in local storage or a cookie. This allows PostHog to track anonymous user behavior consistently across a
+              browsing session before the user logs in.
+          - id: ph-did-p2
+            type: fill_blank
+            question: Backend PostHog SDKs do not auto-generate a distinct_id — you must ___ one on every capture call.
+            correct: provide
+            explanation: >-
+              Unlike frontend SDKs which auto-generate a distinct_id, backend SDKs require you to explicitly pass a distinct_id on every capture() call. Without it, PostHog cannot associate the event
+              with any user.
+          - id: ph-did-p3
+            type: true_false
+            question: The distinct_id on PostHog events serves as a foreign key linking each event to a person.
+            correct: 'true'
+            explanation: In data modeling terms, distinct_id is the foreign key on the Event entity that points to a Person entity. It answers 'who did this?' for every event.
+      - id: multiple-distinct-ids
+        instruction: >-
+          A single person in PostHog can have multiple distinct_ids. This is not a bug — it is by design and essential for linking anonymous and identified behavior. The most common scenario: a user
+          visits your site and the SDK generates a random distinct_id (say 'abc-random-uuid'). They browse several pages. Then they log in, and you call posthog.identify('user_42'). Now this person
+          has two distinct_ids: 'abc-random-uuid' and 'user_42'. All events from both IDs belong to the same person. Other scenarios that create multiple distinct_ids: a user visits from a second
+          device (generates another random ID), then logs in on that device too — both random IDs plus the known ID are now linked. Or you use posthog.alias('old-system-id', 'new-system-id') to
+          explicitly link two IDs. In data modeling terms, this is a one-to-many relationship: one Person has many distinct_ids. The person profile page in PostHog shows all distinct_ids associated
+          with a person, which is useful for debugging identification issues.
+        problems:
+          - id: ph-multi-did-p1
+            type: multiple_choice
+            question: Why can a single person in PostHog have multiple distinct_ids?
+            options:
+              - This is a bug in PostHog's identification system
+              - Because users generate anonymous IDs before logging in, and identification links the anonymous and known IDs together
+              - Because PostHog randomly reassigns distinct_ids every session
+              - Because each event must have a unique distinct_id
+            correct: 1
+            explanation: >-
+              Multiple distinct_ids per person is by design. The anonymous ID from before login and the known ID from after login both belong to the same person. PostHog links them via identify() so
+              the full user journey is captured.
+          - id: ph-multi-did-p2
+            type: scenario
+            question: >-
+              A user browses your site on their laptop (distinct_id: laptop-uuid) and their phone (distinct_id: phone-uuid). They log in on the laptop and you call identify('user_42'). Later they log
+              in on the phone and you call identify('user_42') again. How many distinct_ids does this person have?
+            options:
+              - 1 — only user_42
+              - 2 — laptop-uuid and phone-uuid
+              - 3 — laptop-uuid, phone-uuid, and user_42
+              - 4 — two per device
+            correct: 2
+            explanation: >-
+              The person has three distinct_ids: laptop-uuid (from laptop's first visit), phone-uuid (from phone's first visit), and user_42 (the known ID from both identify calls). All three are
+              linked to one person profile.
+          - id: ph-multi-did-p3
+            type: true_false
+            question: In PostHog, the relationship between a Person and their distinct_ids is one-to-one.
+            correct: 'false'
+            explanation: 'It is one-to-many: one Person can have many distinct_ids. This happens through anonymous browsing on multiple devices, identify() calls, and alias() calls that link IDs together.'
+    section: posthog-data-model
+  - id: ph-sessions
+    name: Sessions — Grouping Events by Visit
+    difficulty: 3
+    estimatedMinutes: 12
+    tags:
+      - posthog
+      - data-model
+    sourceRef: https://posthog.com/docs/data/sessions
+    prerequisites:
+      - ph-events
+      - ph-distinct-id
+    encompassing: []
+    knowledgePoints:
+      - id: how-sessions-work
+        instruction: >-
+          A session in PostHog represents a single visit — a contiguous period of user activity. The JS web SDK and mobile SDKs automatically generate a $session_id and attach it to every event.
+          Events with the same $session_id belong to the same session. Two rules control session boundaries: a new session starts after 30 minutes of inactivity (no events for 30 minutes means the old
+          session ends and the next event starts a new one), and sessions have a maximum duration of 24 hours (even with continuous activity, a new session starts after 24 hours). Server-side SDKs do
+          NOT automatically generate or attach $session_id — you must set it manually if you want server events to belong to a session. This means server-side events are typically not associated with
+          sessions unless you explicitly pass the session ID from your frontend. Session Replay and Web Analytics both depend on $session_id to group events into recordings and visits. Without it,
+          these features cannot function. See https://posthog.com/docs/data/sessions for the full session documentation.
+        problems:
+          - id: ph-sessions-p1
+            type: multiple_choice
+            question: What triggers the start of a new session in PostHog?
+            options:
+              - Every pageview starts a new session
+              - 30 minutes of inactivity or 24 hours of continuous activity
+              - The user closes and reopens their browser
+              - The user navigates to a different domain
+            correct: 1
+            explanation: >-
+              PostHog starts a new session after 30 minutes of inactivity (no events) or after 24 hours of continuous activity. Browser close/open does not necessarily end a session if it happens
+              within the 30-minute window.
+          - id: ph-sessions-p2
+            type: fill_blank
+            question: The maximum duration of a single PostHog session is ___ hours.
+            correct: '24'
+            explanation: Even with continuous user activity, PostHog caps a session at 24 hours. After that, the next event starts a new session. This prevents infinitely long sessions from skewing analytics.
+          - id: ph-sessions-p3
+            type: true_false
+            question: Server-side PostHog SDKs automatically attach a $session_id to every captured event.
+            correct: 'false'
+            explanation: >-
+              Server-side SDKs do NOT auto-generate or attach $session_id. You must manually pass it if you want server events associated with a session. Only the JS web SDK and mobile SDKs handle
+              this automatically.
+      - id: session-properties
+        instruction: >-
+          PostHog computes session-level properties automatically from the events within a session. These are distinct from event properties and person properties — they describe the visit as a whole.
+          Key session properties include: $session_duration (total time from first to last event), $entry_current_url (the URL of the first pageview in the session), $exit_pathname (the path of the
+          last pageview), $pageview_count (how many pageviews in the session), $autocapture_count (how many autocapture events), and $is_bounce (whether the session had only one pageview). These
+          properties are computed by PostHog — you do not set them yourself. You can use session properties to filter insights (e.g., 'show me sessions with duration > 5 minutes') and to filter
+          session recordings (e.g., 'show me bounce sessions on the pricing page'). Session properties are useful for understanding visit quality and user engagement at the session level.
+        problems:
+          - id: ph-sessprops-p1
+            type: multiple_choice
+            question: Which of the following is a session property computed by PostHog?
+            options:
+              - $browser (the user's browser)
+              - $session_duration (total time of the visit)
+              - plan (the user's subscription tier)
+              - $current_url (the page URL at event time)
+            correct: 1
+            explanation: >-
+              $session_duration is a session property computed from the events within a session. $browser is an event property (set per event). 'plan' is a person property. $current_url is an event
+              property that varies per event.
+          - id: ph-sessprops-p2
+            type: true_false
+            question: Session properties like $session_duration and $is_bounce must be manually set by the developer.
+            correct: 'false'
+            explanation: >-
+              Session properties are computed automatically by PostHog from the events within a session. You do not set them — PostHog calculates duration, bounce status, pageview counts, entry/exit
+              URLs, and other session-level metrics.
+    section: posthog-data-model
+  - id: ph-actions
+    name: Actions — Grouping Events for Analysis
+    difficulty: 3
+    estimatedMinutes: 10
+    tags:
+      - posthog
+      - data-model
+    sourceRef: https://posthog.com/docs/data/actions
+    prerequisites:
+      - ph-events
+      - ph-event-properties
+    encompassing: []
+    knowledgePoints:
+      - id: what-are-actions
+        instruction: >-
+          An action in PostHog is a saved grouping of one or more events that you can use as a single unit in analysis. For example, you might have three different signup buttons on your homepage,
+          each generating slightly different autocapture events. Instead of filtering for all three every time, you create an action called 'Homepage Signup Click' that matches all three events.
+          Actions are defined in PostHog's UI or toolbar — they are NOT defined in your product code. This means you can create and modify actions without deploying code changes. Actions apply
+          retroactively: when you create a new action, it immediately matches all historical events that fit the criteria, not just future ones. Two ways to create actions: (1) Data Management, then
+          Actions, then New Action in the PostHog UI — define matching rules based on event name, URL, CSS selector, or element properties. (2) The PostHog Toolbar — a visual overlay that lets you
+          click on elements in your live site and create actions from them (JS web SDK only). Actions are a convenience layer for analysis. They do not change how events are captured or stored — they
+          are just saved filters. See https://posthog.com/docs/data/actions for creation and usage details.
+        problems:
+          - id: ph-actions-p1
+            type: multiple_choice
+            question: What is an action in PostHog?
+            options:
+              - A custom event captured in your product code
+              - A saved grouping of events that can be used as a single unit in analysis
+              - A webhook that triggers when a specific event occurs
+              - A person property that tracks user behavior
+            correct: 1
+            explanation: >-
+              An action is a saved grouping of events defined in PostHog's UI. It lets you combine multiple related events (like clicks on different signup buttons) into one analytical unit. Actions
+              are not custom events and are not defined in code.
+          - id: ph-actions-p2
+            type: true_false
+            question: Actions in PostHog only apply to events captured after the action is created.
+            correct: 'false'
+            explanation: >-
+              Actions apply retroactively. When you create a new action, it immediately matches all historical events that fit the criteria. This is because actions are just saved filters — they do
+              not change the underlying event data.
+          - id: ph-actions-p3
+            type: scenario
+            question: >-
+              A customer has three 'Sign Up' buttons on their site — one in the navbar, one in the hero section, and one in the footer. Each generates a slightly different autocapture event. They want
+              to track total signup button clicks as a single metric. What do you recommend?
+            options:
+              - Rewrite the frontend to use the same CSS class on all three buttons
+              - Create an action in PostHog that matches all three autocapture events
+              - Use a custom event for each button and add them manually in every insight
+              - Ignore two of the buttons and only track one
+            correct: 1
+            explanation: >-
+              An action can group multiple autocapture events into one unit. The customer defines the action once in PostHog's UI, and then uses it anywhere they would use an event — in trends,
+              funnels, paths, etc. No code changes needed.
+    section: posthog-data-model
+  - id: ph-event-capture
+    name: Event Capture — SDKs, API, and Autocapture
+    difficulty: 3
+    estimatedMinutes: 12
+    tags:
+      - posthog
+      - ingestion
+    sourceRef: https://posthog.com/docs/product-analytics/capture-events
+    prerequisites:
+      - ph-events
+      - ph-event-properties
+    encompassing: []
+    knowledgePoints:
+      - id: how-events-enter-posthog
+        instruction: >-
+          Events enter PostHog through three channels. (1) Client-side SDKs (JS web, React Native, iOS, Android) — these run in the user's browser or mobile app. They auto-generate a distinct_id,
+          support autocapture (automatic click/pageview tracking), and attach session recording data. They send events via HTTP POST to PostHog's capture endpoint. (2) Server-side SDKs (Node.js,
+          Python, Ruby, Go, PHP, Java) — these run on your backend servers. They require you to provide a distinct_id explicitly on every capture call. They do not support autocapture or session
+          recording. They are used for tracking server-side actions like API calls, background jobs, and webhooks. (3) HTTP API — you can POST events directly to the /capture endpoint without using an
+          SDK at all. Useful for custom integrations or languages without an official SDK. All three channels use a push-based ingestion model: your application sends events to PostHog. PostHog does
+          not pull data from your systems. See the architecture overview at https://posthog.com/docs/how-posthog-works for a diagram showing how SDKs connect to the capture API.
+        problems:
+          - id: ph-capture-p1
+            type: multiple_choice
+            question: Which type of PostHog SDK supports autocapture and session recording?
+            options:
+              - Server-side SDKs (Node.js, Python, Go)
+              - Client-side SDKs (JS web, React Native, iOS, Android)
+              - Both client-side and server-side SDKs equally
+              - Neither — autocapture requires a separate tool
+            correct: 1
+            explanation: >-
+              Only client-side SDKs support autocapture and session recording because they run in the user's browser/app and can observe UI interactions. Server-side SDKs run on your servers and have
+              no access to the user interface.
+          - id: ph-capture-p2
+            type: matching
+            question: Match each SDK type to its characteristic.
+            options:
+              - Client-side SDK|Auto-generates distinct_id, supports autocapture
+              - Server-side SDK|Requires explicit distinct_id, no autocapture
+              - HTTP API|Direct POST to /capture endpoint without SDK
+              - JS web SDK|Supports session recording and the toolbar
+            correct: 0,1,2,3
+            explanation: >-
+              Client-side SDKs handle identity and autocapture automatically. Server-side SDKs need manual distinct_id and lack UI features. The HTTP API is the raw endpoint. The JS web SDK
+              specifically adds session recording and toolbar support.
+          - id: ph-capture-p3
+            type: true_false
+            question: PostHog uses a pull-based ingestion model, periodically fetching data from your application.
+            correct: 'false'
+            explanation: PostHog uses push-based ingestion. Your application sends events to PostHog's capture endpoint via SDKs or the HTTP API. PostHog does not pull or poll your systems for data.
+    section: posthog-ingestion
+  - id: ph-ingestion-pipeline
+    name: The Ingestion Pipeline — Kafka to ClickHouse
+    difficulty: 5
+    estimatedMinutes: 18
+    tags:
+      - posthog
+      - ingestion
+    sourceRef: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
+    prerequisites:
+      - ph-event-capture
+      - storage-layers
+    encompassing: []
+    knowledgePoints:
+      - id: why-not-straight-to-db
+        instruction: >-
+          PostHog does not write events directly into ClickHouse (its analytics database). Instead, events land in Apache Kafka first — a distributed message queue designed for high-throughput,
+          durable message streaming. Why the indirection? Resilience: if ClickHouse is temporarily slow, overloaded, or undergoing maintenance, events queue up safely in Kafka rather than being lost
+          or causing backpressure on the capture API. Throughput: Kafka can absorb massive bursts of events and smooth them out for ClickHouse to consume at a steady rate. Decoupling: the capture API
+          and ClickHouse do not need to know about each other — Kafka sits between them as a buffer. This is the same pattern described in pipeline fundamentals: a message queue between ingestion and
+          storage makes the pipeline more resilient and scalable. The capture API's only job is to validate the event and write it to Kafka. Everything else — person processing, property enrichment,
+          storage — happens downstream. See the ingestion pipeline diagram at https://posthog.com/docs/how-posthog-works/ingestion-pipeline for a visual of this flow.
+        problems:
+          - id: ph-pipeline-p1
+            type: multiple_choice
+            question: Why does PostHog write events to Kafka before ClickHouse instead of directly to ClickHouse?
+            options:
+              - ClickHouse cannot accept data from external sources
+              - Kafka provides a buffer so events are not lost if ClickHouse is temporarily slow or down
+              - Kafka transforms events into the correct format for ClickHouse
+              - It is a legacy design that PostHog plans to remove
+            correct: 1
+            explanation: >-
+              Kafka acts as a durable buffer between ingestion and storage. If ClickHouse is slow or undergoing maintenance, events queue in Kafka safely. Without this buffer, events could be lost
+              during ClickHouse downtime.
+          - id: ph-pipeline-p2
+            type: true_false
+            question: PostHog's capture API writes events directly into ClickHouse tables.
+            correct: 'false'
+            explanation: >-
+              The capture API writes events to Kafka, not directly to ClickHouse. Kafka then feeds events into ClickHouse through a table engine and materialized view. This decoupling provides
+              resilience and throughput benefits.
+          - id: ph-pipeline-p3
+            type: scenario
+            question: >-
+              A PostHog Cloud customer reports that their ClickHouse cluster had a brief maintenance window, but they did not lose any events during that period. What component of the architecture
+              prevented data loss?
+            options:
+              - The client-side SDK cached events in local storage
+              - Kafka queued the events durably until ClickHouse was ready to consume them again
+              - PostgreSQL stored the events as a backup
+              - The capture API retried failed writes automatically
+            correct: 1
+            explanation: >-
+              Kafka is a durable message queue. When ClickHouse is unavailable, events queue in Kafka and are consumed once ClickHouse recovers. This is the primary reason for the Kafka buffer in
+              PostHog's architecture.
+      - id: the-full-flow
+        instruction: >-
+          The complete ingestion flow from your app to queryable data: (1) Your app sends an event via SDK or API. (2) PostHog's capture endpoint validates the event and writes it to a Kafka topic.
+          (3) ClickHouse has a Kafka table engine (kafka_events) that acts as a consumer, reading events from Kafka and advancing offsets. (4) A materialized view (events_mv) reads from kafka_events
+          and inserts into the storage tables. (5) Writes go through writable_events — a ClickHouse Distributed table that routes each event to the correct shard by hashing distinct_id using
+          sipHash64(distinct_id). This means all events for the same user land on the same shard, making person-level queries efficient. (6) Data lands in sharded_events — a
+          ReplicatedReplacingMergeTree table that provides the actual durable, replicated storage. For reads, queries go through the events Distributed table, which fans out to all shards and
+          aggregates results. See the ClickHouse tables diagram at https://posthog.com/docs/how-posthog-works/clickhouse for a visual walkthrough of these table roles.
+        problems:
+          - id: ph-flow-p1
+            type: ordering
+            question: Place these PostHog ingestion steps in the correct order.
+            options:
+              - Materialized view (events_mv) inserts into storage tables
+              - App sends event via SDK
+              - Data lands in sharded_events (ReplicatedReplacingMergeTree)
+              - Capture endpoint writes event to Kafka
+              - kafka_events table engine reads from Kafka
+            correct: 1,3,4,0,2
+            explanation: >-
+              The flow is: App sends event, capture endpoint writes to Kafka, kafka_events reads from Kafka, events_mv materialized view inserts into storage, data lands in sharded_events for durable
+              storage.
+          - id: ph-flow-p2
+            type: multiple_choice
+            question: How does PostHog decide which ClickHouse shard to store an event on?
+            options:
+              - Random assignment for load balancing
+              - Round-robin across all available shards
+              - By hashing the distinct_id using sipHash64
+              - Based on the event timestamp
+            correct: 2
+            explanation: >-
+              PostHog shards events by sipHash64(distinct_id). This ensures all events for the same user land on the same shard, making person-level queries (like 'all events for user X') efficient
+              because they only need to hit one shard.
+          - id: ph-flow-p3
+            type: fill_blank
+            question: In PostHog's ClickHouse architecture, writes go through the ___ Distributed table, while reads go through the events Distributed table.
+            correct: writable_events
+            explanation: >-
+              writable_events is the Distributed table used for writes — it routes events to the correct shard. The events table is a separate Distributed table used for reads — it fans out queries to
+              all shards and aggregates results.
+    section: posthog-ingestion
+  - id: ph-clickhouse-storage
+    name: ClickHouse Storage — Tables and Sharding
+    difficulty: 6
+    estimatedMinutes: 15
+    tags:
+      - posthog
+      - ingestion
+    sourceRef: https://posthog.com/docs/how-posthog-works/clickhouse
+    prerequisites:
+      - ph-ingestion-pipeline
+    encompassing: []
+    knowledgePoints:
+      - id: table-roles
+        instruction: >-
+          PostHog uses several ClickHouse tables, each with a specific role in the data flow. Understanding them helps you debug ingestion issues and explain latency to customers. kafka_events: a
+          Kafka table engine — it does not store data itself but acts as a consumer that reads events from Kafka topics and advances offsets. Think of it as a bridge between Kafka and ClickHouse.
+          events_mv: a materialized view that continuously reads from kafka_events and inserts the data into the storage tables. It is the 'pipe' that moves data from the Kafka bridge into actual
+          storage. writable_events: a Distributed table used exclusively for writes. When events_mv inserts data, it goes through writable_events, which routes each event to the correct shard based on
+          sipHash64(distinct_id). sharded_events: a ReplicatedReplacingMergeTree table — this is the actual storage. 'Replicated' means data is copied across replicas for durability. 'Replacing' means
+          duplicate rows (same primary key) are eventually deduplicated during merges. 'MergeTree' is ClickHouse's core storage engine optimized for analytical queries. events: a Distributed table
+          used exclusively for reads. When you query events in PostHog, the query goes to this table, which fans out to all shards, executes on each, and aggregates the results. Key insight: writes go
+          through writable_events, reads go through events. They are separate Distributed tables over the same underlying sharded_events data. See the ClickHouse tables diagram at
+          https://posthog.com/docs/how-posthog-works/clickhouse for a visual reference.
+        problems:
+          - id: ph-ch-p1
+            type: matching
+            question: Match each ClickHouse table to its role in PostHog's architecture.
+            options:
+              - kafka_events|Kafka consumer bridge that reads events from Kafka
+              - events_mv|Materialized view that pipes data from Kafka into storage
+              - writable_events|Distributed table for writes, routes to correct shard
+              - sharded_events|ReplicatedReplacingMergeTree for actual durable storage
+            correct: 0,1,2,3
+            explanation: kafka_events reads from Kafka. events_mv moves data from the Kafka bridge to storage. writable_events routes writes to the right shard. sharded_events is the actual storage engine.
+          - id: ph-ch-p2
+            type: multiple_choice
+            question: When you run a query in PostHog's insights UI, which ClickHouse table handles the read?
+            options:
+              - kafka_events
+              - writable_events
+              - sharded_events directly
+              - The events Distributed table
+            correct: 3
+            explanation: >-
+              Reads go through the events Distributed table, which fans out the query to all shards, executes on each shard, and aggregates the results. You do not query sharded_events directly — the
+              Distributed table handles the routing.
+          - id: ph-ch-p3
+            type: true_false
+            question: In PostHog's ClickHouse setup, the same Distributed table is used for both reads and writes.
+            correct: 'false'
+            explanation: >-
+              PostHog uses separate Distributed tables: writable_events for writes and events for reads. This separation allows different routing and optimization strategies for ingestion vs.
+              querying.
+          - id: ph-ch-p4
+            type: fill_blank
+            question: The sharded_events table uses the ___ table engine, which provides replication, deduplication on merge, and is optimized for analytical workloads.
+            correct: ReplicatedReplacingMergeTree
+            explanation: >-
+              ReplicatedReplacingMergeTree combines three features: replication (data is copied to replicas for durability), replacing (duplicate rows are deduplicated during background merges), and
+              the MergeTree engine (ClickHouse's core analytical storage engine).
+    section: posthog-ingestion
+  - id: ph-person-processing
+    name: Person Processing — Resolving Events to Profiles
+    difficulty: 5
+    estimatedMinutes: 15
+    tags:
+      - posthog
+      - ingestion
+    sourceRef: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
+    prerequisites:
+      - ph-ingestion-pipeline
+      - ph-persons
+      - ph-distinct-id
+    encompassing: []
+    knowledgePoints:
+      - id: how-person-processing-works
+        instruction: >-
+          Person processing is the step in the ingestion pipeline where PostHog resolves events to person profiles. When an event arrives, PostHog checks: does this distinct_id already map to a person
+          profile? If yes, the event is associated with that existing person. If the event includes identification data — from an identify() call, $set, $set_once, or group() — PostHog either creates
+          a new person profile or updates an existing one. If two previously separate person profiles need to be merged (because identify() linked two distinct_ids that each had their own profile),
+          PostHog performs a merge operation, combining events, properties, and distinct_ids into one profile. Person data is stored in PostgreSQL (the source of truth for person records) and
+          replicated into ClickHouse for fast querying. See https://posthog.com/docs/how-posthog-works/clickhouse#persons for details on this replication. If the project uses person_profiles:
+          'identified_only', events without any identification trigger (no identify, no $set, no group) skip person processing entirely — they are stored as anonymous events with just a distinct_id.
+          Person processing is the most expensive part of the pipeline because it involves database lookups, potential writes, and occasionally merges. This is why 'identified_only' mode exists — it
+          reduces cost by skipping person processing for anonymous traffic. See the ingestion pipeline diagram at https://posthog.com/docs/how-posthog-works/ingestion-pipeline to see where person
+          processing fits in the overall flow.
+        problems:
+          - id: ph-pp-p1
+            type: multiple_choice
+            question: Why is person processing the most expensive part of PostHog's ingestion pipeline?
+            options:
+              - It requires sending data to external third-party services
+              - It involves database lookups, potential writes, and occasionally complex merge operations
+              - It encrypts all person data with military-grade encryption
+              - It runs machine learning models on every event
+            correct: 1
+            explanation: >-
+              Person processing requires looking up whether a distinct_id already has a person profile, potentially creating or updating person records, and sometimes merging two separate profiles.
+              These database operations are more expensive than simply appending an event to storage.
+          - id: ph-pp-p2
+            type: scenario
+            question: >-
+              A customer is on PostHog Cloud and notices their bill is higher than expected. They have millions of anonymous pageview events from marketing landing pages where users never log in. What
+              configuration change could reduce their costs?
+            options:
+              - 'Switch to person_profiles: ''always'' to create profiles for every visitor'
+              - 'Switch to person_profiles: ''identified_only'' so anonymous events skip person processing'
+              - Disable event capture entirely on landing pages
+              - Move to self-hosted PostHog
+            correct: 1
+            explanation: >-
+              With 'identified_only' mode, anonymous events (no identify, no $set, no group) skip person processing entirely. Since the landing page visitors never log in, their events do not need
+              person profiles. This reduces the processing cost per event.
+          - id: ph-pp-p3
+            type: true_false
+            question: Person data in PostHog is stored only in ClickHouse.
+            correct: 'false'
+            explanation: >-
+              Person data is stored in PostgreSQL as the source of truth and replicated into ClickHouse for fast querying. PostgreSQL handles the transactional operations (creates, updates, merges),
+              while ClickHouse handles the analytical queries.
+    section: posthog-ingestion
+  - id: anonymous-vs-identified
+    name: Anonymous vs Identified Events
+    difficulty: 4
+    estimatedMinutes: 15
+    tags:
+      - posthog
+      - identification
+    sourceRef: https://posthog.com/docs/data/persons
+    prerequisites:
+      - ph-person-processing
+      - ph-person-properties
+    encompassing: []
+    knowledgePoints:
+      - id: two-modes-of-events
+        instruction: >-
+          PostHog events exist on a spectrum from fully anonymous to fully identified. Anonymous events have a distinct_id (auto-generated by the SDK) but no person profile. The SDK generates a random
+          UUID, attaches it to every event, and that is it — no person record is created, no person properties are stored, no merging happens. These events are cheap to process and still useful for
+          aggregate analysis ('how many pageviews today?') but cannot be used for person-level features like feature flags, cohorts, or experiments. Identified events are linked to a person profile.
+          This happens when you call identify(), alias(), group(), or set person properties via $set/$set_once. Once identified, the person profile connects all of the user's events, enables person
+          properties for segmentation, and unlocks feature flags, experiments, and cohorts. The tradeoff is cost: identified events require person processing (database lookups and potential writes).
+          Most PostHog implementations use a hybrid approach: anonymous events for pre-login browsing (cheap, aggregate-level data) and identified events after login (full feature set for known
+          users). See https://posthog.com/docs/data/persons and https://posthog.com/docs/getting-started/identify-users for the practical guide.
+        problems:
+          - id: anon-id-p1
+            type: multiple_choice
+            question: What is the key difference between anonymous and identified events in PostHog?
+            options:
+              - Anonymous events have no distinct_id; identified events do
+              - Anonymous events have a distinct_id but no person profile; identified events are linked to a person profile
+              - Anonymous events are not stored; identified events are stored
+              - Anonymous events are free; identified events cost extra per event
+            correct: 1
+            explanation: >-
+              Both anonymous and identified events have a distinct_id. The difference is whether a person profile exists. Anonymous events have only a distinct_id — no person record, no person
+              properties. Identified events are linked to a person profile that enables the full PostHog feature set.
+          - id: anon-id-p2
+            type: true_false
+            question: Anonymous events in PostHog cannot be used for any analysis at all.
+            correct: 'false'
+            explanation: >-
+              Anonymous events are fully queryable for aggregate analysis — total pageviews, event counts, trend analysis. They just cannot be used for person-level features like feature flags,
+              cohorts, or experiments that require knowing who the user is.
+          - id: anon-id-p3
+            type: scenario
+            question: A B2B SaaS company wants to use PostHog feature flags to control access to a beta feature for specific users. They currently capture all events anonymously. What must they do first?
+            options:
+              - Nothing — feature flags work with anonymous events
+              - Identify users by calling posthog.identify() after login so person profiles are created
+              - Switch to a different analytics tool
+              - Create a custom event called 'feature_flag_check'
+            correct: 1
+            explanation: >-
+              Feature flags require person profiles to determine which variant to serve a user. The company must call posthog.identify() after login to create person profiles. Without identification,
+              PostHog cannot consistently target specific users with feature flags.
+          - id: anon-id-p4
+            type: multiple_choice
+            question: Which of the following PostHog features works with anonymous events (no person profile)?
+            options:
+              - Feature flags targeting specific users
+              - Experiments with consistent user bucketing
+              - Aggregate trend analysis (e.g., total pageviews per day)
+              - Cohorts based on person properties
+            correct: 2
+            explanation: >-
+              Aggregate trend analysis (counting events, pageviews per day, etc.) works with anonymous events because it does not require knowing who each user is. Feature flags, experiments, and
+              cohorts all require person profiles.
+    section: identification
+  - id: identify-call
+    name: The Identify Call
+    difficulty: 5
+    estimatedMinutes: 15
+    tags:
+      - posthog
+      - identification
+    sourceRef: https://posthog.com/docs/product-analytics/identify
+    prerequisites:
+      - anonymous-vs-identified
+    encompassing: []
+    knowledgePoints:
+      - id: how-identify-works
+        instruction: >-
+          The identify() call is the bridge between anonymous and identified events. posthog.identify('user-db-id-123', { name: 'Jane', plan: 'pro' }) does three things simultaneously: (1) It tells
+          PostHog that the current anonymous distinct_id (auto-generated by the SDK) and 'user-db-id-123' are the same person. PostHog links them. (2) It creates a person profile if one does not
+          already exist for this user. (3) It sets person properties from the second argument using $set semantics (always overwrites). After calling identify(), all subsequent events on this device
+          are attributed to this person — the SDK switches its internal distinct_id to the one you provided. You should call identify() once per session — typically on login or signup. Calling it on
+          every page load is unnecessary and wasteful (it triggers person processing every time). On the server side, you do not call identify() in the same way — you simply use the known user ID as
+          the distinct_id in every capture() call. Server-side identify is only needed if you want to set person properties from the backend. See https://posthog.com/docs/product-analytics/identify
+          for SDK-specific examples and https://posthog.com/docs/getting-started/identify-users for the practical getting-started guide.
+        workedExample: >-
+          User visits your site. The JS SDK generates distinct_id 'abc-random'. They browse 5 pages (5 $pageview events with distinct_id 'abc-random'). Then they sign up. Your code runs:
+          posthog.identify('user_42', { email: 'jane@co.com', plan: 'free' }). PostHog now merges the anonymous events from 'abc-random' into person 'user_42'. The person profile has two distinct_ids:
+          'abc-random' and 'user_42'. Person properties are set: email = 'jane@co.com', plan = 'free'. All 5 pageview events now appear in user_42's event history.
+        problems:
+          - id: identify-p1
+            type: multiple_choice
+            question: How many times should you call posthog.identify() for a user in a typical session?
+            options:
+              - On every page load
+              - Once — typically on login or signup
+              - Only on the very first visit ever
+              - Never — PostHog identifies users automatically
+            correct: 1
+            explanation: >-
+              Call identify() once per session, typically after the user logs in or signs up. Calling it on every page load is wasteful because it triggers person processing each time. The SDK
+              remembers the identity across page loads within a session.
+          - id: identify-p2
+            type: scenario
+            question: >-
+              A customer calls posthog.identify() with the user's email address as the distinct_id. Two users at the same company share a team email (team@acme.com) and both call identify with it.
+              What happens?
+            options:
+              - PostHog creates two separate person profiles with the same email
+              - PostHog merges both users into one person profile, combining all their events — creating a single 'frankenstein' profile
+              - PostHog rejects the second identify call
+              - Nothing unusual — email is a safe identifier
+            correct: 1
+            explanation: >-
+              If two different anonymous users both identify as 'team@acme.com', PostHog merges them into one person. All events from both users are combined into a single profile. This is why the
+              distinct_id must uniquely identify one human — use database IDs, not shared emails.
+          - id: identify-p3
+            type: true_false
+            question: After calling posthog.identify(), the SDK continues using the original anonymous distinct_id for subsequent events.
+            correct: 'false'
+            explanation: >-
+              After identify(), the SDK switches its internal distinct_id to the one you provided (e.g., 'user_42'). All subsequent events on this device use the new identified distinct_id, not the
+              original anonymous one.
+          - id: identify-p4
+            type: fill_blank
+            question: The second argument to posthog.identify('user_id', { ... }) sets person properties using ___ semantics.
+            correct: $set
+            explanation: >-
+              Properties passed in the second argument of identify() use $set semantics — they always overwrite the current value. If you need $set_once behavior, you must pass it explicitly within
+              the properties object.
+    section: identification
+  - id: person-merging
+    name: Person Merging — Linking Identities
+    difficulty: 6
+    estimatedMinutes: 15
+    tags:
+      - posthog
+      - identification
+    sourceRef: https://posthog.com/docs/data/persons
+    prerequisites:
+      - identify-call
+      - ph-distinct-id
+    encompassing: []
+    knowledgePoints:
+      - id: how-merging-works
+        instruction: >-
+          When you call identify('known-id'), PostHog checks if the current anonymous distinct_id and the known-id already have separate person profiles. If they do, PostHog merges them into one
+          profile — combining all events, person properties, and distinct_ids from both profiles. The merge keeps the most recent value for each person property (if both profiles have 'plan', the
+          newer value wins). All distinct_ids from both profiles are linked to the surviving profile. Historical events are re-attributed. You can also use alias('id-a', 'id-b') to explicitly link two
+          IDs without changing the current session's distinct_id. This is useful for connecting IDs across systems (e.g., linking a Stripe customer ID to a PostHog user ID). Merges are permanent —
+          once two profiles are merged, they cannot be unmerged. The merged person profile shows all distinct_ids from both original profiles. See https://posthog.com/docs/data/persons for details on
+          how merging resolves property conflicts.
+        problems:
+          - id: merge-p1
+            type: multiple_choice
+            question: When PostHog merges two person profiles, what happens to the events from both profiles?
+            options:
+              - Events from the older profile are deleted
+              - All events from both profiles are combined into the surviving merged profile
+              - Events remain in separate profiles but are linked
+              - Only the most recent 1000 events are kept
+            correct: 1
+            explanation: Merging combines all events from both profiles into one. No events are deleted or lost. The merged profile has the complete event history from both original profiles.
+          - id: merge-p2
+            type: scenario
+            question: >-
+              User browses anonymously (distinct_id: anon-123, person profile A with 10 events). Then logs in and you call identify('user_42'). User_42 already has a person profile B from a previous
+              session with 5 events. What is the final state?
+            options:
+              - Two separate profiles remain
+              - 'One merged profile with 15 events and distinct_ids: anon-123 and user_42'
+              - Profile A is deleted and only profile B remains with 5 events
+              - A new empty profile is created
+            correct: 1
+            explanation: PostHog merges profiles A and B into one. The merged profile has all 15 events and both distinct_ids (anon-123 and user_42). No events are lost during merging.
+          - id: merge-p3
+            type: true_false
+            question: Once two person profiles are merged in PostHog, they can be unmerged if the merge was a mistake.
+            correct: 'false'
+            explanation: Merges are permanent and cannot be undone. This is why it is critical to use unique, stable identifiers in identify() calls — a bad merge combines unrelated users permanently.
+      - id: when-merging-goes-wrong
+        instruction: >-
+          Person merging is powerful but dangerous when misused. Three common mistakes cause bad merges. (1) Identifying with a shared or generic ID: calling identify('support@company.com') for
+          multiple users merges all of them into one profile. Always use an ID that uniquely identifies one human being — typically a database user ID. (2) Identifying before authentication: if you
+          call identify() based on a form input before the user actually logs in, you might associate anonymous browsing with the wrong person (e.g., user types someone else's email). Only call
+          identify() after successful authentication. (3) Mismatched IDs across client and server: if your frontend uses 'user_42' as the distinct_id but your backend uses 'u-42' for the same person,
+          PostHog sees them as different users and creates separate profiles. Use the same canonical ID everywhere. The golden rule: the distinct_id you pass to identify() must uniquely and
+          permanently identify exactly one human being. When in doubt, use database primary keys.
+        problems:
+          - id: merge-wrong-p1
+            type: multiple_choice
+            question: Which of the following is the safest identifier to use in posthog.identify()?
+            options:
+              - The user's email address
+              - The user's database primary key (e.g., user_42)
+              - The user's company name
+              - The user's IP address
+            correct: 1
+            explanation: >-
+              Database primary keys are unique per user, stable over time, and not shared. Emails can be shared (team accounts), company names are definitely shared, and IP addresses change and are
+              shared across users on the same network.
+          - id: merge-wrong-p2
+            type: scenario
+            question: >-
+              A customer's support team all log into PostHog-tracked admin panel using a shared 'admin@company.com' account. They call posthog.identify('admin@company.com') on login. After a month,
+              they notice all support agents' actions appear under a single person profile. Why?
+            options:
+              - PostHog has a bug with email-based identification
+              - All agents identified with the same ID, so PostHog merged all their anonymous profiles into one person
+              - The admin panel is not compatible with PostHog
+              - PostHog only supports one user per email domain
+            correct: 1
+            explanation: >-
+              Every agent's anonymous distinct_id was linked to 'admin@company.com' via identify(). PostHog dutifully merged them all into one person profile. The fix: each agent should identify with
+              their own unique ID, not a shared account.
+          - id: merge-wrong-p3
+            type: multiple_choice
+            question: When should you call posthog.identify() in relation to user authentication?
+            options:
+              - Before the user enters their credentials, to capture login attempts
+              - After successful authentication, to ensure you have the correct user ID
+              - On every page load, regardless of authentication status
+              - Only on the user's very first visit
+            correct: 1
+            explanation: >-
+              Call identify() after successful authentication. Calling it before risks associating anonymous browsing with the wrong user (e.g., if the user types an incorrect email first).
+              Authentication confirms the user's identity; identify() should follow, not precede, that confirmation.
+    section: identification
+  - id: person-modes
+    name: Person Modes — identified_only vs Always
+    difficulty: 5
+    estimatedMinutes: 12
+    tags:
+      - posthog
+      - identification
+    sourceRef: https://posthog.com/docs/data/persons
+    prerequisites:
+      - anonymous-vs-identified
+    encompassing: []
+    knowledgePoints:
+      - id: choosing-a-mode
+        instruction: >-
+          PostHog SDKs support a person_profiles configuration that controls when person profiles are created. 'identified_only' (recommended for most use cases): person profiles are only created when
+          you explicitly call identify(), alias(), group(), or set person properties. Anonymous events are captured and stored with a distinct_id but skip person processing entirely — no person record
+          is created, no person properties are stored. This is cheaper and more privacy-friendly. It is the default for new projects. 'always': creates a person profile for every distinct_id,
+          including anonymous visitors. Every event triggers person processing. This gives you person profiles for everyone (even visitors who never log in) but costs more because every event requires
+          a database lookup. Use 'always' only if you need person-level features (feature flags, cohorts) for anonymous users. Important gotcha with 'identified_only': attaching $set or $set_once to
+          an event does NOT create a person profile by itself — you must call an identification function (identify, alias, or group) first. If you send posthog.capture('pageview', { $set: { theme:
+          'dark' } }) without ever calling identify(), the $set is silently ignored. See https://posthog.com/docs/data/persons for configuration details.
+        problems:
+          - id: modes-p1
+            type: multiple_choice
+            question: What is the recommended person_profiles setting for most PostHog implementations?
+            options:
+              - '''always'' — to capture the most data possible'
+              - '''identified_only'' — to reduce costs and only create profiles when needed'
+              - '''never'' — to avoid creating any person profiles'
+              - '''auto'' — to let PostHog decide automatically'
+            correct: 1
+            explanation: >-
+              'identified_only' is recommended for most use cases. It creates person profiles only when you explicitly identify users, reducing person processing costs for anonymous traffic. Most
+              analytics work fine without person profiles for anonymous visitors.
+          - id: modes-p2
+            type: true_false
+            question: In 'identified_only' mode, sending an event with $set properties will create a person profile even without calling identify() first.
+            correct: 'false'
+            explanation: >-
+              In 'identified_only' mode, $set on an event does NOT create a person profile. You must call identify(), alias(), or group() first. The $set is silently ignored if no identification has
+              occurred.
+          - id: modes-p3
+            type: scenario
+            question: >-
+              A high-traffic news website has millions of anonymous visitors per day but only 50,000 registered users. They want to use feature flags for registered users only. Which person_profiles
+              mode should they use?
+            options:
+              - '''always'' — to create profiles for all visitors'
+              - '''identified_only'' — to create profiles only for the 50,000 registered users who identify'
+              - Disable PostHog on pages without login
+              - Use both modes simultaneously
+            correct: 1
+            explanation: >-
+              'identified_only' is ideal here. The millions of anonymous visitors get cheap, lightweight event tracking without person processing. The 50,000 registered users who log in and call
+              identify() get full person profiles, enabling feature flags and cohorts.
+    section: identification
+  - id: identification-pitfalls
+    name: Common Identification Pitfalls
+    difficulty: 6
+    estimatedMinutes: 15
+    tags:
+      - posthog
+      - identification
+    sourceRef: https://posthog.com/docs/getting-started/identify-users
+    prerequisites:
+      - person-merging
+      - person-modes
+    encompassing: []
+    knowledgePoints:
+      - id: duplicate-profiles
+        instruction: >-
+          Duplicate person profiles — two or more profiles representing the same real human — are the most common identification problem. They happen in three scenarios. (1) identify() called on one
+          device but not another: a user logs in on desktop (identify called, profile linked) but uses your mobile app without logging in. The mobile device creates a separate anonymous profile. Fix:
+          call identify() on every platform/device after authentication. (2) Different distinct_ids used across systems: the web app uses email as distinct_id, the mobile app uses database ID, and
+          neither calls alias() to link them. PostHog sees two unrelated users. Fix: use the same canonical ID (database primary key) everywhere. (3) Server-side SDK uses a different ID than
+          client-side: the frontend calls identify('user_42') but the backend captures events with distinct_id = 'usr-42'. Fix: ensure all systems use the same ID format. The prevention strategy is
+          simple: pick one canonical identifier (database user ID is best), use it in every identify() and capture() call across all platforms and SDKs, and call identify() as early as possible after
+          authentication on every device. See https://posthog.com/docs/getting-started/identify-users for the complete identification guide.
+        problems:
+          - id: pitfall-dup-p1
+            type: scenario
+            question: >-
+              A SaaS customer has both a web app and a mobile app. Users log in on the web app (posthog.identify('user_42') is called), but the mobile app only captures events with the auto-generated
+              anonymous distinct_id. What problem will they see in PostHog?
+            options:
+              - Missing events from the mobile app
+              - Duplicate person profiles — one identified from web, one anonymous from mobile, for the same user
+              - Events from both platforms merged correctly
+              - Error messages in the PostHog UI
+            correct: 1
+            explanation: >-
+              Without identify() on mobile, the mobile events create a separate anonymous profile. The same user now has two profiles: one identified from web and one anonymous from mobile. Fix: call
+              identify() on the mobile app after authentication.
+          - id: pitfall-dup-p2
+            type: multiple_choice
+            question: What is the best canonical identifier to use across all PostHog SDKs to prevent duplicate profiles?
+            options:
+              - The user's email address
+              - The user's database primary key (e.g., user_id)
+              - A random UUID generated per session
+              - The user's full name
+            correct: 1
+            explanation: >-
+              Database primary keys are unique, stable, and consistent across all systems. Emails can change or be shared. Session UUIDs change per session. Names are not unique. Use the database
+              primary key in every identify() and capture() call.
+          - id: pitfall-dup-p3
+            type: scenario
+            question: 'A customer''s web app calls posthog.identify(''user_42'') and their Node.js backend calls posthog.capture({ distinctId: ''usr-42'', event: ''api_call'' }) for the same user. What happens?'
+            options:
+              - PostHog automatically recognizes 'user_42' and 'usr-42' are the same person
+              - Two separate person profiles are created because the distinct_ids do not match
+              - The backend event is rejected
+              - PostHog merges them based on IP address
+            correct: 1
+            explanation: >-
+              'user_42' and 'usr-42' are different strings, so PostHog treats them as different users. Two profiles are created. Fix: use the exact same ID string ('user_42') in both the frontend
+              identify() call and the backend capture() call.
+      - id: cross-device-gaps
+        instruction: >-
+          Server-side SDKs do not have a browser session or auto-generated distinct_id. You must always provide a distinct_id explicitly. This creates a common gap: a user browses anonymously on the
+          web (distinct_id = 'abc-random'), then your server captures a backend event with their database ID ('user_42') before the frontend calls identify(). Those events will not link because
+          PostHog has not been told that 'abc-random' and 'user_42' are the same person. The solution: always call identify() on the frontend first. Once the frontend SDK knows the user is 'user_42',
+          subsequent events from both frontend and backend use the same identity. For fully server-side applications (no frontend), use the database user ID as distinct_id from the start — there is no
+          anonymous phase. For mobile apps with server-side components, ensure the mobile app passes its known user ID to the server, and the server uses that same ID in capture() calls. The key
+          principle: identification flows from the client to the server, not the other way around. The client knows who the user is (after login), and the server should use the same identifier.
+        problems:
+          - id: pitfall-xdev-p1
+            type: scenario
+            question: >-
+              A user signs up on your website. Your backend immediately sends a 'user_created' event via the Node.js SDK with distinct_id = 'user_42'. One second later, the frontend calls
+              posthog.identify('user_42'). Will the pre-signup anonymous browsing events link to 'user_42'?
+            options:
+              - Yes — the backend event establishes the link
+              - Yes — but only after identify() is called on the frontend
+              - No — the backend event creates a separate profile for 'user_42' and the frontend anonymous events stay orphaned until identify() runs and merges them
+              - No — backend events cannot be linked to frontend events
+            correct: 2
+            explanation: >-
+              The backend event creates a person profile for 'user_42'. When the frontend calls identify('user_42') one second later, PostHog merges the anonymous frontend profile with 'user_42'. The
+              events do link — but only because identify() runs on the frontend. If identify() never ran, the anonymous browsing would remain separate.
+          - id: pitfall-xdev-p2
+            type: true_false
+            question: For fully server-side applications with no frontend (e.g., a CLI tool), you should still use random anonymous distinct_ids and call identify() later.
+            correct: 'false'
+            explanation: >-
+              For fully server-side applications, there is no anonymous phase. Use the database user ID as distinct_id from the start in every capture() call. There is no need for random IDs or
+              identify() because you always know who the user is on the server.
+          - id: pitfall-xdev-p3
+            type: multiple_choice
+            question: What is the correct order for linking frontend and backend events for the same user?
+            options:
+              - Backend captures events first, then frontend calls identify()
+              - Frontend calls identify() first, then backend uses the same ID in capture calls
+              - Both can happen in any order — PostHog handles it automatically
+              - Frontend and backend events cannot be linked
+            correct: 1
+            explanation: >-
+              The safest pattern: frontend calls identify() first (linking anonymous browsing to the known ID), then the backend uses the same known ID in all capture() calls. This ensures all events
+              — anonymous frontend, identified frontend, and backend — are linked to one person.
+    section: identification
+  - id: group-types
+    name: Group Types — Modeling Organizations
+    difficulty: 4
+    estimatedMinutes: 12
+    tags:
+      - posthog
+      - groups
+    sourceRef: https://posthog.com/docs/product-analytics/group-analytics
+    prerequisites:
+      - ph-persons
+      - ph-event-properties
+      - relationships
+    encompassing: []
+    knowledgePoints:
+      - id: what-are-groups
+        instruction: >-
+          Groups let you associate events with entities beyond individual users — typically companies, organizations, teams, or projects. In B2B products, you often need to answer questions like 'how
+          many companies used feature X this month?' rather than just 'how many users?' Groups make this possible. You define group types — up to 5 per PostHog project. Common group types include
+          'company', 'team', 'project', or 'workspace'. Each group type can have many group instances. For example, the 'company' group type might have instances 'Acme Corp', 'Widgets Inc', and
+          'FooCo'. In data modeling terms, a Group is an entity with a many-to-many relationship to Persons (via events). One person can belong to multiple companies (a contractor), and one company
+          has many users. Groups have their own properties (company name, plan, employee count) just like persons have person properties. Groups are a paid add-on and require the identify flow to work
+          (events must be identified to link to groups). See https://posthog.com/docs/product-analytics/group-analytics for the full guide and
+          https://posthog.com/tutorials/frontend-vs-backend-group-analytics for implementation patterns.
+        problems:
+          - id: groups-p1
+            type: multiple_choice
+            question: What is the primary purpose of group analytics in PostHog?
+            options:
+              - To organize PostHog project settings
+              - To associate events with entities like companies or teams, enabling B2B analytics
+              - To group similar events into actions
+              - To create user segments for email marketing
+            correct: 1
+            explanation: >-
+              Group analytics lets you associate events with higher-level entities (companies, teams, projects) so you can analyze behavior at the organization level, not just the individual user
+              level. This is essential for B2B products.
+          - id: groups-p2
+            type: fill_blank
+            question: PostHog allows up to ___ group types per project.
+            correct: '5'
+            explanation: You can define up to 5 group types per PostHog project (e.g., company, team, project, workspace, organization). Plan carefully because this limit cannot be easily changed.
+          - id: groups-p3
+            type: true_false
+            question: Group analytics is included in all PostHog plans at no additional cost.
+            correct: 'false'
+            explanation: Group analytics is a paid add-on feature. It is not included in the free tier. This is important to know as a TAM when discussing pricing and feature availability with customers.
+    section: group-analytics
+  - id: group-identify
+    name: Group Identify & Group Properties
+    difficulty: 5
+    estimatedMinutes: 12
+    tags:
+      - posthog
+      - groups
+    sourceRef: https://posthog.com/docs/product-analytics/group-analytics
+    prerequisites:
+      - group-types
+      - identify-call
+    encompassing: []
+    knowledgePoints:
+      - id: creating-groups-and-properties
+        instruction: >-
+          To create a group and set its properties, you send a group identify call. In the JS Web SDK: posthog.group('company', 'acme-inc', { name: 'Acme Inc', plan: 'enterprise', employee_count: 500
+          }). The first argument is the group type (must match one of your defined types), the second is the group key (unique identifier for this instance), and the third (optional) sets group
+          properties. This call does two things: (1) associates all subsequent events in this session with company 'acme-inc', and (2) creates or updates the group profile with the given properties.
+          In backend SDKs, the pattern is different. You call group_identify separately to create/update group properties: posthog.group_identify({ groupType: 'company', groupKey: 'acme-inc',
+          properties: { name: 'Acme Inc', plan: 'enterprise' } }). Then on every capture() call, you attach the group: posthog.capture({ distinctId: 'user_42', event: 'api_call', groups: { company:
+          'acme-inc' } }). Group properties work like person properties — they persist on the group profile and can be used for filtering and breakdowns. See
+          https://posthog.com/docs/product-analytics/group-analytics and https://posthog.com/tutorials/frontend-vs-backend-group-analytics for detailed implementation patterns.
+        problems:
+          - id: grpid-p1
+            type: multiple_choice
+            question: 'In the JS Web SDK, what does posthog.group(''company'', ''acme-inc'', { plan: ''enterprise'' }) do?'
+            options:
+              - Creates a new PostHog project called 'acme-inc'
+              - Associates subsequent events with company 'acme-inc' and sets group properties
+              - Creates a person profile with company name 'acme-inc'
+              - Sends an email notification to the acme-inc team
+            correct: 1
+            explanation: >-
+              The group() call associates the current session with the specified group and sets/updates group properties. After this call, all events in the session automatically include the group
+              association.
+          - id: grpid-p2
+            type: scenario
+            question: A customer uses the Python backend SDK and wants to set company properties and also link events to companies. What is the correct approach?
+            options:
+              - Call posthog.group() once and all backend events will automatically link
+              - 'Call group_identify to set properties, then attach groups: { company: ''acme-inc'' } on every capture() call'
+              - Set company name as a person property on each user
+              - Use the HTTP API instead of the Python SDK
+            correct: 1
+            explanation: >-
+              Backend SDKs do not have persistent sessions. You must call group_identify separately to set group properties, and then explicitly attach the groups dictionary on every capture() call.
+              There is no automatic session-level association on the backend.
+          - id: grpid-p3
+            type: true_false
+            question: In the JS Web SDK, after calling posthog.group('company', 'acme-inc'), all subsequent events in the session automatically include the company group association.
+            correct: 'true'
+            explanation: >-
+              The JS Web SDK maintains session state. After calling group(), all subsequent events in that session automatically include the group association. This is different from backend SDKs
+              where you must attach groups on every capture call.
+    section: group-analytics
+  - id: linking-events-to-groups
+    name: Linking Events to Groups
+    difficulty: 5
+    estimatedMinutes: 12
+    tags:
+      - posthog
+      - groups
+    sourceRef: https://posthog.com/docs/product-analytics/group-analytics
+    prerequisites:
+      - group-identify
+    encompassing: []
+    knowledgePoints:
+      - id: frontend-vs-backend-patterns
+        instruction: >-
+          How you link events to groups depends on whether you are using a frontend or backend SDK. Frontend (JS Web SDK): call posthog.group('company', 'acme-inc') once after the user logs in. All
+          subsequent events in the session automatically include the group association. You do not need to modify individual capture() calls. If the user belongs to multiple group types, call group()
+          for each: posthog.group('company', 'acme-inc') then posthog.group('project', 'proj-123'). Backend SDKs (Node, Python, etc.): there is no persistent session. You must pass the groups object
+          on every capture() call: posthog.capture({ distinctId: 'user_42', event: 'api_call', groups: { company: 'acme-inc', project: 'proj-123' } }). An event can link to multiple group types
+          simultaneously (company AND project) but only one group instance per type. You cannot link an event to two different companies — only one company per event. This is a key architectural
+          constraint. See https://posthog.com/tutorials/frontend-vs-backend-group-analytics for detailed patterns and code examples.
+        problems:
+          - id: link-grp-p1
+            type: multiple_choice
+            question: In a backend SDK, how do you associate an event with a group?
+            options:
+              - Call posthog.group() once at application startup
+              - Pass a groups object on every capture() call
+              - Set a GROUP_ID environment variable
+              - Groups are automatically detected from the user's IP address
+            correct: 1
+            explanation: 'Backend SDKs have no persistent session. You must explicitly pass groups: { company: ''acme-inc'' } on every capture() call. There is no ''set once and forget'' pattern on the backend.'
+          - id: link-grp-p2
+            type: true_false
+            question: A single PostHog event can be linked to multiple groups of the same type (e.g., two different companies).
+            correct: 'false'
+            explanation: >-
+              An event can link to only one group instance per type. You can link to multiple types (company AND project) but not multiple companies on the same event. This is an architectural
+              constraint.
+          - id: link-grp-p3
+            type: scenario
+            question: A customer's user belongs to two companies (they are a consultant). The customer wants every event from this user to be attributed to both companies. Is this possible?
+            options:
+              - Yes — pass both company IDs in the groups object
+              - No — an event can only link to one group per type. They need to choose which company each event belongs to
+              - Yes — call posthog.group('company', ...) twice
+              - Yes — use the alias() function to link both companies
+            correct: 1
+            explanation: >-
+              PostHog only supports one group instance per group type per event. The customer must decide which company each event should be attributed to, or create a composite group that represents
+              both.
+    section: group-analytics
+  - id: group-gotchas
+    name: Group Analytics Gotchas
+    difficulty: 5
+    estimatedMinutes: 10
+    tags:
+      - posthog
+      - groups
+    sourceRef: https://posthog.com/docs/product-analytics/group-analytics
+    prerequisites:
+      - linking-events-to-groups
+    encompassing: []
+    knowledgePoints:
+      - id: important-limitations
+        instruction: >-
+          Group analytics has several important gotchas that you will encounter as a TAM. (1) Events must be identified to link to groups — if person processing is skipped (anonymous events in
+          'identified_only' mode), the event will not link to any group. (2) A group needs at least one property (set via group_identify or the third argument to group()) to appear in the
+          People/Groups tab in the UI. Groups with no properties exist but are invisible in the UI. (3) You cannot assign one event to multiple groups of the same type — only one company per event,
+          only one project per event. You can link to different types simultaneously. (4) Group analytics is a paid add-on — not included in free plans. (5) Early access feature management does not
+          support groups — you cannot target groups with early access features. (6) Up to 5 group types per project — this limit is hard to change, so plan your group types carefully before
+          implementation. When onboarding customers to groups, make sure they understand these constraints upfront to avoid frustration later. See
+          https://posthog.com/docs/product-analytics/group-analytics for the complete feature documentation.
+        problems:
+          - id: gotcha-p1
+            type: true_false
+            question: Anonymous events (in 'identified_only' mode) can still be linked to groups.
+            correct: 'false'
+            explanation: Events must go through person processing to link to groups. In 'identified_only' mode, anonymous events skip person processing and therefore cannot be linked to any group.
+          - id: gotcha-p2
+            type: multiple_choice
+            question: A customer created a group type 'company' and linked events to it, but they cannot see any company groups in the People/Groups tab. What is the most likely cause?
+            options:
+              - Group analytics is not enabled on their plan
+              - They linked events to groups but never set any group properties via group_identify or group()
+              - The People/Groups tab does not support group analytics
+              - They need to wait 24 hours for groups to appear
+            correct: 1
+            explanation: >-
+              A group needs at least one property to appear in the People/Groups tab. If they only linked events to groups (via the groups parameter) but never called group_identify or passed
+              properties in the group() call, the groups exist but are invisible in the UI.
+          - id: gotcha-p3
+            type: scenario
+            question: 'A customer wants to set up 7 different group types: company, team, department, project, workspace, region, and vertical. What constraint will they hit?'
+            options:
+              - No constraint — PostHog supports unlimited group types
+              - PostHog allows a maximum of 5 group types per project
+              - Each group type requires a separate PostHog project
+              - Group types must be approved by PostHog support
+            correct: 1
+            explanation: >-
+              PostHog limits each project to 5 group types. The customer needs to prioritize which 5 they need or consolidate some (e.g., department and team might be the same group type with a
+              'level' property).
+          - id: gotcha-p4
+            type: true_false
+            question: You can target groups directly with PostHog's early access feature management.
+            correct: 'false'
+            explanation: Early access feature management does not support groups. You can only target individual persons. For group-level feature control, use feature flags with group-based targeting instead.
+    section: group-analytics
+  - id: ph-cdp-overview
+    name: PostHog CDP — Sources, Transformations, Destinations
+    difficulty: 4
+    estimatedMinutes: 12
+    tags:
+      - posthog
+      - cdp
+    sourceRef: https://posthog.com/docs/cdp
+    prerequisites:
+      - ph-ingestion-pipeline
+      - transformation-etl-elt
+    encompassing: []
+    knowledgePoints:
+      - id: three-pieces
+        instruction: >-
+          PostHog's CDP (Customer Data Platform) has three main components that map directly to the pipeline fundamentals you learned earlier. Sources: import data from external systems into PostHog's
+          data warehouse. You can connect databases, APIs, and SaaS tools (Stripe, Hubspot, Zendesk, PostgreSQL, etc.) and join that external data with your PostHog event and person data using SQL.
+          Sources power 'data warehouse' queries — enrich your analytics with external data without moving everything into PostHog. Transformations: modify events in-flight as they are ingested. Use
+          cases include scrubbing PII (removing email addresses from event properties), enriching events with additional context (adding GeoIP data), filtering events (dropping internal traffic), and
+          normalizing data (standardizing property names). Transformations run as code (Hog functions or JavaScript) during ingestion. Destinations: export data from PostHog to other tools. Two
+          flavors exist: realtime destinations (send events as they happen to webhooks, Slack, etc.) and batch exports (scheduled dumps to data warehouses like BigQuery, Snowflake, S3). This
+          three-part structure is PostHog's implementation of the pipeline pattern: collect, transform, deliver. See https://posthog.com/docs/cdp for the full CDP documentation.
+        problems:
+          - id: cdp-p1
+            type: matching
+            question: Match each PostHog CDP component to its function.
+            options:
+              - Sources|Import external data into PostHog's data warehouse
+              - Transformations|Modify events in-flight during ingestion
+              - Destinations|Export PostHog data to other tools
+              - Batch exports|Scheduled dumps to data warehouses like BigQuery
+            correct: 0,1,2,3
+            explanation: Sources bring external data in. Transformations modify events during ingestion. Destinations send data out. Batch exports are a type of destination that runs on a schedule.
+          - id: cdp-p2
+            type: multiple_choice
+            question: A customer wants to remove email addresses from all event properties before they are stored in PostHog. Which CDP component should they use?
+            options:
+              - Sources
+              - Transformations
+              - Batch exports
+              - Cohorts
+            correct: 1
+            explanation: >-
+              Transformations modify events in-flight during ingestion. A transformation can scrub PII (like email addresses) from event properties before they are stored, ensuring sensitive data
+              never reaches the database.
+          - id: cdp-p3
+            type: true_false
+            question: PostHog CDP Sources allow you to query external data (like Stripe or Hubspot) alongside PostHog event data.
+            correct: 'true'
+            explanation: >-
+              Sources connect external data systems to PostHog's data warehouse. Once connected, you can join external data (Stripe payments, Hubspot contacts, etc.) with PostHog events and persons
+              using SQL queries.
+    section: posthog-cdp
+  - id: ph-destinations-exports
+    name: Destinations & Batch Exports
+    difficulty: 4
+    estimatedMinutes: 12
+    tags:
+      - posthog
+      - cdp
+    sourceRef: https://posthog.com/docs/cdp/batch-exports
+    prerequisites:
+      - ph-cdp-overview
+    encompassing: []
+    knowledgePoints:
+      - id: realtime-vs-batch
+        instruction: >-
+          PostHog offers two types of data destinations. Realtime destinations export events immediately as they are captured. Examples: send a Slack notification when a high-value user signs up,
+          trigger a webhook when a specific event fires, push events to a custom endpoint for real-time processing. Realtime destinations support filtering — you configure conditions so only matching
+          events are sent, not every event. They are best for alerts, notifications, and real-time integrations with other tools. Batch exports run on a schedule and export data in bulk to data
+          warehouses. Supported destinations include BigQuery, Snowflake, S3, PostgreSQL, Redshift, Azure Blob Storage, and Databricks. You can export events, persons, or sessions. Batch exports
+          include filtering (only export matching data), testing (verify the export works before scheduling), and monitoring (logs and metrics in the PostHog UI). Think of realtime as 'push on every
+          event' and batch as 'dump periodically.' Most customers use batch exports to replicate PostHog data into their own warehouse for cross-platform analysis, custom modeling, or compliance
+          requirements. See https://posthog.com/docs/cdp/destinations for realtime destinations and https://posthog.com/docs/cdp/batch-exports for batch export documentation.
+        problems:
+          - id: dest-p1
+            type: multiple_choice
+            question: When should a customer use a realtime destination instead of a batch export?
+            options:
+              - When they need to export millions of events to a data warehouse daily
+              - When they need immediate notifications or triggers based on specific events
+              - When they want to reduce PostHog costs
+              - When they need to import data into PostHog
+            correct: 1
+            explanation: >-
+              Realtime destinations are for immediate, event-driven actions — Slack notifications, webhook triggers, real-time integrations. Batch exports are for bulk data movement to warehouses.
+              Sources (not destinations) import data into PostHog.
+          - id: dest-p2
+            type: matching
+            question: Match each export type to its best use case.
+            options:
+              - Realtime destination|Slack alert when a VIP user churns
+              - Batch export to BigQuery|Nightly sync of all events for cross-platform analysis
+              - Batch export to S3|Archive raw event data for compliance
+              - Realtime webhook|Trigger a workflow in another tool when a signup event fires
+            correct: 0,1,2,3
+            explanation: Realtime destinations handle immediate, event-driven notifications and triggers. Batch exports handle scheduled bulk data movement for analytics, archival, and compliance.
+          - id: dest-p3
+            type: scenario
+            question: A customer needs all their PostHog event data in Snowflake for their data team to run custom SQL analysis. They need data updated daily, not in real-time. What should you recommend?
+            options:
+              - A realtime destination pushing every event to Snowflake
+              - A batch export to Snowflake scheduled to run daily
+              - Manually exporting CSV files from the PostHog UI
+              - Using PostHog's HogQL instead of Snowflake
+            correct: 1
+            explanation: >-
+              A batch export to Snowflake is the right fit: scheduled, bulk data transfer to a warehouse. Daily updates match their needs. Realtime would be unnecessary overhead. CSV exports do not
+              scale. HogQL is great but does not replace their need for data in their own warehouse.
+    section: posthog-cdp
+  - id: cohorts
+    name: Cohorts — Static and Dynamic User Groups
+    difficulty: 4
+    estimatedMinutes: 12
+    tags:
+      - posthog
+      - querying
+    sourceRef: https://posthog.com/docs/data/cohorts
+    prerequisites:
+      - ph-person-properties
+      - ph-event-properties
+    encompassing: []
+    knowledgePoints:
+      - id: static-vs-dynamic
+        instruction: >-
+          A cohort in PostHog is a saved group of persons that you can use to filter insights, target feature flags, and segment analysis. There are two types. Static cohorts: a fixed list of persons.
+          The membership does not change unless you manually add or remove people (or upload a new CSV). Use static cohorts for fixed groups like 'beta testers' or 'conference attendees.' Dynamic
+          cohorts: membership is automatically recalculated based on criteria you define. Three types of criteria: person property (e.g., plan = 'enterprise'), behavioral (e.g., performed event
+          'login' in the last 7 days), and lifecycle (e.g., users who were active last week but not this week). Dynamic cohorts update approximately every 24 hours. Key gotcha: you cannot use dynamic
+          cohorts with behavioral or lifecycle criteria to target feature flags. Feature flag targeting only supports dynamic cohorts based on person properties. If you need to target users who
+          performed a specific action with a feature flag, first create a dynamic behavioral cohort, then duplicate it as a static cohort, and target the static cohort with the flag. See
+          https://posthog.com/docs/data/cohorts for the full cohort documentation.
+        problems:
+          - id: cohort-p1
+            type: multiple_choice
+            question: What is the key difference between static and dynamic cohorts in PostHog?
+            options:
+              - Static cohorts are faster to query
+              - Static cohorts have fixed membership; dynamic cohorts automatically update based on criteria
+              - Static cohorts support more filter types
+              - Dynamic cohorts are only available on paid plans
+            correct: 1
+            explanation: >-
+              Static cohorts are fixed lists — membership does not change unless manually updated. Dynamic cohorts automatically recalculate membership based on person property, behavioral, or
+              lifecycle criteria.
+          - id: cohort-p2
+            type: true_false
+            question: You can target a feature flag using a dynamic cohort based on behavioral criteria (e.g., 'performed login in last 7 days').
+            correct: 'false'
+            explanation: >-
+              Feature flag targeting only supports dynamic cohorts based on person properties, not behavioral or lifecycle criteria. For behavioral targeting, create the dynamic cohort, duplicate it
+              as a static cohort, and target the static cohort with the flag.
+          - id: cohort-p3
+            type: scenario
+            question: >-
+              A customer wants to roll out a feature flag to all users who completed onboarding in the last 30 days. They create a dynamic cohort with behavioral criteria 'performed
+              onboarding_complete in last 30 days.' They try to use it in a feature flag but it does not work. Why?
+            options:
+              - The cohort has too many members
+              - Feature flags cannot target dynamic cohorts with behavioral criteria — only person property criteria
+              - The event name 'onboarding_complete' is invalid
+              - Feature flags do not support cohort targeting at all
+            correct: 1
+            explanation: >-
+              Feature flags only support dynamic cohorts based on person properties. Behavioral criteria (like 'performed event X in last N days') are not supported for flag targeting. The workaround:
+              create the behavioral cohort, export it as a static cohort, and target the static cohort.
+          - id: cohort-p4
+            type: multiple_choice
+            question: How often do dynamic cohorts in PostHog recalculate their membership?
+            options:
+              - In real-time, on every event
+              - Every hour
+              - Approximately every 24 hours
+              - Only when manually triggered
+            correct: 2
+            explanation: >-
+              Dynamic cohorts recalculate approximately every 24 hours. They are not real-time. If a user meets the criteria right now, they may not appear in the cohort until the next recalculation
+              cycle.
+    section: querying
+  - id: hogql-basics
+    name: HogQL — SQL in PostHog
+    difficulty: 5
+    estimatedMinutes: 12
+    tags:
+      - posthog
+      - querying
+    sourceRef: https://posthog.com/docs/sql
+    prerequisites:
+      - ph-events
+      - ph-event-properties
+      - ph-persons
+    encompassing: []
+    knowledgePoints:
+      - id: sql-expressions-and-insights
+        instruction: >-
+          HogQL is PostHog's SQL dialect, built on top of ClickHouse SQL with some PostHog-specific additions. It appears in two forms. SQL expressions: short SQL snippets you can use anywhere you see
+          the SQL/HogQL option — inside filters, breakdowns, dashboard tiles, trends, funnels, paths, and retention insights. For example, you can use multiIf(properties.$os = 'Mac OS X', 'Mac',
+          properties.$os = 'Windows', 'Windows', 'Other') as a breakdown to group operating systems into custom categories. SQL expressions give you transformation power within the existing UI
+          builders. SQL insights: full SQL queries with SELECT, FROM, WHERE, GROUP BY, ORDER BY, and JOIN. Create them from the Insights page by selecting 'SQL' as the insight type. You can query the
+          events table (all captured events), persons table (all person profiles), sessions table, and any data warehouse tables you have connected. Example: SELECT properties.$browser, count() FROM
+          events WHERE event = '$pageview' AND timestamp > now() - interval 7 day GROUP BY properties.$browser ORDER BY count() DESC. HogQL is your escape hatch when the UI builders are not flexible
+          enough. Best practice: start with the UI builder for standard analysis and drop to HogQL only when you need custom logic the UI cannot express. See https://posthog.com/docs/sql for the
+          complete HogQL documentation.
+        problems:
+          - id: hogql-p1
+            type: multiple_choice
+            question: In PostHog, what are the two ways HogQL can be used?
+            options:
+              - As a programming language and a database engine
+              - As SQL expressions within UI builders and as full SQL insights
+              - As a frontend framework and a backend API
+              - As a data import tool and a data export tool
+            correct: 1
+            explanation: >-
+              HogQL appears as SQL expressions (short snippets inside filters, breakdowns, and existing insight types) and as SQL insights (full queries with SELECT/FROM/WHERE). Expressions enhance
+              the UI builder; full queries give you complete flexibility.
+          - id: hogql-p2
+            type: true_false
+            question: HogQL should be the first tool you reach for when creating PostHog insights.
+            correct: 'false'
+            explanation: >-
+              Best practice is to start with the UI builder for standard analysis. The UI builder is faster, requires no SQL knowledge, and handles most common use cases. Drop to HogQL only when you
+              need custom logic the UI cannot express.
+          - id: hogql-p3
+            type: fill_blank
+            question: In HogQL, you query the ___ table to access all captured events in PostHog.
+            correct: events
+            explanation: The events table contains all captured events. You can also query the persons table for person profiles, the sessions table for session data, and any connected data warehouse tables.
+    section: querying

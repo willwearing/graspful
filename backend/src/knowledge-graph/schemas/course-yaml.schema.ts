@@ -25,6 +25,7 @@ const EncompassingRefSchema = z.object({
 const ConceptYamlSchema = z.object({
   id: z.string(),
   name: z.string(),
+  section: z.string().optional(),
   difficulty: z.number().int().min(1).max(10),
   estimatedMinutes: z.number().int().positive(),
   tags: z.array(z.string()).default([]),
@@ -32,6 +33,12 @@ const ConceptYamlSchema = z.object({
   prerequisites: z.array(z.string()).optional().default([]),
   encompassing: z.array(EncompassingRefSchema).optional().default([]),
   knowledgePoints: z.array(KnowledgePointYamlSchema).optional().default([]),
+});
+
+const SectionYamlSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
 });
 
 const CourseMetaSchema = z.object({
@@ -45,10 +52,12 @@ const CourseMetaSchema = z.object({
 
 export const CourseYamlSchema = z.object({
   course: CourseMetaSchema,
+  sections: z.array(SectionYamlSchema).optional().default([]),
   concepts: z.array(ConceptYamlSchema),
 });
 
 export type CourseYaml = z.infer<typeof CourseYamlSchema>;
+export type SectionYaml = z.infer<typeof SectionYamlSchema>;
 export type ConceptYaml = z.infer<typeof ConceptYamlSchema>;
 export type KnowledgePointYaml = z.infer<typeof KnowledgePointYamlSchema>;
 export type ProblemYaml = z.infer<typeof ProblemYamlSchema>;

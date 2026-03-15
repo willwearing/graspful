@@ -7,6 +7,7 @@ import { ProblemType } from '@prisma/client';
 
 export interface ImportResult {
   courseId: string;
+  sectionCount: number;
   conceptCount: number;
   knowledgePointCount: number;
   problemCount: number;
@@ -59,6 +60,16 @@ export class CourseImporterService {
       );
     }
 
+    // Validate section references
+    const sectionIds = new Set(data.sections.map((s) => s.id));
+    for (const concept of data.concepts) {
+      if (concept.section && !sectionIds.has(concept.section)) {
+        throw new BadRequestException(
+          `Concept "${concept.id}" references unknown section "${concept.section}"`,
+        );
+      }
+    }
+
     // 4. Import everything in a transaction
     let knowledgePointCount = 0;
     let problemCount = 0;
@@ -86,15 +97,36 @@ export class CourseImporterService {
         },
       });
 
+      // Create sections and build slug -> id map
+      const sectionSlugToId = new Map<string, string>();
+      for (let i = 0; i < data.sections.length; i++) {
+        const sectionYaml = data.sections[i];
+        const section = await tx.courseSection.create({
+          data: {
+            courseId: course.id,
+            slug: sectionYaml.id,
+            name: sectionYaml.name,
+            description: sectionYaml.description,
+            sortOrder: i,
+          },
+        });
+        sectionSlugToId.set(sectionYaml.id, section.id);
+      }
+
       // Create concepts and build slug -> id map
       const slugToId = new Map<string, string>();
 
       for (let i = 0; i < data.concepts.length; i++) {
         const conceptYaml = data.concepts[i];
+        const sectionId = conceptYaml.section
+          ? sectionSlugToId.get(conceptYaml.section) ?? null
+          : null;
+
         const concept = await tx.concept.create({
           data: {
             courseId: course.id,
             orgId,
+            sectionId,
             slug: conceptYaml.id,
             name: conceptYaml.name,
             difficulty: conceptYaml.difficulty,
@@ -177,6 +209,7 @@ export class CourseImporterService {
 
       return {
         courseId: course.id,
+        sectionCount: data.sections.length,
         conceptCount: data.concepts.length,
         knowledgePointCount,
         problemCount,
