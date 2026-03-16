@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Problem } from "@/lib/types";
 import type { ProblemFeedback } from "./multiple-choice";
@@ -9,10 +10,11 @@ interface FillBlankProps {
   problem: Problem;
   onSubmit: (answer: string) => void;
   disabled?: boolean;
+  loading?: boolean;
   feedback?: ProblemFeedback;
 }
 
-export function FillBlank({ problem, onSubmit, disabled, feedback }: FillBlankProps) {
+export function FillBlank({ problem, onSubmit, disabled, loading, feedback }: FillBlankProps) {
   const [value, setValue] = useState("");
 
   function handleSubmit() {
@@ -37,8 +39,8 @@ export function FillBlank({ problem, onSubmit, disabled, feedback }: FillBlankPr
       />
 
       {feedback && (
-        <div className={`rounded-lg p-4 text-sm ${feedback.wasCorrect ? "bg-green-500/10 text-green-700 dark:text-green-300" : "bg-destructive/10 text-destructive"}`}>
-          {feedback.wasCorrect ? "Correct!" : "Incorrect"}
+        <div className={`rounded-lg p-4 text-sm ${feedback.skipped ? "bg-amber-500/10 text-amber-700 dark:text-amber-300" : feedback.wasCorrect ? "bg-green-500/10 text-green-700 dark:text-green-300" : "bg-destructive/10 text-destructive"}`}>
+          {feedback.skipped ? "We'll teach you this one" : feedback.wasCorrect ? "Correct!" : "Incorrect"}
           {feedback.correctAnswer && !feedback.wasCorrect && (
             <p className="mt-1">Correct answer: {feedback.correctAnswer}</p>
           )}
@@ -48,7 +50,7 @@ export function FillBlank({ problem, onSubmit, disabled, feedback }: FillBlankPr
 
       {!feedback && (
         <Button onClick={handleSubmit} disabled={disabled || !value.trim()} className="w-full">
-          Submit Answer
+          {loading ? <><Loader2 className="size-4 animate-spin" /> Submitting...</> : "Submit Answer"}
         </Button>
       )}
     </div>

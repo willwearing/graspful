@@ -1,11 +1,13 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Home, BookOpen, Settings, LogOut } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useBrand } from "@/lib/brand/context";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -23,6 +25,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUserEmail(data.session?.user?.email ?? null);
+      setUserAvatar(data.session?.user?.user_metadata?.avatar_url ?? null);
+    });
+  }, [supabase]);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -80,15 +91,29 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           })}
         </nav>
 
-        {/* Sign out */}
-        <div className="p-3 border-t border-border">
+        {/* User + Sign out */}
+        <div className="flex items-center gap-3 border-t border-border px-4 py-3">
+          {userEmail && (
+            <>
+              <Avatar className="size-7 shrink-0">
+                {userAvatar && <AvatarImage src={userAvatar} alt={userEmail} />}
+                <AvatarFallback className="text-[10px]">
+                  {userEmail.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="flex-1 truncate text-xs text-muted-foreground">
+                {userEmail}
+              </span>
+            </>
+          )}
           <Button
             variant="ghost"
-            className="w-full justify-start gap-3 text-muted-foreground"
+            size="icon"
+            className="shrink-0 text-muted-foreground"
             onClick={handleSignOut}
+            title="Sign out"
           >
-            <LogOut className="h-5 w-5" />
-            Sign Out
+            <LogOut className="h-4 w-4" />
           </Button>
         </div>
       </aside>

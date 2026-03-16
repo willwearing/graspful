@@ -29,10 +29,10 @@ interface KnowledgeGraphProps {
 }
 
 const MASTERY_COLORS: Record<MasteryState, string> = {
-  mastered: "var(--chart-2, #22c55e)",
-  in_progress: "var(--chart-4, #3b82f6)",
-  needs_review: "var(--chart-5, #f59e0b)",
-  unstarted: "var(--muted, #e5e7eb)",
+  mastered: "#91e2af",
+  in_progress: "#f7a2a2",
+  needs_review: "#facf85",
+  unstarted: "#cdd1d7",
 };
 
 const MASTERY_LABELS: Record<MasteryState, string> = {
@@ -148,14 +148,11 @@ export function KnowledgeGraph({ concepts, edges }: KnowledgeGraphProps) {
         selectable: false,
         style: {
           background: MASTERY_COLORS[c.masteryState],
-          border: "1px solid var(--border)",
+          border: "1px solid #e2e8f0",
           borderRadius: "8px",
           padding: "8px 12px",
           fontSize: "12px",
-          color:
-            c.masteryState === "mastered" || c.masteryState === "in_progress"
-              ? "#fff"
-              : "var(--foreground)",
+          color: "var(--foreground)",
           minWidth: `${NODE_WIDTH}px`,
           maxWidth: `${NODE_WIDTH}px`,
           textAlign: "center" as const,
@@ -215,7 +212,7 @@ export function KnowledgeGraph({ concepts, edges }: KnowledgeGraphProps) {
             ([state, label]) => (
               <div key={state} className="flex items-center gap-2">
                 <div
-                  className="h-3 w-3 rounded-full"
+                  className="h-3 w-3 rounded-full border border-border"
                   style={{ backgroundColor: MASTERY_COLORS[state] }}
                 />
                 <span className="text-xs text-muted-foreground">{label}</span>

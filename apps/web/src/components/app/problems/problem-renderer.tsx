@@ -12,23 +12,24 @@ interface ProblemRendererProps {
   problem: Problem;
   onSubmit: (answer: ProblemAnswer) => void;
   disabled?: boolean;
+  loading?: boolean;
   feedback?: ProblemFeedback;
 }
 
-export function ProblemRenderer({ problem, onSubmit, disabled, feedback }: ProblemRendererProps) {
+export function ProblemRenderer({ problem, onSubmit, disabled, loading, feedback }: ProblemRendererProps) {
   switch (problem.type) {
     case "multiple_choice":
-      return <MultipleChoice problem={problem} onSubmit={onSubmit as (answer: string) => void} disabled={disabled} feedback={feedback} />;
+      return <MultipleChoice problem={problem} onSubmit={onSubmit as (answer: string) => void} disabled={disabled} loading={loading} feedback={feedback} />;
     case "true_false":
-      return <TrueFalse problem={problem} onSubmit={onSubmit as (answer: boolean) => void} disabled={disabled} feedback={feedback} />;
+      return <TrueFalse problem={problem} onSubmit={onSubmit as (answer: boolean) => void} disabled={disabled} loading={loading} feedback={feedback} />;
     case "fill_blank":
-      return <FillBlank problem={problem} onSubmit={onSubmit as (answer: string) => void} disabled={disabled} feedback={feedback} />;
+      return <FillBlank problem={problem} onSubmit={onSubmit as (answer: string) => void} disabled={disabled} loading={loading} feedback={feedback} />;
     case "ordering":
-      return <Ordering problem={problem} onSubmit={onSubmit as (answer: string[]) => void} disabled={disabled} feedback={feedback} />;
+      return <Ordering problem={problem} onSubmit={onSubmit as (answer: string[]) => void} disabled={disabled} loading={loading} feedback={feedback} />;
     case "matching":
-      return <Matching problem={problem} onSubmit={onSubmit as (answer: Record<string, string>) => void} disabled={disabled} feedback={feedback} />;
+      return <Matching problem={problem} onSubmit={onSubmit as (answer: Record<string, string>) => void} disabled={disabled} loading={loading} feedback={feedback} />;
     case "scenario":
-      return <Scenario problem={problem} onSubmit={onSubmit as (answer: string) => void} disabled={disabled} feedback={feedback} />;
+      return <Scenario problem={problem} onSubmit={onSubmit as (answer: string) => void} disabled={disabled} loading={loading} feedback={feedback} />;
     default:
       return <p className="text-muted-foreground">Unsupported problem type: {problem.type}</p>;
   }

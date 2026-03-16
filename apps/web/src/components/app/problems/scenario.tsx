@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Problem } from "@/lib/types";
 import type { ProblemFeedback } from "./multiple-choice";
@@ -9,10 +10,11 @@ interface ScenarioProps {
   problem: Problem;
   onSubmit: (answer: string) => void;
   disabled?: boolean;
+  loading?: boolean;
   feedback?: ProblemFeedback;
 }
 
-export function Scenario({ problem, onSubmit, disabled, feedback }: ScenarioProps) {
+export function Scenario({ problem, onSubmit, disabled, loading, feedback }: ScenarioProps) {
   const [selected, setSelected] = useState<string | null>(null);
 
   function handleSubmit() {
@@ -58,15 +60,15 @@ export function Scenario({ problem, onSubmit, disabled, feedback }: ScenarioProp
       </div>
 
       {feedback && (
-        <div className={`rounded-lg p-4 text-sm ${feedback.wasCorrect ? "bg-green-500/10 text-green-700 dark:text-green-300" : "bg-destructive/10 text-destructive"}`}>
-          {feedback.wasCorrect ? "Correct!" : "Incorrect"}
+        <div className={`rounded-lg p-4 text-sm ${feedback.skipped ? "bg-amber-500/10 text-amber-700 dark:text-amber-300" : feedback.wasCorrect ? "bg-green-500/10 text-green-700 dark:text-green-300" : "bg-destructive/10 text-destructive"}`}>
+          {feedback.skipped ? "We'll teach you this one" : feedback.wasCorrect ? "Correct!" : "Incorrect"}
           {feedback.explanation && <p className="mt-1 text-muted-foreground">{feedback.explanation}</p>}
         </div>
       )}
 
       {!feedback && (
         <Button onClick={handleSubmit} disabled={disabled || !selected} className="w-full">
-          Submit Answer
+          {loading ? <><Loader2 className="size-4 animate-spin" /> Submitting...</> : "Submit Answer"}
         </Button>
       )}
     </div>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, Loader2 } from "lucide-react";
 import type { Problem } from "@/lib/types";
 import type { ProblemFeedback } from "./multiple-choice";
 
@@ -10,10 +10,11 @@ interface OrderingProps {
   problem: Problem;
   onSubmit: (answer: string[]) => void;
   disabled?: boolean;
+  loading?: boolean;
   feedback?: ProblemFeedback;
 }
 
-export function Ordering({ problem, onSubmit, disabled, feedback }: OrderingProps) {
+export function Ordering({ problem, onSubmit, disabled, loading, feedback }: OrderingProps) {
   const [items, setItems] = useState<string[]>(problem.items ?? []);
 
   function moveItem(index: number, direction: -1 | 1) {
@@ -64,15 +65,15 @@ export function Ordering({ problem, onSubmit, disabled, feedback }: OrderingProp
       </div>
 
       {feedback && (
-        <div className={`rounded-lg p-4 text-sm ${feedback.wasCorrect ? "bg-green-500/10 text-green-700 dark:text-green-300" : "bg-destructive/10 text-destructive"}`}>
-          {feedback.wasCorrect ? "Correct order!" : "Incorrect order"}
+        <div className={`rounded-lg p-4 text-sm ${feedback.skipped ? "bg-amber-500/10 text-amber-700 dark:text-amber-300" : feedback.wasCorrect ? "bg-green-500/10 text-green-700 dark:text-green-300" : "bg-destructive/10 text-destructive"}`}>
+          {feedback.skipped ? "We'll teach you this one" : feedback.wasCorrect ? "Correct order!" : "Incorrect order"}
           {feedback.explanation && <p className="mt-1 text-muted-foreground">{feedback.explanation}</p>}
         </div>
       )}
 
       {!feedback && (
         <Button onClick={() => onSubmit(items)} disabled={disabled} className="w-full">
-          Submit Answer
+          {loading ? <><Loader2 className="size-4 animate-spin" /> Submitting...</> : "Submit Answer"}
         </Button>
       )}
     </div>

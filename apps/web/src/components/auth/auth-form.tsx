@@ -18,6 +18,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const brand = useBrand();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const reason = searchParams.get("reason");
   const rawRedirect = searchParams.get("redirect") || "/dashboard";
   // Prevent open redirect: must be a relative path, not protocol-relative
   const redirectTo =
@@ -103,6 +104,12 @@ export function AuthForm({ mode }: AuthFormProps) {
           <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
+          {reason === "session_expired" && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+              Your session expired. Sign in to pick up where you left off.
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label
