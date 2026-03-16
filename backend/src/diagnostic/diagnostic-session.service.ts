@@ -23,8 +23,10 @@ import {
   DiagnosticResponse,
 } from './speed-bootstrap';
 import { evaluateAnswer } from '../assessment/answer-evaluator';
+import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
 
 const STALE_SESSION_HOURS = 24;
+const logger = getLogger('diagnostic');
 
 @Injectable()
 export class DiagnosticSessionService {
@@ -168,6 +170,13 @@ export class DiagnosticSessionService {
       }
       throw err;
     }
+
+    logger.emit({
+      severityNumber: SeverityNumber.INFO,
+      severityText: 'INFO',
+      body: `Diagnostic started`,
+      attributes: { 'user.id': userId, 'course.id': courseId, 'session.id': session.id, 'concepts.total': concepts.length },
+    });
 
     return {
       sessionId: session.id,
@@ -474,6 +483,13 @@ export class DiagnosticSessionService {
     );
 
     await this.studentState.markDiagnosticComplete(sessionUserId, courseId);
+
+    logger.emit({
+      severityNumber: SeverityNumber.INFO,
+      severityText: 'INFO',
+      body: `Diagnostic completed`,
+      attributes: { 'user.id': sessionUserId, 'course.id': courseId, 'session.id': sessionId, 'questions.answered': questionCount },
+    });
 
     return {
       sessionId,
