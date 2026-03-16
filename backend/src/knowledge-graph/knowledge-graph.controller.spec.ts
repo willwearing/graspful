@@ -19,6 +19,9 @@ describe('KnowledgeGraphController', () => {
         findMany: jest.fn(),
         findFirst: jest.fn(),
       },
+      courseSection: {
+        findMany: jest.fn(),
+      },
       concept: {
         findMany: jest.fn(),
         findFirst: jest.fn(),
@@ -72,6 +75,7 @@ describe('KnowledgeGraphController', () => {
   describe('getCourseGraph', () => {
     it('should return the full graph structure', async () => {
       const course = { id: 'c1', name: 'Course' };
+      const sections = [{ id: 's1', courseId: 'c1', sortOrder: 0 }];
       const concepts = [
         { id: 'con1', slug: 'a', name: 'A' },
         { id: 'con2', slug: 'b', name: 'B' },
@@ -80,6 +84,7 @@ describe('KnowledgeGraphController', () => {
       const encompassing = [{ sourceConceptId: 'con1', targetConceptId: 'con2', weight: 0.5 }];
 
       mockPrisma.course.findFirst.mockResolvedValue(course);
+      mockPrisma.courseSection.findMany.mockResolvedValue(sections);
       mockPrisma.concept.findMany.mockResolvedValue(concepts);
       mockPrisma.prerequisiteEdge.findMany.mockResolvedValue(prereqs);
       mockPrisma.encompassingEdge.findMany.mockResolvedValue(encompassing);
@@ -88,6 +93,7 @@ describe('KnowledgeGraphController', () => {
       const result = await controller.getCourseGraph('c1', orgCtx as any);
 
       expect(result.course).toEqual(course);
+      expect(result.sections).toEqual(sections);
       expect(result.concepts).toEqual(concepts);
       expect(result.prerequisiteEdges).toEqual(prereqs);
       expect(result.encompassingEdges).toEqual(encompassing);

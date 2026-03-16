@@ -19,6 +19,7 @@ describe('StudentModelController', () => {
     mockStudentState = {
       getConceptStates: jest.fn(),
       getMasteryMap: jest.fn(),
+      isDiagnosticCompleted: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -74,6 +75,7 @@ describe('StudentModelController', () => {
         { conceptId: 'c4', masteryState: 'in_progress' },
       ];
       mockStudentState.getConceptStates.mockResolvedValue(states);
+      mockStudentState.isDiagnosticCompleted.mockResolvedValue(true);
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
       const result = await controller.getProfile('course-1', orgCtx as any);
@@ -83,6 +85,8 @@ describe('StudentModelController', () => {
       expect(result.inProgress).toBe(1);
       expect(result.unstarted).toBe(1);
       expect(result.completionPercent).toBeCloseTo(50);
+      expect(result.diagnosticCompleted).toBe(true);
+      expect(mockStudentState.isDiagnosticCompleted).toHaveBeenCalledWith('u1', 'course-1');
     });
   });
 });
