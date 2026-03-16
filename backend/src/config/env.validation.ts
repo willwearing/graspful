@@ -12,6 +12,8 @@ export const envSchema = z.object({
   MODAL_AUTH_SECRET: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  POSTHOG_API_KEY: z.string().optional(),
+  POSTHOG_HOST: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

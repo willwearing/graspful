@@ -6,6 +6,9 @@ import { XPService } from '@/gamification/xp.service';
 import { evaluateAnswer } from './answer-evaluator';
 import { calculateXP, ActivityType } from './xp-calculator';
 import { updateSpeed, deriveSpeed, blendSpeed, SpeedState, ConceptParams } from './speed-updater';
+import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
+
+const logger = getLogger('assessment');
 
 export interface SubmitAnswerInput {
   userId: string;
@@ -143,6 +146,19 @@ export class ProblemSubmissionService {
       implicitRawDelta,
       concept.courseId,
     );
+
+    logger.emit({
+      severityNumber: SeverityNumber.INFO,
+      severityText: 'INFO',
+      body: `Answer evaluated`,
+      attributes: {
+        'user.id': userId,
+        'problem.id': problemId,
+        'answer.correct': evaluation.correct,
+        'xp.awarded': xpResult.xp,
+        'mastery.state': updatedMasteryState,
+      },
+    });
 
     return {
       correct: evaluation.correct,

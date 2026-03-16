@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { DiagnosticState, MasteryState } from '@prisma/client';
+import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
+
+const logger = getLogger('student-model');
 
 @Injectable()
 export class StudentStateService {
@@ -47,6 +50,13 @@ export class StudentStateService {
   ) {
     const masteryState = this.diagnosticToMasteryState(diagnosticState);
 
+    logger.emit({
+      severityNumber: SeverityNumber.INFO,
+      severityText: 'INFO',
+      body: `Mastery updated`,
+      attributes: { 'user.id': userId, 'concept.id': conceptId, 'mastery.state': masteryState, 'mastery.pL': pL },
+    });
+
     return this.prisma.studentConceptState.update({
       where: { userId_conceptId: { userId, conceptId } },
       data: {
@@ -84,6 +94,14 @@ export class StudentStateService {
         }),
     );
     return Promise.all(promises);
+  }
+
+  async isDiagnosticCompleted(userId: string, courseId: string): Promise<boolean> {
+    const enrollment = await this.prisma.courseEnrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+      select: { diagnosticCompleted: true },
+    });
+    return enrollment?.diagnosticCompleted ?? false;
   }
 
   async markDiagnosticComplete(userId: string, courseId: string) {

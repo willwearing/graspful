@@ -13,6 +13,9 @@ import {
   TaskRecommendation,
   StudySession,
 } from './types';
+import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
+
+const logger = getLogger('learning-engine');
 
 @Injectable()
 export class LearningEngineService {
@@ -49,6 +52,13 @@ export class LearningEngineService {
     const xpSinceLastQuiz = await this.computeXPSinceLastQuiz(userId, courseId);
 
     const task = selectNextTask(snapshots, edges, availableFrontier, xpSinceLastQuiz);
+
+    logger.emit({
+      severityNumber: SeverityNumber.INFO,
+      severityText: 'INFO',
+      body: `Next task selected`,
+      attributes: { 'user.id': userId, 'course.id': courseId, 'task.type': task.taskType, 'frontier.size': availableFrontier.length },
+    });
 
     return task;
   }
