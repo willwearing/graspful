@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Problem } from "@/lib/types";
 
 export interface ProblemFeedback {
   wasCorrect: boolean;
+  skipped?: boolean;
   correctAnswer?: string;
   explanation?: string;
 }
@@ -14,10 +16,11 @@ interface MultipleChoiceProps {
   problem: Problem;
   onSubmit: (answer: string) => void;
   disabled?: boolean;
+  loading?: boolean;
   feedback?: ProblemFeedback;
 }
 
-export function MultipleChoice({ problem, onSubmit, disabled, feedback }: MultipleChoiceProps) {
+export function MultipleChoice({ problem, onSubmit, disabled, loading, feedback }: MultipleChoiceProps) {
   const [selected, setSelected] = useState<string | null>(null);
 
   function handleSelect(optionId: string) {
@@ -65,15 +68,15 @@ export function MultipleChoice({ problem, onSubmit, disabled, feedback }: Multip
       </div>
 
       {feedback && (
-        <div className={`rounded-lg p-4 text-sm ${feedback.wasCorrect ? "bg-green-500/10 text-green-700 dark:text-green-300" : "bg-destructive/10 text-destructive"}`}>
-          {feedback.wasCorrect ? "Correct!" : "Incorrect"}
+        <div className={`rounded-lg p-4 text-sm ${feedback.skipped ? "bg-amber-500/10 text-amber-700 dark:text-amber-300" : feedback.wasCorrect ? "bg-green-500/10 text-green-700 dark:text-green-300" : "bg-destructive/10 text-destructive"}`}>
+          {feedback.skipped ? "We'll teach you this one" : feedback.wasCorrect ? "Correct!" : "Incorrect"}
           {feedback.explanation && <p className="mt-1 text-muted-foreground">{feedback.explanation}</p>}
         </div>
       )}
 
       {!feedback && (
         <Button onClick={handleSubmit} disabled={disabled || !selected} className="w-full">
-          Submit Answer
+          {loading ? <><Loader2 className="size-4 animate-spin" /> Submitting...</> : "Submit Answer"}
         </Button>
       )}
     </div>

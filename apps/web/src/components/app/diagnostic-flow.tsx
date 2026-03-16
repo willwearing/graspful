@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { apiClientFetch } from "@/lib/api-client";
 import { ProblemRenderer, type ProblemFeedback } from "@/components/app/problems/problem-renderer";
 import { Button } from "@/components/ui/button";
@@ -75,6 +76,7 @@ export function DiagnosticFlow({ orgId, courseId, token, initialData }: Diagnost
   async function handleSubmit(answer: ProblemAnswer) {
     if (submitting) return;
     setSubmitting(true);
+    setError(null);
 
     try {
       const response = await apiClientFetch<any>(
@@ -90,7 +92,8 @@ export function DiagnosticFlow({ orgId, courseId, token, initialData }: Diagnost
         }
       );
 
-      setFeedback({ wasCorrect: response.wasCorrect });
+      const skipped = answer === "__I_DONT_KNOW__";
+      setFeedback({ wasCorrect: response.wasCorrect, skipped });
 
       // After brief delay, show next question or complete
       setTimeout(() => {
@@ -184,6 +187,7 @@ export function DiagnosticFlow({ orgId, courseId, token, initialData }: Diagnost
           problem={state.question}
           onSubmit={handleSubmit}
           disabled={submitting || !!feedback}
+          loading={submitting && !feedback}
           feedback={feedback ?? undefined}
         />
       )}
@@ -192,8 +196,9 @@ export function DiagnosticFlow({ orgId, courseId, token, initialData }: Diagnost
         <button
           onClick={() => handleSubmit("__I_DONT_KNOW__")}
           disabled={submitting}
-          className="mx-auto block py-2 px-6 text-sm text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent hover:border-border rounded-md transition-colors disabled:opacity-50"
+          className="mx-auto flex items-center gap-2 py-2 px-6 text-sm text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent hover:border-border rounded-md transition-colors disabled:opacity-50"
         >
+          {submitting && <Loader2 className="size-3.5 animate-spin" />}
           I don't know this yet
         </button>
       )}
@@ -205,7 +210,7 @@ export function DiagnosticFlow({ orgId, courseId, token, initialData }: Diagnost
       {!feedback && (
         <div className="mt-4 rounded-lg bg-muted/50 px-4 py-3 text-center">
           <p className="text-xs text-muted-foreground">
-            Don't guess — if you're not sure, tap <span className="font-medium text-foreground">"I don't know this yet"</span> so we can teach you properly.
+            Don't guess — if you're not sure, tap <span className="font-medium text-foreground">"I don't know this yet"</span>
           </p>
         </div>
       )}

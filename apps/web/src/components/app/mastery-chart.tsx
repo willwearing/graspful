@@ -1,3 +1,5 @@
+import { Progress } from "@/components/ui/progress";
+
 interface MasteryChartProps {
   mastered: number;
   inProgress: number;
@@ -15,42 +17,32 @@ export function MasteryChart({ mastered, inProgress, needsReview, unstarted, tot
     );
   }
 
-  const segments = [
-    { label: "Mastered", count: mastered, colorClass: "bg-green-500" },
-    { label: "In Progress", count: inProgress, colorClass: "bg-primary" },
-    { label: "Needs Review", count: needsReview, colorClass: "bg-amber-500" },
-    { label: "Not Started", count: unstarted, colorClass: "bg-muted" },
+  const masteryPercent = Math.round((mastered / totalConcepts) * 100);
+
+  const stats = [
+    { label: "Mastered", count: mastered, dotClass: "bg-green-500", textClass: "text-green-600 dark:text-green-400" },
+    { label: "In Progress", count: inProgress, dotClass: "bg-primary", textClass: "text-primary" },
+    { label: "Needs Review", count: needsReview, dotClass: "bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+    { label: "Not Started", count: unstarted, dotClass: "bg-muted-foreground/30", textClass: "text-muted-foreground" },
   ];
 
   return (
     <div className="rounded-lg border border-border p-6 space-y-4">
-      <h3 className="text-sm font-medium text-foreground">Knowledge Profile</h3>
-
-      {/* Stacked bar */}
-      <div className="flex h-4 w-full overflow-hidden rounded-full bg-muted">
-        {segments.map((seg) => {
-          const pct = (seg.count / totalConcepts) * 100;
-          if (pct === 0) return <div key={seg.label} data-segment className="h-full" style={{ width: 0 }} />;
-          return (
-            <div
-              key={seg.label}
-              data-segment
-              className={`h-full ${seg.colorClass} transition-all`}
-              style={{ width: `${pct}%` }}
-              title={`${seg.label}: ${seg.count}`}
-            />
-          );
-        })}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-foreground">Knowledge Profile</h3>
+        <span className="text-xs text-muted-foreground">{masteryPercent}% mastered</span>
       </div>
 
-      {/* Legend */}
+      <Progress value={masteryPercent} className="h-2" />
+
+      {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {segments.map((seg) => (
-          <div key={seg.label} className="flex items-center gap-2">
-            <div className={`h-3 w-3 rounded-full ${seg.colorClass}`} />
+        {stats.map((s) => (
+          <div key={s.label} className="flex items-center gap-2">
+            <div className={`h-3 w-3 rounded-full ${s.dotClass}`} />
             <div>
-              <p className="text-lg font-bold text-foreground">{seg.count}</p>
-              <p className="text-xs text-muted-foreground">{seg.label}</p>
+              <p className={`text-lg font-bold ${s.textClass}`}>{s.count}</p>
+              <p className="text-xs text-muted-foreground">{s.label}</p>
             </div>
           </div>
         ))}
