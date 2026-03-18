@@ -18,6 +18,25 @@ describe("Ordering", () => {
     expect(screen.getByText("Secure water supply")).toBeTruthy();
   });
 
+  it("falls back to options when ordering items were serialized incorrectly", () => {
+    render(
+      <Ordering
+        problem={{
+          ...problem,
+          items: undefined,
+          options: [
+            { id: "1", text: "Inspect source" },
+            { id: "2", text: "Normalize levels" },
+          ],
+        }}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Inspect source")).toBeTruthy();
+    expect(screen.getByText("Normalize levels")).toBeTruthy();
+  });
+
   it("renders move-up and move-down buttons for each item", () => {
     render(<Ordering problem={problem} onSubmit={vi.fn()} />);
     const upButtons = screen.getAllByRole("button", { name: /move up/i });

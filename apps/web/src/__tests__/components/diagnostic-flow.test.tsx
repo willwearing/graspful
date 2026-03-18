@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { DiagnosticFlow } from "@/components/app/diagnostic-flow";
 
 const mockApiClientFetch = vi.fn();
@@ -117,7 +117,9 @@ describe("DiagnosticFlow", () => {
     });
 
     // Advance past the 1500ms feedback delay to load next question
-    await vi.advanceTimersByTimeAsync(1600);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1600);
+    });
 
     // Q2 should now be rendered
     await waitFor(() => {

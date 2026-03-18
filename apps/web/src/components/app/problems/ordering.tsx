@@ -15,7 +15,13 @@ interface OrderingProps {
 }
 
 export function Ordering({ problem, onSubmit, disabled, loading, feedback }: OrderingProps) {
-  const [items, setItems] = useState<string[]>(problem.items ?? []);
+  const [items, setItems] = useState<string[]>(
+    problem.items ??
+      problem.options?.map((option) =>
+        typeof option === "string" ? option : option.text,
+      ) ??
+      [],
+  );
 
   function moveItem(index: number, direction: -1 | 1) {
     if (disabled) return;

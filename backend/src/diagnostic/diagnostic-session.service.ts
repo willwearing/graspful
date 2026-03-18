@@ -552,6 +552,9 @@ export class DiagnosticSessionService {
         return { left: left?.trim() ?? item, right: right?.trim() ?? '' };
       });
       delete safe.options;
+    } else if (safe.type === 'ordering' && Array.isArray(safe.options)) {
+      safe.items = safe.options.map((item: string) => item.trim());
+      delete safe.options;
     } else if (Array.isArray(safe.options)) {
       safe.options = safe.options.map((text: string, i: number) => ({
         id: String(i),
