@@ -2,6 +2,209 @@
 
 End-to-end guide for creating a course YAML and importing it into the platform.
 
+This document also serves as the agent runbook for new course creation. If an agent is asked to "add a course", "draft a course graph", or "author a course YAML", this is the document it should follow.
+
+## Agent Workflow
+
+Use this sequence every time. Do not jump straight to YAML authoring.
+
+### Required reference before authoring
+
+Before creating or revising a course graph, the agent should review the relevant parts of *The Math Academy Way* PDF:
+
+- Chapter 4, pp. 69-80: knowledge graph, course graph, prerequisites, key prerequisites, encompassings, diagnostic frontier
+- Chapter 13, pp. 207-214: mastery learning, only advancing once prerequisites are mastered, teaching at the frontier
+- Chapter 14, pp. 217-224: learning staircase, knowledge points, worked examples, cognitive load, gradual scaffold removal
+- Chapter 16, pp. 241-245: layering, structural integrity, why advanced topics should exercise earlier knowledge
+
+Official PDF:
+
+- https://www.justinmath.com/files/the-math-academy-way.pdf
+
+### Step 0: Gather required inputs
+
+Before writing any graph structure, the agent must identify the course's source of truth:
+
+- Official exam blueprint, syllabus, codebook, handbook, standard, or curriculum outline
+- Official learning objectives or competency statements
+- Version / edition year of the source document
+- Scope boundary: what is in-scope for the exam, and what is explicitly out-of-scope
+
+If the source of truth is missing, ambiguous, or appears unofficial, stop and ask the user for the official source document before building the course. Do not invent a graph from marketing copy or generic web summaries.
+
+Record these in the `course:` block:
+
+```yaml
+course:
+  id: my-course-slug
+  name: "Course Name"
+  description: "One-line description"
+  estimatedHours: 40
+  version: "2026.1"
+  sourceDocument: "Official source document name, edition, year"
+```
+
+### Step 1: Start from the tree, not the prose
+
+The knowledge graph is the curriculum. Sections and labels are summaries for humans; prerequisite edges are the real structure the learning engine uses.
+
+This comes directly from *The Math Academy Way* Chapter 4: a course graph is a compressed summary, while the knowledge graph is the actual source of truth for the curriculum and learning paths (pp. 69-79).
+
+Think in this order:
+
+1. Roots: what must be learned first because nothing inside the course precedes it?
+2. Trunk: what core concepts everything else builds on?
+3. Branches: what major capability streams grow from that trunk?
+4. Leaves: what advanced or applied concepts sit at the ends of those streams?
+
+If a concept feels "important" but nothing depends on it, it may be misplaced, too broad, or not actually part of the core graph.
+
+### Step 2: Break the source into candidate concepts
+
+Read the source of truth and convert it into candidate concepts. A concept should be:
+
+- One teachable idea or skill
+- Independently testable
+- Small enough that failure tells you something precise
+- Large enough that it deserves its own place in the graph
+
+Do not start with sections from the syllabus as if they are automatically graph nodes. Syllabus headings are often presentation buckets, not learning dependencies.
+
+Use the PDF's lesson model when deciding concept granularity: a topic should be teachable through a small sequence of knowledge points with worked examples and mastery checks, not as an oversized chapter bucket (Ch. 4 pp. 74-76; Ch. 14 pp. 217-220).
+
+For each candidate concept, write down:
+
+- `id`
+- `name`
+- `sourceRef`
+- Why it exists in the course
+- What a student must already know to learn it
+- Whether it feels root, trunk, branch, or leaf
+
+### Step 3: Draw the prerequisite tree before writing YAML
+
+Build the prerequisite structure as a tree-like DAG:
+
+- Roots are foundational concepts with no in-course prerequisites
+- Trunk concepts unify the foundations and support multiple later branches
+- Branches are coherent capability streams
+- Leaves are advanced applications, integrated tasks, and edge cases
+
+Important constraint: the graph is not always a pure tree because some advanced concepts depend on multiple earlier concepts. That is expected. But the agent should still reason in tree terms first so foundational layering stays clear.
+
+Use Chapter 4 as the model here: arrows define potential learning paths, higher topics can have multiple prerequisites, and key prerequisites should exist where failure on a specific sub-step reveals a missing foundation (pp. 69-76).
+
+For every edge, ask:
+
+- Can concept B be learned without concept A?
+- If a student fails B, would weakness in A plausibly explain that failure?
+- Does mastering B naturally exercise A as a subskill?
+
+If the answer is yes, the edge probably belongs in the graph.
+
+### Step 4: Convert the graph into sections
+
+Once the prerequisite graph is coherent, compress it into:
+
+- `course` -> high-level container
+- `sections` -> major tiers or capability clusters
+- `concepts` -> graph nodes inside those sections
+
+Sections are not the source of truth. They are a human-readable compression of the graph. A good section groups concepts that:
+
+- Sit at a similar layer of the graph
+- Serve a coherent learning goal
+- Respect working-memory limits
+
+Sections should usually move from foundations to application. If a later section does not build on earlier ones, either the sectioning is wrong or the graph is missing cross-section prerequisites.
+
+This follows the PDF's distinction between knowledge graph and course graph: sections are a human-readable compression of the underlying graph, not a substitute for it (Ch. 4 pp. 72-73).
+
+### Step 5: Check for true foundations
+
+Before authoring knowledge points, perform a structural check:
+
+- For each root concept, ask whether it is genuinely foundational or whether it should itself depend on something earlier
+- For each trunk concept, ask whether it is too broad and should be split into smaller concepts
+- For each leaf concept, ask whether it goes far enough up the graph or whether there is a missing capstone above it
+
+Use the multiplication/addition test:
+
+- If concept B cannot be learned, practiced, or explained without concept A, then A is more foundational and should sit below B
+- Example: you cannot do multiplication without addition; multiplication must not appear as a root if addition is in scope
+
+Chapter 16 is the reference model for this review. The PDF explicitly uses multiplication as a component skill in long division and exponentiation to show how later learning should reinforce earlier knowledge and reveal weak foundations when structure is wrong (pp. 241-243).
+
+This check matters more than matching the document's chapter order. The source may present material in a linear way that hides the real dependency structure.
+
+### Step 6: Author the YAML skeleton first
+
+Write the course YAML in two passes.
+
+Pass 1: graph skeleton only
+
+- `course`
+- `sections`
+- `concepts`
+- `prerequisites`
+- `encompassing`
+- metadata (`difficulty`, `estimatedMinutes`, `tags`, `sourceRef`)
+
+Pass 2: instructional content
+
+- `knowledgePoints`
+- `instruction`
+- `workedExample`
+- `problems`
+
+This keeps structural thinking separate from content writing.
+
+The PDF supports this split. Chapter 14 describes lessons as finely scaffolded sequences of knowledge points, each with a worked example and mastery checks before progressing. That implies the graph should exist first, and the instruction should be authored to fit that structure second (pp. 217-223).
+
+### Step 7: Add encompassing edges only after prerequisites are stable
+
+Do not guess encompassing edges before the prerequisite graph is sound.
+
+Add encompassing edges only when practicing the advanced concept genuinely rehearses the earlier one as a subskill. If that relationship is weak or incidental, omit it.
+
+This follows Chapter 4's distinction between prerequisites and encompassings: encompassed topics are usually prerequisites, but prerequisites are often not fully encompassed. Do not treat these as interchangeable edges (pp. 77-79).
+
+### Step 8: Run a review-agent pass
+
+After the authoring agent finishes the YAML skeleton, a second agent should review the graph abstractly before the course is treated as ready.
+
+The review agent should check:
+
+1. Are the roots truly foundational?
+2. Does every non-root concept have the minimum necessary prerequisites?
+3. Are any concepts placed too low that should be higher up as later capstones?
+4. Are any concepts placed too high that actually require earlier foundations?
+5. Are there missing cross-branch edges where one branch quietly depends on another?
+6. Do sections reflect the graph, or are they hiding a broken graph?
+7. Does the course create a clear root -> trunk -> branch -> leaf progression?
+
+The review agent must explicitly ask:
+
+- "Is this foundational, or can it go further up?"
+- "What breaks downstream if this concept is missing?"
+- "Would a student who mastered the stated prerequisites actually be ready for this?"
+
+The review outcome should be one of:
+
+- `approved`
+- `approved with edge adjustments`
+- `rewrite graph structure before authoring KPs`
+
+The review agent should evaluate the graph against the PDF's core claims:
+
+- Chapter 13: students should only be advanced to topics for which they have demonstrated prerequisite mastery, and alternative frontier topics should remain available if one branch stalls (pp. 210-212)
+- Chapter 14: steps should be small enough to avoid cognitive overload; oversized concepts should be split (pp. 217-219)
+- Chapter 16: advanced topics should strengthen earlier knowledge through layering rather than bypass it (pp. 241-244)
+
+### Step 9: Only then write or expand knowledge points
+
+Once the review pass approves the graph, the agent can continue with KPs, examples, and problems. Do not invest heavily in content before the graph is structurally sound.
+
 ## 1. Create the Organization & Brand
 
 Every course belongs to an organization, and every org needs a brand to be visible in the app.
@@ -117,6 +320,19 @@ concepts:
             explanation: "Because..."
             difficulty: 3      # 1-5, optional
 ```
+
+### Recommended authoring order inside the YAML
+
+When creating a new course file, write it in this order:
+
+1. `course`
+2. `sections`
+3. `concepts` with `id`, `name`, `section`, `difficulty`, `estimatedMinutes`, `tags`, `sourceRef`
+4. `prerequisites`
+5. `encompassing`
+6. `knowledgePoints`
+
+That order forces the graph to exist before the prose.
 
 ### Sections
 
