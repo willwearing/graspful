@@ -30,8 +30,8 @@ interface KnowledgeGraphProps {
 
 const MASTERY_COLORS: Record<MasteryState, string> = {
   mastered: "#91e2af",
-  in_progress: "#f7a2a2",
-  needs_review: "#facf85",
+  in_progress: "#facf85",
+  needs_review: "#f7a2a2",
   unstarted: "#cdd1d7",
 };
 

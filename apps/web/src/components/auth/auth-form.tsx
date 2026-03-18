@@ -110,6 +110,15 @@ export function AuthForm({ mode }: AuthFormProps) {
             </div>
           )}
 
+          {reason === "invalid_reset_link" && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
+              That reset link is invalid or expired.{" "}
+              <Link href="/forgot-password" className="font-medium underline">
+                Request a new one
+              </Link>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label
@@ -146,6 +155,17 @@ export function AuthForm({ mode }: AuthFormProps) {
                 placeholder="At least 8 characters"
               />
             </div>
+
+            {isSignIn && (
+              <div className="text-right">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-muted-foreground hover:text-primary hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            )}
 
             {error && (
               <p className="text-sm text-destructive">{error}</p>
