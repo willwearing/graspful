@@ -6,6 +6,7 @@ initOtel();
 import { NestFactory } from '@nestjs/core';
 import { HttpAdapterHost } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { json } from 'express';
@@ -35,7 +36,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
 
   // Telemetry: structured logging via OpenTelemetry -> PostHog
-  app.useGlobalInterceptors(new LoggingInterceptor());
+  app.useGlobalInterceptors(new LoggingInterceptor(app.get(Reflector)));
   const httpAdapterHost = app.get(HttpAdapterHost);
   app.useGlobalFilters(new OtelExceptionFilter(httpAdapterHost.httpAdapter));
 

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "nest build",
-    "dev": "[ -d dist ] || npx tsc -p tsconfig.build.json --outDir dist && nest start --watch",
+    "dev": "bun x nest build && bun x nest start --watch",
     "start": "nest start",
     "start:prod": "TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/main",
     "test": "jest",
