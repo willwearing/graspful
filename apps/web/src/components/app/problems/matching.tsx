@@ -17,7 +17,7 @@ interface MatchingProps {
 export function Matching({ problem, onSubmit, disabled, loading, feedback }: MatchingProps) {
   const pairs = problem.pairs ?? [];
   const leftItems = pairs.map((p) => p.left);
-  const rightItems = pairs.map((p) => p.right);
+  const rightItems = Array.from(new Set(pairs.map((p) => p.right)));
 
   const [selections, setSelections] = useState<Record<string, string>>({});
 
@@ -44,8 +44,8 @@ export function Matching({ problem, onSubmit, disabled, loading, feedback }: Mat
               className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground disabled:opacity-50"
             >
               <option value="">Select match...</option>
-              {rightItems.map((right) => (
-                <option key={right} value={right}>
+              {rightItems.map((right, index) => (
+                <option key={`${right}-${index}`} value={right}>
                   {right}
                 </option>
               ))}

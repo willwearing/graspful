@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { Matching } from "@/components/app/problems/matching";
 
 const problem = {
@@ -47,5 +47,23 @@ describe("Matching", () => {
       "Pike pole": "Pulling ceilings",
       "Thermal camera": "Finding victims",
     });
+  });
+
+  it("deduplicates duplicate right-side choices in dropdowns", () => {
+    render(
+      <Matching
+        problem={{
+          ...problem,
+          pairs: [
+            { left: "Mic A", right: "Vocal chain" },
+            { left: "Mic B", right: "Vocal chain" },
+          ],
+        }}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    const [firstSelect] = screen.getAllByRole("combobox");
+    expect(within(firstSelect).getAllByRole("option", { name: "Vocal chain" })).toHaveLength(1);
   });
 });

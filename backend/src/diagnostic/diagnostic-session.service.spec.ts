@@ -122,6 +122,42 @@ describe('DiagnosticSessionService', () => {
       expect(result.isComplete).toBe(false);
     });
 
+    it('should serialize ordering problems with items for the web app', async () => {
+      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+        id: 'e1',
+        diagnosticCompleted: false,
+      });
+      mockPrisma.diagnosticSession.findFirst.mockResolvedValue(null);
+      mockPrisma.concept.findMany.mockResolvedValue([
+        { id: 'c1', slug: 'a', difficultyTheta: 0, courseId },
+      ]);
+      mockPrisma.prerequisiteEdge.findMany.mockResolvedValue([]);
+      mockStudentState.getMasteryMap.mockResolvedValue(new Map([['c1', 0.5]]));
+      mockPrisma.problem.findMany.mockResolvedValue([
+        makeProblem({
+          type: 'ordering',
+          options: ['Capture', 'Edit', 'Mix', 'Master'],
+        }),
+      ]);
+
+      mockPrisma.$transaction.mockImplementation(async (fn: Function) => {
+        const mockTx = {
+          diagnosticSession: {
+            create: jest.fn().mockResolvedValue({ id: sessionId }),
+          },
+          diagnosticMasterySnapshot: {
+            createMany: jest.fn().mockResolvedValue({ count: 1 }),
+          },
+        };
+        return fn(mockTx);
+      });
+
+      const result = await service.startDiagnostic(orgId, userId, courseId);
+
+      expect(result.question.items).toEqual(['Capture', 'Edit', 'Mix', 'Master']);
+      expect(result.question.options).toBeUndefined();
+    });
+
     it('should resume an existing in-progress session', async () => {
       mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
         id: 'e1',
