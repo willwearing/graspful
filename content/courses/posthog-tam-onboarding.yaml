@@ -113,9 +113,14 @@ concepts:
             correct: 2
             explanation: Student, Course, and Professor are the three entities (nouns that need to be tracked). 'Enroll' and 'taught by' are verbs describing relationships, not entities.
           - id: identifying-entities-p2
-            type: fill_blank
+            type: multiple_choice
             question: The first step in data modeling is to identify entities by looking for the ___ in a system description.
-            correct: nouns
+            options:
+              - nouns
+              - verbs
+              - numbers
+              - dates
+            correct: 0
             explanation: Entities are the nouns in your system — the people, places, things, and concepts you need to store information about. Verbs become relationships.
     section: data-modeling-basics
   - id: attributes
@@ -204,9 +209,14 @@ concepts:
               A primary key uniquely identifies each instance of an entity. It ensures no two records are the same and allows other entities to reference it. It is not about importance, encryption, or
               data types.
           - id: keys-p2
-            type: fill_blank
-            question: A system-generated ID with no business meaning (like an auto-incrementing integer) is called a ___ key.
-            correct: surrogate
+            type: multiple_choice
+            question: A system-generated ID with no business meaning (like an auto-incrementing integer) is called what kind of key?
+            options:
+              - natural key
+              - surrogate key
+              - composite key
+              - foreign key
+            correct: 1
             explanation: >-
               A surrogate key is a system-generated identifier with no inherent business meaning. It is preferred over natural keys (like email or SSN) because surrogate keys are guaranteed to be
               stable and unique.
@@ -390,9 +400,14 @@ concepts:
               A foreign key column holds one value pointing to one record. In a many-to-many, each Student relates to multiple Courses and vice versa — a single column cannot represent this. A join
               table with rows for each pairing solves the problem.
           - id: assoc-p2
-            type: fill_blank
-            question: An associative entity that resolves a many-to-many relationship between Order and Product is commonly called an ___.
-            correct: OrderLineItem
+            type: multiple_choice
+            question: An associative entity that resolves a many-to-many relationship between Order and Product is commonly called what?
+            options:
+              - OrderStatus
+              - OrderLineItem
+              - CustomerProfile
+              - ProductCatalog
+            correct: 1
             explanation: OrderLineItem (or line_item) is the classic join table between Order and Product. Each row represents one product in one order, with its own attributes like quantity and unit_price.
           - id: assoc-p3
             type: scenario
@@ -690,9 +705,14 @@ concepts:
               Collecting data from an API is ingestion, not transformation. Transformation operates on data already in the pipeline — deduplication, aggregation, and joining are all transformation
               operations.
           - id: transform-p2
-            type: fill_blank
-            question: The transformation stage is where ___ logic is encoded — rules like what counts as an active user or how revenue is calculated.
-            correct: business
+            type: multiple_choice
+            question: The transformation stage is where what kind of logic is encoded — rules like what counts as an active user or how revenue is calculated?
+            options:
+              - business logic
+              - presentation logic
+              - authentication logic
+              - transport logic
+            correct: 0
             explanation: >-
               Business logic lives in the transformation layer. Definitions like 'active user = logged in within last 30 days' or 'MRR = sum of all active subscription amounts' are transformation
               rules that turn raw data into meaningful metrics.
@@ -904,9 +924,14 @@ concepts:
               Events in PostHog are immutable — once captured, they cannot be changed. This is by design: events represent facts about the past. If you capture incorrect data, you must capture new
               corrected events going forward.
           - id: ph-events-p3
-            type: fill_blank
-            question: Events with names prefixed by ___ are PostHog defaults, automatically captured by the SDKs.
-            correct: $
+            type: multiple_choice
+            question: Events with names prefixed by which symbol are PostHog defaults, automatically captured by the SDKs?
+            options:
+              - $
+              - #
+              - @
+              - _
+            correct: 0
             explanation: 'The dollar sign ($) prefix indicates PostHog default events: $pageview, $autocapture, $identify, $pageleave, etc. Custom events you define do not use the $ prefix.'
           - id: ph-events-p4
             type: multiple_choice
@@ -1000,9 +1025,14 @@ concepts:
               $browser is automatically set by the SDK based on the user's browser. 'plan', 'amount', and 'signup_source' are custom properties that a developer would need to explicitly include when
               capturing events.
           - id: ph-props-p2
-            type: fill_blank
-            question: To filter insights by the page where an event occurred, you would use the default property ___.
-            correct: $current_url
+            type: multiple_choice
+            question: To filter insights by the page where an event occurred, which default property should you use?
+            options:
+              - $pathname
+              - $current_url
+              - $host
+              - $pageview_id
+            correct: 1
             explanation: $current_url is the default property that captures the full URL of the page when the event was fired. It is automatically set by the JS SDK on every event.
           - id: ph-props-p3
             type: true_false
@@ -1201,9 +1231,14 @@ concepts:
               $set_once explicitly does NOT overwrite existing values. If the property already has a value, $set_once silently does nothing. That is the entire point — it preserves the first value
               that was set.
           - id: ph-personprops-p4
-            type: fill_blank
-            question: To set person properties that should never change after their initial value (like signup_source), use the ___ operator.
-            correct: $set_once
+            type: multiple_choice
+            question: To set person properties that should never change after their initial value (like signup_source), which operator should you use?
+            options:
+              - $set
+              - $append
+              - $set_once
+              - $identify
+            correct: 2
             explanation: $set_once is designed for 'first touch' properties. It only writes if the property does not already exist, preserving the original value for attribution and historical analysis.
     section: posthog-data-model
   - id: ph-distinct-id
@@ -1242,9 +1277,14 @@ concepts:
               Frontend SDKs generate a random UUID immediately on first load and store it in local storage or a cookie. This allows PostHog to track anonymous user behavior consistently across a
               browsing session before the user logs in.
           - id: ph-did-p2
-            type: fill_blank
-            question: Backend PostHog SDKs do not auto-generate a distinct_id — you must ___ one on every capture call.
-            correct: provide
+            type: multiple_choice
+            question: Backend PostHog SDKs do not auto-generate a distinct_id. What must you do on every capture call?
+            options:
+              - Provide a distinct_id
+              - Call identify() first
+              - Enable autocapture
+              - Attach a $session_id
+            correct: 0
             explanation: >-
               Unlike frontend SDKs which auto-generate a distinct_id, backend SDKs require you to explicitly pass a distinct_id on every capture() call. Without it, PostHog cannot associate the event
               with any user.
@@ -1329,9 +1369,14 @@ concepts:
               PostHog starts a new session after 30 minutes of inactivity (no events) or after 24 hours of continuous activity. Browser close/open does not necessarily end a session if it happens
               within the 30-minute window.
           - id: ph-sessions-p2
-            type: fill_blank
-            question: The maximum duration of a single PostHog session is ___ hours.
-            correct: '24'
+            type: multiple_choice
+            question: What is the maximum duration of a single PostHog session, even with continuous activity?
+            options:
+              - 8 hours
+              - 12 hours
+              - 24 hours
+              - 48 hours
+            correct: 2
             explanation: Even with continuous user activity, PostHog caps a session at 24 hours. After that, the next event starts a new session. This prevents infinitely long sessions from skewing analytics.
           - id: ph-sessions-p3
             type: true_false
@@ -1567,9 +1612,14 @@ concepts:
               PostHog shards events by sipHash64(distinct_id). This ensures all events for the same user land on the same shard, making person-level queries (like 'all events for user X') efficient
               because they only need to hit one shard.
           - id: ph-flow-p3
-            type: fill_blank
-            question: In PostHog's ClickHouse architecture, writes go through the ___ Distributed table, while reads go through the events Distributed table.
-            correct: writable_events
+            type: multiple_choice
+            question: In PostHog's ClickHouse architecture, which Distributed table handles writes, while reads go through the events Distributed table?
+            options:
+              - events
+              - writable_events
+              - sharded_events
+              - person_distinct_id_overrides
+            correct: 1
             explanation: >-
               writable_events is the Distributed table used for writes — it routes events to the correct shard. The events table is a separate Distributed table used for reads — it fans out queries to
               all shards and aggregates results.
@@ -1628,9 +1678,14 @@ concepts:
               PostHog uses separate Distributed tables: writable_events for writes and events for reads. This separation allows different routing and optimization strategies for ingestion vs.
               querying.
           - id: ph-ch-p4
-            type: fill_blank
-            question: The sharded_events table uses the ___ table engine, which provides replication, deduplication on merge, and is optimized for analytical workloads.
-            correct: ReplicatedReplacingMergeTree
+            type: multiple_choice
+            question: Which ClickHouse table engine does sharded_events use?
+            options:
+              - MergeTree
+              - ReplicatedMergeTree
+              - ReplicatedReplacingMergeTree
+              - Distributed
+            correct: 2
             explanation: >-
               ReplicatedReplacingMergeTree combines three features: replication (data is copied to replicas for durability), replacing (duplicate rows are deduplicated during background merges), and
               the MergeTree engine (ClickHouse's core analytical storage engine).
@@ -1823,9 +1878,14 @@ concepts:
               After identify(), the SDK switches its internal distinct_id to the one you provided (e.g., 'user_42'). All subsequent events on this device use the new identified distinct_id, not the
               original anonymous one.
           - id: identify-p4
-            type: fill_blank
-            question: The second argument to posthog.identify('user_id', { ... }) sets person properties using ___ semantics.
-            correct: $set
+            type: multiple_choice
+            question: The second argument to posthog.identify('user_id', { ... }) sets person properties using which semantics?
+            options:
+              - $set_once
+              - $groupset
+              - $set
+              - It does not set person properties
+            correct: 2
             explanation: >-
               Properties passed in the second argument of identify() use $set semantics — they always overwrite the current value. The JS SDK also accepts a third argument for $set_once properties:
               posthog.identify('user_id', { plan: 'pro' }, { initial_referrer: 'google' }).
@@ -2127,9 +2187,14 @@ concepts:
               Group analytics lets you associate events with higher-level entities (companies, teams, projects) so you can analyze behavior at the organization level, not just the individual user
               level. This is essential for B2B products.
           - id: groups-p2
-            type: fill_blank
-            question: PostHog allows up to ___ group types per project.
-            correct: '5'
+            type: multiple_choice
+            question: How many group types does PostHog allow per project?
+            options:
+              - 3
+              - 5
+              - 10
+              - Unlimited
+            correct: 1
             explanation: You can define up to 5 group types per PostHog project (e.g., company, team, project, workspace, organization). Plan carefully because this limit cannot be easily changed.
           - id: groups-p3
             type: true_false
@@ -2524,8 +2589,13 @@ concepts:
               Best practice is to start with the UI builder for standard analysis. The UI builder is faster, requires no SQL knowledge, and handles most common use cases. Drop to HogQL only when you
               need custom logic the UI cannot express.
           - id: hogql-p3
-            type: fill_blank
-            question: In HogQL, you query the ___ table to access all captured events in PostHog.
-            correct: events
+            type: multiple_choice
+            question: In HogQL, which table do you query to access all captured events in PostHog?
+            options:
+              - persons
+              - events
+              - sessions
+              - groups
+            correct: 1
             explanation: The events table contains all captured events. You can also query the persons table for person profiles, the sessions table for session data, and any connected data warehouse tables.
     section: querying

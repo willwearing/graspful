@@ -475,6 +475,44 @@ if (ok) console.log('All section dependencies flow forward');
 | `matching` | Pairs | Correct mapping |
 | `scenario` | Varies | Varies |
 
+### Choosing the right interaction
+
+Default to structured interactions. This product is audio-first, mobile-heavy, and the current `fill_blank` evaluator is only a normalized string match (trim + lowercase, with optional exact alternatives). It does not do semantic grading.
+
+That means `fill_blank` should be rare. Use it only when the student answer is:
+
+- Very short
+- Canonical
+- Easy to type on mobile
+- Easy to grade with exact-match rules
+
+Good uses of `fill_blank`:
+
+- Math or calculation answers with a single expected value
+- One-word technical terms with limited, explicitly listed alternatives
+- Short codes, acronyms, symbols, or section references where the exact string matters
+
+Avoid `fill_blank` for:
+
+- Definition recall in the student's own words
+- Sentence completion where several phrasings would be reasonable
+- Conceptual diagnostics that are really asking "do you understand this idea?"
+- Any prompt where typing burden is higher than the learning value
+
+If the question is testing recognition, discrimination, or applied judgment, rewrite it as `multiple_choice`, `true_false`, `matching`, `ordering`, or `scenario` instead.
+
+Bad `fill_blank` example:
+
+- "Backend PostHog SDKs do not auto-generate a distinct_id — you must ___ one on every capture call."
+
+Better rewrites:
+
+- `multiple_choice`: "What must backend SDK users provide on every capture call?" with plausible distractors
+- `true_false`: "Backend PostHog SDKs auto-generate `distinct_id` values for you."
+- `scenario`: "You are instrumenting a backend worker. What identifier must you send with each event?"
+
+Rule of thumb: if a human reviewer would accept 3+ materially different phrasings as correct, do not use `fill_blank`.
+
 ### Authoring Guidelines
 
 See [`content/README.md`](../content/README.md) for detailed guidelines on:
