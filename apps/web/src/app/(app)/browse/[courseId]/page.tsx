@@ -50,6 +50,7 @@ interface CourseProfile {
   needsReview: number;
   unstarted: number;
   completionPercent: number;
+  diagnosticCompleted: boolean;
 }
 
 export default async function CourseDetailPage({
@@ -158,7 +159,7 @@ export default async function CourseDetailPage({
       )}
 
       {/* Diagnostic CTA or Continue Studying */}
-      {profile && profile.completionPercent > 0 ? (
+      {profile && (profile.diagnosticCompleted || profile.completionPercent > 0) ? (
         <div className="rounded-lg border border-border p-6 mb-8 text-center">
           <h2 className="text-lg font-semibold text-foreground mb-2">
             Keep going!
@@ -190,7 +191,7 @@ export default async function CourseDetailPage({
         concepts={conceptsWithMastery}
         sections={graph.sections ?? []}
         courseId={courseId}
-        locked={!profile || profile.completionPercent === 0}
+        locked={!profile || (!profile.diagnosticCompleted && profile.completionPercent === 0)}
       />
     </div>
   );

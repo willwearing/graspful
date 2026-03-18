@@ -1,4 +1,5 @@
-export { SupabaseAuthGuard, AuthUser } from './guards/supabase-auth.guard';
+export { SupabaseAuthGuard } from './guards/supabase-auth.guard';
+export type { AuthUser } from './guards/supabase-auth.guard';
 export { OrgMembershipGuard, OrgContext, MIN_ROLE_KEY } from './guards/org-membership.guard';
 export { GlobalAdminGuard } from './guards/global-admin.guard';
 export { MinRole } from './decorators/min-role.decorator';

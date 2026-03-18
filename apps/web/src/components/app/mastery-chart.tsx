@@ -1,5 +1,3 @@
-import { Progress } from "@/components/ui/progress";
-
 interface MasteryChartProps {
   mastered: number;
   inProgress: number;
@@ -30,12 +28,32 @@ export function MasteryChart({ mastered, inProgress, needsReview, unstarted, tot
     <div className="rounded-lg border border-border p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-foreground">Knowledge Profile</h3>
-        <span className="text-xs text-muted-foreground">{masteryPercent}% mastered</span>
+        <span className="text-xs text-muted-foreground">{masteryPercent}% complete</span>
       </div>
 
-      <Progress value={masteryPercent} className="h-2" />
+      <div
+        aria-valuemax={100}
+        aria-valuemin={0}
+        aria-valuenow={masteryPercent}
+        aria-valuetext={`${masteryPercent}%`}
+        className="flex h-2 overflow-hidden rounded-full bg-muted"
+        role="progressbar"
+      >
+        {stats.map((stat) => {
+          const segmentPercent = (stat.count / totalConcepts) * 100;
 
-      {/* Stats */}
+          return (
+            <div
+              key={stat.label}
+              aria-hidden="true"
+              className={stat.dotClass}
+              data-segment={stat.label.toLowerCase().replace(/\s+/g, "-")}
+              style={{ width: `${segmentPercent}%` }}
+            />
+          );
+        })}
+      </div>
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className="flex items-center gap-2">

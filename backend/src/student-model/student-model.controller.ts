@@ -54,6 +54,7 @@ export class StudentModelController {
     }
 
     const total = states.length;
+    const diagnosticCompleted = await this.studentState.isDiagnosticCompleted(org.userId, courseId);
     return {
       totalConcepts: total,
       mastered: counts.mastered,
@@ -61,6 +62,7 @@ export class StudentModelController {
       needsReview: counts.needs_review,
       unstarted: counts.unstarted,
       completionPercent: total > 0 ? (counts.mastered / total) * 100 : 0,
+      diagnosticCompleted,
     };
   }
 }
