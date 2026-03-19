@@ -7,6 +7,7 @@ describe('LearningEngineService', () => {
   let mockGraphQuery: any;
   let mockRemediationService: any;
   let mockMemoryDecay: any;
+  let mockSectionExamService: any;
 
   const conceptStates = [
     {
@@ -38,6 +39,11 @@ describe('LearningEngineService', () => {
       prerequisiteEdge: {
         findMany: jest.fn().mockResolvedValue(edges),
       },
+      studentSectionState: {
+        findMany: jest.fn().mockResolvedValue([
+          { sectionId: 'section-1', status: 'lesson_in_progress' },
+        ]),
+      },
       courseEnrollment: {
         findUnique: jest.fn().mockResolvedValue({ totalXPEarned: 50 }),
       },
@@ -64,12 +70,17 @@ describe('LearningEngineService', () => {
       decayAllMemory: jest.fn().mockResolvedValue(undefined),
     };
 
+    mockSectionExamService = {
+      syncSectionStates: jest.fn().mockResolvedValue([]),
+    };
+
     service = new LearningEngineService(
       mockPrisma,
       mockStudentState,
       mockGraphQuery,
       mockRemediationService,
       mockMemoryDecay,
+      mockSectionExamService,
     );
   });
 
@@ -79,7 +90,7 @@ describe('LearningEngineService', () => {
 
       expect(result).toBeDefined();
       expect(result.taskType).toBeDefined();
-      expect(['lesson', 'review', 'quiz', 'remediation']).toContain(
+      expect(['lesson', 'review', 'quiz', 'remediation', 'section_exam']).toContain(
         result.taskType,
       );
     });

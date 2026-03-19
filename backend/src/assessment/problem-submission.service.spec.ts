@@ -6,6 +6,7 @@ describe('ProblemSubmissionService', () => {
   let mockPrisma: any;
   let mockFireUpdate: any;
   let mockXPService: any;
+  let mockSectionExamService: any;
 
   const mockProblem = {
     id: 'prob-1',
@@ -81,7 +82,16 @@ describe('ProblemSubmissionService', () => {
       recordXPEvent: jest.fn().mockResolvedValue({ amount: 15 }),
     };
 
-    service = new ProblemSubmissionService(mockPrisma, mockFireUpdate, mockXPService);
+    mockSectionExamService = {
+      syncSectionStates: jest.fn().mockResolvedValue(undefined),
+    };
+
+    service = new ProblemSubmissionService(
+      mockPrisma,
+      mockFireUpdate,
+      mockXPService,
+      mockSectionExamService,
+    );
   });
 
   it('should evaluate a correct MC answer and create attempt', async () => {

@@ -7,6 +7,7 @@ import { evaluateAnswer } from './answer-evaluator';
 import { calculateXP, ActivityType } from './xp-calculator';
 import { updateSpeed, deriveSpeed, blendSpeed, SpeedState, ConceptParams } from './speed-updater';
 import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
+import { SectionExamService } from './section-exam.service';
 
 const logger = getLogger('assessment');
 
@@ -37,6 +38,7 @@ export class ProblemSubmissionService {
     private prisma: PrismaService,
     private fireUpdate: FireUpdateService,
     private xpService: XPService,
+    private sectionExamService: SectionExamService,
   ) {}
 
   async submitAnswer(input: SubmitAnswerInput): Promise<SubmitAnswerResult> {
@@ -146,6 +148,8 @@ export class ProblemSubmissionService {
       implicitRawDelta,
       concept.courseId,
     );
+
+    await this.sectionExamService.syncSectionStates(userId, concept.courseId);
 
     logger.emit({
       severityNumber: SeverityNumber.INFO,

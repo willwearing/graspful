@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { RemediationService } from './remediation.service';
 
@@ -25,6 +26,19 @@ export class LessonService {
     });
     if (!concept) {
       throw new NotFoundException(`Concept ${conceptId} not found`);
+    }
+
+    if (concept.sectionId) {
+      const sectionState = await this.prisma.studentSectionState.findUnique({
+        where: { userId_sectionId: { userId, sectionId: concept.sectionId } },
+        select: { status: true },
+      });
+
+      if (sectionState?.status === 'locked') {
+        throw new BadRequestException(
+          `Section for concept ${conceptId} is still locked. Pass the previous section exam first.`,
+        );
+      }
     }
 
     // Check if concept is blocked by an active remediation
@@ -67,16 +81,34 @@ export class LessonService {
         id: true,
         slug: true,
         instructionText: true,
+        instructionContent: true,
         workedExampleText: true,
+        workedExampleContent: true,
         instructionAudioUrl: true,
         workedExampleAudioUrl: true,
+        problems: {
+          where: { isReviewVariant: false },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true,
+            questionText: true,
+            type: true,
+            options: true,
+            difficulty: true,
+          },
+        },
       },
     });
 
     return {
       conceptId,
       conceptName: concept.name,
-      knowledgePoints,
+      knowledgePoints: knowledgePoints.map((kp) => ({
+        ...kp,
+        instructionContent: this.normalizeContentBlocks(kp.instructionContent),
+        workedExampleContent: this.normalizeContentBlocks(kp.workedExampleContent),
+        problems: kp.problems.map((problem) => this.sanitizeProblem(problem)),
+      })),
     };
   }
 
@@ -106,5 +138,44 @@ export class LessonService {
     });
 
     return { conceptId, status: 'lesson_complete' };
+  }
+
+  private normalizeContentBlocks(value: Prisma.JsonValue | null): Array<Record<string, unknown>> {
+    return Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
+  }
+
+  private sanitizeProblem(problem: {
+    id: string;
+    questionText: string;
+    type: string;
+    options: Prisma.JsonValue;
+    difficulty: number;
+  }) {
+    const options = Array.isArray(problem.options)
+      ? problem.options.filter((item): item is string => typeof item === 'string')
+      : null;
+
+    const safe: Record<string, unknown> = {
+      id: problem.id,
+      questionText: problem.questionText,
+      type: problem.type,
+      difficulty: problem.difficulty,
+    };
+
+    if (problem.type === 'matching' && options) {
+      safe.pairs = options.map((item: string) => {
+        const [left, right] = item.split('|');
+        return { left: left?.trim() ?? item, right: right?.trim() ?? '' };
+      });
+    } else if (problem.type === 'ordering' && options) {
+      safe.items = options.map((item: string) => item.trim());
+    } else if (options) {
+      safe.options = options.map((text: string, i: number) => ({
+        id: String(i),
+        text,
+      }));
+    }
+
+    return safe;
   }
 }

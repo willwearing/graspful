@@ -3,6 +3,7 @@ import { AssessmentController } from './assessment.controller';
 import { ProblemSubmissionService } from './problem-submission.service';
 import { ReviewService } from './review.service';
 import { QuizService } from './quiz.service';
+import { SectionExamService } from './section-exam.service';
 import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
 
 const mockGuard = { canActivate: () => true };
@@ -12,6 +13,7 @@ describe('AssessmentController', () => {
   let mockProblemSubmission: any;
   let mockReview: any;
   let mockQuiz: any;
+  let mockSectionExam: any;
 
   const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
 
@@ -61,12 +63,32 @@ describe('AssessmentController', () => {
       }),
     };
 
+    mockSectionExam = {
+      startExam: jest.fn().mockResolvedValue({
+        sessionId: 'section-exam-1',
+        totalProblems: 10,
+        problems: [],
+      }),
+      submitAnswer: jest.fn().mockResolvedValue({
+        answeredCount: 1,
+        totalProblems: 10,
+      }),
+      completeExam: jest.fn().mockResolvedValue({
+        passed: true,
+        score: 0.8,
+      }),
+      getExamStatus: jest.fn().mockResolvedValue({
+        status: 'exam_ready',
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AssessmentController],
       providers: [
         { provide: ProblemSubmissionService, useValue: mockProblemSubmission },
         { provide: ReviewService, useValue: mockReview },
         { provide: QuizService, useValue: mockQuiz },
+        { provide: SectionExamService, useValue: mockSectionExam },
       ],
     })
       .overrideGuard(SupabaseAuthGuard)
@@ -148,6 +170,76 @@ describe('AssessmentController', () => {
 
       expect(result.score).toBe(0.8);
       expect(mockQuiz.completeQuiz).toHaveBeenCalledWith('quiz-1');
+    });
+  });
+
+  describe('section exams', () => {
+    it('should start a section exam', async () => {
+      const result = await controller.startSectionExam(
+        'course-1',
+        'section-1',
+        orgCtx as any,
+      );
+
+      expect(result.sessionId).toBe('section-exam-1');
+      expect(mockSectionExam.startExam).toHaveBeenCalledWith(
+        'u1',
+        'course-1',
+        'section-1',
+      );
+    });
+
+    it('should submit a section exam answer', async () => {
+      const result = await controller.submitSectionExamAnswer(
+        'section-exam-1',
+        {
+          problemId: 'p1',
+          answer: 'A',
+          responseTimeMs: 5000,
+        },
+        orgCtx as any,
+      );
+
+      expect(result.answeredCount).toBe(1);
+      expect(mockSectionExam.submitAnswer).toHaveBeenCalledWith(
+        'u1',
+        'section-exam-1',
+        'p1',
+        'A',
+        5000,
+      );
+    });
+
+    it('should complete a section exam', async () => {
+      const result = await controller.completeSectionExam(
+        'course-1',
+        'section-1',
+        'section-exam-1',
+        orgCtx as any,
+      );
+
+      expect(result.passed).toBe(true);
+      expect(mockSectionExam.completeExam).toHaveBeenCalledWith(
+        'u1',
+        'course-1',
+        'section-1',
+        'section-exam-1',
+      );
+    });
+
+    it('should return section exam status', async () => {
+      const result = await controller.getSectionExamStatus(
+        'course-1',
+        'section-1',
+        orgCtx as any,
+      );
+
+      expect(result.status).toBe('exam_ready');
+      expect(mockSectionExam.getExamStatus).toHaveBeenCalledWith(
+        'u1',
+        'course-1',
+        'section-1',
+      );
     });
   });
 });

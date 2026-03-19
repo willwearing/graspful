@@ -154,7 +154,9 @@ Pass 2: instructional content
 
 - `knowledgePoints`
 - `instruction`
+- `instructionContent`
 - `workedExample`
+- `workedExampleContent`
 - `problems`
 
 This keeps structural thinking separate from content writing.
@@ -204,6 +206,32 @@ The review agent should evaluate the graph against the PDF's core claims:
 ### Step 9: Only then write or expand knowledge points
 
 Once the review pass approves the graph, the agent can continue with KPs, examples, and problems. Do not invest heavily in content before the graph is structurally sound.
+
+### Step 10: Author every knowledge point in the lesson pattern
+
+Every fully-authored knowledge point should follow this pattern:
+
+1. `instruction` — the core explanation that can stand on its own in audio form
+2. `instructionContent` — optional but strongly recommended visual/reference blocks that support the instruction
+3. `workedExample` — a concrete walkthrough when the idea benefits from one
+4. `workedExampleContent` — optional supporting image, link, video, or callout for the example
+5. `problems` — the actual practice session for that knowledge point
+
+Important constraint: `instruction` and `workedExample` should remain readable as plain text because they also power audio. Put screenshots, diagrams, external references, and video links in the structured `*Content` blocks instead of burying URLs inside the prose.
+
+### Step 11: Run a content review before calling the course done
+
+After the graph review and the content pass, run one final review focused on lesson quality:
+
+1. Does every fully-authored KP include `instruction` and practice problems?
+2. Does the instruction explain one idea clearly without depending on the example?
+3. Is there a worked example wherever the learner would otherwise have to infer the application step?
+4. Is there at least one useful visual/reference block in sections where a diagram, screenshot, or doc page would materially improve understanding?
+5. Do the practice problems check understanding and application, not just wording recall?
+6. Are the linked visuals sized intentionally and captioned clearly?
+7. Would a first-time learner understand what to do next at every step?
+
+Do not mark the course complete until both the graph review and the content review pass.
 
 ## 1. Create the Organization & Brand
 
@@ -293,6 +321,15 @@ sections:
   - id: fundamentals
     name: "Fundamentals"
     description: "Core concepts everyone should know"
+    sectionExam:
+      enabled: true
+      passingScore: 0.75
+      timeLimitMinutes: 12
+      questionCount: 6
+      blueprint:
+        - conceptId: concept-slug
+          minQuestions: 2
+      instructions: "Show that you can apply this section without guided scaffolding."
   - id: advanced
     name: "Advanced Topics"
     description: "Builds on the fundamentals"
@@ -310,7 +347,21 @@ concepts:
     knowledgePoints:
       - id: kp-slug
         instruction: "Markdown explanation text"
+        instructionContent:
+          - type: image
+            url: "https://posthog.com/images/products/data-warehouse/screenshot-data-warehouse.png"
+            alt: "Data warehouse interface showing synced tables and queries"
+            caption: "Use visuals to anchor the explanation in a real interface"
+            width: 960
+          - type: link
+            url: "https://posthog.com/docs/data-warehouse"
+            title: "Data warehouse docs"
+            description: "Reference link for deeper reading"
         workedExample: "Step-by-step example (optional)"
+        workedExampleContent:
+          - type: callout
+            title: "Why this example matters"
+            body: "Use a callout to highlight the exact decision or mental model the learner should notice."
         problems:
           - id: prob-1
             type: multiple_choice
@@ -334,15 +385,44 @@ When creating a new course file, write it in this order:
 
 That order forces the graph to exist before the prose.
 
+### Knowledge point authoring pattern
+
+Treat each knowledge point as a small lesson:
+
+- `instruction`: the learner-facing explanation in plain language
+- `instructionContent`: structured support material
+- `workedExample`: a concrete walkthrough if needed
+- `workedExampleContent`: optional support material for the example
+- `problems`: the practice session for that KP
+
+Supported content block types:
+
+| Field | Purpose |
+|------|---------|
+| `image` | Screenshot or diagram with `alt`, optional `caption`, optional `width` |
+| `video` | External walkthrough or demo link with `title` and optional `caption` |
+| `link` | Supporting doc/reference link with `title` and optional `description` |
+| `callout` | Short note that highlights a key takeaway or common mistake |
+
+Authoring rules:
+
+- Keep `instruction` and `workedExample` as plain text first. They should still make sense without the visual.
+- Use `instructionContent` for real screenshots, diagrams, and references. Do not dump raw URLs into the prose.
+- Size images intentionally. Use widths that keep screenshots readable on desktop without overwhelming mobile.
+- Prefer one strong visual over a gallery of weak ones.
+- If a section is highly abstract, a `callout` or `link` is acceptable when no useful visual exists.
+
 ### Sections
 
 Sections are optional but recommended for courses with 10+ concepts. They group concepts visually in the UI and help students navigate large courses.
 
 - Define sections in the `sections` array with `id`, `name`, and optional `description`
+- If a section should gate progression, add `sectionExam` with `passingScore`, `questionCount`, and a `blueprint`
 - Reference a section from each concept using the `section` field
 - Sections display in `sortOrder` (array order)
 - Concepts without a `section` field appear at the end, unsectioned
 - All concept prerequisites still work across section boundaries
+- Every section exam blueprint concept must belong to that section, and `questionCount` must cover the blueprint minimums
 
 #### How to design sections
 
@@ -513,6 +593,22 @@ Better rewrites:
 
 Rule of thumb: if a human reviewer would accept 3+ materially different phrasings as correct, do not use `fill_blank`.
 
+### Practice sessions
+
+In this product, the authored `problems` on a knowledge point are the practice session for that lesson step. Write them as a progression, not as a random pile:
+
+1. Start with recognition or core discrimination
+2. Move to applied judgment or sequencing
+3. End with a scenario when the concept is operational or customer-facing
+
+Quality bar:
+
+- Minimum 2 problems per fully-authored KP
+- Prefer 3 when the concept has operational nuance
+- Include at least one problem that checks transfer or diagnosis, not just vocabulary
+- Distractors should reflect realistic TAM misunderstandings
+- If the learner misses a problem, the explanation should teach, not just reveal the answer
+
 ### Authoring Guidelines
 
 See [`content/README.md`](../content/README.md) for detailed guidelines on:
@@ -581,6 +677,7 @@ Then verify in the app:
 3. Sign up / sign in
 4. Browse courses — your new course should appear
 5. Click into it — sections and concepts should display correctly
+6. Start a lesson — confirm instruction, supporting content, and practice problems all appear in the intended order
 
 ## Checklist
 
@@ -589,6 +686,8 @@ Then verify in the app:
 - [ ] YAML file written and passes Zod validation
 - [ ] Course imported into the correct org
 - [ ] Visible in the app under the correct brand
+- [ ] Each fully-authored KP includes instruction, practice, and any necessary content blocks
+- [ ] Content review completed before calling the course done
 
 ## Key Files
 

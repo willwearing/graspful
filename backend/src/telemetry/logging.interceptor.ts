@@ -22,7 +22,7 @@ import {
 export class LoggingInterceptor implements NestInterceptor {
   private logger = getLogger('http');
 
-  constructor(private reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector = new Reflector()) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const req = context.switchToHttp().getRequest();
@@ -35,10 +35,10 @@ export class LoggingInterceptor implements NestInterceptor {
     const requestId = req.requestId;
     const start = Date.now();
     const logOptions =
-      this.reflector.getAllAndOverride<RequestLogOptions>(REQUEST_LOG_OPTIONS_KEY, [
-        handler,
-        context.getClass(),
-      ]) ?? {};
+      this.reflector?.getAllAndOverride<RequestLogOptions>(
+        REQUEST_LOG_OPTIONS_KEY,
+        [handler, context.getClass()],
+      ) ?? {};
 
     return next.handle().pipe(
       tap({

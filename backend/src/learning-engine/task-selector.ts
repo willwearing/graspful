@@ -1,6 +1,7 @@
 import { detectPlateau, findWeakPrerequisites } from './plateau-detector';
 import {
   ConceptSnapshot,
+  SectionSnapshot,
   SimpleEdge,
   TaskRecommendation,
   QUIZ_XP_THRESHOLD,
@@ -19,6 +20,7 @@ import {
  */
 export function selectNextTask(
   snapshots: ConceptSnapshot[],
+  sections: SectionSnapshot[],
   edges: SimpleEdge[],
   frontier: string[],
   xpSinceLastQuiz: number,
@@ -61,7 +63,17 @@ export function selectNextTask(
     };
   }
 
-  // P3: New lessons — concepts at the knowledge frontier
+  // P3: Ready section exams
+  const readySection = sections.find((section) => section.status === 'exam_ready');
+  if (readySection) {
+    return {
+      taskType: 'section_exam',
+      sectionId: readySection.sectionId,
+      reason: `Section exam ready for section ${readySection.sectionId}`,
+    };
+  }
+
+  // P4: New lessons — concepts at the knowledge frontier
   if (frontier.length > 0) {
     return {
       taskType: 'lesson',
@@ -70,7 +82,7 @@ export function selectNextTask(
     };
   }
 
-  // P4: Standard reviews — memory >= 0.3 AND < 0.5 on mastered/needs_review concepts
+  // P5: Standard reviews — memory >= 0.3 AND < 0.5 on mastered/needs_review concepts
   // (memory < 0.3 is already handled by P2 urgent reviews)
   const standardReviews = snapshots
     .filter(
@@ -89,7 +101,7 @@ export function selectNextTask(
     };
   }
 
-  // P5: Quiz — when enough XP earned since last quiz
+  // P6: Quiz — when enough XP earned since last quiz
   if (xpSinceLastQuiz >= QUIZ_XP_THRESHOLD) {
     return {
       taskType: 'quiz',

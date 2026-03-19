@@ -10,6 +10,8 @@ export class StudentStateService {
   constructor(private prisma: PrismaService) {}
 
   async getConceptStates(userId: string, courseId: string) {
+    await this.ensureConceptStates(userId, courseId);
+
     return this.prisma.studentConceptState.findMany({
       where: {
         userId,
@@ -24,6 +26,8 @@ export class StudentStateService {
    * Uses BKT prior (0.5) for unstarted concepts.
    */
   async getMasteryMap(userId: string, courseId: string): Promise<Map<string, number>> {
+    await this.ensureConceptStates(userId, courseId);
+
     const states = await this.prisma.studentConceptState.findMany({
       where: {
         userId,
@@ -125,5 +129,43 @@ export class StudentStateService {
       default:
         return 'unstarted';
     }
+  }
+
+  /**
+   * Course content can change after a learner enrolls.
+   * Keep concept-state rows in sync so diagnostics and graph coloring
+   * always operate on the full current course graph.
+   */
+  private async ensureConceptStates(userId: string, courseId: string) {
+    const [concepts, existingStates] = await Promise.all([
+      this.prisma.concept.findMany({
+        where: { courseId },
+        select: { id: true },
+      }),
+      this.prisma.studentConceptState.findMany({
+        where: {
+          userId,
+          concept: { courseId },
+        },
+        select: { conceptId: true },
+      }),
+    ]);
+
+    const existingConceptIds = new Set(existingStates.map((state) => state.conceptId));
+    const missingConceptIds = concepts
+      .map((concept) => concept.id)
+      .filter((conceptId) => !existingConceptIds.has(conceptId));
+
+    if (missingConceptIds.length === 0) {
+      return;
+    }
+
+    await this.prisma.studentConceptState.createMany({
+      data: missingConceptIds.map((conceptId) => ({
+        userId,
+        conceptId,
+      })),
+      skipDuplicates: true,
+    });
   }
 }

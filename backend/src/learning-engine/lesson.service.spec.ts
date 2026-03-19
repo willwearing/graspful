@@ -40,7 +40,24 @@ describe('LessonService', () => {
             conceptId: 'c2',
             slug: 'kp-1',
             instructionText: 'Learn this',
+            instructionContent: [
+              {
+                type: 'image',
+                url: 'https://example.com/entity.png',
+                alt: 'Entity diagram',
+              },
+            ],
             workedExampleText: 'Example here',
+            workedExampleContent: [],
+            problems: [
+              {
+                id: 'p1',
+                questionText: 'What is the entity here?',
+                type: 'multiple_choice',
+                options: ['Customer', 'Runs', 'Blue', 'Required'],
+                difficulty: 3,
+              },
+            ],
           },
         ]),
       },
@@ -60,6 +77,27 @@ describe('LessonService', () => {
       expect(result.conceptId).toBe('c2');
       expect(result.knowledgePoints).toHaveLength(1);
       expect(result.knowledgePoints[0].instructionText).toBe('Learn this');
+      expect(result.knowledgePoints[0].instructionContent).toEqual([
+        {
+          type: 'image',
+          url: 'https://example.com/entity.png',
+          alt: 'Entity diagram',
+        },
+      ]);
+      expect(result.knowledgePoints[0].problems).toEqual([
+        {
+          id: 'p1',
+          questionText: 'What is the entity here?',
+          type: 'multiple_choice',
+          options: [
+            { id: '0', text: 'Customer' },
+            { id: '1', text: 'Runs' },
+            { id: '2', text: 'Blue' },
+            { id: '3', text: 'Required' },
+          ],
+          difficulty: 3,
+        },
+      ]);
       expect(mockPrisma.studentConceptState.update).toHaveBeenCalledWith({
         where: { userId_conceptId: { userId: 'u1', conceptId: 'c2' } },
         data: { masteryState: 'in_progress' },

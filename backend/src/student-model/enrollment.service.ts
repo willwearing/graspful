@@ -33,16 +33,35 @@ export class EnrollmentService {
       });
 
       // Create initial StudentConceptState for every concept in the course
-      const concepts = await tx.concept.findMany({
-        where: { courseId },
-        select: { id: true },
-      });
+      const [concepts, sections] = await Promise.all([
+        tx.concept.findMany({
+          where: { courseId },
+          select: { id: true },
+        }),
+        tx.courseSection.findMany({
+          where: { courseId },
+          orderBy: { sortOrder: 'asc' },
+          select: { id: true },
+        }),
+      ]);
 
       if (concepts.length > 0) {
         await tx.studentConceptState.createMany({
           data: concepts.map((c) => ({
             userId,
             conceptId: c.id,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      if (sections.length > 0) {
+        await tx.studentSectionState.createMany({
+          data: sections.map((section, index) => ({
+            userId,
+            courseId,
+            sectionId: section.id,
+            status: index === 0 ? 'lesson_in_progress' : 'locked',
           })),
           skipDuplicates: true,
         });

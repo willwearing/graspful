@@ -1,11 +1,14 @@
 import { selectNextTask } from './task-selector';
-import { ConceptSnapshot, SimpleEdge, TaskRecommendation } from './types';
+import { ConceptSnapshot, SectionSnapshot, SimpleEdge } from './types';
 
 describe('selectNextTask', () => {
   // Helper to build a basic scenario
   const edges: SimpleEdge[] = [
     { source: 'c1', target: 'c2' },
     { source: 'c2', target: 'c3' },
+  ];
+  const sections: SectionSnapshot[] = [
+    { sectionId: 'section-1', status: 'lesson_in_progress' },
   ];
 
   it('P1: should recommend remediation when a concept has failCount >= 2 and weak prereqs exist', () => {
@@ -15,7 +18,7 @@ describe('selectNextTask', () => {
       { conceptId: 'c3', masteryState: 'unstarted', memory: 1.0, failCount: 0 },
     ];
 
-    const result = selectNextTask(snapshotsWithWeakPrereq, edges, [], 0);
+    const result = selectNextTask(snapshotsWithWeakPrereq, sections, edges, [], 0);
     expect(result.taskType).toBe('remediation');
     expect(result.conceptId).toBe('c1'); // the weak prereq to remediate
     expect(result.reason).toContain('c2'); // mentions the blocked concept
@@ -28,7 +31,7 @@ describe('selectNextTask', () => {
       { conceptId: 'c3', masteryState: 'unstarted', memory: 1.0, failCount: 0 },
     ];
 
-    const result = selectNextTask(snapshots, edges, [], 0);
+    const result = selectNextTask(snapshots, sections, edges, [], 0);
     expect(result.taskType).toBe('review');
     expect(result.conceptId).toBe('c1');
     expect(result.reason).toContain('urgent');
@@ -43,7 +46,7 @@ describe('selectNextTask', () => {
     // c2 is at the frontier (c1 mastered, c2 unstarted, prereq satisfied)
     const frontier = ['c2'];
 
-    const result = selectNextTask(snapshots, edges, frontier, 0);
+    const result = selectNextTask(snapshots, sections, edges, frontier, 0);
     expect(result.taskType).toBe('lesson');
     expect(result.conceptId).toBe('c2');
   });
@@ -57,7 +60,7 @@ describe('selectNextTask', () => {
     // No urgent (memory >= 0.3), no frontier (c2 is mastered already, c3 needs c2)
     // c1 has memory < 0.5 -> standard review
 
-    const result = selectNextTask(snapshots, edges, [], 0);
+    const result = selectNextTask(snapshots, sections, edges, [], 0);
     expect(result.taskType).toBe('review');
     expect(result.conceptId).toBe('c1');
     expect(result.reason).toContain('review');
@@ -70,7 +73,7 @@ describe('selectNextTask', () => {
       { conceptId: 'c3', masteryState: 'unstarted', memory: 1.0, failCount: 0 },
     ];
 
-    const result = selectNextTask(snapshots, edges, [], 160);
+    const result = selectNextTask(snapshots, sections, edges, [], 160);
     expect(result.taskType).toBe('quiz');
     expect(result.conceptId).toBeUndefined();
   });
@@ -85,7 +88,7 @@ describe('selectNextTask', () => {
     // c1 also qualifies for urgent review (memory 0.2)
     // Remediation should win (P1 > P2)
 
-    const result = selectNextTask(snapshots, edges, [], 0);
+    const result = selectNextTask(snapshots, sections, edges, [], 0);
     expect(result.taskType).toBe('remediation');
   });
 
@@ -96,14 +99,14 @@ describe('selectNextTask', () => {
       { conceptId: 'c3', masteryState: 'mastered', memory: 0.7, failCount: 0 },
     ];
     // Everything mastered, good memory, no XP threshold
-    const result = selectNextTask(snapshots, edges, [], 0);
+    const result = selectNextTask(snapshots, sections, edges, [], 0);
     // Nothing to do - should still return something reasonable
     expect(result.taskType).toBe('quiz');
     expect(result.reason).toContain('caught up');
   });
 
   it('should return quiz fallback for empty snapshots', () => {
-    const result = selectNextTask([], [], [], 0);
+    const result = selectNextTask([], [], [], [], 0);
     expect(result.taskType).toBe('quiz');
     expect(result.reason).toContain('caught up');
   });
@@ -114,7 +117,7 @@ describe('selectNextTask', () => {
       { conceptId: 'c2', masteryState: 'mastered', memory: 0.8, failCount: 3 },
       { conceptId: 'c3', masteryState: 'unstarted', memory: 1.0, failCount: 0 },
     ];
-    const result = selectNextTask(snapshots, edges, ['c3'], 0);
+    const result = selectNextTask(snapshots, sections, edges, ['c3'], 0);
     // c2 is mastered with failCount 3 — should NOT trigger remediation
     expect(result.taskType).toBe('lesson');
     expect(result.conceptId).toBe('c3');
@@ -127,7 +130,7 @@ describe('selectNextTask', () => {
       { conceptId: 'c3', masteryState: 'unstarted', memory: 1.0, failCount: 0 },
     ];
     // c2 is plateaued but its prereq (c1) is mastered — no weak prereqs
-    const result = selectNextTask(snapshots, edges, ['c3'], 0);
+    const result = selectNextTask(snapshots, sections, edges, ['c3'], 0);
     // Should skip P1, go to P3 (lesson)
     expect(result.taskType).toBe('lesson');
     expect(result.conceptId).toBe('c3');
@@ -139,9 +142,25 @@ describe('selectNextTask', () => {
       { conceptId: 'c2', masteryState: 'mastered', memory: 0.8, failCount: 0 },
     ];
     // c1 has memory 0.35 — between urgent (0.3) and standard (0.5)
-    const result = selectNextTask(snapshots, [], [], 0);
+    const result = selectNextTask(snapshots, sections, [], [], 0);
     expect(result.taskType).toBe('review');
     expect(result.conceptId).toBe('c1');
     expect(result.reason).toContain('review');
+  });
+
+  it('P3: should prioritize a ready section exam over new lessons', () => {
+    const snapshots: ConceptSnapshot[] = [
+      { conceptId: 'c1', masteryState: 'mastered', memory: 0.9, failCount: 0 },
+      { conceptId: 'c2', masteryState: 'unstarted', memory: 1.0, failCount: 0 },
+    ];
+    const result = selectNextTask(
+      snapshots,
+      [{ sectionId: 'section-1', status: 'exam_ready' }],
+      edges,
+      ['c2'],
+      0,
+    );
+    expect(result.taskType).toBe('section_exam');
+    expect(result.sectionId).toBe('section-1');
   });
 });

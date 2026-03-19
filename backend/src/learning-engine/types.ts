@@ -1,8 +1,14 @@
-export type TaskType = 'lesson' | 'review' | 'quiz' | 'remediation';
+export type TaskType =
+  | 'lesson'
+  | 'review'
+  | 'quiz'
+  | 'remediation'
+  | 'section_exam';
 
 export interface TaskRecommendation {
   taskType: TaskType;
   conceptId?: string;
+  sectionId?: string;
   reason: string;
 }
 
@@ -42,6 +48,16 @@ export interface RemediationRecord {
   resolvedAt: Date | null;
 }
 
+export interface SectionSnapshot {
+  sectionId: string;
+  status:
+    | 'locked'
+    | 'lesson_in_progress'
+    | 'exam_ready'
+    | 'certified'
+    | 'needs_review';
+}
+
 // XP thresholds and constants
 export const QUIZ_XP_THRESHOLD = 150;
 export const URGENT_REVIEW_MEMORY_THRESHOLD = 0.3;
@@ -51,3 +67,4 @@ export const LESSON_XP_ESTIMATE = 15;
 export const REVIEW_XP_ESTIMATE = 5;
 export const QUIZ_XP_ESTIMATE = 20;
 export const REMEDIATION_XP_ESTIMATE = 10;
+export const SECTION_EXAM_XP_ESTIMATE = 25;

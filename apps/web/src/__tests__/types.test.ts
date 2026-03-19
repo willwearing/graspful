@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { MasteryState } from "@/lib/types";
+import type { MasteryState, SectionMasteryState, TaskType } from "@/lib/types";
 
 /**
  * Verifies that the shared MasteryState type is correctly defined
@@ -22,5 +22,23 @@ describe("MasteryState type", () => {
     const { MasteryBadge } = await import("@/components/app/mastery-badge");
     expect(MasteryBadge).toBeDefined();
     expect(typeof MasteryBadge).toBe("function");
+  });
+});
+
+describe("section and task types", () => {
+  it("accepts all valid section states", () => {
+    const states: SectionMasteryState[] = [
+      "locked",
+      "lesson_in_progress",
+      "exam_ready",
+      "certified",
+      "needs_review",
+    ];
+    expect(states).toHaveLength(5);
+  });
+
+  it("accepts section exam as a task type", () => {
+    const tasks: TaskType[] = ["lesson", "review", "quiz", "remediation", "section_exam"];
+    expect(tasks).toContain("section_exam");
   });
 });

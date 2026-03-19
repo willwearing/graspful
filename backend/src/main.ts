@@ -36,7 +36,9 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
 
   // Telemetry: structured logging via OpenTelemetry -> PostHog
-  app.useGlobalInterceptors(new LoggingInterceptor(app.get(Reflector)));
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(app.get(Reflector, { strict: false }) ?? new Reflector()),
+  );
   const httpAdapterHost = app.get(HttpAdapterHost);
   app.useGlobalFilters(new OtelExceptionFilter(httpAdapterHost.httpAdapter));
 

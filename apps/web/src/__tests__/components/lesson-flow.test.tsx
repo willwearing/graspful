@@ -35,13 +35,51 @@ const lessonData = {
       id: "kp1",
       slug: "fire-triangle",
       instructionText: "Fire requires heat, fuel, and oxygen.",
+      instructionContent: [
+        {
+          type: "callout" as const,
+          title: "Mental model",
+          body: "Think of each fire requirement as a component in a system.",
+        },
+      ],
       workedExampleText: "Example: A candle flame needs all three elements.",
+      workedExampleContent: [],
+      problems: [
+        {
+          id: "p1",
+          questionText: "Which element is part of the fire triangle?",
+          type: "multiple_choice" as const,
+          options: [
+            { id: "0", text: "Heat" },
+            { id: "1", text: "Gravity" },
+            { id: "2", text: "Wood only" },
+            { id: "3", text: "Rust" },
+          ],
+          difficulty: 2,
+        },
+      ],
     },
     {
       id: "kp2",
       slug: "flashover",
       instructionText: "Flashover occurs when all surfaces in a room ignite simultaneously.",
+      instructionContent: [],
       workedExampleText: "Example: Room temperature reaches 500-600C.",
+      workedExampleContent: [],
+      problems: [
+        {
+          id: "p2",
+          questionText: "Flashover is best described as:",
+          type: "multiple_choice" as const,
+          options: [
+            { id: "0", text: "A single spark" },
+            { id: "1", text: "All surfaces igniting in a room" },
+            { id: "2", text: "A cold smoke event" },
+            { id: "3", text: "A water supply failure" },
+          ],
+          difficulty: 3,
+        },
+      ],
     },
   ],
 };
@@ -67,6 +105,7 @@ describe("LessonFlow", () => {
     renderFlow();
     expect(screen.getByText("Fire Behavior")).toBeTruthy();
     expect(screen.getByText("Fire requires heat, fuel, and oxygen.")).toBeTruthy();
+    expect(screen.getByText("Mental model")).toBeTruthy();
     expect(screen.getByText(/1 of 2/)).toBeTruthy();
   });
 
@@ -77,51 +116,87 @@ describe("LessonFlow", () => {
     expect(screen.getByText("Worked Example")).toBeTruthy();
   });
 
-  it("shows practice placeholder after worked example", () => {
+  it("shows the first practice problem after worked example", () => {
     renderFlow();
     // instruction -> worked example
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     // worked example -> practice
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     expect(screen.getByText("Practice")).toBeTruthy();
-    expect(screen.getByText("Practice problems coming soon")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /mark as understood/i })).toBeTruthy();
+    expect(screen.getByText("Which element is part of the fire triangle?")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /submit answer/i })).toBeTruthy();
   });
 
-  it("advances to next KP after marking practice as understood", () => {
+  it("advances to next KP after completing practice", async () => {
+    mockApiClientFetch.mockResolvedValueOnce({ correct: true, feedback: "Correct!" });
+
     renderFlow();
     // KP1: instruction -> worked example -> practice
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    // Mark as understood -> moves to KP2 instruction
-    fireEvent.click(screen.getByRole("button", { name: /mark as understood/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Heat" }));
+    fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Practice complete")).toBeTruthy();
+    }, { timeout: 2500 });
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
     expect(screen.getByText("Flashover occurs when all surfaces in a room ignite simultaneously.")).toBeTruthy();
     expect(screen.getByText(/2 of 2/)).toBeTruthy();
   });
 
-  it("shows Complete Lesson button on last KP practice phase", () => {
+  it("shows Complete Lesson button on last KP after practice is done", async () => {
+    mockApiClientFetch
+      .mockResolvedValueOnce({ correct: true, feedback: "Correct!" })
+      .mockResolvedValueOnce({ correct: true, feedback: "Correct!" });
+
     renderFlow();
-    // KP1: instruction -> worked example -> practice -> mark understood
+    // KP1: instruction -> worked example -> practice -> answer -> continue
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /mark as understood/i }));
-    // KP2: instruction -> worked example -> practice
+    fireEvent.click(screen.getByRole("button", { name: "Heat" }));
+    fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Practice complete")).toBeTruthy();
+    }, { timeout: 2500 });
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+    // KP2: instruction -> worked example -> practice -> answer
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /all surfaces igniting in a room/i }));
+    fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /complete lesson/i })).toBeTruthy();
+    }, { timeout: 2500 });
     expect(screen.getByRole("button", { name: /complete lesson/i })).toBeTruthy();
   });
 
   it("calls complete API and redirects on completion", async () => {
-    mockApiClientFetch.mockResolvedValueOnce({ conceptId: "c1", status: "lesson_complete" });
+    mockApiClientFetch
+      .mockResolvedValueOnce({ correct: true, feedback: "Correct!" })
+      .mockResolvedValueOnce({ correct: true, feedback: "Correct!" })
+      .mockResolvedValueOnce({ conceptId: "c1", status: "lesson_complete" });
 
     renderFlow();
-    // KP1: instruction -> worked example -> practice -> mark understood
+    // KP1: instruction -> worked example -> practice -> answer -> continue
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /mark as understood/i }));
-    // KP2: instruction -> worked example -> practice -> complete
+    fireEvent.click(screen.getByRole("button", { name: "Heat" }));
+    fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Practice complete")).toBeTruthy();
+    }, { timeout: 2500 });
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
+
+    // KP2: instruction -> worked example -> practice -> answer -> complete
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /all surfaces igniting in a room/i }));
+    fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /complete lesson/i })).toBeTruthy();
+    }, { timeout: 2500 });
     fireEvent.click(screen.getByRole("button", { name: /complete lesson/i }));
 
     await waitFor(() => {

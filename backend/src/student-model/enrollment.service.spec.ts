@@ -15,7 +15,9 @@ describe('EnrollmentService', () => {
         create: jest.fn(),
       },
       concept: { findMany: jest.fn() },
+      courseSection: { findMany: jest.fn() },
       studentConceptState: { createMany: jest.fn() },
+      studentSectionState: { createMany: jest.fn() },
       $transaction: jest.fn((fn: any) => fn(mockPrisma)),
     };
 
@@ -41,12 +43,17 @@ describe('EnrollmentService', () => {
         { id: 'concept-1' },
         { id: 'concept-2' },
       ]);
+      mockPrisma.courseSection.findMany.mockResolvedValue([
+        { id: 'section-1' },
+        { id: 'section-2' },
+      ]);
       mockPrisma.courseEnrollment.create.mockResolvedValue({
         id: 'enrollment-1',
         userId,
         courseId,
       });
       mockPrisma.studentConceptState.createMany.mockResolvedValue({ count: 2 });
+      mockPrisma.studentSectionState.createMany.mockResolvedValue({ count: 2 });
 
       const result = await service.enrollStudent(orgId, userId, courseId);
 
@@ -56,6 +63,23 @@ describe('EnrollmentService', () => {
         data: [
           { userId, conceptId: 'concept-1' },
           { userId, conceptId: 'concept-2' },
+        ],
+        skipDuplicates: true,
+      });
+      expect(mockPrisma.studentSectionState.createMany).toHaveBeenCalledWith({
+        data: [
+          {
+            userId,
+            courseId,
+            sectionId: 'section-1',
+            status: 'lesson_in_progress',
+          },
+          {
+            userId,
+            courseId,
+            sectionId: 'section-2',
+            status: 'locked',
+          },
         ],
         skipDuplicates: true,
       });

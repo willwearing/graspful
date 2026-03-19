@@ -5,12 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
-
-interface NextTask {
-  taskType: "lesson" | "review" | "quiz" | "remediation";
-  conceptId?: string;
-  reason: string;
-}
+import type { NextTask } from "@/lib/types";
 
 interface StudyRouterProps {
   courseId: string;
@@ -35,6 +30,9 @@ export function StudyRouter({ courseId, task }: StudyRouterProps) {
         break;
       case "quiz":
         router.push(`/study/${courseId}/quiz`);
+        break;
+      case "section_exam":
+        if (task.sectionId) router.push(`/study/${courseId}/sections/${task.sectionId}/exam`);
         break;
     }
   }, [task, courseId, router]);
