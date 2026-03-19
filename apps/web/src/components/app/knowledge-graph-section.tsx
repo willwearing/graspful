@@ -6,7 +6,7 @@ import { apiClientFetch } from "@/lib/api-client";
 import { useAuthToken } from "@/lib/hooks/use-auth-token";
 
 interface KnowledgeGraphSectionProps {
-  orgId: string;
+  orgSlug: string;
   courseId: string;
 }
 
@@ -24,7 +24,7 @@ interface ConceptState {
 }
 
 export function KnowledgeGraphSection({
-  orgId,
+  orgSlug,
   courseId,
 }: KnowledgeGraphSectionProps) {
   const token = useAuthToken();
@@ -35,7 +35,7 @@ export function KnowledgeGraphSection({
   useEffect(() => {
     if (!token) return;
 
-    const basePath = `/orgs/${orgId}/courses/${courseId}`;
+    const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
 
     Promise.all([
       apiClientFetch<RawGraphData>(`${basePath}/graph`, token),
@@ -58,7 +58,7 @@ export function KnowledgeGraphSection({
       })
       .catch(() => setConcepts(null))
       .finally(() => setLoading(false));
-  }, [orgId, courseId, token]);
+  }, [orgSlug, courseId, token]);
 
   if (loading) {
     return (

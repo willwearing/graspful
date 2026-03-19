@@ -50,7 +50,7 @@ describe("QuizFlow", () => {
 
   it("renders first problem and timer", () => {
     render(
-      <QuizFlow orgId="org-1" courseId="c1" token="test-token" quizData={quizData} />
+      <QuizFlow orgSlug="org-1" courseId="c1" token="test-token" quizData={quizData} />
     );
     expect(screen.getByText("Quiz question 1?")).toBeTruthy();
     expect(screen.getByText(/15:00/)).toBeTruthy();
@@ -61,7 +61,7 @@ describe("QuizFlow", () => {
     mockApiClientFetch.mockResolvedValueOnce({ answeredCount: 1, totalProblems: 3 });
 
     render(
-      <QuizFlow orgId="org-1" courseId="c1" token="test-token" quizData={quizData} />
+      <QuizFlow orgSlug="org-1" courseId="c1" token="test-token" quizData={quizData} />
     );
 
     fireEvent.click(screen.getByText("Answer A"));
@@ -77,7 +77,7 @@ describe("QuizFlow", () => {
     mockApiClientFetch.mockResolvedValueOnce({ answeredCount: 2, totalProblems: 3 });
 
     render(
-      <QuizFlow orgId="org-1" courseId="c1" token="test-token" quizData={quizData} />
+      <QuizFlow orgSlug="org-1" courseId="c1" token="test-token" quizData={quizData} />
     );
 
     // Answer Q1

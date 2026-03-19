@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         const brand = await resolveBrand(hostname, cookieHeader);
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
         try {
-          await fetch(`${backendUrl}/orgs/${brand.orgId}/join`, {
+          await fetch(`${backendUrl}/orgs/${brand.orgSlug}/join`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
           });

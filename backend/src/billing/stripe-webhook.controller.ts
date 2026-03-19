@@ -2,7 +2,7 @@ import { Controller, Post, Req, Res, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { BillingService } from './billing.service';
 
-@Controller('api/v1/webhooks')
+@Controller('webhooks')
 export class StripeWebhookController {
   private readonly logger = new Logger(StripeWebhookController.name);
 

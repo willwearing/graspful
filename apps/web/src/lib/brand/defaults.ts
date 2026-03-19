@@ -8,7 +8,7 @@ export const firefighterBrand: BrandConfig = {
   logoUrl: "/images/logo-firefighter.svg",
   faviconUrl: "/favicon.ico",
   ogImageUrl: "/images/og-firefighter.png",
-  orgId: "firefighter-prep", // Organization slug — resolved to UUID by backend
+  orgSlug: "firefighter-prep",
 
   theme: {
     light: {
@@ -158,7 +158,7 @@ export const electricianBrand: BrandConfig = {
   logoUrl: "/images/logo-electrician.svg",
   faviconUrl: "/favicon.ico",
   ogImageUrl: "/images/og-electrician.png",
-  orgId: "electrician-prep",
+  orgSlug: "electrician-prep",
 
   theme: {
     light: {
@@ -319,7 +319,7 @@ export const javascriptBrand: BrandConfig = {
   logoUrl: "/images/logo-javascript.svg",
   faviconUrl: "/favicon.ico",
   ogImageUrl: "/images/og-javascript.png",
-  orgId: "javascript-prep",
+  orgSlug: "javascript-prep",
 
   theme: {
     light: {
@@ -475,7 +475,7 @@ export const posthogBrand: BrandConfig = {
   logoUrl: "/images/logo-firefighter.svg",
   faviconUrl: "/favicon.ico",
   ogImageUrl: "/images/og-firefighter.png",
-  orgId: "posthog-tam",
+  orgSlug: "posthog-tam",
 
   theme: {
     light: {

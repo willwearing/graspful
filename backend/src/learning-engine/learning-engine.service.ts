@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { StudentStateService } from '@/student-model/student-state.service';
 import { GraphQueryService } from '@/knowledge-graph/graph-query.service';
@@ -75,8 +75,16 @@ export class LearningEngineService {
   async getStudySession(
     userId: string,
     courseId: string,
-    dailyXPTarget: number,
   ): Promise<StudySession> {
+    const enrollment = await this.prisma.courseEnrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+      select: { dailyXPTarget: true },
+    });
+
+    if (!enrollment) {
+      throw new NotFoundException('Not enrolled in this course');
+    }
+
     // Decay memory before building context so values are current
     await this.memoryDecay.decayAllMemory(userId, courseId);
 
@@ -101,7 +109,7 @@ export class LearningEngineService {
       sections,
       edges,
       availableFrontier,
-      dailyXPTarget,
+      enrollment.dailyXPTarget,
       xpSinceLastQuiz,
     );
   }

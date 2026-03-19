@@ -20,10 +20,10 @@ export default async function ReviewPage({
   if (!token) redirect("/sign-in");
 
   const brand = await resolvePageBrand();
-  const orgId = brand.orgId;
+  const orgSlug = brand.orgSlug;
 
   const reviewData = await apiFetch<any>(
-    `/orgs/${orgId}/courses/${courseId}/reviews/${conceptId}/start`,
+    `/orgs/${orgSlug}/courses/${courseId}/reviews/${conceptId}/start`,
     { method: "POST" }
   );
 
@@ -31,7 +31,7 @@ export default async function ReviewPage({
     <div className="mx-auto max-w-3xl px-4 py-8 md:px-8">
       <h1 className="text-2xl font-bold text-foreground mb-6">Concept Review</h1>
       <ReviewFlow
-        orgId={orgId}
+        orgSlug={orgSlug}
         courseId={courseId}
         conceptId={conceptId}
         token={token}

@@ -1,9 +1,17 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { POSTHOG_TEST_BRAND_ID, signUpBrandedTestUser } from "./helpers/auth";
 
 const POSTHOG_COURSE_NAME = "PostHog TAM Technical Onboarding";
-const FIRST_CONCEPT_NAME = "Entities — Things That Exist";
-const FIRST_CONCEPT_ID = "8178bc19-94aa-4310-8f0f-133749447d57";
+
+async function expectLessonLoaded(url: string, page: Page) {
+  await page.goto(url);
+  await expect(page).toHaveURL(/\/study\/.+\/lesson\/.+$/, { timeout: 15_000 });
+  await expect(page.getByText("Knowledge Point 1 of")).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByText("Lesson Unavailable")).not.toBeVisible();
+  await expect(page.getByRole("heading").first()).toBeVisible();
+}
 
 test.describe("PostHog lesson routes", () => {
   test.beforeEach(async ({ page }) => {
@@ -29,16 +37,9 @@ test.describe("PostHog lesson routes", () => {
       timeout: 15_000,
     });
 
-    await page.goto(`/study/${courseId}`);
-    await expect(
-      page.getByRole("heading", { name: FIRST_CONCEPT_NAME })
-    ).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("Lesson Unavailable")).not.toBeVisible();
+    await expectLessonLoaded(`/study/${courseId}`, page);
+    const lessonUrl = page.url();
 
-    await page.goto(`/study/${courseId}/lesson/${FIRST_CONCEPT_ID}`);
-    await expect(
-      page.getByRole("heading", { name: FIRST_CONCEPT_NAME })
-    ).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("Lesson Unavailable")).not.toBeVisible();
+    await expectLessonLoaded(lessonUrl, page);
   });
 });

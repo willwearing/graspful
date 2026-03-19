@@ -30,13 +30,13 @@ interface QuizResult {
 }
 
 interface QuizFlowProps {
-  orgId: string;
+  orgSlug: string;
   courseId: string;
   token: string;
   quizData: QuizData;
 }
 
-export function QuizFlow({ orgId, courseId, token, quizData }: QuizFlowProps) {
+export function QuizFlow({ orgSlug, courseId, token, quizData }: QuizFlowProps) {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
@@ -48,7 +48,7 @@ export function QuizFlow({ orgId, courseId, token, quizData }: QuizFlowProps) {
   const questionStartRef = useRef(Date.now());
   const finishCalledRef = useRef(false);
 
-  const basePath = `/orgs/${orgId}/courses/${courseId}`;
+  const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
 
   // Timer
   useEffect(() => {

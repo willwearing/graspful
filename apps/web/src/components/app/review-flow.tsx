@@ -18,7 +18,7 @@ interface ReviewData {
 }
 
 interface ReviewFlowProps {
-  orgId: string;
+  orgSlug: string;
   courseId: string;
   conceptId: string;
   token: string;
@@ -34,7 +34,7 @@ interface ReviewResult {
   updatedMasteryState: string;
 }
 
-export function ReviewFlow({ orgId, courseId, conceptId, token, initialData }: ReviewFlowProps) {
+export function ReviewFlow({ orgSlug, courseId, conceptId, token, initialData }: ReviewFlowProps) {
   const router = useRouter();
   const [sessionId] = useState(initialData.sessionId);
   const [problem, setProblem] = useState<Problem>(initialData.currentProblem);
@@ -47,7 +47,7 @@ export function ReviewFlow({ orgId, courseId, conceptId, token, initialData }: R
   const [error, setError] = useState<string | null>(null);
   const startTimeRef = useRef(Date.now());
 
-  const basePath = `/orgs/${orgId}/courses/${courseId}`;
+  const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
 
   async function handleSubmit(answer: ProblemAnswer) {
     if (submitting) return;

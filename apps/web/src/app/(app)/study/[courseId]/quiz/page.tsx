@@ -20,17 +20,17 @@ export default async function QuizPage({
   if (!token) redirect("/sign-in");
 
   const brand = await resolvePageBrand();
-  const orgId = brand.orgId;
+  const orgSlug = brand.orgSlug;
 
   const quizData = await apiFetch<any>(
-    `/orgs/${orgId}/courses/${courseId}/quizzes/generate`,
+    `/orgs/${orgSlug}/courses/${courseId}/quizzes/generate`,
     { method: "POST" }
   );
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 md:px-8">
       <h1 className="text-2xl font-bold text-foreground mb-6">Quiz</h1>
-      <QuizFlow orgId={orgId} courseId={courseId} token={token} quizData={quizData} />
+      <QuizFlow orgSlug={orgSlug} courseId={courseId} token={token} quizData={quizData} />
     </div>
   );
 }

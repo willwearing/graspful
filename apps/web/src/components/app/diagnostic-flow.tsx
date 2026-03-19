@@ -31,13 +31,13 @@ interface DiagnosticResult {
 }
 
 interface DiagnosticFlowProps {
-  orgId: string;
+  orgSlug: string;
   courseId: string;
   token: string;
   initialData: DiagnosticState;
 }
 
-export function DiagnosticFlow({ orgId, courseId, token, initialData }: DiagnosticFlowProps) {
+export function DiagnosticFlow({ orgSlug, courseId, token, initialData }: DiagnosticFlowProps) {
   const router = useRouter();
   const [state, setState] = useState<DiagnosticState>(initialData);
   const [feedback, setFeedback] = useState<ProblemFeedback | null>(null);
@@ -47,7 +47,7 @@ export function DiagnosticFlow({ orgId, courseId, token, initialData }: Diagnost
   const startTimeRef = useRef(Date.now());
   const fetchingRef = useRef(false);
 
-  const basePath = `/orgs/${orgId}/courses/${courseId}`;
+  const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
 
   // Fetch result when complete
   const fetchResult = useCallback(async (sessionId: string) => {

@@ -24,17 +24,17 @@ export default async function SectionExamPage({
   if (!token) redirect("/sign-in");
 
   const brand = await resolvePageBrand();
-  const orgId = brand.orgId;
+  const orgSlug = brand.orgSlug;
 
   const examData = await apiFetch<any>(
-    `/orgs/${orgId}/courses/${courseId}/sections/${sectionId}/exam/start`,
+    `/orgs/${orgSlug}/courses/${courseId}/sections/${sectionId}/exam/start`,
     { method: "POST" }
   );
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 md:px-8">
       <SectionExamFlow
-        orgId={orgId}
+        orgSlug={orgSlug}
         courseId={courseId}
         sectionId={sectionId}
         token={token}

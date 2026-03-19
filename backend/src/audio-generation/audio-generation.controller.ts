@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, MinRole } from '@/auth';
-import { OrgContext } from '@/auth/guards/org-membership.guard';
+import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { AudioGenerationService } from './audio-generation.service';
 
 interface GenerateBody {
@@ -9,7 +9,7 @@ interface GenerateBody {
   concurrency?: number;
 }
 
-@Controller('api/v1/orgs/:orgId/content')
+@Controller('orgs/:orgId/content')
 @UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
 export class AudioGenerationController {
   constructor(private generationService: AudioGenerationService) {}

@@ -1,9 +1,9 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
-import { OrgContext } from '@/auth/guards/org-membership.guard';
+import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { AudioService } from './audio.service';
 
-@Controller('api/v1/orgs/:orgId/audio')
+@Controller('orgs/:orgId/audio')
 @UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
 export class AudioController {
   constructor(private audioService: AudioService) {}

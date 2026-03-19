@@ -20,7 +20,7 @@ export default async function StudyPage({
 
   let task: NextTask | null = null;
   try {
-    task = await apiFetch<NextTask>(`/orgs/${brand.orgId}/courses/${courseId}/next-task`);
+    task = await apiFetch<NextTask>(`/orgs/${brand.orgSlug}/courses/${courseId}/next-task`);
   } catch {
     // No task available
   }

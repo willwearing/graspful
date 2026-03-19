@@ -86,7 +86,7 @@ export default async function CourseDetailPage({
   if (!user) redirect("/sign-in");
 
   const brand = await resolvePageBrand();
-  const orgId = brand.orgId;
+  const orgSlug = brand.orgSlug;
 
   let graph: CourseGraph | null = null;
   let profile: CourseProfile | null = null;
@@ -96,15 +96,15 @@ export default async function CourseDetailPage({
 
   try {
     [graph, profile, nextTask, sectionProgress] = await Promise.all([
-      apiFetch<CourseGraph>(`/orgs/${orgId}/courses/${courseId}/graph`),
-      apiFetch<CourseProfile>(`/orgs/${orgId}/courses/${courseId}/profile`),
-      apiFetch<NextTask>(`/orgs/${orgId}/courses/${courseId}/next-task`),
-      apiFetch<SectionProgress[]>(`/orgs/${orgId}/courses/${courseId}/sections`),
+      apiFetch<CourseGraph>(`/orgs/${orgSlug}/courses/${courseId}/graph`),
+      apiFetch<CourseProfile>(`/orgs/${orgSlug}/courses/${courseId}/profile`),
+      apiFetch<NextTask>(`/orgs/${orgSlug}/courses/${courseId}/next-task`),
+      apiFetch<SectionProgress[]>(`/orgs/${orgSlug}/courses/${courseId}/sections`),
     ]);
 
     // Fetch per-concept mastery
     const states = await apiFetch<ConceptState[]>(
-      `/orgs/${orgId}/courses/${courseId}/mastery`
+      `/orgs/${orgSlug}/courses/${courseId}/mastery`
     );
     for (const state of states) {
       masteryMap.set(state.conceptId, state.masteryState);

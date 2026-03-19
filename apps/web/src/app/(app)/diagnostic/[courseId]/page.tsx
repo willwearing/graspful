@@ -23,9 +23,9 @@ export default async function DiagnosticPage({
   if (!token) redirect("/sign-in");
 
   const brand = await resolvePageBrand();
-  const orgId = brand.orgId;
+  const orgSlug = brand.orgSlug;
 
-  const basePath = `/orgs/${orgId}/courses/${courseId}`;
+  const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
 
   // Enroll if not already (idempotent on backend)
   try {
@@ -73,7 +73,7 @@ export default async function DiagnosticPage({
     <div className="mx-auto max-w-4xl px-4 py-8 md:px-8">
       <h1 className="text-2xl font-bold text-foreground mb-6">Diagnostic Assessment</h1>
       <DiagnosticFlow
-        orgId={orgId}
+        orgSlug={orgSlug}
         courseId={courseId}
         token={token}
         initialData={startData}

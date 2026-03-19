@@ -7,7 +7,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
-import { OrgContext } from '@/auth/guards/org-membership.guard';
+import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { DiagnosticSessionService } from './diagnostic-session.service';
 
 @Controller('orgs/:orgId/courses/:courseId/diagnostic')

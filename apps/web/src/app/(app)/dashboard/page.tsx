@@ -86,13 +86,13 @@ export default async function DashboardPage() {
   const profiles: Map<string, CourseProfile> = new Map();
 
   try {
-    courses = await apiFetch<Course[]>(`/orgs/${brand.orgId}/courses`);
+    courses = await apiFetch<Course[]>(`/orgs/${brand.orgSlug}/courses`);
 
     // Fetch profile for each course
     const profileResults = await Promise.allSettled(
       courses.map(async (course) => {
         const profile = await apiFetch<CourseProfile>(
-          `/orgs/${brand.orgId}/courses/${course.id}/profile`
+          `/orgs/${brand.orgSlug}/courses/${course.id}/profile`
         );
         return { courseId: course.id, profile };
       })
@@ -116,7 +116,7 @@ export default async function DashboardPage() {
 
   if (courses.length > 0) {
     const courseId = courses[0].id;
-    const basePath = `/orgs/${brand.orgId}/courses/${courseId}`;
+    const basePath = `/orgs/${brand.orgSlug}/courses/${courseId}`;
 
     const [xpRes, streakRes, weeklyRes, boardRes, statsRes] =
       await Promise.allSettled([
@@ -215,7 +215,7 @@ export default async function DashboardPage() {
       {courses.length > 0 && (
         <div className="mb-8">
           <KnowledgeGraphSection
-            orgId={brand.orgId}
+            orgSlug={brand.orgSlug}
             courseId={courses[0].id}
           />
         </div>
