@@ -155,6 +155,24 @@ describe('LessonService', () => {
       });
     });
 
+    it('should record lastPracticedAt when concept was mastered during lesson practice', async () => {
+      mockPrisma.studentConceptState.findUnique.mockResolvedValue({
+        userId: 'u1',
+        conceptId: 'c2',
+        masteryState: 'mastered',
+        failCount: 0,
+      });
+
+      await service.completeLesson('u1', 'course-1', 'c2');
+
+      expect(mockPrisma.studentConceptState.update).toHaveBeenCalledWith({
+        where: { userId_conceptId: { userId: 'u1', conceptId: 'c2' } },
+        data: {
+          lastPracticedAt: expect.any(Date),
+        },
+      });
+    });
+
     it('should throw when concept state not found', async () => {
       mockPrisma.studentConceptState.findUnique.mockResolvedValue(null);
 

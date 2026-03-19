@@ -125,7 +125,10 @@ export class LessonService {
         `No enrollment state for concept ${conceptId}`,
       );
     }
-    if (conceptState.masteryState !== 'in_progress') {
+    if (
+      conceptState.masteryState !== 'in_progress' &&
+      conceptState.masteryState !== 'mastered'
+    ) {
       throw new BadRequestException(
         `Concept ${conceptId} is not in_progress (current: ${conceptState.masteryState}). Start the lesson first.`,
       );
@@ -133,7 +136,8 @@ export class LessonService {
 
     // Record that the lesson content was consumed.
     // Mastery promotion to 'mastered' happens via problem practice in
-    // the Assessment module, not here.
+    // the Assessment module, so completion must also accept a concept
+    // that was mastered during the lesson session.
     await this.prisma.studentConceptState.update({
       where: { userId_conceptId: { userId, conceptId } },
       data: {

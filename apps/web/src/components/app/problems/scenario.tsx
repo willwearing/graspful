@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Problem } from "@/lib/types";
 import type { ProblemFeedback } from "./multiple-choice";
+import { ProblemFeedbackBanner } from "./feedback-banner";
 
 interface ScenarioProps {
   problem: Problem;
@@ -59,12 +60,13 @@ export function Scenario({ problem, onSubmit, disabled, loading, feedback }: Sce
         })}
       </div>
 
-      {feedback && (
-        <div className={`rounded-lg p-4 text-sm ${feedback.skipped ? "bg-amber-500/10 text-amber-700 dark:text-amber-300" : feedback.wasCorrect ? "bg-green-500/10 text-green-700 dark:text-green-300" : "bg-destructive/10 text-destructive"}`}>
-          {feedback.skipped ? "We'll teach you this one" : feedback.wasCorrect ? "Correct!" : "Incorrect"}
-          {feedback.explanation && <p className="mt-1 text-muted-foreground">{feedback.explanation}</p>}
-        </div>
-      )}
+      {feedback ? (
+        <ProblemFeedbackBanner
+          feedback={feedback}
+          successLabel="Correct!"
+          errorLabel="Incorrect"
+        />
+      ) : null}
 
       {!feedback && (
         <Button onClick={handleSubmit} disabled={disabled || !selected} className="w-full">
