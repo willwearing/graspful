@@ -3,6 +3,10 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { XPService } from '@/gamification/xp.service';
 import { evaluateAnswer } from './answer-evaluator';
 import { calculateQuizXP } from './xp-calculator';
+import {
+  activeConceptWhere,
+  activeKnowledgePointWhere,
+} from '@/knowledge-graph/active-course-content';
 
 export interface QuizSession {
   quizId: string;
@@ -55,7 +59,7 @@ export class QuizService {
     const conceptStates = await this.prisma.studentConceptState.findMany({
       where: {
         userId,
-        concept: { courseId },
+        concept: activeConceptWhere({ courseId }),
         masteryState: { in: ['in_progress', 'mastered'] },
       },
       include: { concept: true },
@@ -75,9 +79,9 @@ export class QuizService {
     // Get one problem per selected concept
     const problems = await this.prisma.problem.findMany({
       where: {
-        knowledgePoint: {
+        knowledgePoint: activeKnowledgePointWhere({
           conceptId: { in: selectedConceptIds },
-        },
+        }),
       },
       include: {
         knowledgePoint: {

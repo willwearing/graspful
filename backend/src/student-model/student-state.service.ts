@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { DiagnosticState, MasteryState } from '@prisma/client';
 import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
+import { activeConceptWhere } from '@/knowledge-graph/active-course-content';
 
 const logger = getLogger('student-model');
 
@@ -15,7 +16,7 @@ export class StudentStateService {
     return this.prisma.studentConceptState.findMany({
       where: {
         userId,
-        concept: { courseId },
+        concept: activeConceptWhere({ courseId }),
       },
       include: { concept: true },
     });
@@ -31,7 +32,7 @@ export class StudentStateService {
     const states = await this.prisma.studentConceptState.findMany({
       where: {
         userId,
-        concept: { courseId },
+        concept: activeConceptWhere({ courseId }),
       },
       select: { conceptId: true, masteryState: true, memory: true },
     });
@@ -139,13 +140,13 @@ export class StudentStateService {
   private async ensureConceptStates(userId: string, courseId: string) {
     const [concepts, existingStates] = await Promise.all([
       this.prisma.concept.findMany({
-        where: { courseId },
+        where: activeConceptWhere({ courseId }),
         select: { id: true },
       }),
       this.prisma.studentConceptState.findMany({
         where: {
           userId,
-          concept: { courseId },
+          concept: activeConceptWhere({ courseId }),
         },
         select: { conceptId: true },
       }),

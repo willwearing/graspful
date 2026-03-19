@@ -21,6 +21,10 @@ describe('ReviewService', () => {
           userId: 'user-1',
           conceptId: 'concept-1',
           masteryState: 'mastered',
+          concept: {
+            isArchived: false,
+            section: null,
+          },
         }),
         update: jest.fn().mockResolvedValue({}),
       },

@@ -84,6 +84,17 @@ function createMockPrisma() {
             Object.assign(concept, args.data);
             return concept;
           }),
+          updateMany: jest.fn(async (args: any) => {
+            const ids = new Set(args.where.id.in);
+            let count = 0;
+            for (const concept of createdConcepts) {
+              if (ids.has(concept.id)) {
+                Object.assign(concept, args.data);
+                count++;
+              }
+            }
+            return { count };
+          }),
           deleteMany: jest.fn(async (args: any) => {
             const ids = new Set(args.where.id.in);
             for (let i = createdConcepts.length - 1; i >= 0; i--) {
@@ -113,6 +124,17 @@ function createMockPrisma() {
             const section = createdSections.find((entry) => entry.id === args.where.id);
             Object.assign(section, args.data);
             return section;
+          }),
+          updateMany: jest.fn(async (args: any) => {
+            const ids = new Set(args.where.id.in);
+            let count = 0;
+            for (const section of createdSections) {
+              if (ids.has(section.id)) {
+                Object.assign(section, args.data);
+                count++;
+              }
+            }
+            return { count };
           }),
           deleteMany: jest.fn(async (args: any) => {
             const ids = new Set(args.where.id.in);
@@ -146,6 +168,17 @@ function createMockPrisma() {
             const kp = createdKPs.find((entry) => entry.id === args.where.id);
             Object.assign(kp, args.data);
             return kp;
+          }),
+          updateMany: jest.fn(async (args: any) => {
+            const ids = new Set(args.where.id.in);
+            let count = 0;
+            for (const kp of createdKPs) {
+              if (ids.has(kp.id)) {
+                Object.assign(kp, args.data);
+                count++;
+              }
+            }
+            return { count };
           }),
           deleteMany: jest.fn(async (args: any) => {
             const ids = new Set(args.where.id.in);
@@ -796,6 +829,116 @@ concepts:
       await expect(
         service.importFromYaml(destructiveYaml, 'org-123', { replace: true }),
       ).rejects.toThrow(/knowledge points \[root:kp-b\]/);
+    });
+
+    it('archives missing sections, concepts, and knowledge points when archiveMissing is enabled', async () => {
+      const mockPrisma = createMockPrisma();
+      const validationService = new GraphValidationService();
+      const service = new CourseImporterService(mockPrisma as any, validationService);
+
+      const baseYaml = `
+course:
+  id: test-archive-missing
+  name: Test Archive Missing
+  estimatedHours: 5
+  version: "1.0"
+
+sections:
+  - id: foundations
+    name: Foundations
+  - id: bonus
+    name: Bonus
+
+concepts:
+  - id: root
+    name: Root
+    section: foundations
+    difficulty: 1
+    estimatedMinutes: 5
+    knowledgePoints:
+      - id: kp-root
+        instruction: "Start here"
+        problems:
+          - id: p-root
+            type: true_false
+            question: "True?"
+            correct: "true"
+  - id: leaf
+    name: Leaf
+    section: bonus
+    difficulty: 2
+    estimatedMinutes: 10
+    prerequisites: [root]
+    knowledgePoints:
+      - id: kp-leaf
+        instruction: "Leaf lesson"
+        problems:
+          - id: p-leaf
+            type: true_false
+            question: "False?"
+            correct: "false"
+`;
+
+      const archivedYaml = `
+course:
+  id: test-archive-missing
+  name: Test Archive Missing
+  estimatedHours: 5
+  version: "1.1"
+
+sections:
+  - id: foundations
+    name: Foundations
+
+concepts:
+  - id: root
+    name: Root
+    section: foundations
+    difficulty: 1
+    estimatedMinutes: 5
+    knowledgePoints:
+      - id: kp-root
+        instruction: "Start here"
+        problems:
+          - id: p-root
+            type: true_false
+            question: "True?"
+            correct: "true"
+`;
+
+      await service.importFromYaml(baseYaml, 'org-123');
+
+      const archiveResult = await service.importFromYaml(archivedYaml, 'org-123', {
+        replace: true,
+        archiveMissing: true,
+      });
+
+      const archivedSection = mockPrisma._created.createdSections.find(
+        (section: any) => section.slug === 'bonus',
+      );
+      const archivedConcept = mockPrisma._created.createdConcepts.find(
+        (concept: any) => concept.slug === 'leaf',
+      );
+      const archivedKP = mockPrisma._created.createdKPs.find(
+        (kp: any) => kp.slug === 'kp-leaf',
+      );
+
+      expect(archiveResult.warnings).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('Archived sections: bonus'),
+          expect.stringContaining('Archived concepts: leaf'),
+          expect.stringContaining('Archived knowledge points: leaf:kp-leaf'),
+        ]),
+      );
+      expect(archivedSection?.isArchived).toBe(true);
+      expect(archivedConcept?.isArchived).toBe(true);
+      expect(archivedKP?.isArchived).toBe(true);
+
+      await service.importFromYaml(baseYaml, 'org-123', { replace: true });
+
+      expect(archivedSection?.isArchived).toBe(false);
+      expect(archivedConcept?.isArchived).toBe(false);
+      expect(archivedKP?.isArchived).toBe(false);
     });
   });
 });

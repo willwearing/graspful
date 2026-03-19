@@ -6,6 +6,10 @@ import {
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { RemediationService } from './remediation.service';
+import {
+  activeConceptWhere,
+  activeKnowledgePointWhere,
+} from '@/knowledge-graph/active-course-content';
 
 @Injectable()
 export class LessonService {
@@ -22,7 +26,7 @@ export class LessonService {
   ) {
     // Verify concept exists and belongs to org/course
     const concept = await this.prisma.concept.findFirst({
-      where: { id: conceptId, courseId, orgId },
+      where: activeConceptWhere({ id: conceptId, courseId, orgId }),
     });
     if (!concept) {
       throw new NotFoundException(`Concept ${conceptId} not found`);
@@ -75,7 +79,7 @@ export class LessonService {
 
     // Fetch knowledge points with instruction content
     const knowledgePoints = await this.prisma.knowledgePoint.findMany({
-      where: { conceptId },
+      where: activeKnowledgePointWhere({ conceptId }),
       orderBy: { sortOrder: 'asc' },
       select: {
         id: true,

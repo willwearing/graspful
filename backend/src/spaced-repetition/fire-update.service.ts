@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
+  activeConceptWhere,
+  activeEncompassingEdgeWhere,
+} from '@/knowledge-graph/active-course-content';
+import {
   calculateRawDelta,
   calculateDecay,
   updateRepNum,
@@ -80,9 +84,7 @@ export class FireUpdateService {
   ): Promise<void> {
     // Fetch encompassing edges for this course
     const edges = await this.prisma.encompassingEdge.findMany({
-      where: {
-        sourceConcept: { courseId },
-      },
+      where: activeEncompassingEdgeWhere(courseId),
       select: {
         sourceConceptId: true,
         targetConceptId: true,
@@ -98,7 +100,7 @@ export class FireUpdateService {
     const conceptStates = await this.prisma.studentConceptState.findMany({
       where: {
         userId,
-        concept: { courseId },
+        concept: activeConceptWhere({ courseId }),
       },
       select: {
         conceptId: true,

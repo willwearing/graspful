@@ -9,6 +9,11 @@ import { generateStudySession } from './session-generator';
 import { detectPlateau, findWeakPrerequisites } from './plateau-detector';
 import { SectionExamService } from '@/assessment/section-exam.service';
 import {
+  activeConceptWhere,
+  activePrerequisiteEdgeWhere,
+  activeSectionWhere,
+} from '@/knowledge-graph/active-course-content';
+import {
   ConceptSnapshot,
   SectionSnapshot,
   SimpleEdge,
@@ -124,17 +129,15 @@ export class LearningEngineService {
     const [conceptStates, concepts, prereqEdges, sectionStates] = await Promise.all([
       this.studentState.getConceptStates(userId, courseId),
       this.prisma.concept.findMany({
-        where: { courseId },
+        where: activeConceptWhere({ courseId }),
         select: { id: true, sectionId: true },
       }),
       this.prisma.prerequisiteEdge.findMany({
-        where: {
-          sourceConcept: { courseId },
-        },
+        where: activePrerequisiteEdgeWhere(courseId),
         select: { sourceConceptId: true, targetConceptId: true },
       }),
       this.prisma.studentSectionState.findMany({
-        where: { userId, courseId },
+        where: { userId, courseId, section: activeSectionWhere() },
         select: { sectionId: true, status: true },
       }),
     ]);

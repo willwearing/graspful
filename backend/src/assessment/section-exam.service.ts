@@ -10,6 +10,11 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { XPService } from '@/gamification/xp.service';
+import {
+  activeConceptWhere,
+  activeKnowledgePointWhere,
+  activeSectionWhere,
+} from '@/knowledge-graph/active-course-content';
 import { evaluateAnswer } from './answer-evaluator';
 import { calculateQuizXP } from './xp-calculator';
 
@@ -47,7 +52,7 @@ export class SectionExamService {
     await this.syncSectionStates(userId, courseId);
 
     const states = await this.prisma.studentSectionState.findMany({
-      where: { userId, courseId },
+      where: { userId, courseId, section: activeSectionWhere() },
       include: {
         section: {
           select: {
@@ -58,6 +63,7 @@ export class SectionExamService {
             sortOrder: true,
             sectionExamConfig: true,
             concepts: {
+              where: activeConceptWhere(),
               select: { id: true, name: true },
             },
           },
@@ -169,14 +175,16 @@ export class SectionExamService {
     await this.syncSectionStates(userId, courseId);
 
     const section = await this.prisma.courseSection.findFirst({
-      where: { id: sectionId, courseId },
+      where: activeSectionWhere({ id: sectionId, courseId }),
       include: {
         concepts: {
+          where: activeConceptWhere(),
           select: {
             id: true,
             slug: true,
             name: true,
             knowledgePoints: {
+              where: activeKnowledgePointWhere(),
               select: {
                 problems: {
                   select: {
@@ -527,10 +535,10 @@ export class SectionExamService {
         });
 
         const nextSection = await tx.courseSection.findFirst({
-          where: {
+          where: activeSectionWhere({
             courseId,
             sortOrder: { gt: session.section.sortOrder },
-          },
+          }),
           orderBy: { sortOrder: 'asc' },
           select: { id: true },
         });
@@ -601,9 +609,10 @@ export class SectionExamService {
 
   async syncSectionStates(userId: string, courseId: string) {
     const sections = await this.prisma.courseSection.findMany({
-      where: { courseId },
+      where: activeSectionWhere({ courseId }),
       include: {
         concepts: {
+          where: activeConceptWhere(),
           select: { id: true },
         },
       },
@@ -689,7 +698,7 @@ export class SectionExamService {
     }
 
     return this.prisma.studentSectionState.findMany({
-      where: { userId, courseId },
+      where: { userId, courseId, section: activeSectionWhere() },
       include: {
         section: {
           select: {

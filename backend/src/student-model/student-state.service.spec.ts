@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { StudentStateService } from './student-state.service';
 import { PrismaService } from '@/prisma/prisma.service';
+import { activeConceptWhere } from '@/knowledge-graph/active-course-content';
 
 describe('StudentStateService', () => {
   let service: StudentStateService;
@@ -60,7 +61,7 @@ describe('StudentStateService', () => {
       expect(mockPrisma.studentConceptState.findMany).toHaveBeenCalledWith({
         where: {
           userId: 'u1',
-          concept: { courseId: 'course-1' },
+          concept: activeConceptWhere({ courseId: 'course-1' }),
         },
         include: { concept: true },
       });

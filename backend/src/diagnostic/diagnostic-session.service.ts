@@ -9,6 +9,11 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { StudentStateService } from '@/student-model/student-state.service';
 import { GraphQueryService, SimpleEdge } from '@/knowledge-graph/graph-query.service';
 import {
+  activeConceptWhere,
+  activeKnowledgePointWhere,
+  activePrerequisiteEdgeWhere,
+} from '@/knowledge-graph/active-course-content';
+import {
   updateMasteryAfterCorrect,
   updateMasteryAfterIncorrect,
   applyTimeDiscount,
@@ -67,7 +72,7 @@ export class DiagnosticSessionService {
       if (hoursSinceUpdate < STALE_SESSION_HOURS) {
         // Resume existing session
         const concepts = await this.prisma.concept.findMany({
-          where: { courseId },
+          where: activeConceptWhere({ courseId }),
           select: { id: true, slug: true, difficultyTheta: true, courseId: true },
         });
 
@@ -95,12 +100,12 @@ export class DiagnosticSessionService {
 
     // Load graph data
     const concepts = await this.prisma.concept.findMany({
-      where: { courseId },
+      where: activeConceptWhere({ courseId }),
       select: { id: true, slug: true, difficultyTheta: true, courseId: true },
     });
 
     const prereqEdges = await this.prisma.prerequisiteEdge.findMany({
-      where: { sourceConcept: { courseId } },
+      where: activePrerequisiteEdgeWhere(courseId),
     });
     const edges: SimpleEdge[] = prereqEdges.map((e) => ({
       source: e.sourceConceptId,
@@ -217,11 +222,11 @@ export class DiagnosticSessionService {
 
     // Re-fetch static graph data
     const concepts = await this.prisma.concept.findMany({
-      where: { courseId: session.courseId },
+      where: activeConceptWhere({ courseId: session.courseId }),
       select: { id: true, difficultyTheta: true },
     });
     const prereqEdges = await this.prisma.prerequisiteEdge.findMany({
-      where: { sourceConcept: { courseId: session.courseId } },
+      where: activePrerequisiteEdgeWhere(session.courseId),
     });
     const edges: SimpleEdge[] = prereqEdges.map((e) => ({
       source: e.sourceConceptId,
@@ -524,7 +529,7 @@ export class DiagnosticSessionService {
   private async pickProblemForConcept(conceptId: string) {
     const problems = await this.prisma.problem.findMany({
       where: {
-        knowledgePoint: { conceptId },
+        knowledgePoint: activeKnowledgePointWhere({ conceptId }),
         isReviewVariant: false,
       },
       include: {
