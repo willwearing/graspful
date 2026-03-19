@@ -428,6 +428,7 @@ model CourseSection {
   description String?
   sectionExamConfig Json? @map("section_exam_config")
   sortOrder   Int      @default(0) @map("sort_order")
+  isArchived  Boolean  @default(false) @map("is_archived")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -458,6 +459,7 @@ model Concept {
   tags               String[] @default([])
   sourceReference    String?  @map("source_reference")
   sortOrder          Int      @default(0) @map("sort_order")
+  isArchived         Boolean  @default(false) @map("is_archived")
   difficultyTheta    Float    @default(0) @map("difficulty_theta")
   timeIntensity      Float    @default(0) @map("time_intensity")
   timeIntensitySD    Float    @default(0) @map("time_intensity_sd")
@@ -497,6 +499,7 @@ model KnowledgePoint {
   workedExampleContent  Json?    @map("worked_example_content")
   instructionAudioUrl   String?  @map("instruction_audio_url")
   workedExampleAudioUrl String?  @map("worked_example_audio_url")
+  isArchived            Boolean  @default(false) @map("is_archived")
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz
 

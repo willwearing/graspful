@@ -28,21 +28,27 @@ function parseArgs() {
 
   if (!parsed.orgId || !parsed.file) {
     console.error(
-      "Usage: bunx ts-node scripts/load-course.ts --orgId <uuid> --file <path-to-yaml>",
+      "Usage: bunx ts-node scripts/load-course.ts --orgId <uuid> --file <path-to-yaml> [--archiveMissing true]",
     );
     process.exit(1);
   }
 
-  return { orgId: parsed.orgId, file: parsed.file };
+  return {
+    orgId: parsed.orgId,
+    file: parsed.file,
+    archiveMissing: parsed.archiveMissing === "true",
+  };
 }
 
 async function main() {
-  const { orgId, file } = parseArgs();
+  const { orgId, file, archiveMissing } = parseArgs();
   const baseDir = process.env.INVOCATION_CWD || process.cwd();
   const filePath = path.resolve(baseDir, file);
   const yamlContent = fs.readFileSync(filePath, "utf-8");
 
-  console.log(`Loading course from ${filePath} into org ${orgId}...`);
+  console.log(
+    `Loading course from ${filePath} into org ${orgId}${archiveMissing ? " with archival for missing content" : ""}...`,
+  );
 
   const app = await NestFactory.createApplicationContext(CourseImportCliModule, {
     logger: ["error", "warn", "log"],
@@ -52,6 +58,7 @@ async function main() {
     const importer = app.get(CourseImporterService);
     const result = await importer.importFromYaml(yamlContent, orgId, {
       replace: true,
+      archiveMissing,
     });
 
     console.log("Import complete:");

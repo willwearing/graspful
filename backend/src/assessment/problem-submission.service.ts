@@ -8,6 +8,7 @@ import { calculateXP, ActivityType } from './xp-calculator';
 import { updateSpeed, deriveSpeed, blendSpeed, SpeedState, ConceptParams } from './speed-updater';
 import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
 import { SectionExamService } from './section-exam.service';
+import { activeKnowledgePointWhere } from '@/knowledge-graph/active-course-content';
 
 const logger = getLogger('assessment');
 
@@ -53,7 +54,11 @@ export class ProblemSubmissionService {
       where: { id: problemId },
       include: {
         knowledgePoint: {
-          include: { concept: true },
+          include: {
+            concept: {
+              include: { section: true },
+            },
+          },
         },
       },
     });
@@ -64,6 +69,10 @@ export class ProblemSubmissionService {
 
     const kp = problem.knowledgePoint;
     const concept = kp.concept;
+
+    if (kp.isArchived || concept.isArchived || concept.section?.isArchived) {
+      throw new NotFoundException(`Problem ${problemId} not found`);
+    }
 
     // 2. Evaluate the answer
     const evaluation = evaluateAnswer(
@@ -286,7 +295,7 @@ export class ProblemSubmissionService {
     conceptId: string,
   ): Promise<boolean> {
     const kps = await this.prisma.knowledgePoint.findMany({
-      where: { conceptId },
+      where: activeKnowledgePointWhere({ conceptId }),
       select: { id: true },
     });
 

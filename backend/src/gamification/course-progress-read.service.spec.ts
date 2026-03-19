@@ -1,4 +1,8 @@
 import { CourseProgressReadService } from './course-progress-read.service';
+import {
+  activeConceptWhere,
+  activePrerequisiteEdgeWhere,
+} from '@/knowledge-graph/active-course-content';
 
 describe('CourseProgressReadService', () => {
   let service: CourseProgressReadService;
@@ -36,6 +40,16 @@ describe('CourseProgressReadService', () => {
       edges: [
         { sourceConceptId: 'concept-1', targetConceptId: 'concept-2' },
       ],
+    });
+
+    expect(mockPrisma.concept.findMany).toHaveBeenCalledWith({
+      where: activeConceptWhere({ courseId: 'course-1' }),
+      select: { id: true, name: true },
+      orderBy: { sortOrder: 'asc' },
+    });
+    expect(mockPrisma.prerequisiteEdge.findMany).toHaveBeenCalledWith({
+      where: activePrerequisiteEdgeWhere('course-1'),
+      select: { sourceConceptId: true, targetConceptId: true },
     });
   });
 });

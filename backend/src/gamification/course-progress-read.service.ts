@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import {
+  activeConceptWhere,
+  activePrerequisiteEdgeWhere,
+} from '@/knowledge-graph/active-course-content';
 
 @Injectable()
 export class CourseProgressReadService {
@@ -8,14 +12,12 @@ export class CourseProgressReadService {
   async getGraph(userId: string, courseId: string) {
     const [concepts, edges] = await Promise.all([
       this.prisma.concept.findMany({
-        where: { courseId },
+        where: activeConceptWhere({ courseId }),
         select: { id: true, name: true },
         orderBy: { sortOrder: 'asc' },
       }),
       this.prisma.prerequisiteEdge.findMany({
-        where: {
-          sourceConcept: { courseId },
-        },
+        where: activePrerequisiteEdgeWhere(courseId),
         select: { sourceConceptId: true, targetConceptId: true },
       }),
     ]);

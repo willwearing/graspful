@@ -3,6 +3,13 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { StudentStateService } from '@/student-model/student-state.service';
 import { GraphQueryService } from './graph-query.service';
 import { GraphValidationService, ValidationResult } from './graph-validation.service';
+import {
+  activeConceptWhere,
+  activeEncompassingEdgeWhere,
+  activeKnowledgePointWhere,
+  activePrerequisiteEdgeWhere,
+  activeSectionWhere,
+} from './active-course-content';
 
 @Injectable()
 export class CourseReadService {
@@ -25,22 +32,18 @@ export class CourseReadService {
 
     const [sections, concepts, prerequisiteEdges, encompassingEdges] = await Promise.all([
       this.prisma.courseSection.findMany({
-        where: { courseId },
+        where: activeSectionWhere({ courseId }),
         orderBy: { sortOrder: 'asc' },
       }),
       this.prisma.concept.findMany({
-        where: { courseId },
+        where: activeConceptWhere({ courseId }),
         orderBy: { sortOrder: 'asc' },
       }),
       this.prisma.prerequisiteEdge.findMany({
-        where: {
-          sourceConcept: { courseId },
-        },
+        where: activePrerequisiteEdgeWhere(courseId),
       }),
       this.prisma.encompassingEdge.findMany({
-        where: {
-          sourceConcept: { courseId },
-        },
+        where: activeEncompassingEdgeWhere(courseId),
       }),
     ]);
 
@@ -51,25 +54,38 @@ export class CourseReadService {
     await this.findCourseOrThrow(orgId, courseId);
 
     return this.prisma.concept.findMany({
-      where: { courseId },
+      where: activeConceptWhere({ courseId }),
       orderBy: { sortOrder: 'asc' },
     });
   }
 
   async getConceptDetail(orgId: string, courseId: string, conceptId: string) {
     const concept = await this.prisma.concept.findFirst({
-      where: { id: conceptId, courseId, orgId },
+      where: activeConceptWhere({ id: conceptId, courseId, orgId }),
       include: {
         knowledgePoints: {
+          where: activeKnowledgePointWhere(),
           orderBy: { sortOrder: 'asc' },
           include: {
             problems: true,
           },
         },
-        prerequisiteOf: { include: { targetConcept: true } },
-        prerequisiteFor: { include: { sourceConcept: true } },
-        encompassedBy: { include: { targetConcept: true } },
-        encompasses: { include: { sourceConcept: true } },
+        prerequisiteOf: {
+          where: { targetConcept: activeConceptWhere() },
+          include: { targetConcept: true },
+        },
+        prerequisiteFor: {
+          where: { sourceConcept: activeConceptWhere() },
+          include: { sourceConcept: true },
+        },
+        encompassedBy: {
+          where: { targetConcept: activeConceptWhere() },
+          include: { targetConcept: true },
+        },
+        encompasses: {
+          where: { sourceConcept: activeConceptWhere() },
+          include: { sourceConcept: true },
+        },
       },
     });
 
@@ -84,12 +100,12 @@ export class CourseReadService {
     await this.findCourseOrThrow(orgId, courseId);
 
     const [concepts, prereqEdges, encompEdges] = await Promise.all([
-      this.prisma.concept.findMany({ where: { courseId } }),
+      this.prisma.concept.findMany({ where: activeConceptWhere({ courseId }) }),
       this.prisma.prerequisiteEdge.findMany({
-        where: { sourceConcept: { courseId } },
+        where: activePrerequisiteEdgeWhere(courseId),
       }),
       this.prisma.encompassingEdge.findMany({
-        where: { sourceConcept: { courseId } },
+        where: activeEncompassingEdgeWhere(courseId),
       }),
     ]);
 
@@ -115,9 +131,9 @@ export class CourseReadService {
     await this.findCourseOrThrow(orgId, courseId);
 
     const [concepts, prereqEdges, conceptStates] = await Promise.all([
-      this.prisma.concept.findMany({ where: { courseId } }),
+      this.prisma.concept.findMany({ where: activeConceptWhere({ courseId }) }),
       this.prisma.prerequisiteEdge.findMany({
-        where: { sourceConcept: { courseId } },
+        where: activePrerequisiteEdgeWhere(courseId),
       }),
       this.studentState.getConceptStates(userId, courseId),
     ]);

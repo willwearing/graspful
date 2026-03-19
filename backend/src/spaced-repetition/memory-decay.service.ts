@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { decayMemory } from './fire-equations';
+import { activeConceptWhere } from '@/knowledge-graph/active-course-content';
 
 const DECAY_EPSILON = 0.001; // skip updates smaller than this
 
@@ -26,7 +27,7 @@ export class MemoryDecayService {
     const states = await this.prisma.studentConceptState.findMany({
       where: {
         userId,
-        concept: { courseId },
+        concept: activeConceptWhere({ courseId }),
         masteryState: { not: 'unstarted' },
         lastPracticedAt: { not: null },
       },

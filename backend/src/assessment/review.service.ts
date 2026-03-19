@@ -3,6 +3,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { FireUpdateService } from '@/spaced-repetition/fire-update.service';
 import { ProblemSubmissionService } from './problem-submission.service';
 import { SectionExamService } from './section-exam.service';
+import { activeKnowledgePointWhere } from '@/knowledge-graph/active-course-content';
 
 export interface ReviewSession {
   conceptId: string;
@@ -36,16 +37,26 @@ export class ReviewService {
     // Verify concept exists and student has a concept state
     const conceptState = await this.prisma.studentConceptState.findUnique({
       where: { userId_conceptId: { userId, conceptId } },
+      include: {
+        concept: {
+          include: { section: true },
+        },
+      },
     });
 
-    if (!conceptState) {
+    if (
+      !conceptState ||
+      !conceptState.concept ||
+      conceptState.concept.isArchived ||
+      conceptState.concept.section?.isArchived
+    ) {
       throw new NotFoundException(`No enrollment state for concept ${conceptId}`);
     }
 
     // Select 3-5 review problems from this concept's KPs
     const problems = await this.prisma.problem.findMany({
       where: {
-        knowledgePoint: { conceptId },
+        knowledgePoint: activeKnowledgePointWhere({ conceptId }),
         isReviewVariant: true,
       },
       take: 5,
@@ -57,7 +68,7 @@ export class ReviewService {
     if (selectedProblems.length < 3) {
       selectedProblems = await this.prisma.problem.findMany({
         where: {
-          knowledgePoint: { conceptId },
+          knowledgePoint: activeKnowledgePointWhere({ conceptId }),
         },
         take: 5,
         orderBy: { difficulty: 'asc' },

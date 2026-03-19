@@ -646,6 +646,14 @@ bunx ts-node scripts/load-course.ts \
 
 Re-running performs an in-place replace keyed by stable slugs. Existing concept UUIDs and learner progress are preserved when the same slugs remain in the YAML.
 
+If you intentionally retired content and want the importer to archive anything missing from the new YAML instead of rejecting the update, add:
+
+```bash
+--archiveMissing true
+```
+
+That archives removed sections, concepts, and KPs in place. Historical learner state is preserved on the archived rows, while active learners only see the current course graph.
+
 ### Option B: Quick import alias
 
 ```bash
@@ -665,7 +673,8 @@ Content-Type: application/json
 
 {
   "yaml": "<raw YAML content>",
-  "replace": true
+  "replace": true,
+  "archiveMissing": false
 }
 ```
 
@@ -688,13 +697,13 @@ Once a course has learners, treat concept identity as durable infrastructure.
   - removing a section, concept, or KP from the YAML
   - renaming an existing slug to a new slug
   - using a script that deletes and recreates the course
-- The importer now blocks destructive replace imports. If you truly need to retire content, do a dedicated migration instead of a blind YAML overwrite.
+- The importer now blocks destructive replace imports by default. When you deliberately need to retire content, use `archiveMissing: true` so the removed nodes are archived instead of deleted.
 
 Operational rule:
 
 1. Keep the old slug if the learner's mental model is still the same concept and you are just improving the lesson.
 2. Add a new slug only when you are introducing genuinely new learnable content.
-3. If content is obsolete, deprecate it in place first, migrate learner state deliberately second, and only then consider archival/removal.
+3. If content is obsolete, deprecate it in place first, then archive it with the importer so old learner records remain attached to the retired UUIDs.
 
 This preserves prior mastery and lets current students continue through improved course content without resetting their progress graph.
 

@@ -4,6 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import {
+  activeConceptWhere,
+  activeSectionWhere,
+} from '@/knowledge-graph/active-course-content';
 
 @Injectable()
 export class EnrollmentService {
@@ -35,11 +39,11 @@ export class EnrollmentService {
       // Create initial StudentConceptState for every concept in the course
       const [concepts, sections] = await Promise.all([
         tx.concept.findMany({
-          where: { courseId },
+          where: activeConceptWhere({ courseId }),
           select: { id: true },
         }),
         tx.courseSection.findMany({
-          where: { courseId },
+          where: activeSectionWhere({ courseId }),
           orderBy: { sortOrder: 'asc' },
           select: { id: true },
         }),

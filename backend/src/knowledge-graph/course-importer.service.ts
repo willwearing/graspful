@@ -18,7 +18,14 @@ export interface ImportResult {
 
 export interface ImportOptions {
   replace?: boolean;
+  archiveMissing?: boolean;
 }
+
+type RemovedContent = {
+  sections: Array<{ id: string; slug: string }>;
+  concepts: Array<{ id: string; slug: string }>;
+  knowledgePoints: Array<{ id: string; key: string }>;
+};
 
 @Injectable()
 export class CourseImporterService {
@@ -143,15 +150,19 @@ export class CourseImporterService {
           kp,
         ]),
       );
+      const removedContent =
+        existingCourse && options.replace
+          ? this.collectRemovedContent(
+              existingSections,
+              existingConcepts,
+              existingKnowledgePoints,
+              existingConceptSlugById,
+              data,
+            )
+          : this.emptyRemovedContent();
 
-      if (existingCourse && options.replace) {
-        this.assertNoDestructiveRemovals(
-          existingSections,
-          existingConcepts,
-          existingKnowledgePoints,
-          existingConceptSlugById,
-          data,
-        );
+      if (existingCourse && options.replace && !options.archiveMissing) {
+        this.assertNoDestructiveRemovals(removedContent);
       }
 
       // Create sections and build slug -> id map
@@ -169,6 +180,7 @@ export class CourseImporterService {
                 description: sectionYaml.description,
                 sectionExamConfig: sectionYaml.sectionExam ?? undefined,
                 sortOrder: i,
+                isArchived: false,
               },
             })
           : await tx.courseSection.create({
@@ -179,6 +191,7 @@ export class CourseImporterService {
                 description: sectionYaml.description,
                 sectionExamConfig: sectionYaml.sectionExam ?? undefined,
                 sortOrder: i,
+                isArchived: false,
               },
             });
 
@@ -210,6 +223,7 @@ export class CourseImporterService {
                 tags: conceptYaml.tags,
                 sourceReference: conceptYaml.sourceRef,
                 sortOrder: i,
+                isArchived: false,
               },
             })
           : await tx.concept.create({
@@ -224,6 +238,7 @@ export class CourseImporterService {
                 tags: conceptYaml.tags,
                 sourceReference: conceptYaml.sourceRef,
                 sortOrder: i,
+                isArchived: false,
               },
             });
 
@@ -247,6 +262,7 @@ export class CourseImporterService {
                   instructionContent: kpYaml.instructionContent,
                   workedExampleText: kpYaml.workedExample,
                   workedExampleContent: kpYaml.workedExampleContent,
+                  isArchived: false,
                 },
               })
             : await tx.knowledgePoint.create({
@@ -258,6 +274,7 @@ export class CourseImporterService {
                   instructionContent: kpYaml.instructionContent,
                   workedExampleText: kpYaml.workedExample,
                   workedExampleContent: kpYaml.workedExampleContent,
+                  isArchived: false,
                 },
               });
 
@@ -373,6 +390,15 @@ export class CourseImporterService {
         });
       }
 
+      if (existingCourse && options.replace && options.archiveMissing) {
+        await this.archiveRemovedContent(tx, removedContent);
+      }
+
+      const warnings = [
+        ...validation.warnings,
+        ...this.buildArchivalWarnings(removedContent),
+      ];
+
       return {
         courseId: course.id,
         sectionCount: data.sections.length,
@@ -381,14 +407,22 @@ export class CourseImporterService {
         problemCount,
         prerequisiteEdgeCount: prereqCount,
         encompassingEdgeCount: encompCount,
-        warnings: validation.warnings,
+        warnings,
       };
     }, { maxWait: 30000, timeout: 60000 });
 
     return result;
   }
 
-  private assertNoDestructiveRemovals(
+  private emptyRemovedContent(): RemovedContent {
+    return {
+      sections: [] as Array<{ id: string; slug: string }>,
+      concepts: [] as Array<{ id: string; slug: string }>,
+      knowledgePoints: [] as Array<{ id: string; key: string }>,
+    };
+  }
+
+  private collectRemovedContent(
     existingSections: Array<{ id: string; slug: string }>,
     existingConcepts: Array<{ id: string; slug: string }>,
     existingKnowledgePoints: Array<{ id: string; slug: string; conceptId: string }>,
@@ -403,15 +437,30 @@ export class CourseImporterService {
       ),
     );
 
-    const removedSections = existingSections
-      .map((section) => section.slug)
-      .filter((slug) => !incomingSectionSlugs.has(slug));
-    const removedConcepts = existingConcepts
-      .map((concept) => concept.slug)
-      .filter((slug) => !incomingConceptSlugs.has(slug));
+    const removedSections = existingSections.filter(
+      (section) => !incomingSectionSlugs.has(section.slug),
+    );
+    const removedConcepts = existingConcepts.filter(
+      (concept) => !incomingConceptSlugs.has(concept.slug),
+    );
     const removedKnowledgePoints = existingKnowledgePoints
-      .map((kp) => `${conceptSlugById.get(kp.conceptId)}:${kp.slug}`)
-      .filter((key) => !incomingKnowledgePointKeys.has(key));
+      .map((kp) => ({
+        id: kp.id,
+        key: `${conceptSlugById.get(kp.conceptId)}:${kp.slug}`,
+      }))
+      .filter((kp) => !incomingKnowledgePointKeys.has(kp.key));
+
+    return {
+      sections: removedSections,
+      concepts: removedConcepts,
+      knowledgePoints: removedKnowledgePoints,
+    };
+  }
+
+  private assertNoDestructiveRemovals(removedContent: RemovedContent) {
+    const removedSections = removedContent.sections.map((section) => section.slug);
+    const removedConcepts = removedContent.concepts.map((concept) => concept.slug);
+    const removedKnowledgePoints = removedContent.knowledgePoints.map((kp) => kp.key);
 
     if (
       removedSections.length === 0 &&
@@ -436,7 +485,63 @@ export class CourseImporterService {
       .join('; ');
 
     throw new BadRequestException(
-      `Destructive course updates are blocked because they can wipe learner progress. Missing from replace import: ${details}. Keep stable slugs and revise content in place, or add a dedicated migration for destructive changes.`,
+      `Destructive course updates are blocked because they can wipe learner progress. Missing from replace import: ${details}. Keep stable slugs and revise content in place, or re-run with archiveMissing to retire missing content without deleting learner state.`,
     );
+  }
+
+  private buildArchivalWarnings(
+    removedContent: RemovedContent,
+  ) {
+    const warnings: string[] = [];
+
+    if (removedContent.sections.length > 0) {
+      warnings.push(
+        `Archived sections: ${removedContent.sections.map((section) => section.slug).join(', ')}`,
+      );
+    }
+
+    if (removedContent.concepts.length > 0) {
+      warnings.push(
+        `Archived concepts: ${removedContent.concepts.map((concept) => concept.slug).join(', ')}`,
+      );
+    }
+
+    if (removedContent.knowledgePoints.length > 0) {
+      warnings.push(
+        `Archived knowledge points: ${removedContent.knowledgePoints.map((kp) => kp.key).join(', ')}`,
+      );
+    }
+
+    return warnings;
+  }
+
+  private async archiveRemovedContent(
+    tx: {
+      knowledgePoint: { updateMany: (args: { where: { id: { in: string[] } }; data: { isArchived: boolean } }) => Promise<unknown> };
+      concept: { updateMany: (args: { where: { id: { in: string[] } }; data: { isArchived: boolean } }) => Promise<unknown> };
+      courseSection: { updateMany: (args: { where: { id: { in: string[] } }; data: { isArchived: boolean } }) => Promise<unknown> };
+    },
+    removedContent: RemovedContent,
+  ) {
+    if (removedContent.knowledgePoints.length > 0) {
+      await tx.knowledgePoint.updateMany({
+        where: { id: { in: removedContent.knowledgePoints.map((kp) => kp.id) } },
+        data: { isArchived: true },
+      });
+    }
+
+    if (removedContent.concepts.length > 0) {
+      await tx.concept.updateMany({
+        where: { id: { in: removedContent.concepts.map((concept) => concept.id) } },
+        data: { isArchived: true },
+      });
+    }
+
+    if (removedContent.sections.length > 0) {
+      await tx.courseSection.updateMany({
+        where: { id: { in: removedContent.sections.map((section) => section.id) } },
+        data: { isArchived: true },
+      });
+    }
   }
 }

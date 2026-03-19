@@ -98,12 +98,17 @@ describe('KnowledgeGraphController', () => {
       mockImporter.importFromYaml.mockResolvedValue(importResult);
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
-      const body = { yaml: 'course:\n  id: test\n  name: Test', replace: true };
+      const body = {
+        yaml: 'course:\n  id: test\n  name: Test',
+        replace: true,
+        archiveMissing: true,
+      };
       const result = await controller.importCourse(body, orgCtx as any);
 
       expect(result).toEqual(importResult);
       expect(mockImporter.importFromYaml).toHaveBeenCalledWith(body.yaml, 'org-1', {
         replace: true,
+        archiveMissing: true,
       });
     });
   });
