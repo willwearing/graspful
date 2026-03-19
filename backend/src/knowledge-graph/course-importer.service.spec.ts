@@ -10,8 +10,32 @@ function createMockPrisma() {
   const createdSections: any[] = [];
   const createdPrereqEdges: any[] = [];
   const createdEncompEdges: any[] = [];
+  const createdStudentConceptStates: any[] = [];
+  const createdStudentSectionStates: any[] = [];
+  const enrollments: any[] = [];
   const deletedCourses: any[] = [];
   let courseCounter = 0;
+  let conceptCounter = 0;
+  let sectionCounter = 0;
+  let kpCounter = 0;
+
+  const selectFields = (record: any, select?: Record<string, boolean>) => {
+    if (!select) {
+      return record;
+    }
+
+    return Object.fromEntries(
+      Object.entries(select)
+        .filter(([, enabled]) => enabled)
+        .map(([key]) => [key, record[key]]),
+    );
+  };
+
+  const findCourseById = (courseId: string) =>
+    createdCourses.find((course) => course.id === courseId) ?? null;
+
+  const findConceptById = (conceptId: string) =>
+    createdConcepts.find((concept) => concept.id === conceptId) ?? null;
 
   return {
     $transaction: jest.fn(async (fn: (tx: any) => Promise<any>) => {
@@ -30,33 +54,119 @@ function createMockPrisma() {
               (c) => c.orgId === where.orgId && c.slug === where.slug,
             ) || null;
           }),
+          update: jest.fn(async (args: any) => {
+            const course = findCourseById(args.where.id);
+            Object.assign(course, args.data);
+            return course;
+          }),
           delete: jest.fn(async (args: any) => {
             deletedCourses.push(args.where);
             return {};
           }),
         },
         concept: {
+          findMany: jest.fn(async (args: any) => {
+            const courseId = args.where.courseId;
+            const results = createdConcepts.filter((concept) => concept.courseId === courseId);
+            return results.map((concept) => selectFields(concept, args.select));
+          }),
           create: jest.fn(async (args: any) => {
-            const concept = { id: `concept-${args.data.slug}`, ...args.data };
+            conceptCounter++;
+            const concept = {
+              id: `concept-uuid-${conceptCounter}`,
+              ...args.data,
+            };
             createdConcepts.push(concept);
             return concept;
           }),
+          update: jest.fn(async (args: any) => {
+            const concept = findConceptById(args.where.id);
+            Object.assign(concept, args.data);
+            return concept;
+          }),
+          deleteMany: jest.fn(async (args: any) => {
+            const ids = new Set(args.where.id.in);
+            for (let i = createdConcepts.length - 1; i >= 0; i--) {
+              if (ids.has(createdConcepts[i].id)) {
+                createdConcepts.splice(i, 1);
+              }
+            }
+            return { count: ids.size };
+          }),
         },
         courseSection: {
+          findMany: jest.fn(async (args: any) => {
+            const courseId = args.where.courseId;
+            const results = createdSections.filter((section) => section.courseId === courseId);
+            return results.map((section) => selectFields(section, args.select));
+          }),
           create: jest.fn(async (args: any) => {
-            const section = { id: `section-${args.data.slug}`, ...args.data };
+            sectionCounter++;
+            const section = {
+              id: `section-uuid-${sectionCounter}`,
+              ...args.data,
+            };
             createdSections.push(section);
             return section;
           }),
+          update: jest.fn(async (args: any) => {
+            const section = createdSections.find((entry) => entry.id === args.where.id);
+            Object.assign(section, args.data);
+            return section;
+          }),
+          deleteMany: jest.fn(async (args: any) => {
+            const ids = new Set(args.where.id.in);
+            for (let i = createdSections.length - 1; i >= 0; i--) {
+              if (ids.has(createdSections[i].id)) {
+                createdSections.splice(i, 1);
+              }
+            }
+            return { count: ids.size };
+          }),
         },
         knowledgePoint: {
+          findMany: jest.fn(async (args: any) => {
+            const courseId = args.where.concept.courseId;
+            const results = createdKPs.filter((kp) => {
+              const concept = findConceptById(kp.conceptId);
+              return concept?.courseId === courseId;
+            });
+            return results.map((kp) => selectFields(kp, args.select));
+          }),
           create: jest.fn(async (args: any) => {
-            const kp = { id: `kp-${args.data.slug}`, ...args.data };
+            kpCounter++;
+            const kp = {
+              id: `kp-uuid-${kpCounter}`,
+              ...args.data,
+            };
             createdKPs.push(kp);
             return kp;
           }),
+          update: jest.fn(async (args: any) => {
+            const kp = createdKPs.find((entry) => entry.id === args.where.id);
+            Object.assign(kp, args.data);
+            return kp;
+          }),
+          deleteMany: jest.fn(async (args: any) => {
+            const ids = new Set(args.where.id.in);
+            for (let i = createdKPs.length - 1; i >= 0; i--) {
+              if (ids.has(createdKPs[i].id)) {
+                createdKPs.splice(i, 1);
+              }
+            }
+            return { count: ids.size };
+          }),
         },
         problem: {
+          deleteMany: jest.fn(async (args: any) => {
+            const { knowledgePointId } = args.where;
+            for (let i = createdProblems.length - 1; i >= 0; i--) {
+              if (createdProblems[i].knowledgePointId === knowledgePointId) {
+                createdProblems.splice(i, 1);
+              }
+            }
+            return { count: 0 };
+          }),
           create: jest.fn(async (args: any) => {
             const problem = { id: `problem-${createdProblems.length}`, ...args.data };
             createdProblems.push(problem);
@@ -64,21 +174,83 @@ function createMockPrisma() {
           }),
         },
         prerequisiteEdge: {
+          deleteMany: jest.fn(async (args: any) => {
+            const ids = new Set(
+              args.where.OR.flatMap((entry: any) =>
+                entry.sourceConceptId?.in ?? entry.targetConceptId?.in ?? [],
+              ),
+            );
+            for (let i = createdPrereqEdges.length - 1; i >= 0; i--) {
+              if (
+                ids.has(createdPrereqEdges[i].sourceConceptId) ||
+                ids.has(createdPrereqEdges[i].targetConceptId)
+              ) {
+                createdPrereqEdges.splice(i, 1);
+              }
+            }
+            return { count: 0 };
+          }),
           create: jest.fn(async (args: any) => {
             createdPrereqEdges.push(args.data);
             return args.data;
           }),
         },
         encompassingEdge: {
+          deleteMany: jest.fn(async (args: any) => {
+            const ids = new Set(
+              args.where.OR.flatMap((entry: any) =>
+                entry.sourceConceptId?.in ?? entry.targetConceptId?.in ?? [],
+              ),
+            );
+            for (let i = createdEncompEdges.length - 1; i >= 0; i--) {
+              if (
+                ids.has(createdEncompEdges[i].sourceConceptId) ||
+                ids.has(createdEncompEdges[i].targetConceptId)
+              ) {
+                createdEncompEdges.splice(i, 1);
+              }
+            }
+            return { count: 0 };
+          }),
           create: jest.fn(async (args: any) => {
             createdEncompEdges.push(args.data);
             return args.data;
           }),
         },
+        courseEnrollment: {
+          findMany: jest.fn(async (args: any) => {
+            const results = enrollments.filter((entry) => entry.courseId === args.where.courseId);
+            return results.map((entry) => selectFields(entry, args.select));
+          }),
+        },
+        studentConceptState: {
+          createMany: jest.fn(async (args: any) => {
+            createdStudentConceptStates.push(...args.data);
+            return { count: args.data.length };
+          }),
+        },
+        studentSectionState: {
+          createMany: jest.fn(async (args: any) => {
+            createdStudentSectionStates.push(...args.data);
+            return { count: args.data.length };
+          }),
+        },
       };
       return fn(tx);
     }),
-    _created: { createdCourses, createdSections, createdConcepts, createdKPs, createdProblems, createdPrereqEdges, createdEncompEdges, deletedCourses },
+    _created: {
+      createdCourses,
+      createdSections,
+      createdConcepts,
+      createdKPs,
+      createdProblems,
+      createdPrereqEdges,
+      createdEncompEdges,
+      createdStudentConceptStates,
+      createdStudentSectionStates,
+      deletedCourses,
+      enrollments,
+    },
   };
 }
 
@@ -137,12 +309,14 @@ concepts:
     prerequisites:
       - concept-a
     knowledgePoints: []
-`;
+    `;
 
     await service.importFromYaml(yaml, 'org-123');
+    const sourceConcept = mockPrisma._created.createdConcepts.find((c: any) => c.slug === 'concept-a');
+    const targetConcept = mockPrisma._created.createdConcepts.find((c: any) => c.slug === 'concept-b');
     expect(mockPrisma._created.createdPrereqEdges).toHaveLength(1);
-    expect(mockPrisma._created.createdPrereqEdges[0].sourceConceptId).toBe('concept-concept-a');
-    expect(mockPrisma._created.createdPrereqEdges[0].targetConceptId).toBe('concept-concept-b');
+    expect(mockPrisma._created.createdPrereqEdges[0].sourceConceptId).toBe(sourceConcept.id);
+    expect(mockPrisma._created.createdPrereqEdges[0].targetConceptId).toBe(targetConcept.id);
   });
 
   it('should create encompassing edges with weights', async () => {
@@ -348,7 +522,7 @@ concepts:
   });
 
   describe('importFromYaml - idempotent mode', () => {
-    it('should replace existing course when reimporting same slug', async () => {
+    it('should update an existing course in place when reimporting same slug', async () => {
       const mockPrisma = createMockPrisma();
       const validationService = new GraphValidationService();
       const service = new CourseImporterService(mockPrisma as any, validationService);
@@ -380,13 +554,15 @@ concepts:
       const result1 = await service.importFromYaml(yaml, 'org-123');
       expect(result1.courseId).toBeDefined();
       expect(result1.conceptCount).toBe(1);
+      const originalCourseId = result1.courseId;
+      const originalConceptId = mockPrisma._created.createdConcepts[0].id;
 
-      // Second import with replace: true should succeed (not throw duplicate key error)
+      // Second import with replace: true should preserve the existing UUID-backed graph.
       const result2 = await service.importFromYaml(yaml, 'org-123', { replace: true });
-      expect(result2.courseId).toBeDefined();
+      expect(result2.courseId).toBe(originalCourseId);
       expect(result2.conceptCount).toBe(1);
-      // Should have deleted the old course
-      expect(mockPrisma._created.deletedCourses).toHaveLength(1);
+      expect(mockPrisma._created.createdConcepts[0].id).toBe(originalConceptId);
+      expect(mockPrisma._created.deletedCourses).toHaveLength(0);
     });
 
     it('should not delete existing course when replace is false', async () => {
@@ -409,6 +585,74 @@ concepts:
 `;
       await service.importFromYaml(yaml, 'org-123');
       expect(mockPrisma._created.deletedCourses).toHaveLength(0);
+    });
+
+    it('should seed new concept states for existing enrollments when a new leaf is added', async () => {
+      const mockPrisma = createMockPrisma();
+      const validationService = new GraphValidationService();
+      const service = new CourseImporterService(mockPrisma as any, validationService);
+
+      mockPrisma._created.enrollments.push({
+        userId: 'user-1',
+        courseId: 'course-uuid-1',
+      });
+
+      const baseYaml = `
+course:
+  id: test-leaf-addition
+  name: Test Leaf Addition
+  estimatedHours: 5
+  version: "1.0"
+
+sections:
+  - id: foundations
+    name: Foundations
+
+concepts:
+  - id: root
+    name: Root
+    section: foundations
+    difficulty: 1
+    estimatedMinutes: 5
+    knowledgePoints: []
+`;
+
+      const updatedYaml = `
+course:
+  id: test-leaf-addition
+  name: Test Leaf Addition
+  estimatedHours: 5
+  version: "1.1"
+
+sections:
+  - id: foundations
+    name: Foundations
+
+concepts:
+  - id: root
+    name: Root
+    section: foundations
+    difficulty: 1
+    estimatedMinutes: 5
+    knowledgePoints: []
+  - id: new-leaf
+    name: New Leaf
+    section: foundations
+    difficulty: 2
+    estimatedMinutes: 10
+    prerequisites: [root]
+    knowledgePoints: []
+`;
+
+      await service.importFromYaml(baseYaml, 'org-123');
+      await service.importFromYaml(updatedYaml, 'org-123', { replace: true });
+
+      const newLeafConcept = mockPrisma._created.createdConcepts.find((c: any) => c.slug === 'new-leaf');
+      expect(newLeafConcept).toBeDefined();
+      expect(mockPrisma._created.createdStudentConceptStates).toContainEqual({
+        userId: 'user-1',
+        conceptId: newLeafConcept.id,
+      });
     });
   });
 });
