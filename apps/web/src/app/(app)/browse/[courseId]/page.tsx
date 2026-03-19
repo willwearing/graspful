@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import type { MasteryState } from "@/lib/types";
+import type { MasteryState, NextTask, SectionProgress, SectionMasteryState } from "@/lib/types";
 
 interface CourseSection {
   id: string;
@@ -51,7 +51,25 @@ interface CourseProfile {
   unstarted: number;
   completionPercent: number;
   diagnosticCompleted: boolean;
+  certifiedSections?: number;
+  examReadySections?: number;
 }
+
+const sectionStatusLabel: Record<SectionMasteryState, string> = {
+  locked: "Locked",
+  lesson_in_progress: "Learning",
+  exam_ready: "Exam Ready",
+  certified: "Certified",
+  needs_review: "Needs Review",
+};
+
+const sectionStatusVariant: Record<SectionMasteryState, "secondary" | "default" | "destructive" | "outline"> = {
+  locked: "outline",
+  lesson_in_progress: "secondary",
+  exam_ready: "default",
+  certified: "secondary",
+  needs_review: "destructive",
+};
 
 export default async function CourseDetailPage({
   params,
@@ -72,12 +90,16 @@ export default async function CourseDetailPage({
 
   let graph: CourseGraph | null = null;
   let profile: CourseProfile | null = null;
+  let nextTask: NextTask | null = null;
+  let sectionProgress: SectionProgress[] = [];
   const masteryMap = new Map<string, MasteryState>();
 
   try {
-    [graph, profile] = await Promise.all([
+    [graph, profile, nextTask, sectionProgress] = await Promise.all([
       apiFetch<CourseGraph>(`/orgs/${orgId}/courses/${courseId}/graph`),
       apiFetch<CourseProfile>(`/orgs/${orgId}/courses/${courseId}/profile`),
+      apiFetch<NextTask>(`/orgs/${orgId}/courses/${courseId}/next-task`),
+      apiFetch<SectionProgress[]>(`/orgs/${orgId}/courses/${courseId}/sections`),
     ]);
 
     // Fetch per-concept mastery
@@ -101,6 +123,41 @@ export default async function CourseDetailPage({
       ...concept,
       masteryState: masteryMap.get(concept.id) ?? ("unstarted" as MasteryState),
     }));
+
+  const primaryCTA = (() => {
+    if (!nextTask) {
+      return {
+        href: `/study/${courseId}`,
+        label: "Continue Studying",
+        description: "Pick up where you left off.",
+      };
+    }
+
+    if (nextTask.taskType === "section_exam" && nextTask.sectionId) {
+      const section = sectionProgress.find((item) => item.sectionId === nextTask.sectionId);
+      return {
+        href: `/study/${courseId}/sections/${nextTask.sectionId}/exam`,
+        label: "Take Section Exam",
+        description: section
+          ? `Certify ${section.section.name} before moving deeper into the course.`
+          : "A section exam is ready.",
+      };
+    }
+
+    if (nextTask.taskType === "quiz") {
+      return {
+        href: `/study/${courseId}/quiz`,
+        label: "Take Quiz",
+        description: "You are due for a broader checkpoint quiz.",
+      };
+    }
+
+    return {
+      href: `/study/${courseId}`,
+      label: "Continue Studying",
+      description: "Pick up where you left off.",
+    };
+  })();
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 md:px-8">
@@ -155,6 +212,14 @@ export default async function CourseDetailPage({
               <p className="text-xs text-muted-foreground">Not Started</p>
             </div>
           </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Badge variant="outline">
+              {profile.certifiedSections ?? 0} certified sections
+            </Badge>
+            <Badge variant="outline">
+              {profile.examReadySections ?? 0} exam-ready sections
+            </Badge>
+          </div>
         </div>
       )}
 
@@ -162,13 +227,13 @@ export default async function CourseDetailPage({
       {profile && (profile.diagnosticCompleted || profile.completionPercent > 0) ? (
         <div className="rounded-lg border border-border p-6 mb-8 text-center">
           <h2 className="text-lg font-semibold text-foreground mb-2">
-            Keep going!
+            Keep going
           </h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Pick up where you left off.
+            {primaryCTA.description}
           </p>
-          <Button render={<Link href={`/study/${courseId}`} />}>
-            Continue Studying
+          <Button render={<Link href={primaryCTA.href} />}>
+            {primaryCTA.label}
           </Button>
         </div>
       ) : (
@@ -184,6 +249,57 @@ export default async function CourseDetailPage({
           </Button>
         </div>
       )}
+
+      {sectionProgress.length > 0 ? (
+        <>
+          <h2 className="text-xl font-semibold text-foreground mb-4">Sections</h2>
+          <div className="grid gap-4 mb-8">
+            {sectionProgress
+              .sort((a, b) => a.section.sortOrder - b.section.sortOrder)
+              .map((item) => {
+                const masteredCount = item.conceptStates.filter(
+                  (state) => state.masteryState === "mastered"
+                ).length;
+                return (
+                  <div
+                    key={item.sectionId}
+                    className="rounded-xl border border-border bg-card p-5"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-semibold text-foreground">
+                            {item.section.name}
+                          </h3>
+                          <Badge variant={sectionStatusVariant[item.status]}>
+                            {sectionStatusLabel[item.status]}
+                          </Badge>
+                        </div>
+                        {item.section.description ? (
+                          <p className="text-sm text-muted-foreground">
+                            {item.section.description}
+                          </p>
+                        ) : null}
+                        <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                          {masteredCount}/{item.section.concepts.length} concepts mastered
+                        </p>
+                      </div>
+                      {item.status === "exam_ready" ? (
+                        <Button
+                          render={
+                            <Link href={`/study/${courseId}/sections/${item.sectionId}/exam`} />
+                          }
+                        >
+                          Take Section Exam
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </>
+      ) : null}
 
       {/* Concept list */}
       <h2 className="text-xl font-semibold text-foreground mb-4">Concepts</h2>

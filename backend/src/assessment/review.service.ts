@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { FireUpdateService } from '@/spaced-repetition/fire-update.service';
 import { ProblemSubmissionService } from './problem-submission.service';
+import { SectionExamService } from './section-exam.service';
 
 export interface ReviewSession {
   conceptId: string;
@@ -28,6 +29,7 @@ export class ReviewService {
     private prisma: PrismaService,
     private problemSubmission: ProblemSubmissionService,
     private fireUpdate: FireUpdateService,
+    private sectionExamService: SectionExamService,
   ) {}
 
   async startReview(userId: string, conceptId: string) {
@@ -189,6 +191,13 @@ export class ReviewService {
       score, // quality = accuracy ratio
       concept?.courseId,
     );
+
+    if (concept?.courseId) {
+      await this.sectionExamService.syncSectionStates(
+        session.userId,
+        concept.courseId,
+      );
+    }
 
     // Clean up session
     this.sessions.delete(sessionId);

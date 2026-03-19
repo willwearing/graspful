@@ -38,6 +38,16 @@ describe("StudyRouter", () => {
     expect(mockPush).toHaveBeenCalledWith("/study/c1/quiz");
   });
 
+  it("redirects to section exam page for section exam task", () => {
+    render(
+      <StudyRouter
+        courseId="c1"
+        task={{ taskType: "section_exam", sectionId: "section-1", reason: "Ready to certify" }}
+      />
+    );
+    expect(mockPush).toHaveBeenCalledWith("/study/c1/sections/section-1/exam");
+  });
+
   it("shows session complete when task is null", () => {
     render(<StudyRouter courseId="c1" task={null} />);
     expect(screen.getByText(/session complete/i)).toBeTruthy();

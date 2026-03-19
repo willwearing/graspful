@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
 import { resolvePageBrand } from "@/lib/brand/resolve";
 import { StudyRouter } from "@/components/app/study-router";
+import type { NextTask } from "@/lib/types";
 
 export default async function StudyPage({
   params,
@@ -17,9 +18,9 @@ export default async function StudyPage({
 
   const brand = await resolvePageBrand();
 
-  let task = null;
+  let task: NextTask | null = null;
   try {
-    task = await apiFetch<any>(`/orgs/${brand.orgId}/courses/${courseId}/next-task`);
+    task = await apiFetch<NextTask>(`/orgs/${brand.orgId}/courses/${courseId}/next-task`);
   } catch {
     // No task available
   }

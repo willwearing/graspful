@@ -54,8 +54,10 @@ model User {
   triggeredJobs AudioGenerationJob[] @relation("JobTriggeredBy")
   enrollments          CourseEnrollment[]
   conceptStates        StudentConceptState[]
+  sectionStates        StudentSectionState[]
   kpStates             StudentKPState[]
   problemAttempts      ProblemAttempt[]
+  sectionExamSessions  SectionExamSession[]
   xpEvents             XPEvent[]
   diagnosticSessions   DiagnosticSession[]
 
@@ -404,6 +406,8 @@ model Course {
   sections    CourseSection[]
   concepts    Concept[]
   enrollments        CourseEnrollment[]
+  sectionStates      StudentSectionState[]
+  sectionExamSessions SectionExamSession[]
   xpEvents           XPEvent[]
   diagnosticSessions DiagnosticSession[]
 
@@ -422,12 +426,15 @@ model CourseSection {
   slug        String
   name        String
   description String?
+  sectionExamConfig Json? @map("section_exam_config")
   sortOrder   Int      @default(0) @map("sort_order")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  concepts Concept[]
+  course        Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  concepts      Concept[]
+  studentStates StudentSectionState[]
+  examSessions  SectionExamSession[]
 
   @@unique([courseId, slug])
   @@index([courseId])
@@ -466,6 +473,7 @@ model Concept {
   encompassedBy      EncompassingEdge[] @relation("EncompassingSource")
   encompasses        EncompassingEdge[] @relation("EncompassingTarget")
   studentStates          StudentConceptState[]
+  sectionExamQuestions   SectionExamQuestion[]
   diagnosticSnapshots    DiagnosticMasterySnapshot[]
 
   @@unique([courseId, slug])
@@ -484,7 +492,9 @@ model KnowledgePoint {
   slug                  String
   sortOrder             Int      @default(0) @map("sort_order")
   instructionText       String?  @map("instruction_text")
+  instructionContent    Json?    @map("instruction_content")
   workedExampleText     String?  @map("worked_example_text")
+  workedExampleContent  Json?    @map("worked_example_content")
   instructionAudioUrl   String?  @map("instruction_audio_url")
   workedExampleAudioUrl String?  @map("worked_example_audio_url")
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
@@ -563,6 +573,24 @@ enum MasteryState {
   @@map("mastery_state")
 }
 
+enum SectionMasteryState {
+  locked
+  lesson_in_progress
+  exam_ready
+  certified
+  needs_review
+
+  @@map("section_mastery_state")
+}
+
+enum ExamSessionStatus {
+  in_progress
+  completed
+  expired
+
+  @@map("exam_session_status")
+}
+
 enum DiagnosticState {
   unknown
   mastered
@@ -589,6 +617,7 @@ model Problem {
 
   knowledgePoint     KnowledgePoint      @relation(fields: [knowledgePointId], references: [id], onDelete: Cascade)
   attempts           ProblemAttempt[]
+  sectionExamQuestions SectionExamQuestion[]
   diagnosticSessions DiagnosticSession[]
 
   @@index([knowledgePointId])
@@ -650,6 +679,28 @@ model StudentConceptState {
   @@map("student_concept_states")
 }
 
+model StudentSectionState {
+  id                String              @id @default(uuid()) @db.Uuid
+  userId            String              @map("user_id") @db.Uuid
+  courseId          String              @map("course_id") @db.Uuid
+  sectionId         String              @map("section_id") @db.Uuid
+  status            SectionMasteryState @default(locked)
+  examPassedAt      DateTime?           @map("exam_passed_at") @db.Timestamptz
+  lastExamAttemptAt DateTime?           @map("last_exam_attempt_at") @db.Timestamptz
+  attempts          Int                 @default(0)
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course  Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  section CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sectionId])
+  @@index([userId, courseId])
+  @@index([courseId, sectionId])
+  @@map("student_section_states")
+}
+
 // =============================================================================
 // STUDENT MODEL — KNOWLEDGE POINT STATE
 // =============================================================================
@@ -671,6 +722,51 @@ model StudentKPState {
   @@unique([userId, knowledgePointId])
   @@index([userId])
   @@map("student_kp_states")
+}
+
+model SectionExamSession {
+  id            String            @id @default(uuid()) @db.Uuid
+  userId        String            @map("user_id") @db.Uuid
+  courseId      String            @map("course_id") @db.Uuid
+  sectionId     String            @map("section_id") @db.Uuid
+  attemptNumber Int               @map("attempt_number")
+  status        ExamSessionStatus @default(in_progress)
+  score         Float?
+  passed        Boolean?
+  timeLimitMs   Int?              @map("time_limit_ms")
+  startedAt     DateTime          @default(now()) @map("started_at") @db.Timestamptz
+  completedAt   DateTime?         @map("completed_at") @db.Timestamptz
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  section   CourseSection        @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  questions SectionExamQuestion[]
+
+  @@index([userId, courseId, sectionId])
+  @@map("section_exam_sessions")
+}
+
+model SectionExamQuestion {
+  id             String   @id @default(uuid()) @db.Uuid
+  sessionId      String   @map("session_id") @db.Uuid
+  problemId      String   @map("problem_id") @db.Uuid
+  conceptId      String   @map("concept_id") @db.Uuid
+  sortOrder      Int      @map("sort_order")
+  response       Json?
+  correct        Boolean?
+  responseTimeMs Int?     @map("response_time_ms")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  session SectionExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  problem Problem            @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  concept Concept            @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, problemId])
+  @@index([sessionId, sortOrder])
+  @@map("section_exam_questions")
 }
 
 // =============================================================================

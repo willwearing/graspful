@@ -4,6 +4,8 @@
 
 Courses are defined as YAML files in `content/courses/`. Each file defines a complete knowledge graph for one certification exam: concepts, prerequisite edges, encompassing edges, knowledge points, and practice problems.
 
+Sections can also define `sectionExam` blocks. These create section-end certification checkpoints between lesson mastery and course-level quizzes.
+
 **No code is needed to add a new course.** The backend imports YAML, validates the graph, and builds the knowledge graph in the database.
 
 ## Directory Structure
@@ -42,8 +44,12 @@ concepts:
         weight: 0.0-1.0               # how much practicing THIS concept reviews the target
     knowledgePoints:
       - id: string
-        instruction: string            # markdown file path or inline text -> TTS audio
+            instruction: string            # markdown file path or inline text -> TTS audio
+            instructionContent:           # optional structured visuals/references
+              - type: image | video | link | callout
         workedExample: string          # optional
+        workedExampleContent:          # optional structured visuals/references
+          - type: image | video | link | callout
         problems:
           - id: string
             type: multiple_choice | fill_blank | true_false | ordering | matching | scenario
@@ -51,6 +57,20 @@ concepts:
             options: [string]          # for MC, ordering, matching
             correct: string | number   # answer
             explanation: string        # shown after answering
+
+sections:
+  - id: string
+    name: string
+    description: string
+    sectionExam:
+      enabled: boolean
+      passingScore: 0.0-1.0
+      timeLimitMinutes: number
+      questionCount: number
+      blueprint:
+        - conceptId: concept-id
+          minQuestions: number
+      instructions: string
 ```
 
 ## Authoring Guidelines
@@ -79,9 +99,42 @@ A concept = one teachable idea that can be tested independently. Too broad = stu
 ### Knowledge Points (KPs)
 
 - 1-4 KPs per concept, progressively harder
-- Each KP needs: instruction text, 2-3 practice problems minimum
+- Each KP should follow: instruction -> content -> worked example -> practice
+- Each fully-authored KP needs: instruction text, 2-3 practice problems minimum
 - 2 consecutive correct answers = KP passed
 - Problems should test understanding, not just recall
+
+### Structured content blocks
+
+Use `instructionContent` and `workedExampleContent` for media and references that support the lesson without polluting the audio text.
+
+- `image`: screenshot or diagram with `url`, `alt`, optional `caption`, optional `width`
+- `video`: external demo or walkthrough with `url`, `title`, optional `caption`
+- `link`: supporting document or product page with `url`, `title`, optional `description`
+- `callout`: short highlighted note with `title` and `body`
+
+Guidelines:
+
+- Keep `instruction` and `workedExample` plain-text first
+- Add a visual when it materially reduces ambiguity
+- Prefer existing official assets over creating new throwaway diagrams
+- Use captions to explain why the learner should care about the image
+
+### Practice authoring
+
+In lesson flow, `problems` are the practice session for a KP. Author them as a sequence:
+
+- First problem: confirm the learner recognized the key idea
+- Middle problem: test application or comparison
+- Final problem: use a scenario when the concept shows up in real TAM work
+
+### Section exam authoring
+
+- Add a `sectionExam` block to every section that should gate downstream progression
+- Every blueprint concept must live inside that section
+- `questionCount` must be at least the sum of the blueprint `minQuestions`
+- Make the exam broad and unaided: test transfer and reasoning, not verbatim lesson recall
+- If the section relies on a diagram or visual model, the exam should test the underlying structure, not just terminology
 
 ### Problem Quality
 

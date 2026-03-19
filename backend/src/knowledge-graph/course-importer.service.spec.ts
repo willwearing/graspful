@@ -7,6 +7,7 @@ function createMockPrisma() {
   const createdConcepts: any[] = [];
   const createdKPs: any[] = [];
   const createdProblems: any[] = [];
+  const createdSections: any[] = [];
   const createdPrereqEdges: any[] = [];
   const createdEncompEdges: any[] = [];
   const deletedCourses: any[] = [];
@@ -41,6 +42,13 @@ function createMockPrisma() {
             return concept;
           }),
         },
+        courseSection: {
+          create: jest.fn(async (args: any) => {
+            const section = { id: `section-${args.data.slug}`, ...args.data };
+            createdSections.push(section);
+            return section;
+          }),
+        },
         knowledgePoint: {
           create: jest.fn(async (args: any) => {
             const kp = { id: `kp-${args.data.slug}`, ...args.data };
@@ -70,7 +78,7 @@ function createMockPrisma() {
       };
       return fn(tx);
     }),
-    _created: { createdCourses, createdConcepts, createdKPs, createdProblems, createdPrereqEdges, createdEncompEdges, deletedCourses },
+    _created: { createdCourses, createdSections, createdConcepts, createdKPs, createdProblems, createdPrereqEdges, createdEncompEdges, deletedCourses },
   };
 }
 
@@ -193,6 +201,12 @@ concepts:
     knowledgePoints:
       - id: kp-1
         instruction: "content/test.md"
+        instructionContent:
+          - type: image
+            url: "https://example.com/entity.png"
+            alt: "Entity diagram"
+            caption: "A simple entity diagram"
+            width: 640
         problems:
           - id: p-1
             type: multiple_choice
@@ -204,9 +218,85 @@ concepts:
 
     await service.importFromYaml(yaml, 'org-123');
     expect(mockPrisma._created.createdKPs).toHaveLength(1);
+    expect(mockPrisma._created.createdKPs[0].instructionContent).toEqual([
+      {
+        type: 'image',
+        url: 'https://example.com/entity.png',
+        alt: 'Entity diagram',
+        caption: 'A simple entity diagram',
+        width: 640,
+      },
+    ]);
     expect(mockPrisma._created.createdProblems).toHaveLength(1);
     expect(mockPrisma._created.createdProblems[0].type).toBe('multiple_choice');
     expect(mockPrisma._created.createdProblems[0].correctAnswer).toEqual(1);
+  });
+
+  it('should persist section exam config on sections', async () => {
+    const mockPrisma = createMockPrisma();
+    const validationService = new GraphValidationService();
+    const service = new CourseImporterService(mockPrisma as any, validationService);
+
+    const yaml = `
+course:
+  id: test-course
+  name: Test Course
+  estimatedHours: 10
+  version: "1.0"
+
+sections:
+  - id: section-a
+    name: Section A
+    sectionExam:
+      enabled: true
+      passingScore: 0.8
+      questionCount: 2
+      blueprint:
+        - conceptId: concept-a
+          minQuestions: 1
+        - conceptId: concept-b
+          minQuestions: 1
+
+concepts:
+  - id: concept-a
+    name: Concept A
+    section: section-a
+    difficulty: 2
+    estimatedMinutes: 10
+    tags: []
+    knowledgePoints:
+      - id: kp-1
+        problems:
+          - id: p-1
+            type: multiple_choice
+            question: "A?"
+            options: ["A", "B"]
+            correct: 0
+  - id: concept-b
+    name: Concept B
+    section: section-a
+    difficulty: 2
+    estimatedMinutes: 10
+    tags: []
+    knowledgePoints:
+      - id: kp-2
+        problems:
+          - id: p-2
+            type: true_false
+            question: "B?"
+            correct: "true"
+`;
+
+    await service.importFromYaml(yaml, 'org-123');
+    expect(mockPrisma._created.createdSections[0].sectionExamConfig).toEqual({
+      enabled: true,
+      passingScore: 0.8,
+      questionCount: 2,
+      blueprint: [
+        { conceptId: 'concept-a', minQuestions: 1 },
+        { conceptId: 'concept-b', minQuestions: 1 },
+      ],
+    });
   });
 
   it('should reject invalid YAML structure', async () => {

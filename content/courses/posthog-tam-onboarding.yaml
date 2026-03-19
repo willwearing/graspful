@@ -11,6 +11,21 @@ sections:
   - id: data-modeling-basics
     name: Data Modeling Basics
     description: Entities, attributes, and keys — the building blocks of any data model.
+    sectionExam:
+      enabled: true
+      passingScore: 0.75
+      timeLimitMinutes: 12
+      questionCount: 6
+      blueprint:
+        - conceptId: entities
+          minQuestions: 2
+        - conceptId: attributes
+          minQuestions: 2
+        - conceptId: keys-and-identity
+          minQuestions: 2
+      instructions: >-
+        Work without step-by-step cues. Show that you can distinguish entities, attributes, and keys,
+        then apply those ideas to realistic PostHog-flavored examples.
   - id: data-modeling-design
     name: Data Modeling Design
     description: Relationships, cardinality, join tables, and the design process.
@@ -23,21 +38,113 @@ sections:
   - id: posthog-data-model
     name: PostHog Data Model
     description: PostHog's specific entities — events, persons, properties, sessions, and actions.
+    sectionExam:
+      enabled: true
+      passingScore: 0.75
+      timeLimitMinutes: 14
+      questionCount: 7
+      blueprint:
+        - conceptId: ph-events
+          minQuestions: 1
+        - conceptId: ph-persons
+          minQuestions: 1
+        - conceptId: ph-distinct-id
+          minQuestions: 1
+        - conceptId: ph-sessions
+          minQuestions: 1
+        - conceptId: ph-actions
+          minQuestions: 1
+      instructions: >-
+        This exam checks whether you can reason about the core PostHog entities and how they connect
+        in analysis, ingestion, and product usage.
   - id: posthog-ingestion
     name: PostHog Ingestion Pipeline
     description: How events flow from capture through Kafka to ClickHouse storage.
+    sectionExam:
+      enabled: true
+      passingScore: 0.75
+      timeLimitMinutes: 12
+      questionCount: 6
+      blueprint:
+        - conceptId: ph-event-capture
+          minQuestions: 2
+        - conceptId: ph-ingestion-pipeline
+          minQuestions: 2
+        - conceptId: ph-clickhouse-storage
+          minQuestions: 1
+        - conceptId: ph-person-processing
+          minQuestions: 1
+      instructions: >-
+        Show that you can trace what happens to an event after capture and explain where identity and storage fit.
   - id: identification
     name: Identification
     description: Anonymous vs identified events, the identify call, person merging, and common pitfalls.
+    sectionExam:
+      enabled: true
+      passingScore: 0.75
+      timeLimitMinutes: 12
+      questionCount: 6
+      blueprint:
+        - conceptId: anonymous-vs-identified
+          minQuestions: 2
+        - conceptId: identify-call
+          minQuestions: 1
+        - conceptId: person-merging
+          minQuestions: 1
+        - conceptId: identification-pitfalls
+          minQuestions: 2
+      instructions: >-
+        Work from behavior and system outcomes, not memorized definitions. The goal is to spot good and bad identification patterns.
   - id: group-analytics
     name: Group Analytics
     description: Modeling organizations and B2B analytics with PostHog groups.
+    sectionExam:
+      enabled: true
+      passingScore: 0.75
+      timeLimitMinutes: 10
+      questionCount: 5
+      blueprint:
+        - conceptId: group-types
+          minQuestions: 2
+        - conceptId: group-identify
+          minQuestions: 1
+        - conceptId: linking-events-to-groups
+          minQuestions: 1
+        - conceptId: group-gotchas
+          minQuestions: 1
+      instructions: >-
+        Demonstrate that you can model organizations cleanly and explain how groups change analysis in a B2B setting.
   - id: posthog-cdp
     name: PostHog CDP
     description: Data pipelines in PostHog — sources, transformations, and destinations.
+    sectionExam:
+      enabled: true
+      passingScore: 0.75
+      timeLimitMinutes: 8
+      questionCount: 4
+      blueprint:
+        - conceptId: ph-cdp-overview
+          minQuestions: 2
+        - conceptId: ph-destinations-exports
+          minQuestions: 2
+      instructions: >-
+        Show that you understand what PostHog CDP is for and where destinations and exports fit in a customer workflow.
   - id: querying
     name: Querying Foundations
     description: Cohorts and HogQL for practical analysis.
+    sectionExam:
+      enabled: true
+      passingScore: 0.75
+      timeLimitMinutes: 8
+      questionCount: 4
+      blueprint:
+        - conceptId: cohorts
+          minQuestions: 2
+        - conceptId: hogql-basics
+          minQuestions: 2
+      instructions: >-
+        This exam checks whether you can move from product questions to the right querying tool,
+        especially when HogQL is the right fit.
 concepts:
   - id: entities
     name: Entities — Things That Exist
@@ -57,6 +164,15 @@ concepts:
           relationships later. The key test: can you have more than one of this thing, and do you need to tell them apart? If yes, it is an entity. In a hospital system, Patient, Doctor, Appointment,
           and Medication are all entities. In a music streaming app, User, Song, Playlist, and Artist are entities. Recognizing entities is the first and most important step in data modeling because
           everything else — attributes, keys, relationships — hangs off of them.
+        instructionContent:
+          - type: callout
+            title: Entity identification shortcut
+            body: >-
+              Ask three questions in order: can there be many of these, do we need to distinguish one from another, and do we track multiple facts about each one?
+          - type: link
+            url: https://www.lucidchart.com/pages/er-diagrams
+            title: Visual ER diagram primer
+            description: Use this when the learner needs a picture of how entities become boxes in a model.
         problems:
           - id: entities-p1
             type: multiple_choice
@@ -247,6 +363,15 @@ concepts:
           Relationships are implemented through foreign keys — an attribute on one entity that references the primary key of another. For example, the Order entity would have a customer_id attribute
           that points to the Customer entity's primary key. This is how you 'connect' two entities in a database. Without relationships, your entities would be isolated silos of data with no way to
           answer questions like 'which customer placed this order?' or 'what orders does this customer have?'
+        instructionContent:
+          - type: callout
+            title: Read the arrow carefully
+            body: >-
+              The foreign key usually lives on the side that has many records. In Customer -> Order, the relationship is implemented by customer_id on Order.
+          - type: link
+            url: https://www.lucidchart.com/pages/database-diagram/database-relationships
+            title: Relationship and foreign-key visual guide
+            description: Helpful when a learner needs to see one-to-many and many-to-many relationships drawn out.
         problems:
           - id: relationships-p1
             type: multiple_choice
@@ -508,6 +633,16 @@ concepts:
           databases, APIs, event streams (like user clickstreams), log files, and SaaS tools. Common destinations include data warehouses (BigQuery, Snowflake), dashboards (Looker, Metabase), machine
           learning systems, and product analytics platforms. Every analytics product you have ever used — Google Analytics, Mixpanel, Amplitude, PostHog — has a data pipeline at its core.
           Understanding how pipelines work helps you reason about data freshness, troubleshoot missing data, and explain latency to customers.
+        instructionContent:
+          - type: image
+            url: https://posthog.com/images/products/data-pipeline/data-pipeline.png
+            alt: Data pipeline product overview showing flow between systems
+            caption: A concrete pipeline view helps learners map the abstract stages to a real product interface.
+            width: 960
+          - type: callout
+            title: TAM lens
+            body: >-
+              When a customer says data is missing or stale, ask which stage failed first: source, ingestion, storage, transformation, or delivery.
         problems:
           - id: pipeline-p1
             type: multiple_choice
@@ -691,6 +826,16 @@ concepts:
           aggregating (summing, counting, averaging — turning raw events into metrics), and normalizing (standardizing formats like dates, currencies, or country codes). For example, raw event data
           might look like individual 'user_clicked_button' records with timestamps. After transformation, you might have an aggregated table of 'daily_clicks_per_user' that is much easier to query for
           analytics. Transformation is where business logic lives. The rules about what counts as an 'active user' or how 'revenue' is calculated are encoded in transformation steps.
+        instructionContent:
+          - type: image
+            url: https://posthog.com/images/products/data-warehouse/screenshot-data-warehouse.png
+            alt: PostHog data warehouse interface for querying transformed data
+            caption: Warehouses expose the outputs of transformation work in a form analysts and TAMs can inspect directly.
+            width: 960
+          - type: callout
+            title: Important distinction
+            body: >-
+              Instrumentation creates raw facts. Transformation turns those facts into business definitions like active users, MRR, or qualified accounts.
         problems:
           - id: transform-p1
             type: multiple_choice
@@ -900,11 +1045,26 @@ concepts:
           navigated away), '$autocapture' (user clicked, changed input, or submitted a form), '$identify' (user was identified), '$set' (person properties were set). Custom events are ones you define
           in your code: posthog.capture('user_signed_up', { plan: 'pro' }). In data modeling terms, Event is the central entity in PostHog. All other entities (Persons, Sessions, Groups) exist in
           relation to events. See the PostHog data model overview at https://posthog.com/docs/new-to-posthog/understand-posthog for a visual of how these entities connect.
+        instructionContent:
+          - type: link
+            url: https://posthog.com/docs/new-to-posthog/understand-posthog
+            title: PostHog data model overview
+            description: Use this visual overview to anchor the idea that events sit at the center of the PostHog model.
+          - type: image
+            url: https://posthog.com/images/products/product-analytics/screenshot-product-analytics.png
+            alt: PostHog product analytics interface built on event data
+            caption: The UI is downstream of the event model. Every chart here starts from captured events.
+            width: 960
         workedExample: >-
           A user visits your pricing page. PostHog's JS SDK automatically captures a '$pageview' event. The event looks like this internally: event name = '$pageview', timestamp =
           '2025-01-15T14:32:00Z', distinct_id = '018d4f2a-random-uuid', properties = { '$current_url': 'https://example.com/pricing', '$browser': 'Chrome', '$os': 'Mac OS X', '$device_type':
           'Desktop', '$referrer': 'https://google.com', '$referring_domain': 'google.com' }. Every one of these properties was set automatically by the SDK — the developer did not write any code
           beyond initializing PostHog.
+        workedExampleContent:
+          - type: callout
+            title: Coaching angle
+            body: >-
+              When a customer says 'PostHog missed the user,' inspect the event first. Event name, timestamp, distinct_id, and properties usually reveal the real issue.
         problems:
           - id: ph-events-p1
             type: multiple_choice
@@ -927,10 +1087,10 @@ concepts:
             type: multiple_choice
             question: Events with names prefixed by which symbol are PostHog defaults, automatically captured by the SDKs?
             options:
-              - $
-              - #
-              - @
-              - _
+              - "$"
+              - "#"
+              - "@"
+              - "_"
             correct: 0
             explanation: 'The dollar sign ($) prefix indicates PostHog default events: $pageview, $autocapture, $identify, $pageleave, etc. Custom events you define do not use the $ prefix.'
           - id: ph-events-p4
@@ -1491,6 +1651,16 @@ concepts:
           recording. They are used for tracking server-side actions like API calls, background jobs, and webhooks. (3) HTTP API — you can POST events directly to the /capture endpoint without using an
           SDK at all. Useful for custom integrations or languages without an official SDK. All three channels use a push-based ingestion model: your application sends events to PostHog. PostHog does
           not pull data from your systems. See the architecture overview at https://posthog.com/docs/how-posthog-works for a diagram showing how SDKs connect to the capture API.
+        instructionContent:
+          - type: image
+            url: https://posthog.com/images/products/product-os/event-pipelines.png
+            alt: Event pipeline illustration showing data flowing from sources through PostHog
+            caption: This is a good visual for explaining why SDK choice changes what metadata and capabilities are available.
+            width: 960
+          - type: link
+            url: https://posthog.com/docs/how-posthog-works
+            title: PostHog architecture overview
+            description: Reference when a learner wants to see capture API, ingestion, and storage in one picture.
         problems:
           - id: ph-capture-p1
             type: multiple_choice
@@ -1543,6 +1713,15 @@ concepts:
           and ClickHouse do not need to know about each other — Kafka sits between them as a buffer. This is the same pattern described in pipeline fundamentals: a message queue between ingestion and
           storage makes the pipeline more resilient and scalable. The capture API's only job is to validate the event and write it to Kafka. Everything else — person processing, property enrichment,
           storage — happens downstream. See the ingestion pipeline diagram at https://posthog.com/docs/how-posthog-works/ingestion-pipeline for a visual of this flow.
+        instructionContent:
+          - type: callout
+            title: Mental model
+            body: >-
+              Capture API -> Kafka buffer -> downstream consumers -> ClickHouse. Kafka buys resilience by absorbing bursts and outages between ingestion and storage.
+          - type: link
+            url: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
+            title: Ingestion pipeline diagram
+            description: Use this when explaining why Kafka exists and what happens after the capture endpoint accepts an event.
         problems:
           - id: ph-pipeline-p1
             type: multiple_choice
@@ -1772,6 +1951,15 @@ concepts:
           properties for segmentation, and unlocks feature flags, experiments, and cohorts. The tradeoff is cost: identified events require person processing (database lookups and potential writes).
           Most PostHog implementations use a hybrid approach: anonymous events for pre-login browsing (cheap, aggregate-level data) and identified events after login (full feature set for known
           users). See https://posthog.com/docs/data/persons and https://posthog.com/docs/getting-started/identify-users for the practical guide.
+        instructionContent:
+          - type: callout
+            title: Shortcut
+            body: >-
+              Anonymous gets you aggregate analytics. Identified unlocks person-scoped features like feature flags, cohorts, experiments, and richer support workflows.
+          - type: link
+            url: https://posthog.com/docs/getting-started/identify-users
+            title: Identify users guide
+            description: Good follow-up reading when a learner wants the implementation checklist behind the concept.
         problems:
           - id: anon-id-p1
             type: multiple_choice
@@ -1839,10 +2027,24 @@ concepts:
           after login or signup. The SDK deduplicates redundant identify calls, so calling it on each authenticated page load is safe and recommended. On the server side, you do not call identify() in the same way — you simply use the known user ID as
           the distinct_id in every capture() call. Server-side identify is only needed if you want to set person properties from the backend. See https://posthog.com/docs/product-analytics/identify
           for SDK-specific examples and https://posthog.com/docs/getting-started/identify-users for the practical getting-started guide.
+        instructionContent:
+          - type: callout
+            title: Three things happen at once
+            body: >-
+              identify links the anonymous browser id to a known id, creates or reuses the person, and updates person properties.
+          - type: link
+            url: https://posthog.com/docs/product-analytics/identify
+            title: Identify docs with SDK examples
+            description: Useful for comparing frontend and backend identify behavior side by side.
         workedExample: >-
           User visits your site. The JS SDK generates distinct_id 'abc-random'. They browse 5 pages (5 $pageview events with distinct_id 'abc-random'). Then they sign up. Your code runs:
           posthog.identify('user_42', { email: 'jane@co.com', plan: 'free' }). PostHog now merges the anonymous events from 'abc-random' into person 'user_42'. The person profile has two distinct_ids:
           'abc-random' and 'user_42'. Person properties are set: email = 'jane@co.com', plan = 'free'. All 5 pageview events now appear in user_42's event history.
+        workedExampleContent:
+          - type: callout
+            title: What to visualize
+            body: >-
+              Draw this as two IDs converging into one person timeline. That mental picture usually makes merging behavior click for new TAMs.
         problems:
           - id: identify-p1
             type: multiple_choice
@@ -2173,6 +2375,16 @@ concepts:
           has many users. Groups have their own properties (company name, plan, employee count) just like persons have person properties. Groups are a paid add-on and require the identify flow to work
           (events must be identified to link to groups). See https://posthog.com/docs/product-analytics/group-analytics for the full guide and
           https://posthog.com/tutorials/frontend-vs-backend-group-analytics for implementation patterns.
+        instructionContent:
+          - type: image
+            url: https://posthog.com/images/product/product-icons/group-analytics.svg
+            alt: Group analytics product icon
+            caption: Use this as a light anchor, then explain the real mental model as users -> groups -> events.
+            width: 240
+          - type: link
+            url: https://posthog.com/docs/product-analytics/group-analytics
+            title: Group analytics docs
+            description: Reference when the learner wants concrete implementation details after understanding the model.
         problems:
           - id: groups-p1
             type: multiple_choice
@@ -2190,9 +2402,9 @@ concepts:
             type: multiple_choice
             question: How many group types does PostHog allow per project?
             options:
-              - 3
-              - 5
-              - 10
+              - '3'
+              - '5'
+              - '10'
               - Unlimited
             correct: 1
             explanation: You can define up to 5 group types per PostHog project (e.g., company, team, project, workspace, organization). Plan carefully because this limit cannot be easily changed.
@@ -2387,6 +2599,16 @@ concepts:
           normalizing data (standardizing property names). Transformations run as Hog code during ingestion. Destinations: export data from PostHog to other tools. Two
           flavors exist: realtime destinations (send events as they happen to webhooks, Slack, etc.) and batch exports (scheduled dumps to data warehouses like BigQuery, Snowflake, S3). This
           three-part structure is PostHog's implementation of the pipeline pattern: collect, transform, deliver. See https://posthog.com/docs/cdp for the full CDP documentation.
+        instructionContent:
+          - type: image
+            url: https://posthog.com/images/products/data-pipeline/data-pipeline.png
+            alt: PostHog data pipeline overview for sources, transformations, and destinations
+            caption: This gives learners a concrete way to map Sources, Transformations, and Destinations to an actual product surface.
+            width: 960
+          - type: link
+            url: https://posthog.com/docs/cdp
+            title: PostHog CDP docs
+            description: Best reference when a customer conversation spans imports, in-flight changes, and downstream delivery.
         problems:
           - id: cdp-p1
             type: matching
@@ -2568,6 +2790,16 @@ concepts:
           events WHERE event = '$pageview' AND timestamp > now() - interval 7 day GROUP BY properties.$browser ORDER BY count() DESC. HogQL is your escape hatch when the UI builders are not flexible
           enough. Best practice: start with the UI builder for standard analysis and drop to HogQL only when you need custom logic the UI cannot express. See https://posthog.com/docs/sql for the
           complete HogQL documentation.
+        instructionContent:
+          - type: image
+            url: https://res.cloudinary.com/dmukukwp6/image/upload/posthog.com/contents/images/features/hogql/sql-light.png
+            alt: HogQL editor in PostHog
+            caption: Showing the actual editor lowers the barrier for TAMs who need to demo or troubleshoot SQL with customers.
+            width: 960
+          - type: link
+            url: https://posthog.com/docs/sql
+            title: HogQL docs
+            description: Keep this handy when moving from the insight builder to direct SQL.
         problems:
           - id: hogql-p1
             type: multiple_choice

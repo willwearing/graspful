@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { StudentModelController } from './student-model.controller';
 import { EnrollmentService } from './enrollment.service';
 import { StudentStateService } from './student-state.service';
+import { SectionExamService } from '@/assessment/section-exam.service';
 import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
 
 const mockGuard = { canActivate: () => true };
@@ -10,6 +11,7 @@ describe('StudentModelController', () => {
   let controller: StudentModelController;
   let mockEnrollment: any;
   let mockStudentState: any;
+  let mockSectionExam: any;
 
   beforeEach(async () => {
     mockEnrollment = {
@@ -22,11 +24,16 @@ describe('StudentModelController', () => {
       isDiagnosticCompleted: jest.fn(),
     };
 
+    mockSectionExam = {
+      getSectionStates: jest.fn().mockResolvedValue([]),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [StudentModelController],
       providers: [
         { provide: EnrollmentService, useValue: mockEnrollment },
         { provide: StudentStateService, useValue: mockStudentState },
+        { provide: SectionExamService, useValue: mockSectionExam },
       ],
     })
       .overrideGuard(SupabaseAuthGuard)
@@ -76,6 +83,10 @@ describe('StudentModelController', () => {
       ];
       mockStudentState.getConceptStates.mockResolvedValue(states);
       mockStudentState.isDiagnosticCompleted.mockResolvedValue(true);
+      mockSectionExam.getSectionStates.mockResolvedValue([
+        { status: 'certified' },
+        { status: 'exam_ready' },
+      ]);
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
       const result = await controller.getProfile('course-1', orgCtx as any);
@@ -86,6 +97,8 @@ describe('StudentModelController', () => {
       expect(result.unstarted).toBe(1);
       expect(result.completionPercent).toBeCloseTo(50);
       expect(result.diagnosticCompleted).toBe(true);
+      expect(result.certifiedSections).toBe(1);
+      expect(result.examReadySections).toBe(1);
       expect(mockStudentState.isDiagnosticCompleted).toHaveBeenCalledWith('u1', 'course-1');
     });
   });

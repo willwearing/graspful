@@ -1,6 +1,7 @@
 import { selectNextTask } from './task-selector';
 import {
   ConceptSnapshot,
+  SectionSnapshot,
   SimpleEdge,
   StudySession,
   TaskRecommendation,
@@ -8,6 +9,7 @@ import {
   REVIEW_XP_ESTIMATE,
   QUIZ_XP_ESTIMATE,
   REMEDIATION_XP_ESTIMATE,
+  SECTION_EXAM_XP_ESTIMATE,
 } from './types';
 
 const MAX_TASKS = 20;
@@ -22,6 +24,8 @@ function estimateTaskXP(taskType: string): number {
       return REMEDIATION_XP_ESTIMATE;
     case 'quiz':
       return QUIZ_XP_ESTIMATE;
+    case 'section_exam':
+      return SECTION_EXAM_XP_ESTIMATE;
     default:
       return 0;
   }
@@ -39,6 +43,7 @@ function estimateTaskXP(taskType: string): number {
  */
 export function generateStudySession(
   snapshots: ConceptSnapshot[],
+  sections: SectionSnapshot[],
   edges: SimpleEdge[],
   frontier: string[],
   dailyXPTarget: number,
@@ -59,6 +64,7 @@ export function generateStudySession(
 
     const task = selectNextTask(
       snapshots.filter((s) => !usedConceptIds.has(s.conceptId)),
+      sections,
       edges,
       availableFrontier,
       runningXPSinceQuiz,
@@ -69,10 +75,13 @@ export function generateStudySession(
     const lastTask = tasks[tasks.length - 1];
     if (
       lastTask &&
-      lastTask.taskType === 'quiz' &&
-      lastTask.reason.includes('caught up') &&
-      task.taskType === 'quiz' &&
-      task.reason.includes('caught up')
+      ((lastTask.taskType === 'quiz' &&
+        lastTask.reason.includes('caught up') &&
+        task.taskType === 'quiz' &&
+        task.reason.includes('caught up')) ||
+        (lastTask.taskType === 'section_exam' &&
+          task.taskType === 'section_exam' &&
+          lastTask.sectionId === task.sectionId))
     ) {
       break;
     }
@@ -89,7 +98,7 @@ export function generateStudySession(
     }
 
     // Reset XP counter after a quiz
-    if (task.taskType === 'quiz') {
+    if (task.taskType === 'quiz' || task.taskType === 'section_exam') {
       runningXPSinceQuiz = 0;
     }
   }

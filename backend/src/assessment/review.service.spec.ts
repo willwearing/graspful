@@ -6,6 +6,7 @@ describe('ReviewService', () => {
   let mockPrisma: any;
   let mockProblemSubmission: any;
   let mockFireUpdate: any;
+  let mockSectionExamService: any;
 
   const mockProblems = [
     { id: 'p1', questionText: 'Q1', type: 'multiple_choice', options: ['A', 'B'], difficulty: 2, isReviewVariant: true },
@@ -45,7 +46,16 @@ describe('ReviewService', () => {
       propagateImplicitRepetition: jest.fn().mockResolvedValue(undefined),
     };
 
-    service = new ReviewService(mockPrisma, mockProblemSubmission, mockFireUpdate);
+    mockSectionExamService = {
+      syncSectionStates: jest.fn().mockResolvedValue(undefined),
+    };
+
+    service = new ReviewService(
+      mockPrisma,
+      mockProblemSubmission,
+      mockFireUpdate,
+      mockSectionExamService,
+    );
   });
 
   describe('startReview', () => {

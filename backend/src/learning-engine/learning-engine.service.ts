@@ -7,8 +7,10 @@ import { RemediationService } from './remediation.service';
 import { selectNextTask } from './task-selector';
 import { generateStudySession } from './session-generator';
 import { detectPlateau, findWeakPrerequisites } from './plateau-detector';
+import { SectionExamService } from '@/assessment/section-exam.service';
 import {
   ConceptSnapshot,
+  SectionSnapshot,
   SimpleEdge,
   TaskRecommendation,
   StudySession,
@@ -25,6 +27,7 @@ export class LearningEngineService {
     private graphQuery: GraphQueryService,
     private remediationService: RemediationService,
     private memoryDecay: MemoryDecayService,
+    private sectionExamService: SectionExamService,
   ) {}
 
   async getNextTask(
@@ -34,7 +37,7 @@ export class LearningEngineService {
     // Decay memory before building context so values are current
     await this.memoryDecay.decayAllMemory(userId, courseId);
 
-    const { snapshots, edges, frontier } = await this.buildContext(
+    const { snapshots, sections, edges, frontier } = await this.buildContext(
       userId,
       courseId,
     );
@@ -51,7 +54,13 @@ export class LearningEngineService {
 
     const xpSinceLastQuiz = await this.computeXPSinceLastQuiz(userId, courseId);
 
-    const task = selectNextTask(snapshots, edges, availableFrontier, xpSinceLastQuiz);
+    const task = selectNextTask(
+      snapshots,
+      sections,
+      edges,
+      availableFrontier,
+      xpSinceLastQuiz,
+    );
 
     logger.emit({
       severityNumber: SeverityNumber.INFO,
@@ -71,7 +80,7 @@ export class LearningEngineService {
     // Decay memory before building context so values are current
     await this.memoryDecay.decayAllMemory(userId, courseId);
 
-    const { snapshots, edges, frontier } = await this.buildContext(
+    const { snapshots, sections, edges, frontier } = await this.buildContext(
       userId,
       courseId,
     );
@@ -89,6 +98,7 @@ export class LearningEngineService {
 
     return generateStudySession(
       snapshots,
+      sections,
       edges,
       availableFrontier,
       dailyXPTarget,
@@ -100,18 +110,24 @@ export class LearningEngineService {
    * Build the context needed by pure functions: snapshots, edges, frontier.
    */
   private async buildContext(userId: string, courseId: string) {
+    await this.sectionExamService.syncSectionStates(userId, courseId);
+
     // Fetch concept states and edges in parallel
-    const [conceptStates, concepts, prereqEdges] = await Promise.all([
+    const [conceptStates, concepts, prereqEdges, sectionStates] = await Promise.all([
       this.studentState.getConceptStates(userId, courseId),
       this.prisma.concept.findMany({
         where: { courseId },
-        select: { id: true },
+        select: { id: true, sectionId: true },
       }),
       this.prisma.prerequisiteEdge.findMany({
         where: {
           sourceConcept: { courseId },
         },
         select: { sourceConceptId: true, targetConceptId: true },
+      }),
+      this.prisma.studentSectionState.findMany({
+        where: { userId, courseId },
+        select: { sectionId: true, status: true },
       }),
     ]);
 
@@ -127,6 +143,11 @@ export class LearningEngineService {
       target: e.targetConceptId,
     }));
 
+    const sections: SectionSnapshot[] = sectionStates.map((state) => ({
+      sectionId: state.sectionId,
+      status: state.status as SectionSnapshot['status'],
+    }));
+
     const conceptIds = concepts.map((c) => c.id);
     const masteredIds = new Set(
       snapshots
@@ -138,9 +159,16 @@ export class LearningEngineService {
       conceptIds,
       edges,
       masteredIds,
-    );
+    ).filter((conceptId) => {
+      const sectionId = concepts.find((concept) => concept.id === conceptId)?.sectionId;
+      if (!sectionId) {
+        return true;
+      }
+      const section = sections.find((candidate) => candidate.sectionId === sectionId);
+      return section?.status === 'lesson_in_progress';
+    });
 
-    return { snapshots, edges, frontier };
+    return { snapshots, sections, edges, frontier };
   }
 
   /**

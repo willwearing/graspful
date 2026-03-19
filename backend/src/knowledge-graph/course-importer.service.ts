@@ -107,6 +107,7 @@ export class CourseImporterService {
             slug: sectionYaml.id,
             name: sectionYaml.name,
             description: sectionYaml.description,
+            sectionExamConfig: sectionYaml.sectionExam ?? undefined,
             sortOrder: i,
           },
         });
@@ -147,7 +148,9 @@ export class CourseImporterService {
               slug: kpYaml.id,
               sortOrder: kpIdx,
               instructionText: kpYaml.instruction,
+              instructionContent: kpYaml.instructionContent,
               workedExampleText: kpYaml.workedExample,
+              workedExampleContent: kpYaml.workedExampleContent,
             },
           });
           knowledgePointCount++;
