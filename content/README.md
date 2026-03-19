@@ -75,6 +75,21 @@ sections:
 
 ## Authoring Guidelines
 
+### Progress-safe evolution
+
+After a course has active learners, course updates must preserve slug identity:
+
+- Keep `course.id`, section `id`, concept `id`, and KP `id` stable across revisions.
+- Safe changes: refine instruction, add worked examples, revise problems, add content blocks, add new concepts, add new sections, adjust edges.
+- Unsafe changes: removing or renaming existing slugs in-place. Those changes can orphan learner state and are blocked by the importer.
+- Use the progress-safe import scripts (`scripts/load-course.ts` or `scripts/import-course-quick.ts`) instead of deleting and recreating the course.
+
+Practical rule:
+
+- Same idea, better lesson -> keep the slug and improve it.
+- New idea, new frontier node -> add a new slug.
+- Truly obsolete content -> plan a migration first; do not silently drop it from the YAML.
+
 ### Concept Granularity
 
 A concept = one teachable idea that can be tested independently. Too broad = students get stuck. Too narrow = graph gets unwieldy.
@@ -101,6 +116,7 @@ A concept = one teachable idea that can be tested independently. Too broad = stu
 - 1-4 KPs per concept, progressively harder
 - Each KP should follow: instruction -> content -> worked example -> practice
 - Each fully-authored KP needs: instruction text, 2-3 practice problems minimum
+- Applied or high-transfer KPs should usually include a worked example, not just prose plus problems
 - 2 consecutive correct answers = KP passed
 - Problems should test understanding, not just recall
 

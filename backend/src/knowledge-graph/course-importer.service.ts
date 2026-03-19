@@ -134,13 +134,28 @@ export class CourseImporterService {
       const existingConceptBySlug = new Map(
         existingConcepts.map((concept) => [concept.slug, concept]),
       );
-      const existingKnowledgePointByKey = new Map(
-        existingKnowledgePoints.map((kp) => [`${kp.conceptId}:${kp.slug}`, kp]),
+      const existingConceptSlugById = new Map(
+        existingConcepts.map((concept) => [concept.id, concept.slug]),
       );
+      const existingKnowledgePointByKey = new Map(
+        existingKnowledgePoints.map((kp) => [
+          `${existingConceptSlugById.get(kp.conceptId)}:${kp.slug}`,
+          kp,
+        ]),
+      );
+
+      if (existingCourse && options.replace) {
+        this.assertNoDestructiveRemovals(
+          existingSections,
+          existingConcepts,
+          existingKnowledgePoints,
+          existingConceptSlugById,
+          data,
+        );
+      }
 
       // Create sections and build slug -> id map
       const sectionSlugToId = new Map<string, string>();
-      const retainedSectionIds = new Set<string>();
       const newSectionIds: string[] = [];
 
       for (let i = 0; i < data.sections.length; i++) {
@@ -167,7 +182,6 @@ export class CourseImporterService {
               },
             });
 
-        retainedSectionIds.add(section.id);
         if (!existingSection) {
           newSectionIds.push(section.id);
         }
@@ -176,9 +190,7 @@ export class CourseImporterService {
 
       // Create concepts and build slug -> id map
       const slugToId = new Map<string, string>();
-      const retainedConceptIds = new Set<string>();
       const newConceptIds: string[] = [];
-      const retainedKnowledgePointIds = new Set<string>();
 
       for (let i = 0; i < data.concepts.length; i++) {
         const conceptYaml = data.concepts[i];
@@ -215,7 +227,6 @@ export class CourseImporterService {
               },
             });
 
-        retainedConceptIds.add(concept.id);
         if (!existingConcept) {
           newConceptIds.push(concept.id);
         }
@@ -225,7 +236,7 @@ export class CourseImporterService {
         for (let kpIdx = 0; kpIdx < conceptYaml.knowledgePoints.length; kpIdx++) {
           const kpYaml = conceptYaml.knowledgePoints[kpIdx];
           const existingKnowledgePoint = existingKnowledgePointByKey.get(
-            `${concept.id}:${kpYaml.id}`,
+            `${conceptYaml.id}:${kpYaml.id}`,
           );
           const kp = existingKnowledgePoint
             ? await tx.knowledgePoint.update({
@@ -251,7 +262,6 @@ export class CourseImporterService {
               });
 
           knowledgePointCount++;
-          retainedKnowledgePointIds.add(kp.id);
 
           await tx.problem.deleteMany({
             where: { knowledgePointId: kp.id },
@@ -363,38 +373,6 @@ export class CourseImporterService {
         });
       }
 
-      if (existingCourse) {
-        const removedKnowledgePointIds = existingKnowledgePoints
-          .filter((kp) => !retainedKnowledgePointIds.has(kp.id))
-          .map((kp) => kp.id);
-
-        if (removedKnowledgePointIds.length > 0) {
-          await tx.knowledgePoint.deleteMany({
-            where: { id: { in: removedKnowledgePointIds } },
-          });
-        }
-
-        const removedConceptIds = existingConcepts
-          .filter((concept) => !retainedConceptIds.has(concept.id))
-          .map((concept) => concept.id);
-
-        if (removedConceptIds.length > 0) {
-          await tx.concept.deleteMany({
-            where: { id: { in: removedConceptIds } },
-          });
-        }
-
-        const removedSectionIds = existingSections
-          .filter((section) => !retainedSectionIds.has(section.id))
-          .map((section) => section.id);
-
-        if (removedSectionIds.length > 0) {
-          await tx.courseSection.deleteMany({
-            where: { id: { in: removedSectionIds } },
-          });
-        }
-      }
-
       return {
         courseId: course.id,
         sectionCount: data.sections.length,
@@ -408,5 +386,57 @@ export class CourseImporterService {
     }, { maxWait: 30000, timeout: 60000 });
 
     return result;
+  }
+
+  private assertNoDestructiveRemovals(
+    existingSections: Array<{ id: string; slug: string }>,
+    existingConcepts: Array<{ id: string; slug: string }>,
+    existingKnowledgePoints: Array<{ id: string; slug: string; conceptId: string }>,
+    conceptSlugById: Map<string, string>,
+    data: CourseYaml,
+  ) {
+    const incomingSectionSlugs = new Set(data.sections.map((section) => section.id));
+    const incomingConceptSlugs = new Set(data.concepts.map((concept) => concept.id));
+    const incomingKnowledgePointKeys = new Set(
+      data.concepts.flatMap((concept) =>
+        concept.knowledgePoints.map((kp) => `${concept.id}:${kp.id}`),
+      ),
+    );
+
+    const removedSections = existingSections
+      .map((section) => section.slug)
+      .filter((slug) => !incomingSectionSlugs.has(slug));
+    const removedConcepts = existingConcepts
+      .map((concept) => concept.slug)
+      .filter((slug) => !incomingConceptSlugs.has(slug));
+    const removedKnowledgePoints = existingKnowledgePoints
+      .map((kp) => `${conceptSlugById.get(kp.conceptId)}:${kp.slug}`)
+      .filter((key) => !incomingKnowledgePointKeys.has(key));
+
+    if (
+      removedSections.length === 0 &&
+      removedConcepts.length === 0 &&
+      removedKnowledgePoints.length === 0
+    ) {
+      return;
+    }
+
+    const details = [
+      removedSections.length > 0
+        ? `sections [${removedSections.join(', ')}]`
+        : null,
+      removedConcepts.length > 0
+        ? `concepts [${removedConcepts.join(', ')}]`
+        : null,
+      removedKnowledgePoints.length > 0
+        ? `knowledge points [${removedKnowledgePoints.join(', ')}]`
+        : null,
+    ]
+      .filter(Boolean)
+      .join('; ');
+
+    throw new BadRequestException(
+      `Destructive course updates are blocked because they can wipe learner progress. Missing from replace import: ${details}. Keep stable slugs and revise content in place, or add a dedicated migration for destructive changes.`,
+    );
   }
 }

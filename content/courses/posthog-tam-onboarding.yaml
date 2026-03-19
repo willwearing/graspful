@@ -5,8 +5,8 @@ course:
     Comprehensive technical onboarding for PostHog Technical Account Managers — from data modeling fundamentals through the PostHog data model, ingestion pipeline, identification, group analytics,
     CDP, and querying.
   estimatedHours: 12
-  version: '2025.1'
-  sourceDocument: PostHog Documentation (posthog.com/docs)
+  version: '2026.1'
+  sourceDocument: PostHog product documentation (analytics, persons, group analytics, CDP, and HogQL docs), reviewed March 2026
 sections:
   - id: data-modeling-basics
     name: Data Modeling Basics
@@ -1033,8 +1033,10 @@ concepts:
       - data-model
     sourceRef: https://posthog.com/docs/new-to-posthog/understand-posthog
     prerequisites:
-      - pipeline-tradeoffs
-    encompassing: []
+      - what-is-a-pipeline
+    encompassing:
+      - concept: entities
+        weight: 0.35
     knowledgePoints:
       - id: what-is-a-posthog-event
         instruction: >-
@@ -1261,7 +1263,11 @@ concepts:
       - ph-events
       - keys-and-identity
       - relationships
-    encompassing: []
+    encompassing:
+      - concept: keys-and-identity
+        weight: 0.7
+      - concept: relationships
+        weight: 0.45
     knowledgePoints:
       - id: what-is-a-person
         instruction: >-
@@ -1412,7 +1418,9 @@ concepts:
     prerequisites:
       - ph-persons
       - keys-and-identity
-    encompassing: []
+    encompassing:
+      - concept: keys-and-identity
+        weight: 0.8
     knowledgePoints:
       - id: what-is-distinct-id
         instruction: >-
@@ -1881,7 +1889,11 @@ concepts:
       - ph-ingestion-pipeline
       - ph-persons
       - ph-distinct-id
-    encompassing: []
+    encompassing:
+      - concept: ph-persons
+        weight: 0.55
+      - concept: ph-distinct-id
+        weight: 0.65
     knowledgePoints:
       - id: how-person-processing-works
         instruction: >-
@@ -2015,7 +2027,9 @@ concepts:
     sourceRef: https://posthog.com/docs/product-analytics/identify
     prerequisites:
       - anonymous-vs-identified
-    encompassing: []
+    encompassing:
+      - concept: anonymous-vs-identified
+        weight: 0.6
     knowledgePoints:
       - id: how-identify-works
         instruction: >-
@@ -2103,7 +2117,11 @@ concepts:
     prerequisites:
       - identify-call
       - ph-distinct-id
-    encompassing: []
+    encompassing:
+      - concept: identify-call
+        weight: 0.5
+      - concept: ph-distinct-id
+        weight: 0.45
     knowledgePoints:
       - id: how-merging-works
         instruction: >-
@@ -2425,7 +2443,11 @@ concepts:
     prerequisites:
       - group-types
       - identify-call
-    encompassing: []
+    encompassing:
+      - concept: group-types
+        weight: 0.7
+      - concept: identify-call
+        weight: 0.45
     knowledgePoints:
       - id: creating-groups-and-properties
         instruction: >-
@@ -2436,6 +2458,11 @@ concepts:
           properties: { name: 'Acme Inc', plan: 'enterprise' } }). Then on every capture() call, you attach the group: posthog.capture({ distinctId: 'user_42', event: 'api_call', groups: { company:
           'acme-inc' } }). Group properties work like person properties — they persist on the group profile and can be used for filtering and breakdowns. See
           https://posthog.com/docs/product-analytics/group-analytics and https://posthog.com/tutorials/frontend-vs-backend-group-analytics for detailed implementation patterns.
+        workedExample: >-
+          A customer tracks users in a SaaS app and wants every usage event tied to the customer's company. In the frontend, after login, they run
+          posthog.group('company', 'acme-inc', { name: 'Acme Inc', plan: 'enterprise' }). From that point on, pageviews and clicks from the web app automatically carry company = acme-inc. In a
+          backend worker, there is no session, so they separately run group_identify({ groupType: 'company', groupKey: 'acme-inc', properties: { plan: 'enterprise' } }) and then include
+          groups: { company: 'acme-inc' } on every capture() call. Same model, different implementation surface.
         problems:
           - id: grpid-p1
             type: multiple_choice
@@ -2479,7 +2506,9 @@ concepts:
     sourceRef: https://posthog.com/docs/product-analytics/group-analytics
     prerequisites:
       - group-identify
-    encompassing: []
+    encompassing:
+      - concept: group-identify
+        weight: 0.55
     knowledgePoints:
       - id: frontend-vs-backend-patterns
         instruction: >-
@@ -2588,7 +2617,11 @@ concepts:
     prerequisites:
       - ph-ingestion-pipeline
       - transformation-etl-elt
-    encompassing: []
+    encompassing:
+      - concept: ph-ingestion-pipeline
+        weight: 0.45
+      - concept: transformation-etl-elt
+        weight: 0.4
     knowledgePoints:
       - id: three-pieces
         instruction: >-
@@ -2609,6 +2642,10 @@ concepts:
             url: https://posthog.com/docs/cdp
             title: PostHog CDP docs
             description: Best reference when a customer conversation spans imports, in-flight changes, and downstream delivery.
+        workedExample: >-
+          A TAM is helping a customer unify product usage with billing data. They connect Stripe as a Source so subscription records land in the PostHog warehouse. They add a Transformation that
+          removes raw email addresses from incoming signup events before storage. Finally, they configure a Batch Export to BigQuery so the customer's data team can join PostHog usage data with finance
+          models every night. The same customer conversation touches all three CDP surfaces: bring data in, modify it safely, then send it back out.
         problems:
           - id: cdp-p1
             type: matching
@@ -2650,7 +2687,9 @@ concepts:
     sourceRef: https://posthog.com/docs/cdp/batch-exports
     prerequisites:
       - ph-cdp-overview
-    encompassing: []
+    encompassing:
+      - concept: ph-cdp-overview
+        weight: 0.55
     knowledgePoints:
       - id: realtime-vs-batch
         instruction: >-
@@ -2696,6 +2735,10 @@ concepts:
             explanation: >-
               A batch export to Snowflake is the right fit: scheduled, bulk data transfer to a warehouse. Daily updates match their needs. Realtime would be unnecessary overhead. CSV exports do not
               scale. HogQL is great but does not replace their need for data in their own warehouse.
+        workedExample: >-
+          A customer asks for two outcomes at once: send an alert to Slack whenever an enterprise account churns, and also copy all events into Snowflake each night for BI reporting. The correct
+          design uses both destination types together: a realtime destination for the churn alert and a batch export for the nightly Snowflake sync. When the need is 'act now,' use realtime. When the
+          need is 'analyze later at scale,' use batch.
     section: posthog-cdp
   - id: cohorts
     name: Cohorts — Static and Dynamic User Groups
@@ -2708,7 +2751,9 @@ concepts:
     prerequisites:
       - ph-person-properties
       - ph-event-properties
-    encompassing: []
+    encompassing:
+      - concept: ph-person-properties
+        weight: 0.45
     knowledgePoints:
       - id: static-vs-dynamic
         instruction: >-
@@ -2719,6 +2764,10 @@ concepts:
           cohorts with behavioral or lifecycle criteria to target feature flags. Feature flag targeting only supports dynamic cohorts based on person properties. If you need to target users who
           performed a specific action with a feature flag, first create a dynamic behavioral cohort, then duplicate it as a static cohort, and target the static cohort with the flag. See
           https://posthog.com/docs/data/cohorts for the full cohort documentation.
+        workedExample: >-
+          A product team wants to beta-roll out a feature to enterprise customers who completed onboarding last week. The TAM creates a dynamic cohort with the behavioral rule 'performed
+          onboarding_complete in the last 7 days' to analyze that segment. But for the feature flag rollout, they create a second cohort as a static snapshot because feature flag targeting cannot use
+          behavioral dynamic cohorts directly. One cohort supports analysis, the other supports rollout.
         problems:
           - id: cohort-p1
             type: multiple_choice
@@ -2778,7 +2827,13 @@ concepts:
       - ph-events
       - ph-event-properties
       - ph-persons
-    encompassing: []
+    encompassing:
+      - concept: ph-events
+        weight: 0.35
+      - concept: ph-event-properties
+        weight: 0.45
+      - concept: ph-persons
+        weight: 0.3
     knowledgePoints:
       - id: sql-expressions-and-insights
         instruction: >-
@@ -2800,6 +2855,11 @@ concepts:
             url: https://posthog.com/docs/sql
             title: HogQL docs
             description: Keep this handy when moving from the insight builder to direct SQL.
+        workedExample: >-
+          A customer asks, 'Which browsers drove the most signups in the last 7 days?' Start with the Trends UI if a simple event count is enough. But if they also want to bucket browser values into
+          custom labels and join the result to person properties, move to HogQL: SELECT multiIf(properties.$browser = 'Mac OS X', 'Mac', properties.$browser = 'Windows', 'Windows', 'Other') AS
+          browser_family, count() FROM events WHERE event = 'user_signed_up' AND timestamp > now() - interval 7 day GROUP BY browser_family ORDER BY count() DESC. This is the exact handoff point
+          where HogQL earns its complexity.
         problems:
           - id: hogql-p1
             type: multiple_choice

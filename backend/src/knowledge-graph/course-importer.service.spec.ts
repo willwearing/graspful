@@ -654,5 +654,148 @@ concepts:
         conceptId: newLeafConcept.id,
       });
     });
+
+    it('blocks replace imports that remove an existing concept slug', async () => {
+      const mockPrisma = createMockPrisma();
+      const validationService = new GraphValidationService();
+      const service = new CourseImporterService(mockPrisma as any, validationService);
+
+      const baseYaml = `
+course:
+  id: test-destructive-update
+  name: Test Destructive Update
+  estimatedHours: 5
+  version: "1.0"
+
+sections:
+  - id: foundations
+    name: Foundations
+
+concepts:
+  - id: root
+    name: Root
+    section: foundations
+    difficulty: 1
+    estimatedMinutes: 5
+    knowledgePoints:
+      - id: kp-root
+        instruction: "Start here"
+        problems:
+          - id: p-root
+            type: true_false
+            question: "True?"
+            correct: "true"
+  - id: leaf
+    name: Leaf
+    section: foundations
+    difficulty: 2
+    estimatedMinutes: 10
+    prerequisites: [root]
+    knowledgePoints:
+      - id: kp-leaf
+        instruction: "Leaf lesson"
+        problems:
+          - id: p-leaf
+            type: true_false
+            question: "False?"
+            correct: "false"
+`;
+
+      const destructiveYaml = `
+course:
+  id: test-destructive-update
+  name: Test Destructive Update
+  estimatedHours: 5
+  version: "1.1"
+
+sections:
+  - id: foundations
+    name: Foundations
+
+concepts:
+  - id: root
+    name: Root
+    section: foundations
+    difficulty: 1
+    estimatedMinutes: 5
+    knowledgePoints:
+      - id: kp-root
+        instruction: "Start here"
+        problems:
+          - id: p-root
+            type: true_false
+            question: "True?"
+            correct: "true"
+`;
+
+      await service.importFromYaml(baseYaml, 'org-123');
+
+      await expect(
+        service.importFromYaml(destructiveYaml, 'org-123', { replace: true }),
+      ).rejects.toThrow(/Destructive course updates are blocked/);
+    });
+
+    it('blocks replace imports that remove an existing knowledge point slug', async () => {
+      const mockPrisma = createMockPrisma();
+      const validationService = new GraphValidationService();
+      const service = new CourseImporterService(mockPrisma as any, validationService);
+
+      const baseYaml = `
+course:
+  id: test-kp-removal
+  name: Test KP Removal
+  estimatedHours: 5
+  version: "1.0"
+
+concepts:
+  - id: root
+    name: Root
+    difficulty: 1
+    estimatedMinutes: 5
+    knowledgePoints:
+      - id: kp-a
+        instruction: "First"
+        problems:
+          - id: p-a
+            type: true_false
+            question: "True?"
+            correct: "true"
+      - id: kp-b
+        instruction: "Second"
+        problems:
+          - id: p-b
+            type: true_false
+            question: "False?"
+            correct: "false"
+`;
+
+      const destructiveYaml = `
+course:
+  id: test-kp-removal
+  name: Test KP Removal
+  estimatedHours: 5
+  version: "1.1"
+
+concepts:
+  - id: root
+    name: Root
+    difficulty: 1
+    estimatedMinutes: 5
+    knowledgePoints:
+      - id: kp-a
+        instruction: "First"
+        problems:
+          - id: p-a
+            type: true_false
+            question: "True?"
+            correct: "true"
+`;
+
+      await service.importFromYaml(baseYaml, 'org-123');
+
+      await expect(
+        service.importFromYaml(destructiveYaml, 'org-123', { replace: true }),
+      ).rejects.toThrow(/knowledge points \[root:kp-b\]/);
+    });
   });
 });
