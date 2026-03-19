@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronUp, ChevronDown, Loader2 } from "lucide-react";
 import type { Problem } from "@/lib/types";
 import type { ProblemFeedback } from "./multiple-choice";
+import { ProblemFeedbackBanner } from "./feedback-banner";
 
 interface OrderingProps {
   problem: Problem;
@@ -70,12 +71,13 @@ export function Ordering({ problem, onSubmit, disabled, loading, feedback }: Ord
         ))}
       </div>
 
-      {feedback && (
-        <div className={`rounded-lg p-4 text-sm ${feedback.skipped ? "bg-amber-500/10 text-amber-700 dark:text-amber-300" : feedback.wasCorrect ? "bg-green-500/10 text-green-700 dark:text-green-300" : "bg-destructive/10 text-destructive"}`}>
-          {feedback.skipped ? "We'll teach you this one" : feedback.wasCorrect ? "Correct order!" : "Incorrect order"}
-          {feedback.explanation && <p className="mt-1 text-muted-foreground">{feedback.explanation}</p>}
-        </div>
-      )}
+      {feedback ? (
+        <ProblemFeedbackBanner
+          feedback={feedback}
+          successLabel="Correct order!"
+          errorLabel="Incorrect order"
+        />
+      ) : null}
 
       {!feedback && (
         <Button onClick={() => onSubmit(items)} disabled={disabled} className="w-full">

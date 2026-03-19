@@ -7,8 +7,9 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { MasteryState, NextTask, SectionProgress, SectionMasteryState } from "@/lib/types";
+import { getSectionHref } from "@/lib/course-section-entry";
 
 interface CourseSection {
   id: string;
@@ -123,6 +124,9 @@ export default async function CourseDetailPage({
       ...concept,
       masteryState: masteryMap.get(concept.id) ?? ("unstarted" as MasteryState),
     }));
+  const courseUnlocked = !!profile && (
+    profile.diagnosticCompleted || profile.completionPercent > 0
+  );
 
   const primaryCTA = (() => {
     if (!nextTask) {
@@ -224,7 +228,7 @@ export default async function CourseDetailPage({
       )}
 
       {/* Diagnostic CTA or Continue Studying */}
-      {profile && (profile.diagnosticCompleted || profile.completionPercent > 0) ? (
+      {courseUnlocked ? (
         <div className="rounded-lg border border-border p-6 mb-8 text-center">
           <h2 className="text-lg font-semibold text-foreground mb-2">
             Keep going
@@ -260,10 +264,25 @@ export default async function CourseDetailPage({
                 const masteredCount = item.conceptStates.filter(
                   (state) => state.masteryState === "mastered"
                 ).length;
-                return (
+                const href = getSectionHref({
+                  courseId,
+                  courseUnlocked,
+                  concepts: graph.concepts,
+                  nextTask,
+                  sectionProgress: item,
+                });
+                const actionLabel = item.status === "exam_ready"
+                  ? "Take Section Exam"
+                  : item.status === "needs_review"
+                    ? "Resume Review"
+                    : href
+                      ? "Start Studying"
+                      : null;
+                const cardContent = (
                   <div
-                    key={item.sectionId}
-                    className="rounded-xl border border-border bg-card p-5"
+                    className={`rounded-xl border border-border bg-card p-5 transition-colors ${
+                      href ? "hover:border-primary/30" : ""
+                    }`}
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="space-y-2">
@@ -284,16 +303,25 @@ export default async function CourseDetailPage({
                           {masteredCount}/{item.section.concepts.length} concepts mastered
                         </p>
                       </div>
-                      {item.status === "exam_ready" ? (
-                        <Button
-                          render={
-                            <Link href={`/study/${courseId}/sections/${item.sectionId}/exam`} />
-                          }
-                        >
-                          Take Section Exam
-                        </Button>
+                      {actionLabel ? (
+                        <div className="inline-flex items-center gap-1 self-start text-sm font-medium text-primary">
+                          <span>{actionLabel}</span>
+                          <ArrowRight className="h-4 w-4" />
+                        </div>
                       ) : null}
                     </div>
+                  </div>
+                );
+
+                return (
+                  <div key={item.sectionId}>
+                    {href ? (
+                      <Link href={href} className="block">
+                        {cardContent}
+                      </Link>
+                    ) : (
+                      cardContent
+                    )}
                   </div>
                 );
               })}
@@ -307,7 +335,7 @@ export default async function CourseDetailPage({
         concepts={conceptsWithMastery}
         sections={graph.sections ?? []}
         courseId={courseId}
-        locked={!profile || (!profile.diagnosticCompleted && profile.completionPercent === 0)}
+        locked={!courseUnlocked}
       />
     </div>
   );

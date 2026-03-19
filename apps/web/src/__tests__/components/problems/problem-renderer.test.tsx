@@ -38,4 +38,24 @@ describe("ProblemRenderer", () => {
     render(<ProblemRenderer problem={problem} onSubmit={vi.fn()} />);
     expect(screen.getByText(/unsupported/i)).toBeTruthy();
   });
+
+  it("does not repeat identical feedback copy", () => {
+    const problem = {
+      id: "p4",
+      questionText: "Test question?",
+      type: "multiple_choice" as const,
+      options: [{ id: "a", text: "Option A" }],
+      difficulty: 1,
+    };
+
+    render(
+      <ProblemRenderer
+        problem={problem}
+        onSubmit={vi.fn()}
+        feedback={{ wasCorrect: true, explanation: "Correct!" }}
+      />,
+    );
+
+    expect(screen.getAllByText("Correct!")).toHaveLength(1);
+  });
 });
