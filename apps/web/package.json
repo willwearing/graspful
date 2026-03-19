@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "bun x vitest run",
-    "test:watch": "bun x vitest"
+    "test:watch": "bun x vitest",
+    "test:e2e": "bun x playwright test",
+    "test:e2e:list": "bun x playwright test --list"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",

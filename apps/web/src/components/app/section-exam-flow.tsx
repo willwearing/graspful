@@ -37,7 +37,7 @@ interface SectionExamResult {
 }
 
 interface SectionExamFlowProps {
-  orgId: string;
+  orgSlug: string;
   courseId: string;
   sectionId: string;
   token: string;
@@ -45,7 +45,7 @@ interface SectionExamFlowProps {
 }
 
 export function SectionExamFlow({
-  orgId,
+  orgSlug,
   courseId,
   sectionId,
   token,
@@ -62,7 +62,7 @@ export function SectionExamFlow({
   const questionStartRef = useRef(Date.now());
   const finishCalledRef = useRef(false);
 
-  const basePath = `/orgs/${orgId}/courses/${courseId}/sections/${sectionId}/exam`;
+  const basePath = `/orgs/${orgSlug}/courses/${courseId}/sections/${sectionId}/exam`;
 
   useEffect(() => {
     if (result) return;

@@ -87,7 +87,7 @@ const lessonData = {
 function renderFlow() {
   return render(
     <LessonFlow
-      orgId="org-1"
+      orgSlug="org-1"
       courseId="course-1"
       token="test-token"
       lesson={lessonData}

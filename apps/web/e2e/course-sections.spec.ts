@@ -87,18 +87,24 @@ test.describe("Course sections display", () => {
     await expect(posthogCourse).toBeVisible({ timeout: 10_000 });
     await posthogCourse.click();
 
-    // "Entities" concept should be visible under Data Modeling section
+    const conceptsSection = page
+      .locator("div")
+      .filter({ has: page.getByRole("heading", { name: "Concepts" }) })
+      .first();
+    const progressCard = page
+      .locator("div")
+      .filter({ hasText: "Course Progress" })
+      .first();
+    const unstartedCount = progressCard.locator("div.grid > div").last().locator("p").first();
+
+    // Concepts should render beneath the sectioned course structure.
+    await expect(conceptsSection.getByText("Entities — Things That Exist")).toBeVisible();
     await expect(
-      page.getByText("Entities — Things That Exist")
+      conceptsSection.getByText("PostHog Events — The Atomic Unit")
     ).toBeVisible();
 
-    // "PostHog Events" concept should be visible under PostHog Data Model section
-    await expect(
-      page.getByText("PostHog Events — The Atomic Unit")
-    ).toBeVisible();
-
-    // Should show concept count (37 concepts = numbered 1-37)
-    await expect(page.getByText("37")).toBeVisible();
+    // Fresh learners should still see the full course concept count in the progress summary.
+    await expect(unstartedCount).toHaveText("37");
   });
 
   test("course shows correct progress summary with sections", async ({

@@ -24,7 +24,7 @@ export default async function BrowsePage() {
 
   let courses: Course[] = [];
   try {
-    courses = await apiFetch<Course[]>(`/orgs/${brand.orgId}/courses`);
+    courses = await apiFetch<Course[]>(`/orgs/${brand.orgSlug}/courses`);
   } catch {
     // Backend may not be running
   }

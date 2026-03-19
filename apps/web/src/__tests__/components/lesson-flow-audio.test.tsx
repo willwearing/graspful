@@ -87,7 +87,7 @@ describe("LessonFlow audio integration", () => {
   it("renders 'Audio not available' when no audio URL exists", () => {
     render(
       <LessonFlow
-        orgId="org-1"
+        orgSlug="org-1"
         courseId="course-1"
         token="test-token"
         lesson={defaultLesson}
@@ -105,7 +105,7 @@ describe("LessonFlow audio integration", () => {
 
     render(
       <LessonFlow
-        orgId="org-1"
+        orgSlug="org-1"
         courseId="course-1"
         token="test-token"
         lesson={defaultLesson}
@@ -123,7 +123,7 @@ describe("LessonFlow audio integration", () => {
 
     render(
       <LessonFlow
-        orgId="org-1"
+        orgSlug="org-1"
         courseId="course-1"
         token="test-token"
         lesson={defaultLesson}
@@ -155,7 +155,7 @@ describe("LessonFlow audio integration", () => {
 
     render(
       <LessonFlow
-        orgId="org-1"
+        orgSlug="org-1"
         courseId="course-1"
         token="test-token"
         lesson={defaultLesson}

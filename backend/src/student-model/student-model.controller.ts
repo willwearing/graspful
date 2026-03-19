@@ -6,7 +6,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
-import { OrgContext } from '@/auth/guards/org-membership.guard';
+import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { EnrollmentService } from './enrollment.service';
 import { StudentStateService } from './student-state.service';
 import { SectionExamService } from '@/assessment/section-exam.service';

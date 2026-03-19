@@ -6,7 +6,7 @@ import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useBrand } from "@/lib/brand/context";
 import { trackSignUp } from "@/lib/posthog/events";
-import { apiClientFetch } from "@/lib/api.client";
+import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -52,7 +52,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           trackSignUp(data.session.user.id);
           // Auto-join the brand's org
           try {
-            await apiClientFetch(`/orgs/${brand.orgId}/join`, data.session.access_token, { method: "POST" });
+            await apiClientFetch(`/orgs/${brand.orgSlug}/join`, data.session.access_token, { method: "POST" });
           } catch {
             // Non-fatal
           }
@@ -71,7 +71,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         // Auto-join the brand's org on sign-in (idempotent)
         if (data.session) {
           try {
-            await apiClientFetch(`/orgs/${brand.orgId}/join`, data.session.access_token, { method: "POST" });
+            await apiClientFetch(`/orgs/${brand.orgSlug}/join`, data.session.access_token, { method: "POST" });
           } catch {
             // Non-fatal
           }

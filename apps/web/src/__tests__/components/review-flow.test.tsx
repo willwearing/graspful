@@ -37,7 +37,7 @@ describe("ReviewFlow", () => {
   it("renders the first problem with score tracker", () => {
     render(
       <ReviewFlow
-        orgId="org-1"
+        orgSlug="org-1"
         courseId="c1"
         conceptId="concept-1"
         token="test-token"
@@ -67,7 +67,7 @@ describe("ReviewFlow", () => {
 
     render(
       <ReviewFlow
-        orgId="org-1"
+        orgSlug="org-1"
         courseId="c1"
         conceptId="concept-1"
         token="test-token"

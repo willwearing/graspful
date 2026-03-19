@@ -37,7 +37,7 @@ describe("DiagnosticFlow", () => {
   it("renders the first question from initial data", () => {
     render(
       <DiagnosticFlow
-        orgId="org-1"
+        orgSlug="org-1"
         courseId="course-1"
         token="test-token"
         initialData={startData}
@@ -63,7 +63,7 @@ describe("DiagnosticFlow", () => {
 
     render(
       <DiagnosticFlow
-        orgId="org-1"
+        orgSlug="org-1"
         courseId="course-1"
         token="test-token"
         initialData={startData}
@@ -100,7 +100,7 @@ describe("DiagnosticFlow", () => {
 
     render(
       <DiagnosticFlow
-        orgId="org-1"
+        orgSlug="org-1"
         courseId="course-1"
         token="test-token"
         initialData={startData}
@@ -154,7 +154,7 @@ describe("DiagnosticFlow", () => {
 
     render(
       <DiagnosticFlow
-        orgId="org-1"
+        orgSlug="org-1"
         courseId="course-1"
         token="test-token"
         initialData={completeData}

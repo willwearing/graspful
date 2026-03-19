@@ -20,7 +20,7 @@ interface KnowledgePoint {
 }
 
 export function useLessonAudio(
-  orgId: string,
+  orgSlug: string,
   knowledgePoints: KnowledgePoint[],
   token: string,
 ) {
@@ -44,7 +44,7 @@ export function useLessonAudio(
       const promises = knowledgePoints.map(async (kp) => {
         try {
           const data = await apiClientFetch<AudioUrlInfo>(
-            `/orgs/${orgId}/audio/${kp.id}`,
+            `/orgs/${orgSlug}/audio/${kp.id}`,
             token,
           );
           results.set(kp.id, {
@@ -71,7 +71,7 @@ export function useLessonAudio(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgId, token, knowledgePoints.length]);
+  }, [orgSlug, token, knowledgePoints.length]);
 
   return { audioUrls, loading };
 }

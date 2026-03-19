@@ -1,37 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { KnowledgeGraphController } from './knowledge-graph.controller';
 import { CourseImporterService } from './course-importer.service';
-import { GraphValidationService } from './graph-validation.service';
-import { GraphQueryService } from './graph-query.service';
-import { PrismaService } from '@/prisma/prisma.service';
+import { CourseReadService } from './course-read.service';
 import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
 
 const mockGuard = { canActivate: () => true };
 
 describe('KnowledgeGraphController', () => {
   let controller: KnowledgeGraphController;
-  let mockPrisma: any;
+  let mockCourseReads: any;
   let mockImporter: any;
 
   beforeEach(async () => {
-    mockPrisma = {
-      course: {
-        findMany: jest.fn(),
-        findFirst: jest.fn(),
-      },
-      courseSection: {
-        findMany: jest.fn(),
-      },
-      concept: {
-        findMany: jest.fn(),
-        findFirst: jest.fn(),
-      },
-      prerequisiteEdge: {
-        findMany: jest.fn(),
-      },
-      encompassingEdge: {
-        findMany: jest.fn(),
-      },
+    mockCourseReads = {
+      listCourses: jest.fn(),
+      getCourseGraph: jest.fn(),
+      listConcepts: jest.fn(),
+      getConceptDetail: jest.fn(),
+      validateCourseGraph: jest.fn(),
+      getKnowledgeFrontier: jest.fn(),
     };
 
     mockImporter = {
@@ -41,10 +28,8 @@ describe('KnowledgeGraphController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [KnowledgeGraphController],
       providers: [
-        { provide: PrismaService, useValue: mockPrisma },
+        { provide: CourseReadService, useValue: mockCourseReads },
         { provide: CourseImporterService, useValue: mockImporter },
-        GraphValidationService,
-        GraphQueryService,
       ],
     })
       .overrideGuard(SupabaseAuthGuard)
@@ -59,16 +44,13 @@ describe('KnowledgeGraphController', () => {
   describe('listCourses', () => {
     it('should return courses for an org', async () => {
       const courses = [{ id: 'c1', name: 'Course 1' }];
-      mockPrisma.course.findMany.mockResolvedValue(courses);
+      mockCourseReads.listCourses.mockResolvedValue(courses);
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
       const result = await controller.listCourses(orgCtx as any);
 
       expect(result).toEqual(courses);
-      expect(mockPrisma.course.findMany).toHaveBeenCalledWith({
-        where: { orgId: 'org-1' },
-        orderBy: { createdAt: 'desc' },
-      });
+      expect(mockCourseReads.listCourses).toHaveBeenCalledWith('org-1');
     });
   });
 
@@ -83,11 +65,13 @@ describe('KnowledgeGraphController', () => {
       const prereqs = [{ sourceConceptId: 'con1', targetConceptId: 'con2' }];
       const encompassing = [{ sourceConceptId: 'con1', targetConceptId: 'con2', weight: 0.5 }];
 
-      mockPrisma.course.findFirst.mockResolvedValue(course);
-      mockPrisma.courseSection.findMany.mockResolvedValue(sections);
-      mockPrisma.concept.findMany.mockResolvedValue(concepts);
-      mockPrisma.prerequisiteEdge.findMany.mockResolvedValue(prereqs);
-      mockPrisma.encompassingEdge.findMany.mockResolvedValue(encompassing);
+      mockCourseReads.getCourseGraph.mockResolvedValue({
+        course,
+        sections,
+        concepts,
+        prerequisiteEdges: prereqs,
+        encompassingEdges: encompassing,
+      });
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
       const result = await controller.getCourseGraph('c1', orgCtx as any);
@@ -132,10 +116,11 @@ describe('KnowledgeGraphController', () => {
       const prereqs = [{ sourceConceptId: 'con1', targetConceptId: 'con2' }];
       const encompassing: any[] = [];
 
-      mockPrisma.course.findFirst.mockResolvedValue(course);
-      mockPrisma.concept.findMany.mockResolvedValue(concepts);
-      mockPrisma.prerequisiteEdge.findMany.mockResolvedValue(prereqs);
-      mockPrisma.encompassingEdge.findMany.mockResolvedValue(encompassing);
+      mockCourseReads.validateCourseGraph.mockResolvedValue({
+        isValid: true,
+        errors: [],
+        warnings: [],
+      });
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
       const result = await controller.validateCourseGraph('c1', orgCtx as any);
@@ -146,19 +131,15 @@ describe('KnowledgeGraphController', () => {
 
   describe('getKnowledgeFrontier', () => {
     it('should return frontier concepts for a user', async () => {
-      const course = { id: 'c1' };
-      const concepts = [
-        { id: 'con1', slug: 'a' },
-        { id: 'con2', slug: 'b' },
-      ];
-      const prereqs = [{ sourceConceptId: 'con1', targetConceptId: 'con2' }];
-
-      mockPrisma.course.findFirst.mockResolvedValue(course);
-      mockPrisma.concept.findMany.mockResolvedValue(concepts);
-      mockPrisma.prerequisiteEdge.findMany.mockResolvedValue(prereqs);
+      mockCourseReads.getKnowledgeFrontier.mockResolvedValue({
+        courseId: 'c1',
+        userId: 'u1',
+        frontier: ['con1'],
+        totalConcepts: 2,
+        masteredCount: 0,
+      });
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
-      // No mastery data yet, so frontier = root concepts
       const result = await controller.getKnowledgeFrontier('c1', 'u1', orgCtx as any);
 
       expect(result.frontier).toEqual(['con1']);

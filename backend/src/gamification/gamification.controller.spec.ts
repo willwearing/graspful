@@ -4,16 +4,10 @@ import { XPService } from './xp.service';
 import { StreakService } from './streak.service';
 import { LeaderboardService } from './leaderboard.service';
 import { CompletionEstimateService } from './completion-estimate.service';
-import { PrismaService } from '@/prisma/prisma.service';
+import { CourseProgressReadService } from './course-progress-read.service';
 import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
 
 const mockGuard = { canActivate: () => true };
-
-const mockPrisma = {
-  concept: { findMany: jest.fn() },
-  prerequisiteEdge: { findMany: jest.fn() },
-  studentConceptState: { findMany: jest.fn() },
-};
 
 describe('GamificationController', () => {
   let controller: GamificationController;
@@ -30,17 +24,20 @@ describe('GamificationController', () => {
   const mockCompletionEstimateService = {
     getEstimate: jest.fn(),
   };
+  const mockCourseProgressReadService = {
+    getGraph: jest.fn(),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
       controllers: [GamificationController],
       providers: [
-        { provide: PrismaService, useValue: mockPrisma },
         { provide: XPService, useValue: mockXPService },
         { provide: StreakService, useValue: mockStreakService },
         { provide: LeaderboardService, useValue: mockLeaderboardService },
         { provide: CompletionEstimateService, useValue: mockCompletionEstimateService },
+        { provide: CourseProgressReadService, useValue: mockCourseProgressReadService },
       ],
     })
       .overrideGuard(SupabaseAuthGuard)
@@ -125,5 +122,25 @@ describe('GamificationController', () => {
     } as any);
 
     expect(result).toEqual(estimate);
+  });
+
+  it('returns the learner graph projection', async () => {
+    const graph = {
+      concepts: [{ id: 'concept-1', name: 'Grounding', masteryState: 'mastered' }],
+      edges: [],
+    };
+    mockCourseProgressReadService.getGraph.mockResolvedValue(graph);
+
+    const result = await controller.getGraph('course-1', {
+      userId: 'user-1',
+      orgId: 'org-1',
+      role: 'member',
+    } as any);
+
+    expect(result).toEqual(graph);
+    expect(mockCourseProgressReadService.getGraph).toHaveBeenCalledWith(
+      'user-1',
+      'course-1',
+    );
   });
 });

@@ -131,11 +131,24 @@ describe('LearningEngineService', () => {
 
   describe('getStudySession', () => {
     it('should return a study session with tasks', async () => {
-      const result = await service.getStudySession('u1', 'course-1', 40);
+      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+        dailyXPTarget: 40,
+        totalXPEarned: 50,
+      });
+
+      const result = await service.getStudySession('u1', 'course-1');
 
       expect(result.tasks).toBeDefined();
       expect(result.tasks.length).toBeGreaterThan(0);
       expect(result.estimatedXP).toBeGreaterThan(0);
+    });
+
+    it('throws when the learner is not enrolled', async () => {
+      mockPrisma.courseEnrollment.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.getStudySession('u1', 'course-1')).rejects.toThrow(
+        'Not enrolled in this course',
+      );
     });
   });
 });

@@ -32,7 +32,7 @@ describe("resolveBrand", () => {
 
   it("brand config has correct orgId", async () => {
     const brand = await resolveBrand("localhost");
-    expect(brand.orgId).toBe("firefighter-prep");
+    expect(brand.orgSlug).toBe("firefighter-prep");
   });
 
   it("resolves 127.0.0.1 the same as localhost", async () => {

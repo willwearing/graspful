@@ -1,10 +1,10 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
-import { OrgContext } from '@/auth/guards/org-membership.guard';
+import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { MinRole } from '@/auth/decorators/min-role.decorator';
 import { BillingService } from './billing.service';
 
-@Controller('api/v1/orgs/:orgId/billing')
+@Controller('orgs/:orgId/billing')
 @UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
 export class BillingController {
   constructor(private billing: BillingService) {}

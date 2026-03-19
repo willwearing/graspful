@@ -30,7 +30,7 @@ interface LessonData {
 }
 
 interface LessonFlowProps {
-  orgId: string;
+  orgSlug: string;
   courseId: string;
   token: string;
   lesson: LessonData;
@@ -38,7 +38,7 @@ interface LessonFlowProps {
 
 type KPPhase = "instruction" | "worked-example" | "practice";
 
-export function LessonFlow({ orgId, courseId, token, lesson }: LessonFlowProps) {
+export function LessonFlow({ orgSlug, courseId, token, lesson }: LessonFlowProps) {
   const router = useRouter();
   const [currentKP, setCurrentKP] = useState(0);
   const [phase, setPhase] = useState<KPPhase>("instruction");
@@ -46,7 +46,7 @@ export function LessonFlow({ orgId, courseId, token, lesson }: LessonFlowProps) 
   const [practiceIndex, setPracticeIndex] = useState(0);
   const [practiceFeedback, setPracticeFeedback] = useState<ProblemFeedback | null>(null);
   const [practiceSubmitting, setPracticeSubmitting] = useState(false);
-  const { audioUrls } = useLessonAudio(orgId, lesson.knowledgePoints, token);
+  const { audioUrls } = useLessonAudio(orgSlug, lesson.knowledgePoints, token);
   const { loadQueue, isPlaying, currentItem } = useAudioPlayer();
   const lessonStartRef = useRef(0);
   const practiceStartRef = useRef(0);
@@ -116,7 +116,7 @@ export function LessonFlow({ orgId, courseId, token, lesson }: LessonFlowProps) 
     setCompleting(true);
     try {
       await apiClientFetch(
-        `/orgs/${orgId}/courses/${courseId}/lessons/${lesson.conceptId}/complete`,
+        `/orgs/${orgSlug}/courses/${courseId}/lessons/${lesson.conceptId}/complete`,
         token,
         { method: "POST" }
       );
@@ -137,7 +137,7 @@ export function LessonFlow({ orgId, courseId, token, lesson }: LessonFlowProps) 
         correct: boolean;
         feedback: string;
       }>(
-        `/orgs/${orgId}/courses/${courseId}/lessons/${lesson.conceptId}/answer`,
+        `/orgs/${orgSlug}/courses/${courseId}/lessons/${lesson.conceptId}/answer`,
         token,
         {
           method: "POST",

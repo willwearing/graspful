@@ -5,21 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createBrowserClient } from "@supabase/ssr";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
-
-async function billingFetch<T>(path: string, token: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BACKEND_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...options?.headers,
-    },
-  });
-  if (!res.ok) throw new Error(`API error: ${res.statusText}`);
-  return res.json();
-}
+import { apiClientFetch } from "@/lib/api-client";
 
 interface SubscriptionInfo {
   plan: string;
@@ -44,7 +30,7 @@ export function BillingSettings({ orgId }: { orgId: string }) {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        const data = await billingFetch<SubscriptionInfo>(
+        const data = await apiClientFetch<SubscriptionInfo>(
           `/orgs/${orgId}/billing/subscription`,
           session.access_token,
         );
@@ -71,7 +57,7 @@ export function BillingSettings({ orgId }: { orgId: string }) {
     const token = await getToken();
     if (!token) return;
 
-    const { url } = await billingFetch<{ url: string }>(
+    const { url } = await apiClientFetch<{ url: string }>(
       `/orgs/${orgId}/billing/portal`,
       token,
       { method: "POST", body: JSON.stringify({ returnUrl: window.location.origin + "/settings" }) },
@@ -83,7 +69,7 @@ export function BillingSettings({ orgId }: { orgId: string }) {
     const token = await getToken();
     if (!token) return;
 
-    const { url } = await billingFetch<{ url: string }>(
+    const { url } = await apiClientFetch<{ url: string }>(
       `/orgs/${orgId}/billing/checkout`,
       token,
       { method: "POST", body: JSON.stringify({ plan, returnUrl: window.location.origin }) },

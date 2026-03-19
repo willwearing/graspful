@@ -22,13 +22,13 @@ export default async function LessonPage({
   if (!token) redirect("/sign-in");
 
   const brand = await resolvePageBrand();
-  const orgId = brand.orgId;
+  const orgSlug = brand.orgSlug;
 
   let lesson: any = null;
   let errorMessage: string | null = null;
   try {
     lesson = await apiFetch<any>(
-      `/orgs/${orgId}/courses/${courseId}/lessons/${conceptId}/start`,
+      `/orgs/${orgSlug}/courses/${courseId}/lessons/${conceptId}/start`,
       { method: "POST" }
     );
   } catch (err) {
@@ -67,7 +67,7 @@ export default async function LessonPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 md:px-8">
-      <LessonFlow orgId={orgId} courseId={courseId} token={token} lesson={lesson} />
+      <LessonFlow orgSlug={orgSlug} courseId={courseId} token={token} lesson={lesson} />
     </div>
   );
 }

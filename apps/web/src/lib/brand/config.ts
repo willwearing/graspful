@@ -34,8 +34,8 @@ export interface BrandConfig {
   faviconUrl: string;
   /** OG image URL */
   ogImageUrl: string;
-  /** Backend org ID this brand maps to */
-  orgId: string;
+  /** Backend organization slug this brand maps to */
+  orgSlug: string;
 
   theme: {
     light: BrandThemeColors;

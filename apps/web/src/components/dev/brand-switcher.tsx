@@ -5,10 +5,10 @@ import { useBrand } from "@/lib/brand/context";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const BRANDS = [
-  { id: "firefighter", name: "FirefighterPrep", emoji: "🔥", orgId: "firefighter-prep" },
-  { id: "electrician", name: "ElectricianPrep", emoji: "⚡", orgId: "electrician-prep" },
-  { id: "javascript", name: "JSPrep", emoji: "🟨", orgId: "javascript-prep" },
-  { id: "posthog", name: "PostHog TAM", emoji: "🦔", orgId: "posthog-tam" },
+  { id: "firefighter", name: "FirefighterPrep", emoji: "🔥", orgSlug: "firefighter-prep" },
+  { id: "electrician", name: "ElectricianPrep", emoji: "⚡", orgSlug: "electrician-prep" },
+  { id: "javascript", name: "JSPrep", emoji: "🟨", orgSlug: "javascript-prep" },
+  { id: "posthog", name: "PostHog TAM", emoji: "🦔", orgSlug: "posthog-tam" },
 ];
 
 /**
@@ -39,7 +39,7 @@ export function DevBrandSwitcher() {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
           const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
-          await fetch(`${backendUrl}/orgs/${targetBrand.orgId}/join`, {
+          await fetch(`${backendUrl}/orgs/${targetBrand.orgSlug}/join`, {
             method: "POST",
             headers: { Authorization: `Bearer ${session.access_token}` },
           });
