@@ -635,7 +635,18 @@ Concepts without knowledge points are imported as graph structure only — they 
 
 ## 4. Import the Course
 
-### Option A: Quick import with bun (recommended)
+### Option A: Progress-safe CLI import (recommended)
+
+```bash
+cd backend
+bunx ts-node scripts/load-course.ts \
+  --orgId <org-uuid> \
+  --file ../content/courses/my-course.yaml
+```
+
+Re-running performs an in-place replace keyed by stable slugs. Existing concept UUIDs and learner progress are preserved when the same slugs remain in the YAML.
+
+### Option B: Quick import alias
 
 ```bash
 cd backend
@@ -644,24 +655,48 @@ bun scripts/import-course-quick.ts \
   --file ../content/courses/my-course.yaml
 ```
 
-Idempotent — re-running replaces the existing course data.
+This now uses the same progress-safe replace path as `load-course.ts`. It no longer deletes and recreates the course.
 
-### Option B: REST API
+### Option C: REST API
 
 ```
 POST /orgs/:orgId/courses/import
 Content-Type: application/json
 
 {
-  "yaml": "<raw YAML content>"
+  "yaml": "<raw YAML content>",
+  "replace": true
 }
 ```
 
 Requires `admin` role on the org.
 
-### Option C: Seed Script
+### Option D: Seed Script
 
 For demo/dev environments, create a script in `scripts/` following the pattern in `scripts/seed-electrical.ts`. This can create the org, load the YAML, and set up a subscription in one step.
+
+## 4.1 Progress-Safe Course Evolution
+
+Once a course has learners, treat concept identity as durable infrastructure.
+
+- Never rename or delete `course.id`, section `id`, concept `id`, or knowledge point `id` casually. Stable slugs are how the importer preserves UUID-backed learner state.
+- Safe updates are:
+  - revising prose, examples, problems, media, metadata, and source refs in place
+  - adding new concepts, sections, or KPs with new slugs
+  - adjusting prerequisite or encompassing edges for existing slugs
+- Unsafe updates are:
+  - removing a section, concept, or KP from the YAML
+  - renaming an existing slug to a new slug
+  - using a script that deletes and recreates the course
+- The importer now blocks destructive replace imports. If you truly need to retire content, do a dedicated migration instead of a blind YAML overwrite.
+
+Operational rule:
+
+1. Keep the old slug if the learner's mental model is still the same concept and you are just improving the lesson.
+2. Add a new slug only when you are introducing genuinely new learnable content.
+3. If content is obsolete, deprecate it in place first, migrate learner state deliberately second, and only then consider archival/removal.
+
+This preserves prior mastery and lets current students continue through improved course content without resetting their progress graph.
 
 ## 5. Verify
 
@@ -685,6 +720,8 @@ Then verify in the app:
 - [ ] Brand config added (`defaults.ts`, `resolve.ts`, `brand-switcher.tsx`)
 - [ ] YAML file written and passes Zod validation
 - [ ] Course imported into the correct org
+- [ ] Replace import path used for updates; no delete-and-recreate workflow
+- [ ] Existing section/concept/KP slugs preserved unless a deliberate migration exists
 - [ ] Visible in the app under the correct brand
 - [ ] Each fully-authored KP includes instruction, practice, and any necessary content blocks
 - [ ] Content review completed before calling the course done
@@ -696,7 +733,8 @@ Then verify in the app:
 | `content/README.md` | Authoring guidelines |
 | `backend/src/knowledge-graph/schemas/course-yaml.schema.ts` | Zod schema (source of truth) |
 | `backend/src/knowledge-graph/course-importer.service.ts` | YAML-to-DB importer |
-| `backend/scripts/import-course-quick.ts` | Quick CLI import tool |
+| `backend/scripts/load-course.ts` | Progress-safe CLI import tool |
+| `backend/scripts/import-course-quick.ts` | Alias to the progress-safe CLI import path |
 | `backend/prisma/schema.prisma` | Database schema |
 | `apps/web/src/lib/brand/defaults.ts` | Brand configs |
 | `apps/web/src/lib/brand/resolve.ts` | Brand registry |

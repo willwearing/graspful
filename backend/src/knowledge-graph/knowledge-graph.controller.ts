@@ -53,10 +53,12 @@ export class KnowledgeGraphController {
   @Post('import')
   @MinRole('admin')
   async importCourse(
-    @Body() body: { yaml: string },
+    @Body() body: { yaml: string; replace?: boolean },
     @CurrentOrg() org: OrgContext,
   ): Promise<ImportResult> {
-    return this.importer.importFromYaml(body.yaml, org.orgId);
+    return this.importer.importFromYaml(body.yaml, org.orgId, {
+      replace: body.replace,
+    });
   }
 
   @Post(':courseId/validate')
