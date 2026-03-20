@@ -10,6 +10,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { MasteryState, NextTask, SectionProgress, SectionMasteryState } from "@/lib/types";
 import { getSectionHref } from "@/lib/course-section-entry";
+import { getAcademyHref, getAcademyStudyHref } from "@/lib/academy-routes";
 
 interface CourseSection {
   id: string;
@@ -36,6 +37,7 @@ interface ConceptState {
 
 interface CourseGraph {
   course: {
+    academyId?: string | null;
     id: string;
     name: string;
     description: string | null;
@@ -96,22 +98,31 @@ export default async function CourseDetailPage({
   const masteryMap = new Map<string, MasteryState>();
 
   try {
-    [graph, profile, nextTask, sectionProgress] = await Promise.all([
-      apiFetch<CourseGraph>(`/orgs/${orgSlug}/courses/${courseId}/graph`),
-      apiFetch<CourseProfile>(`/orgs/${orgSlug}/courses/${courseId}/profile`),
-      apiFetch<NextTask>(`/orgs/${orgSlug}/courses/${courseId}/next-task`),
-      apiFetch<SectionProgress[]>(`/orgs/${orgSlug}/courses/${courseId}/sections`),
-    ]);
-
-    // Fetch per-concept mastery
-    const states = await apiFetch<ConceptState[]>(
-      `/orgs/${orgSlug}/courses/${courseId}/mastery`
-    );
-    for (const state of states) {
-      masteryMap.set(state.conceptId, state.masteryState);
-    }
+    // Fetch graph first — if this fails, the course doesn't exist
+    graph = await apiFetch<CourseGraph>(`/orgs/${orgSlug}/courses/${courseId}/graph`);
   } catch {
-    // API may not be running
+    // API may not be running or course not found
+  }
+
+  if (graph) {
+    // Fetch learner-specific data — failures here shouldn't 404 the page
+    const [profileRes, nextTaskRes, sectionsRes, masteryRes] =
+      await Promise.allSettled([
+        apiFetch<CourseProfile>(`/orgs/${orgSlug}/courses/${courseId}/profile`),
+        apiFetch<NextTask>(`/orgs/${orgSlug}/courses/${courseId}/next-task`),
+        apiFetch<SectionProgress[]>(`/orgs/${orgSlug}/courses/${courseId}/sections`),
+        apiFetch<ConceptState[]>(`/orgs/${orgSlug}/courses/${courseId}/mastery`),
+      ]);
+
+    profile = profileRes.status === "fulfilled" ? profileRes.value : null;
+    nextTask = nextTaskRes.status === "fulfilled" ? nextTaskRes.value : null;
+    sectionProgress = sectionsRes.status === "fulfilled" ? sectionsRes.value : [];
+
+    if (masteryRes.status === "fulfilled") {
+      for (const state of masteryRes.value) {
+        masteryMap.set(state.conceptId, state.masteryState);
+      }
+    }
   }
 
   if (!graph) {
@@ -127,11 +138,17 @@ export default async function CourseDetailPage({
   const courseUnlocked = !!profile && (
     profile.diagnosticCompleted || profile.completionPercent > 0
   );
+  const academyHref = graph.course.academyId
+    ? getAcademyHref(graph.course.academyId)
+    : "/browse";
+  const studyEntryHref = graph.course.academyId
+    ? getAcademyStudyHref(graph.course.academyId)
+    : `/study/${courseId}`;
 
   const primaryCTA = (() => {
     if (!nextTask) {
       return {
-        href: `/study/${courseId}`,
+        href: studyEntryHref,
         label: "Continue Studying",
         description: "Pick up where you left off.",
       };
@@ -140,7 +157,7 @@ export default async function CourseDetailPage({
     if (nextTask.taskType === "section_exam" && nextTask.sectionId) {
       const section = sectionProgress.find((item) => item.sectionId === nextTask.sectionId);
       return {
-        href: `/study/${courseId}/sections/${nextTask.sectionId}/exam`,
+        href: studyEntryHref,
         label: "Take Section Exam",
         description: section
           ? `Certify ${section.section.name} before moving deeper into the course.`
@@ -150,14 +167,14 @@ export default async function CourseDetailPage({
 
     if (nextTask.taskType === "quiz") {
       return {
-        href: `/study/${courseId}/quiz`,
+        href: studyEntryHref,
         label: "Take Quiz",
         description: "You are due for a broader checkpoint quiz.",
       };
     }
 
     return {
-      href: `/study/${courseId}`,
+      href: studyEntryHref,
       label: "Continue Studying",
       description: "Pick up where you left off.",
     };
@@ -167,11 +184,11 @@ export default async function CourseDetailPage({
     <div className="mx-auto max-w-4xl px-4 py-8 md:px-8">
       {/* Back nav */}
       <Link
-        href="/browse"
+        href={academyHref}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Courses
+        {graph.course.academyId ? "Back to Academy" : "Back to Courses"}
       </Link>
 
       {/* Course header */}

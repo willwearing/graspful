@@ -28,6 +28,7 @@ test.describe("Learner happy path", () => {
   }) => {
     await signUpTestUser(page);
 
+    // Dashboard shows course cards — click the first one to reach course detail
     const firstCourse = page.locator("a[href^='/browse/']").first();
     await expect(firstCourse).toBeVisible({ timeout: 10_000 });
     const href = await firstCourse.getAttribute("href");

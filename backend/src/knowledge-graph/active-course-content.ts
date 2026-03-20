@@ -58,3 +58,21 @@ export function activeEncompassingEdgeWhere(
     targetConcept: activeConceptWhere(),
   };
 }
+
+export function activePrerequisiteEdgeWhereAcademy(
+  academyId: string,
+): Prisma.PrerequisiteEdgeWhereInput {
+  return {
+    sourceConcept: activeConceptWhere({ course: { academyId } }),
+    targetConcept: activeConceptWhere({ course: { academyId } }),
+  };
+}
+
+export function activeEncompassingEdgeWhereAcademy(
+  academyId: string,
+): Prisma.EncompassingEdgeWhereInput {
+  return {
+    sourceConcept: activeConceptWhere({ course: { academyId } }),
+    targetConcept: activeConceptWhere({ course: { academyId } }),
+  };
+}

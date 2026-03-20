@@ -15,6 +15,11 @@ export interface ValidationResult {
   warnings: string[];
 }
 
+export interface AcademyValidationConcept {
+  id: string;
+  courseSlug: string;
+}
+
 @Injectable()
 export class GraphValidationService {
   /**
@@ -142,6 +147,84 @@ export class GraphValidationService {
     if (orphans.length > 0) {
       warnings.push(`Orphan concepts (no edges): ${orphans.join(', ')}`);
     }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+    };
+  }
+
+  validateAcademy(
+    courseSlugs: string[],
+    concepts: AcademyValidationConcept[],
+    prereqEdges: SimpleEdge[],
+    encompEdges: WeightedEdge[],
+  ): ValidationResult {
+    const base = this.validate(
+      concepts.map((concept) => concept.id),
+      prereqEdges,
+      encompEdges,
+    );
+
+    const errors = [...base.errors];
+    const warnings = [...base.warnings];
+    const courseByConceptId = new Map(
+      concepts.map((concept) => [concept.id, concept.courseSlug]),
+    );
+
+    const courseDependencyEdgeMap = new Map<string, SimpleEdge>();
+    const crossCourseConnected = new Set<string>();
+
+    for (const edge of prereqEdges) {
+      const sourceCourse = courseByConceptId.get(edge.source);
+      const targetCourse = courseByConceptId.get(edge.target);
+
+      if (!sourceCourse || !targetCourse || sourceCourse === targetCourse) {
+        continue;
+      }
+
+      crossCourseConnected.add(sourceCourse);
+      crossCourseConnected.add(targetCourse);
+
+      const key = `${sourceCourse}->${targetCourse}`;
+      if (!courseDependencyEdgeMap.has(key)) {
+        courseDependencyEdgeMap.set(key, {
+          source: sourceCourse,
+          target: targetCourse,
+        });
+      }
+    }
+
+    for (const edge of encompEdges) {
+      const sourceCourse = courseByConceptId.get(edge.source);
+      const targetCourse = courseByConceptId.get(edge.target);
+
+      if (!sourceCourse || !targetCourse || sourceCourse === targetCourse) {
+        continue;
+      }
+
+      crossCourseConnected.add(sourceCourse);
+      crossCourseConnected.add(targetCourse);
+    }
+
+    const orphanCourses = courseSlugs.filter(
+      (courseSlug) =>
+        courseSlugs.length > 1 && !crossCourseConnected.has(courseSlug),
+    );
+    if (orphanCourses.length > 0) {
+      warnings.push(
+        `Orphan courses (no cross-course edges): ${orphanCourses.join(', ')}`,
+      );
+    }
+
+    const courseDependencyCycles = this.detectCycles(
+      courseSlugs,
+      Array.from(courseDependencyEdgeMap.values()),
+    );
+    errors.push(
+      ...courseDependencyCycles.map((error) => `Course dependency ${error}`),
+    );
 
     return {
       isValid: errors.length === 0,

@@ -7,6 +7,18 @@ vi.mock("next/link", () => ({
 }));
 
 describe("ContinueStudying", () => {
+  it("renders a link to the academy study page when academy context exists", () => {
+    render(
+      <ContinueStudying
+        academyId="academy-1"
+        courseId="course-1"
+        courseName="NFPA 1001"
+      />,
+    );
+    const link = screen.getByText(/continue studying/i).closest("a");
+    expect(link?.getAttribute("href")).toBe("/academy/academy-1/study");
+  });
+
   it("renders a link to the study page for the course", () => {
     render(<ContinueStudying courseId="course-1" courseName="NFPA 1001" />);
     const link = screen.getByText(/continue studying/i).closest("a");

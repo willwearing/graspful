@@ -32,7 +32,10 @@ describe('ReviewService', () => {
         findMany: jest.fn().mockResolvedValue(mockProblems),
       },
       concept: {
-        findUnique: jest.fn().mockResolvedValue({ courseId: 'course-1' }),
+        findUnique: jest.fn().mockResolvedValue({
+          courseId: 'course-1',
+          course: { academyId: 'academy-1' },
+        }),
       },
     };
 
@@ -152,13 +155,13 @@ describe('ReviewService', () => {
           }),
         }),
       );
-      // FIRe update should be called
+      // FIRe update should be called with academyId (not courseId)
       expect(mockFireUpdate.updateAfterReview).toHaveBeenCalledWith(
         'user-1',
         'concept-1',
         true,
         1.0,
-        'course-1',
+        'academy-1',
       );
     });
 

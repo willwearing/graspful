@@ -6,34 +6,25 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
 import type { NextTask } from "@/lib/types";
+import { getCourseTaskHref } from "@/lib/academy-routes";
 
 interface StudyRouterProps {
-  courseId: string;
+  academyId?: string;
+  courseId?: string;
   task: NextTask | null;
 }
 
-export function StudyRouter({ courseId, task }: StudyRouterProps) {
+export function StudyRouter({ academyId, courseId, task }: StudyRouterProps) {
   const router = useRouter();
 
   useEffect(() => {
     if (!task) return;
+    const resolvedCourseId = task.courseId ?? courseId;
+    if (!resolvedCourseId) return;
 
-    switch (task.taskType) {
-      case "lesson":
-        if (task.conceptId) router.push(`/study/${courseId}/lesson/${task.conceptId}`);
-        break;
-      case "remediation":
-        if (task.conceptId) router.push(`/study/${courseId}/lesson/${task.conceptId}?mode=remediation`);
-        break;
-      case "review":
-        if (task.conceptId) router.push(`/study/${courseId}/review/${task.conceptId}`);
-        break;
-      case "quiz":
-        router.push(`/study/${courseId}/quiz`);
-        break;
-      case "section_exam":
-        if (task.sectionId) router.push(`/study/${courseId}/sections/${task.sectionId}/exam`);
-        break;
+    const href = getCourseTaskHref(resolvedCourseId, task);
+    if (href) {
+      router.push(href);
     }
   }, [task, courseId, router]);
 
@@ -42,10 +33,12 @@ export function StudyRouter({ courseId, task }: StudyRouterProps) {
       <div className="mx-auto max-w-md text-center space-y-6 py-12">
         <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
         <h2 className="text-2xl font-bold text-foreground">Session Complete</h2>
-        <p className="text-muted-foreground">
+      <p className="text-muted-foreground">
           Great work! You have completed all recommended tasks for now. Check back later for more.
         </p>
-        <Button render={<Link href="/dashboard" />}>Back to Dashboard</Button>
+        <Button render={<Link href={academyId ? `/academy/${academyId}` : "/dashboard"} />}>
+          {academyId ? "Back to Academy" : "Back to Dashboard"}
+        </Button>
       </div>
     );
   }

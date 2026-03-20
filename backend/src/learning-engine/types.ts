@@ -6,6 +6,8 @@ export type TaskType =
   | 'section_exam';
 
 export interface TaskRecommendation {
+  academyId?: string;
+  courseId?: string;
   taskType: TaskType;
   conceptId?: string;
   sectionId?: string;
@@ -23,6 +25,10 @@ export interface StudySession {
  */
 export interface ConceptSnapshot {
   conceptId: string;
+  courseId?: string;
+  sectionId?: string | null;
+  difficulty?: number;
+  lastPracticedAt?: Date | null;
   masteryState: 'unstarted' | 'in_progress' | 'mastered' | 'needs_review';
   memory: number;
   failCount: number;
@@ -49,7 +55,9 @@ export interface RemediationRecord {
 }
 
 export interface SectionSnapshot {
+  courseId?: string;
   sectionId: string;
+  sortOrder?: number;
   status:
     | 'locked'
     | 'lesson_in_progress'

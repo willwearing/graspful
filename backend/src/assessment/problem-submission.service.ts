@@ -56,7 +56,10 @@ export class ProblemSubmissionService {
         knowledgePoint: {
           include: {
             concept: {
-              include: { section: true },
+              include: {
+                section: true,
+                course: { select: { academyId: true } },
+              },
             },
           },
         },
@@ -80,6 +83,7 @@ export class ProblemSubmissionService {
       answer,
       problem.correctAnswer,
       problem.explanation ?? undefined,
+      problem.options as unknown[] | null,
     );
 
     // 3. Get current attempt count for this user+KP to determine attempt number
@@ -134,9 +138,11 @@ export class ProblemSubmissionService {
     );
 
     // 8. Record XP event (handles enrollment update + daily cap + streak tracking)
+    const academyId = concept.course?.academyId;
     if (xpResult.xp > 0) {
       const recorded = await this.xpService.recordXPEvent({
         userId,
+        academyId,
         courseId: concept.courseId,
         source: activityType === 'lesson' ? 'lesson' : 'review',
         amount: xpResult.xp,
@@ -146,17 +152,19 @@ export class ProblemSubmissionService {
     }
 
     // 9. Propagate implicit repetition to encompassed concepts
-    const implicitRawDelta = calculateRawDelta(
-      evaluation.correct,
-      evaluation.correct ? 1.0 : 0,
-      preUpdateMemory,
-    );
-    await this.fireUpdate.propagateImplicitRepetition(
-      userId,
-      concept.id,
-      implicitRawDelta,
-      concept.courseId,
-    );
+    if (academyId) {
+      const implicitRawDelta = calculateRawDelta(
+        evaluation.correct,
+        evaluation.correct ? 1.0 : 0,
+        preUpdateMemory,
+      );
+      await this.fireUpdate.propagateImplicitRepetition(
+        userId,
+        concept.id,
+        implicitRawDelta,
+        academyId,
+      );
+    }
 
     await this.sectionExamService.syncSectionStates(userId, concept.courseId);
 

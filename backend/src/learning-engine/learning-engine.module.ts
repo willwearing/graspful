@@ -4,6 +4,7 @@ import { KnowledgeGraphModule } from '@/knowledge-graph/knowledge-graph.module';
 import { SpacedRepetitionModule } from '@/spaced-repetition/spaced-repetition.module';
 import { AssessmentModule } from '@/assessment/assessment.module';
 import { LearningEngineController } from './learning-engine.controller';
+import { AcademyLearningEngineController } from './academy-learning-engine.controller';
 import { LearningEngineService } from './learning-engine.service';
 import { LessonService } from './lesson.service';
 import { RemediationService } from './remediation.service';
@@ -15,7 +16,7 @@ import { RemediationService } from './remediation.service';
     SpacedRepetitionModule,
     AssessmentModule,
   ],
-  controllers: [LearningEngineController],
+  controllers: [LearningEngineController, AcademyLearningEngineController],
   providers: [LearningEngineService, LessonService, RemediationService],
   exports: [LearningEngineService, LessonService, RemediationService],
 })

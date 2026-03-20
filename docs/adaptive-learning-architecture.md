@@ -129,7 +129,20 @@ We studied Math Academy (mathacademy.com) extensively. Here's what we're borrowi
 
 ## 3. Knowledge Graph Design
 
-The knowledge graph is the foundation. Every course is a section of the graph. The graph is **subject-agnostic** -- its structure is defined by content, not code.
+The knowledge graph is the foundation. To match *The Math Academy Way* more closely, the adaptive engine should operate on an academy-scoped graph, not a course-scoped graph. The graph is **subject-agnostic** -- its structure is defined by content, not code.
+
+### Structural containers
+
+- **Academy / Track** -- the connected curriculum graph for a domain. Diagnostics, frontier calculation, remediation, and implicit review should operate at this level.
+- **Course** -- a named learner-facing subgraph inside an academy. A course has a coherent capability goal and its own progress/completion boundary, but it is not isolated from the rest of the graph.
+- **Section** -- a human-readable grouping inside a course.
+- **Concept** -- the atomic graph node.
+- **Knowledge Point** -- the atomic staircase step inside a concept lesson.
+
+This is the key structural distinction:
+
+- the academy graph is the adaptive source of truth
+- course graphs and section groupings are compressed views for humans
 
 ### Node: Concept
 
@@ -155,7 +168,7 @@ Meaning: You must master A before attempting B. The system will not teach B unti
 
 Constraints:
 - Max 3-4 direct prerequisites per knowledge point (working memory limit: ~4 chunks)
-- Prerequisites can be within the same course or from foundation courses
+- Prerequisites can be within the same course or across courses inside the same academy
 - Transitive: if A -> B -> C, then A is an implicit prerequisite of C
 
 ### Edge Type 2: Encompassing
@@ -169,19 +182,28 @@ Weights range from 0.0 to 1.0:
 - **0.5:** B partially exercises A (e.g., "Fire Attack Strategy" partially exercises "Water Supply Calculations")
 - **0.1:** B tangentially touches A (e.g., "Emergency Response Planning" tangentially exercises "Radio Communication Protocols")
 
-### Course = Subgraph
+### Academy = Connected Graph, Course = Named Subgraph
 
-A **course** is simply a named subset of the knowledge graph. Creating a new course means:
-1. Defining concepts (content)
-2. Defining prerequisite edges between them
-3. Defining encompassing edges with weights
-4. Optionally marking some concepts as belonging to "foundation" courses that span multiple courses
+An **academy/track** is the connected adaptive graph for a domain. A **course** is a named subset of that academy graph.
+
+Creating a new academy means:
+1. Defining the academy boundary
+2. Defining courses inside it
+3. Defining concepts (content)
+4. Defining prerequisite edges between them, including cross-course edges where the pedagogy requires it
+5. Defining encompassing edges with weights, including cross-course layering where appropriate
 
 No code. The graph is data.
 
+This is the model we want for domains like PostHog TAM:
+
+- not one giant monolithic course
+- not disconnected standalone courses
+- one connected academy graph with multiple real courses inside it
+
 ### Graph Definition Format
 
-Content authors define courses using structured data (JSON/YAML). The system ingests this and builds the graph.
+Content authors define academy/course graphs using structured data (JSON/YAML). The system ingests this and builds the graph.
 
 ```yaml
 # courses/nfpa-1001-firefighter-i.yaml

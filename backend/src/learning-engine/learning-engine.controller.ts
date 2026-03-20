@@ -10,6 +10,7 @@ import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { LearningEngineService } from './learning-engine.service';
 import { LessonService } from './lesson.service';
 
+/** @deprecated Use AcademyLearningEngineController instead. Kept as compatibility shim. */
 @Controller('orgs/:orgId/courses/:courseId')
 @UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
 export class LearningEngineController {
@@ -23,7 +24,7 @@ export class LearningEngineController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.engine.getNextTask(org.userId, courseId);
+    return this.engine.getNextTaskForCourse(org.userId, courseId);
   }
 
   @Get('session')
@@ -31,7 +32,7 @@ export class LearningEngineController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.engine.getStudySession(org.userId, courseId);
+    return this.engine.getStudySessionForCourse(org.userId, courseId);
   }
 
   @Post('lessons/:conceptId/start')

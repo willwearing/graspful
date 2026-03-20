@@ -10,24 +10,26 @@ export class MemoryDecayService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Recalculate memory for all of a student's concept states in a course,
+   * Recalculate memory for all of a student's concept states in an academy,
    * applying exponential forgetting based on time since last practice.
    *
    * Should be called before task selection to ensure memory values are current.
    *
    * @param userId - The student
-   * @param courseId - The course
+   * @param academyId - The academy
    * @param now - Current time (injectable for testing)
    */
   async decayAllMemory(
     userId: string,
-    courseId: string,
+    academyId: string,
     now: Date = new Date(),
   ): Promise<void> {
     const states = await this.prisma.studentConceptState.findMany({
       where: {
         userId,
-        concept: activeConceptWhere({ courseId }),
+        concept: activeConceptWhere({
+          course: { academyId },
+        }),
         masteryState: { not: 'unstarted' },
         lastPracticedAt: { not: null },
       },
@@ -62,5 +64,22 @@ export class MemoryDecayService {
         }),
       ),
     );
+  }
+
+  async decayCourseMemory(
+    userId: string,
+    courseId: string,
+    now: Date = new Date(),
+  ): Promise<void> {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { academyId: true },
+    });
+
+    if (!course?.academyId) {
+      throw new Error(`Course ${courseId} is missing academyId`);
+    }
+
+    await this.decayAllMemory(userId, course.academyId, now);
   }
 }

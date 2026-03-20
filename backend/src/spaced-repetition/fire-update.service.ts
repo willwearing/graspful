@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
   activeConceptWhere,
-  activeEncompassingEdgeWhere,
+  activeEncompassingEdgeWhereAcademy,
 } from '@/knowledge-graph/active-course-content';
 import {
   calculateRawDelta,
@@ -27,14 +27,14 @@ export class FireUpdateService {
    * @param conceptId - The reviewed concept
    * @param passed - Whether the review was passed
    * @param quality - Accuracy score 0-1
-   * @param courseId - Optional, needed for implicit propagation. If omitted, propagation is skipped.
+   * @param academyId - Optional, needed for implicit propagation. If omitted, propagation is skipped.
    */
   async updateAfterReview(
     userId: string,
     conceptId: string,
     passed: boolean,
     quality: number,
-    courseId?: string,
+    academyId?: string,
   ): Promise<void> {
     const state = await this.prisma.studentConceptState.findUnique({
       where: { userId_conceptId: { userId, conceptId } },
@@ -61,9 +61,9 @@ export class FireUpdateService {
       },
     });
 
-    // Propagate implicit repetition if courseId is provided
-    if (courseId) {
-      await this.propagateImplicitRepetition(userId, conceptId, rawDelta, courseId);
+    // Propagate implicit repetition if academyId is provided
+    if (academyId) {
+      await this.propagateImplicitRepetition(userId, conceptId, rawDelta, academyId);
     }
   }
 
@@ -74,17 +74,17 @@ export class FireUpdateService {
    * @param userId - The student
    * @param practicedConceptId - The directly practiced concept
    * @param rawDelta - Raw delta from the practice
-   * @param courseId - The course (to scope encompassing edge lookup)
+   * @param academyId - The academy (to scope encompassing edge lookup across all courses)
    */
   async propagateImplicitRepetition(
     userId: string,
     practicedConceptId: string,
     rawDelta: number,
-    courseId: string,
+    academyId: string,
   ): Promise<void> {
-    // Fetch encompassing edges for this course
+    // Fetch encompassing edges across all courses in this academy
     const edges = await this.prisma.encompassingEdge.findMany({
-      where: activeEncompassingEdgeWhere(courseId),
+      where: activeEncompassingEdgeWhereAcademy(academyId),
       select: {
         sourceConceptId: true,
         targetConceptId: true,
@@ -96,11 +96,11 @@ export class FireUpdateService {
 
     const encompassingLinks: EncompassingLink[] = edges;
 
-    // Get all concept speeds for this student in this course
+    // Get all concept speeds for this student across all courses in this academy
     const conceptStates = await this.prisma.studentConceptState.findMany({
       where: {
         userId,
-        concept: activeConceptWhere({ courseId }),
+        concept: activeConceptWhere({ course: { academyId } }),
       },
       select: {
         conceptId: true,

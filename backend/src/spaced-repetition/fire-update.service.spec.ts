@@ -97,7 +97,7 @@ describe('FireUpdateService', () => {
 
       mockPrisma.studentConceptState.update.mockResolvedValue({});
 
-      await service.propagateImplicitRepetition('u1', 'big', 0.3, 'course1');
+      await service.propagateImplicitRepetition('u1', 'big', 0.3, 'academy1');
 
       // Should update small's repNum and memory
       const smallUpdate = mockPrisma.studentConceptState.update.mock.calls.find(
@@ -111,10 +111,31 @@ describe('FireUpdateService', () => {
       mockPrisma.studentConceptState.findMany.mockResolvedValue([]);
 
       // Should complete without throwing
-      await service.propagateImplicitRepetition('u1', 'c1', 0.3, 'course1');
+      await service.propagateImplicitRepetition('u1', 'c1', 0.3, 'academy1');
 
       // No updates should be made
       expect(mockPrisma.studentConceptState.update).not.toHaveBeenCalled();
+    });
+
+    it('should propagate across course boundaries within academy', async () => {
+      // Concept in Course A encompasses concept in Course B — same academy
+      mockPrisma.encompassingEdge.findMany.mockResolvedValue([
+        { sourceConceptId: 'course-b-concept', targetConceptId: 'course-a-concept', weight: 0.6 },
+      ]);
+
+      mockPrisma.studentConceptState.findMany.mockResolvedValue([
+        { conceptId: 'course-b-concept', speed: 1.0, repNum: 2, memory: 0.5 },
+      ]);
+
+      mockPrisma.studentConceptState.update.mockResolvedValue({});
+
+      // Practice course-a-concept — should propagate to course-b-concept
+      await service.propagateImplicitRepetition('u1', 'course-a-concept', 0.4, 'academy1');
+
+      const crossCourseUpdate = mockPrisma.studentConceptState.update.mock.calls.find(
+        (call: any[]) => call[0].where.userId_conceptId.conceptId === 'course-b-concept',
+      );
+      expect(crossCourseUpdate).toBeDefined();
     });
   });
 });

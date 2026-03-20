@@ -27,6 +27,7 @@ model Organization {
   subscription   Subscription?
   inviteTokens   InviteToken[]
   generationJobs AudioGenerationJob[]
+  academies      Academy[]
   courses        Course[]
 
   @@map("organizations")
@@ -52,7 +53,9 @@ model User {
   bookmarks     UserBookmark[]
   invitesSent   InviteToken[]   @relation("InviteSender")
   triggeredJobs AudioGenerationJob[] @relation("JobTriggeredBy")
+  academyEnrollments AcademyEnrollment[]
   enrollments          CourseEnrollment[]
+  courseStates         StudentCourseState[]
   conceptStates        StudentConceptState[]
   sectionStates        StudentSectionState[]
   kpStates             StudentKPState[]
@@ -387,32 +390,108 @@ model AudioGenerationJob {
 }
 
 // =============================================================================
+// KNOWLEDGE GRAPH — ACADEMIES
+// =============================================================================
+
+model Academy {
+  id          String   @id @default(uuid()) @db.Uuid
+  orgId       String   @map("org_id") @db.Uuid
+  slug        String
+  name        String
+  description String?
+  version     String   @default("1.0")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  org               Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  parts             AcademyPart[]
+  courses           Course[]
+  enrollments       AcademyEnrollment[]
+  diagnosticSessions DiagnosticSession[]
+  xpEvents          XPEvent[]
+  remediations      Remediation[]
+
+  @@unique([orgId, slug])
+  @@index([orgId])
+  @@map("academies")
+}
+
+model AcademyPart {
+  id          String   @id @default(uuid()) @db.Uuid
+  academyId   String   @map("academy_id") @db.Uuid
+  slug        String
+  name        String
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  academy Academy @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  courses Course[]
+
+  @@unique([academyId, slug])
+  @@index([academyId])
+  @@map("academy_parts")
+}
+
+model AcademyEnrollment {
+  id                  String    @id @default(uuid()) @db.Uuid
+  userId              String    @map("user_id") @db.Uuid
+  academyId           String    @map("academy_id") @db.Uuid
+  diagnosticCompleted Boolean   @default(false) @map("diagnostic_completed")
+  diagnosticCompletedAt DateTime? @map("diagnostic_completed_at") @db.Timestamptz
+  dailyXPTarget       Int       @default(40) @map("daily_xp_target")
+  totalXPEarned       Int       @default(0) @map("total_xp_earned")
+  streakFreezeTokens  Int       @default(1) @map("streak_freeze_tokens")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  academy      Academy @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  courseStates  StudentCourseState[]
+
+  @@unique([userId, academyId])
+  @@index([userId])
+  @@index([academyId])
+  @@map("academy_enrollments")
+}
+
+// =============================================================================
 // KNOWLEDGE GRAPH — COURSES
 // =============================================================================
 
 model Course {
   id             String   @id @default(uuid()) @db.Uuid
   orgId          String   @map("org_id") @db.Uuid
+  academyId      String   @map("academy_id") @db.Uuid
+  partId         String?  @map("part_id") @db.Uuid
   slug           String
   name           String
   description    String?
   version        String   @default("1.0")
   estimatedHours Float?   @map("estimated_hours")
+  sortOrder      Int      @default(0) @map("sort_order")
   isPublished    Boolean  @default(false) @map("is_published")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  org         Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  sections    CourseSection[]
-  concepts    Concept[]
+  org                Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  academy            Academy            @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  part               AcademyPart?       @relation(fields: [partId], references: [id], onDelete: SetNull)
+  sections           CourseSection[]
+  concepts           Concept[]
   enrollments        CourseEnrollment[]
+  courseStates       StudentCourseState[]
   sectionStates      StudentSectionState[]
   sectionExamSessions SectionExamSession[]
   xpEvents           XPEvent[]
   diagnosticSessions DiagnosticSession[]
 
   @@unique([orgId, slug])
+  @@unique([academyId, slug])
   @@index([orgId])
+  @@index([academyId])
+  @@index([partId])
+  @@index([academyId, sortOrder])
   @@map("courses")
 }
 
@@ -651,6 +730,39 @@ model CourseEnrollment {
 }
 
 // =============================================================================
+// STUDENT MODEL — COURSE STATE
+// =============================================================================
+
+enum CourseProgressState {
+  locked
+  unlocked
+  active
+  completed
+
+  @@map("course_progress_state")
+}
+
+model StudentCourseState {
+  id                    String              @id @default(uuid()) @db.Uuid
+  userId                String              @map("user_id") @db.Uuid
+  courseId              String              @map("course_id") @db.Uuid
+  academyEnrollmentId  String?             @map("academy_enrollment_id") @db.Uuid
+  status                CourseProgressState  @default(locked)
+  createdAt             DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course              Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  academyEnrollment   AcademyEnrollment?  @relation(fields: [academyEnrollmentId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([academyEnrollmentId])
+  @@map("student_course_states")
+}
+
+// =============================================================================
 // STUDENT MODEL — CONCEPT STATE
 // =============================================================================
 
@@ -802,14 +914,18 @@ model Remediation {
   id                  String    @id @default(uuid()) @db.Uuid
   userId              String    @map("user_id") @db.Uuid
   courseId             String    @map("course_id") @db.Uuid
+  academyId           String    @map("academy_id") @db.Uuid
   blockedConceptId    String    @map("blocked_concept_id") @db.Uuid
   weakPrerequisiteId  String    @map("weak_prerequisite_id") @db.Uuid
   resolved            Boolean   @default(false)
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
   resolvedAt          DateTime? @map("resolved_at") @db.Timestamptz
 
+  academy Academy @relation(fields: [academyId], references: [id], onDelete: Cascade)
+
   @@unique([userId, blockedConceptId, weakPrerequisiteId])
   @@index([userId, courseId, resolved])
+  @@index([userId, academyId, resolved])
   @@map("remediations")
 }
 
@@ -831,6 +947,7 @@ model XPEvent {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
   courseId   String   @map("course_id") @db.Uuid
+  academyId  String   @map("academy_id") @db.Uuid
   source    XPSource
   amount    Int
   conceptId String?  @map("concept_id") @db.Uuid
@@ -838,8 +955,10 @@ model XPEvent {
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  academy Academy @relation(fields: [academyId], references: [id], onDelete: Cascade)
 
   @@index([userId, courseId, createdAt])
+  @@index([userId, academyId, createdAt])
   @@index([userId, createdAt])
   @@map("xp_events")
 }
@@ -860,6 +979,7 @@ model DiagnosticSession {
   id               String                  @id @default(uuid()) @db.Uuid
   userId           String                  @map("user_id") @db.Uuid
   courseId          String                  @map("course_id") @db.Uuid
+  academyId        String                  @map("academy_id") @db.Uuid
   orgId            String                  @map("org_id") @db.Uuid
   status           DiagnosticSessionStatus @default(in_progress)
   questionCount    Int                     @default(0) @map("question_count")
@@ -872,10 +992,12 @@ model DiagnosticSession {
 
   user             User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
   course           Course                      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  academy          Academy                     @relation(fields: [academyId], references: [id], onDelete: Cascade)
   currentProblem   Problem?                    @relation(fields: [currentProblemId], references: [id])
   masterySnapshots DiagnosticMasterySnapshot[]
 
   @@index([userId, courseId])
+  @@index([userId, academyId])
   @@map("diagnostic_sessions")
 }
 

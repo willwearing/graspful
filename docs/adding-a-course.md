@@ -44,6 +44,33 @@ course:
   sourceDocument: "Official source document name, edition, year"
 ```
 
+### Step 0.5: Decide whether this is a course or an academy
+
+Before drawing the graph, decide whether the material should be modeled as:
+
+- one standalone `course`
+- or an `academy/track -> courses -> sections -> concepts` tree
+
+Use an academy/track when:
+
+- the source naturally breaks into multiple major branches
+- those branches have different downstream dependents
+- a learner should be able to stall on one branch and keep progressing on another
+- forcing everything into one course would create oversized mixed buckets
+
+This follows the PDF's core structural claims:
+
+- Ch. 4, pp. 72-73: courses are compressed views of the underlying graph
+- Ch. 14, pp. 217-220: large stairs should be split into smaller stairs
+- Ch. 16, pp. 241-245: the goal is a hierarchical connected sequence of learning units, not a discontinuous array of disconnected courses
+
+Important rule:
+
+- Do not force a multi-branch domain into one course just because the current content is easier to store that way
+- Do not split a connected domain into disconnected standalone courses if the learning engine will lose cross-course prerequisite, remediation, or review-compression logic
+
+For PostHog TAM, the correct target is an academy with multiple real courses, not one monolithic course with relabeled sections.
+
 ### Step 1: Start from the tree, not the prose
 
 The knowledge graph is the curriculum. Sections and labels are summaries for humans; prerequisite edges are the real structure the learning engine uses.
@@ -102,15 +129,29 @@ For every edge, ask:
 
 If the answer is yes, the edge probably belongs in the graph.
 
-### Step 4: Convert the graph into sections
+### Step 4: Convert the graph into human-facing containers
 
 Once the prerequisite graph is coherent, compress it into:
 
-- `course` -> high-level container
-- `sections` -> major tiers or capability clusters
-- `concepts` -> graph nodes inside those sections
+- for a narrower domain:
+  - `course` -> high-level container
+  - `sections` -> major tiers or capability clusters
+  - `concepts` -> graph nodes inside those sections
+- for a broader multi-branch domain:
+  - `academy/track` -> connected curriculum graph
+  - `courses` -> named subgraphs inside that academy
+  - `sections` -> human-readable groupings inside each course
+  - `concepts` -> graph nodes inside those sections
 
-Sections are not the source of truth. They are a human-readable compression of the graph. A good section groups concepts that:
+Sections are not the source of truth. Courses are not the source of truth either. The graph is the source of truth; courses and sections are compressions for humans.
+
+A good course groups concepts that:
+
+- form a coherent capability stream
+- are large enough to deserve a named learner-facing milestone
+- still remain connected to the rest of the academy graph through explicit edges
+
+A good section groups concepts that:
 
 - Sit at a similar layer of the graph
 - Serve a coherent learning goal
@@ -118,7 +159,9 @@ Sections are not the source of truth. They are a human-readable compression of t
 
 Sections should usually move from foundations to application. If a later section does not build on earlier ones, either the sectioning is wrong or the graph is missing cross-section prerequisites.
 
-This follows the PDF's distinction between knowledge graph and course graph: sections are a human-readable compression of the underlying graph, not a substitute for it (Ch. 4 pp. 72-73).
+Courses inside an academy should follow the same rule. If course B depends on course A in the real learning sequence, the graph should say so. Do not hide inter-course dependencies behind a catalog order or roadmap page.
+
+This follows the PDF's distinction between knowledge graph and course graph: courses and sections are human-readable compressions of the underlying graph, not substitutes for it (Ch. 4 pp. 72-73).
 
 ### Step 5: Check for true foundations
 
@@ -143,6 +186,7 @@ Write the course YAML in two passes.
 
 Pass 1: graph skeleton only
 
+- academy / course structure (if applicable)
 - `course`
 - `sections`
 - `concepts`
@@ -193,16 +237,19 @@ The review agent should check:
 3. Are any concepts placed too low that should be higher up as later capstones?
 4. Are any concepts placed too high that actually require earlier foundations?
 5. Are there missing cross-branch edges where one branch quietly depends on another?
-6. Do sections reflect the graph, or are they hiding a broken graph?
-7. Does the course create a clear root -> trunk -> branch -> leaf progression?
-8. For each concept, is the lesson broken into a real staircase of KPs with increasing difficulty, or is it still a mini-chapter disguised as one KP?
-9. If a learner missed a later KP, would the failure point tell us something precise about the missing foundation or missing subskill?
+6. Are any branches large enough that they should become separate courses inside an academy?
+7. Do sections and course boundaries reflect the graph, or are they hiding a broken graph?
+8. Does the course or academy create a clear root -> trunk -> branch -> leaf progression?
+9. For each concept, is the lesson broken into a real staircase of KPs with increasing difficulty, or is it still a mini-chapter disguised as one KP?
+10. If a learner missed a later KP, would the failure point tell us something precise about the missing foundation or missing subskill?
 
 The review agent must explicitly ask:
 
 - "Is this foundational, or can it go further up?"
 - "What breaks downstream if this concept is missing?"
 - "Would a student who mastered the stated prerequisites actually be ready for this?"
+- "Is this branch big enough or independent enough to deserve its own course?"
+- "If this becomes its own course, do we still preserve the real prerequisite and layering structure across courses?"
 - "Is this lesson small-step enough to be learnable in audio form, or did the first agent pack multiple ideas into one KP?"
 - "Do the practice explanations provide reactive feedback that tells the learner what to fix next?"
 
@@ -244,6 +291,7 @@ Lesson-quality rules:
 - KPs must increase in difficulty in small steps. The learner should move from recognition -> guided application -> judgment / transfer, not from definition straight to edge cases.
 - Treat `problems` + `explanation` as reactive feedback. Wrong-answer explanations should diagnose the likely misconception and tell the learner what rule, distinction, or prerequisite to revisit.
 - If a concept still reads like a short chapter instead of a staircase, stop and split it before polishing prose.
+- See the "Content Quality Rules" section below for detailed formatting and variant-depth requirements.
 
 ### Step 11: Run a content review before calling the course done
 
@@ -261,6 +309,77 @@ After the graph review and the content pass, run one final review focused on les
 10. If the learner failed a later KP twice, would the failure location and feedback point to a specific missing idea or prerequisite?
 
 Do not mark the course complete until both the graph review and the content review pass.
+
+## Content Quality Rules
+
+These rules apply to all course content. The authoring workflow should not produce content that violates them, and the review agent should explicitly check for violations.
+
+### Instruction formatting
+
+Every `instruction` field must be structured for scannability. The instruction is the primary teaching content — it must be easy to read, easy to listen to in audio form, and easy to return to for reference.
+
+Rules:
+
+- No wall-of-text paragraphs. If an instruction exceeds ~100 words without a visual break, it needs restructuring.
+- One idea per paragraph. Use double blank lines in YAML `>-` scalars to create paragraph breaks.
+- Use **bold** for key terms on first introduction.
+- Use numbered lists for sequential processes or steps.
+- Use bullet lists for parallel alternatives or properties.
+- If a single KP covers definition + why it matters + tradeoffs + caveats + operational patterns, it is too big. Split it.
+- Instructions must be audio-readable: no URLs in the prose, no "see diagram below", no "the image shows". Put visual references in `instructionContent` blocks.
+
+Bad example:
+```
+instruction: >-
+  Every entity needs a primary key — an attribute that uniquely identifies each instance. Customer 42 is different from Customer 43 because they have different primary keys. Primary keys serve two critical purposes: they guarantee uniqueness and they allow other entities to reference this one via foreign keys. Good primary keys have three properties. They are unique. They are stable. They are never null. Common choices include auto-incrementing integers, UUIDs, or natural keys from the business domain though these can be problematic if they change.
+```
+
+Good example:
+```
+instruction: >-
+  Every entity needs a **primary key** — an attribute (or combination of attributes) that uniquely identifies each instance.
+
+
+  Primary keys serve two purposes:
+
+  1. **Uniqueness** — no two instances share the same key
+
+  2. **Referenceability** — other entities can point to this one via foreign keys
+
+
+  A good primary key has three properties:
+
+  - **Unique** — no duplicates allowed
+
+  - **Stable** — does not change over time
+
+  - **Never null** — every instance must have a value
+
+
+  Common choices: auto-incrementing integers, UUIDs, or natural keys from the business domain. Surrogate keys (system-generated IDs) are generally preferred because they are guaranteed stable and unique.
+```
+
+### Knowledge point granularity
+
+- Fully-authored concepts should have 2-4 KPs. One oversized KP is almost always worse than two smaller KPs.
+- Each KP should teach one idea or one skill step. If you need more than ~150 words to explain it, the KP probably covers too much.
+- KPs must form an increasing-difficulty staircase: recognition → guided application → judgment / transfer.
+- If a concept still reads like a short chapter instead of a staircase, stop and split it before polishing prose.
+
+### Problem variant depth
+
+- Every concept should have at least 3-4 distinct problem variants per KP that has problems.
+- Problems testing the same concept must use different angles, scenarios, or framings — not the same question with reshuffled options.
+- Section exams draw from the concept's problem pool. If the pool has only 1-2 questions, the learner will see the same questions on retakes, which defeats the purpose.
+- Problem types should vary: mix multiple choice, true/false, scenario-based, fill-in-the-blank, ordering, and matching where appropriate.
+- Wrong-answer explanations must diagnose the likely misconception and tell the learner what to fix — they are reactive feedback, not just "that's wrong."
+
+### Callout and reference blocks
+
+- Use `instructionContent` blocks for visual aids, external links, and callouts.
+- Every concept where a diagram, screenshot, or reference link would materially help understanding should have at least one `instructionContent` block.
+- Callout blocks should highlight key rules, common mistakes, or memory aids — not repeat the instruction.
+- Link blocks should point to authoritative external resources that the learner can use for deeper exploration.
 
 ## 1. Create the Organization & Brand
 

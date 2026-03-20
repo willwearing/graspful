@@ -15,14 +15,14 @@ describe('LearningEngineService', () => {
       masteryState: 'mastered',
       memory: 0.9,
       failCount: 0,
-      concept: { courseId: 'course-1' },
+      concept: { courseId: 'course-1', sectionId: 'section-1', difficulty: 2 },
     },
     {
       conceptId: 'c2',
       masteryState: 'unstarted',
       memory: 1.0,
       failCount: 0,
-      concept: { courseId: 'course-1' },
+      concept: { courseId: 'course-1', sectionId: 'section-1', difficulty: 3 },
     },
   ];
 
@@ -30,10 +30,14 @@ describe('LearningEngineService', () => {
 
   beforeEach(() => {
     mockPrisma = {
+      course: {
+        findMany: jest.fn().mockResolvedValue([{ id: 'course-1' }]),
+        findUnique: jest.fn().mockResolvedValue({ academyId: 'academy-1' }),
+      },
       concept: {
         findMany: jest.fn().mockResolvedValue([
-          { id: 'c1', courseId: 'course-1' },
-          { id: 'c2', courseId: 'course-1' },
+          { id: 'c1', courseId: 'course-1', sectionId: 'section-1', difficulty: 2 },
+          { id: 'c2', courseId: 'course-1', sectionId: 'section-1', difficulty: 3 },
         ]),
       },
       prerequisiteEdge: {
@@ -41,11 +45,23 @@ describe('LearningEngineService', () => {
       },
       studentSectionState: {
         findMany: jest.fn().mockResolvedValue([
-          { sectionId: 'section-1', status: 'lesson_in_progress' },
+          {
+            courseId: 'course-1',
+            sectionId: 'section-1',
+            status: 'lesson_in_progress',
+            section: { sortOrder: 0 },
+          },
         ]),
       },
       courseEnrollment: {
         findUnique: jest.fn().mockResolvedValue({ totalXPEarned: 50 }),
+      },
+      academyEnrollment: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'academy-enrollment-1',
+          dailyXPTarget: 40,
+          totalXPEarned: 50,
+        }),
       },
       problemAttempt: {
         findFirst: jest.fn().mockResolvedValue(null),
@@ -53,7 +69,8 @@ describe('LearningEngineService', () => {
     };
 
     mockStudentState = {
-      getConceptStates: jest.fn().mockResolvedValue(conceptStates),
+      getConceptStatesForAcademy: jest.fn().mockResolvedValue(conceptStates),
+      getAcademyIdForCourse: jest.fn().mockResolvedValue('academy-1'),
     };
 
     mockGraphQuery = {
@@ -86,7 +103,7 @@ describe('LearningEngineService', () => {
 
   describe('getNextTask', () => {
     it('should return a task recommendation', async () => {
-      const result = await service.getNextTask('u1', 'course-1');
+      const result = await service.getNextTaskForCourse('u1', 'course-1');
 
       expect(result).toBeDefined();
       expect(result.taskType).toBeDefined();
@@ -96,33 +113,33 @@ describe('LearningEngineService', () => {
     });
 
     it('should recommend a lesson when frontier concept is available', async () => {
-      const result = await service.getNextTask('u1', 'course-1');
+      const result = await service.getNextTaskForCourse('u1', 'course-1');
 
       expect(result.taskType).toBe('lesson');
       expect(result.conceptId).toBe('c2');
     });
 
     it('should create remediations when plateau is detected', async () => {
-      mockStudentState.getConceptStates.mockResolvedValue([
+      mockStudentState.getConceptStatesForAcademy.mockResolvedValue([
         {
           conceptId: 'c1',
           masteryState: 'in_progress',
           memory: 0.5,
           failCount: 0,
-          concept: { courseId: 'course-1' },
+          concept: { courseId: 'course-1', sectionId: 'section-1', difficulty: 2 },
         },
         {
           conceptId: 'c2',
           masteryState: 'in_progress',
           memory: 0.3,
           failCount: 3,
-          concept: { courseId: 'course-1' },
+          concept: { courseId: 'course-1', sectionId: 'section-1', difficulty: 3 },
         },
       ]);
 
       mockGraphQuery.knowledgeFrontier.mockReturnValue([]);
 
-      const result = await service.getNextTask('u1', 'course-1');
+      const result = await service.getNextTaskForCourse('u1', 'course-1');
 
       expect(result.taskType).toBe('remediation');
       expect(mockRemediationService.createRemediation).toHaveBeenCalled();
@@ -131,12 +148,12 @@ describe('LearningEngineService', () => {
 
   describe('getStudySession', () => {
     it('should return a study session with tasks', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         dailyXPTarget: 40,
         totalXPEarned: 50,
       });
 
-      const result = await service.getStudySession('u1', 'course-1');
+      const result = await service.getStudySessionForCourse('u1', 'course-1');
 
       expect(result.tasks).toBeDefined();
       expect(result.tasks.length).toBeGreaterThan(0);
@@ -144,10 +161,10 @@ describe('LearningEngineService', () => {
     });
 
     it('throws when the learner is not enrolled', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValueOnce(null);
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValueOnce(null);
 
-      await expect(service.getStudySession('u1', 'course-1')).rejects.toThrow(
-        'Not enrolled in this course',
+      await expect(service.getStudySessionForCourse('u1', 'course-1')).rejects.toThrow(
+        'Not enrolled in this academy',
       );
     });
   });

@@ -14,6 +14,7 @@ function createMockPrisma() {
   const createdStudentSectionStates: any[] = [];
   const enrollments: any[] = [];
   const deletedCourses: any[] = [];
+  const academies: any[] = [];
   let courseCounter = 0;
   let conceptCounter = 0;
   let sectionCounter = 0;
@@ -62,6 +63,31 @@ function createMockPrisma() {
           delete: jest.fn(async (args: any) => {
             deletedCourses.push(args.where);
             return {};
+          }),
+        },
+        academy: {
+          upsert: jest.fn(async (args: any) => {
+            const existing = academies.find(
+              (academy) => academy.orgId === args.where.orgId_slug.orgId && academy.slug === args.where.orgId_slug.slug,
+            );
+            if (existing) {
+              Object.assign(existing, args.update);
+              return existing;
+            }
+
+            const academy = {
+              id: `academy-uuid-${academies.length + 1}`,
+              orgId: args.create.orgId,
+              slug: args.create.slug,
+              ...args.create,
+            };
+            academies.push(academy);
+            return academy;
+          }),
+          update: jest.fn(async (args: any) => {
+            const academy = academies.find((entry) => entry.id === args.where.id);
+            Object.assign(academy, args.data);
+            return academy;
           }),
         },
         concept: {
@@ -208,11 +234,13 @@ function createMockPrisma() {
         },
         prerequisiteEdge: {
           deleteMany: jest.fn(async (args: any) => {
-            const ids = new Set(
-              args.where.OR.flatMap((entry: any) =>
+            const ids = new Set([
+              ...(args.where.OR?.flatMap((entry: any) =>
                 entry.sourceConceptId?.in ?? entry.targetConceptId?.in ?? [],
-              ),
-            );
+              ) ?? []),
+              ...(args.where.sourceConceptId?.in ?? []),
+              ...(args.where.targetConceptId?.in ?? []),
+            ]);
             for (let i = createdPrereqEdges.length - 1; i >= 0; i--) {
               if (
                 ids.has(createdPrereqEdges[i].sourceConceptId) ||
@@ -230,11 +258,13 @@ function createMockPrisma() {
         },
         encompassingEdge: {
           deleteMany: jest.fn(async (args: any) => {
-            const ids = new Set(
-              args.where.OR.flatMap((entry: any) =>
+            const ids = new Set([
+              ...(args.where.OR?.flatMap((entry: any) =>
                 entry.sourceConceptId?.in ?? entry.targetConceptId?.in ?? [],
-              ),
-            );
+              ) ?? []),
+              ...(args.where.sourceConceptId?.in ?? []),
+              ...(args.where.targetConceptId?.in ?? []),
+            ]);
             for (let i = createdEncompEdges.length - 1; i >= 0; i--) {
               if (
                 ids.has(createdEncompEdges[i].sourceConceptId) ||
@@ -272,6 +302,7 @@ function createMockPrisma() {
       return fn(tx);
     }),
     _created: {
+      academies,
       createdCourses,
       createdSections,
       createdConcepts,
@@ -552,6 +583,39 @@ concepts:
 `;
 
     await expect(service.importFromYaml(yaml, 'org-123')).rejects.toThrow(/cycle|invalid/i);
+  });
+
+  it('rejects qualified cross-course refs on standalone course imports', async () => {
+    const mockPrisma = createMockPrisma();
+    const validationService = new GraphValidationService();
+    const service = new CourseImporterService(mockPrisma as any, validationService);
+
+    const yaml = `
+course:
+  id: standalone-course
+  name: Standalone Course
+  estimatedHours: 2
+  version: "1.0"
+
+concepts:
+  - id: local-root
+    name: Local Root
+    difficulty: 1
+    estimatedMinutes: 5
+    prerequisites: [other-course:external-root]
+    knowledgePoints:
+      - id: kp-1
+        instruction: "Start"
+        problems:
+          - id: p-1
+            type: true_false
+            question: "True?"
+            correct: "true"
+`;
+
+    await expect(service.importFromYaml(yaml, 'org-123')).rejects.toThrow(
+      /requires academy import/i,
+    );
   });
 
   describe('importFromYaml - idempotent mode', () => {

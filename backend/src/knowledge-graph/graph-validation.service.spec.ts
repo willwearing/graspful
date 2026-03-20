@@ -136,4 +136,47 @@ describe('GraphValidationService', () => {
       expect(result.errors.length).toBeGreaterThanOrEqual(3);
     });
   });
+
+  describe('validateAcademy', () => {
+    it('warns about orphan courses without cross-course edges', () => {
+      const result = service.validateAcademy(
+        ['course-a', 'course-b'],
+        [
+          { id: 'course-a:a1', courseSlug: 'course-a' },
+          { id: 'course-b:b1', courseSlug: 'course-b' },
+        ],
+        [],
+        [],
+      );
+
+      expect(result.isValid).toBe(true);
+      expect(result.warnings).toContain(
+        'Orphan courses (no cross-course edges): course-a, course-b',
+      );
+    });
+
+    it('rejects cyclic course dependency projections even when concept refs exist', () => {
+      const result = service.validateAcademy(
+        ['course-a', 'course-b'],
+        [
+          { id: 'course-a:a1', courseSlug: 'course-a' },
+          { id: 'course-a:a2', courseSlug: 'course-a' },
+          { id: 'course-b:b1', courseSlug: 'course-b' },
+          { id: 'course-b:b2', courseSlug: 'course-b' },
+        ],
+        [
+          { source: 'course-a:a1', target: 'course-b:b1' },
+          { source: 'course-b:b2', target: 'course-a:a2' },
+        ],
+        [],
+      );
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('Course dependency Cycle detected'),
+        ]),
+      );
+    });
+  });
 });

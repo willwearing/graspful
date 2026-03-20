@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { DiagnosticState, MasteryState } from '@prisma/client';
 import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
@@ -11,7 +11,12 @@ export class StudentStateService {
   constructor(private prisma: PrismaService) {}
 
   async getConceptStates(userId: string, courseId: string) {
-    await this.ensureConceptStates(userId, courseId);
+    return this.getConceptStatesForCourse(userId, courseId);
+  }
+
+  async getConceptStatesForCourse(userId: string, courseId: string) {
+    const academyId = await this.getAcademyIdForCourse(courseId);
+    await this.ensureConceptStatesForAcademy(userId, academyId);
 
     return this.prisma.studentConceptState.findMany({
       where: {
@@ -22,12 +27,82 @@ export class StudentStateService {
     });
   }
 
+  async getConceptStatesForAcademy(userId: string, academyId: string) {
+    await this.ensureConceptStatesForAcademy(userId, academyId);
+
+    return this.prisma.studentConceptState.findMany({
+      where: {
+        userId,
+        concept: activeConceptWhere({
+          course: { academyId },
+        }),
+      },
+      include: { concept: true },
+    });
+  }
+
+  /**
+   * Get concept states for a specific course, derived from academy scope.
+   * This is a projection — the academy is the authoritative boundary.
+   */
+  async getConceptStatesForAcademyCourse(
+    userId: string,
+    academyId: string,
+    courseId: string,
+  ) {
+    await this.ensureConceptStatesForAcademy(userId, academyId);
+    return this.prisma.studentConceptState.findMany({
+      where: {
+        userId,
+        concept: activeConceptWhere({ courseId, course: { academyId } }),
+      },
+      include: { concept: true },
+    });
+  }
+
+  /**
+   * Get a mastery summary per course for academy-level views.
+   * Returns a Map of courseId -> { total, mastered, inProgress, unstarted }.
+   */
+  async getAcademyCourseMasterySummary(userId: string, academyId: string) {
+    await this.ensureConceptStatesForAcademy(userId, academyId);
+    const states = await this.prisma.studentConceptState.findMany({
+      where: {
+        userId,
+        concept: activeConceptWhere({ course: { academyId } }),
+      },
+      select: {
+        conceptId: true,
+        masteryState: true,
+        concept: { select: { courseId: true } },
+      },
+    });
+
+    const courseMap = new Map<
+      string,
+      { total: number; mastered: number; inProgress: number; unstarted: number }
+    >();
+    for (const state of states) {
+      const cid = state.concept.courseId;
+      if (!courseMap.has(cid)) {
+        courseMap.set(cid, { total: 0, mastered: 0, inProgress: 0, unstarted: 0 });
+      }
+      const entry = courseMap.get(cid)!;
+      entry.total++;
+      if (state.masteryState === 'mastered') entry.mastered++;
+      else if (state.masteryState === 'unstarted') entry.unstarted++;
+      else entry.inProgress++;
+    }
+    return courseMap;
+  }
+
   /**
    * Build a Map of conceptId -> P(L) for use by diagnostic algorithms.
    * Uses BKT prior (0.5) for unstarted concepts.
    */
   async getMasteryMap(userId: string, courseId: string): Promise<Map<string, number>> {
-    await this.ensureConceptStates(userId, courseId);
+    const academyId = await this.getAcademyIdForCourse(courseId);
+    await this.ensureConceptStatesForAcademy(userId, academyId);
 
     const states = await this.prisma.studentConceptState.findMany({
       where: {
@@ -42,6 +117,33 @@ export class StudentStateService {
       // memory field stores the running P(L) estimate
       // Default 1.0 from schema means "unobserved" -- map to prior 0.5
       const pL = state.memory === 1.0 && state.masteryState === 'unstarted' ? 0.5 : state.memory;
+      map.set(state.conceptId, pL);
+    }
+    return map;
+  }
+
+  async getMasteryMapForAcademy(
+    userId: string,
+    academyId: string,
+  ): Promise<Map<string, number>> {
+    await this.ensureConceptStatesForAcademy(userId, academyId);
+
+    const states = await this.prisma.studentConceptState.findMany({
+      where: {
+        userId,
+        concept: activeConceptWhere({
+          course: { academyId },
+        }),
+      },
+      select: { conceptId: true, masteryState: true, memory: true },
+    });
+
+    const map = new Map<string, number>();
+    for (const state of states) {
+      const pL =
+        state.memory === 1.0 && state.masteryState === 'unstarted'
+          ? 0.5
+          : state.memory;
       map.set(state.conceptId, pL);
     }
     return map;
@@ -101,17 +203,17 @@ export class StudentStateService {
     return Promise.all(promises);
   }
 
-  async isDiagnosticCompleted(userId: string, courseId: string): Promise<boolean> {
-    const enrollment = await this.prisma.courseEnrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
+  async isDiagnosticCompleted(userId: string, academyId: string): Promise<boolean> {
+    const enrollment = await this.prisma.academyEnrollment.findUnique({
+      where: { userId_academyId: { userId, academyId } },
       select: { diagnosticCompleted: true },
     });
     return enrollment?.diagnosticCompleted ?? false;
   }
 
-  async markDiagnosticComplete(userId: string, courseId: string) {
-    return this.prisma.courseEnrollment.update({
-      where: { userId_courseId: { userId, courseId } },
+  async markDiagnosticComplete(userId: string, academyId: string) {
+    return this.prisma.academyEnrollment.update({
+      where: { userId_academyId: { userId, academyId } },
       data: {
         diagnosticCompleted: true,
         diagnosticCompletedAt: new Date(),
@@ -133,20 +235,24 @@ export class StudentStateService {
   }
 
   /**
-   * Course content can change after a learner enrolls.
+   * Academy content can change after a learner enrolls.
    * Keep concept-state rows in sync so diagnostics and graph coloring
-   * always operate on the full current course graph.
+   * always operate on the full current academy graph.
    */
-  private async ensureConceptStates(userId: string, courseId: string) {
+  private async ensureConceptStatesForAcademy(userId: string, academyId: string) {
     const [concepts, existingStates] = await Promise.all([
       this.prisma.concept.findMany({
-        where: activeConceptWhere({ courseId }),
+        where: activeConceptWhere({
+          course: { academyId },
+        }),
         select: { id: true },
       }),
       this.prisma.studentConceptState.findMany({
         where: {
           userId,
-          concept: activeConceptWhere({ courseId }),
+          concept: activeConceptWhere({
+            course: { academyId },
+          }),
         },
         select: { conceptId: true },
       }),
@@ -168,5 +274,18 @@ export class StudentStateService {
       })),
       skipDuplicates: true,
     });
+  }
+
+  async getAcademyIdForCourse(courseId: string): Promise<string> {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { academyId: true },
+    });
+
+    if (!course?.academyId) {
+      throw new NotFoundException('Course academy not found');
+    }
+
+    return course.academyId;
   }
 }

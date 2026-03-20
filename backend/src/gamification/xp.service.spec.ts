@@ -8,9 +8,14 @@ const mockPrisma = {
     findMany: jest.fn(),
     aggregate: jest.fn(),
   },
+  academyEnrollment: {
+    findUnique: jest.fn(),
+    update: jest.fn(),
+  },
   courseEnrollment: {
     findUnique: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
   },
   userStreak: {
     upsert: jest.fn(),
@@ -33,19 +38,21 @@ describe('XPService', () => {
 
   describe('recordXPEvent', () => {
     it('should create an XP event and increment enrollment totalXPEarned', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         id: 'enroll-1',
         totalXPEarned: 100,
         dailyXPTarget: 40,
-        course: { orgId: 'org-1' },
+        academy: { orgId: 'org-1' },
       });
       mockPrisma.xPEvent.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
       mockPrisma.xPEvent.create.mockResolvedValue({ id: 'xp-1', amount: 15 });
+      mockPrisma.academyEnrollment.update.mockResolvedValue({});
       mockPrisma.courseEnrollment.update.mockResolvedValue({});
       mockPrisma.userStreak.upsert.mockResolvedValue({});
 
       const result = await service.recordXPEvent({
         userId: 'user-1',
+        academyId: 'academy-1',
         courseId: 'course-1',
         source: 'lesson',
         amount: 15,
@@ -56,13 +63,14 @@ describe('XPService', () => {
       expect(mockPrisma.xPEvent.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           userId: 'user-1',
+          academyId: 'academy-1',
           courseId: 'course-1',
           source: 'lesson',
           amount: 15,
           conceptId: 'concept-1',
         }),
       });
-      expect(mockPrisma.courseEnrollment.update).toHaveBeenCalled();
+      expect(mockPrisma.courseEnrollment.updateMany).toHaveBeenCalled();
     });
 
     it('should skip recording when amount is 0', async () => {
@@ -78,20 +86,22 @@ describe('XPService', () => {
     });
 
     it('should cap daily XP at 500', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         id: 'enroll-1',
         totalXPEarned: 100,
         dailyXPTarget: 40,
-        course: { orgId: 'org-1' },
+        academy: { orgId: 'org-1' },
       });
       // Simulate 490 XP already earned today
       mockPrisma.xPEvent.aggregate.mockResolvedValue({ _sum: { amount: 490 } });
       mockPrisma.xPEvent.create.mockResolvedValue({ id: 'xp-2', amount: 10 });
+      mockPrisma.academyEnrollment.update.mockResolvedValue({});
       mockPrisma.courseEnrollment.update.mockResolvedValue({});
       mockPrisma.userStreak.upsert.mockResolvedValue({});
 
       const result = await service.recordXPEvent({
         userId: 'user-1',
+        academyId: 'academy-1',
         courseId: 'course-1',
         source: 'lesson',
         amount: 20,

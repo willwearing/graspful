@@ -423,6 +423,7 @@ export class SectionExamService {
       answer,
       question.problem.correctAnswer,
       question.problem.explanation ?? undefined,
+      question.problem.options as unknown[] | null,
     );
 
     await this.prisma.$transaction([

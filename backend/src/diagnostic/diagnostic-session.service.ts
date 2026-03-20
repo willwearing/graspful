@@ -7,11 +7,10 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { StudentStateService } from '@/student-model/student-state.service';
-import { GraphQueryService, SimpleEdge } from '@/knowledge-graph/graph-query.service';
+import { SimpleEdge } from '@/knowledge-graph/graph-query.service';
 import {
   activeConceptWhere,
   activeKnowledgePointWhere,
-  activePrerequisiteEdgeWhere,
 } from '@/knowledge-graph/active-course-content';
 import {
   updateMasteryAfterCorrect,
@@ -39,30 +38,27 @@ export class DiagnosticSessionService {
   constructor(
     private prisma: PrismaService,
     private studentState: StudentStateService,
-    private graphQuery: GraphQueryService,
   ) {}
 
-  async startDiagnostic(orgId: string, userId: string, courseId: string): Promise<{
+  async startDiagnostic(orgId: string, userId: string, academyId: string): Promise<{
     sessionId: string;
     questionNumber: number;
     totalEstimated: number;
     isComplete: boolean;
     question: any;
   }> {
-    // Verify enrollment
-    const enrollment = await this.prisma.courseEnrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
+    const enrollment = await this.prisma.academyEnrollment.findUnique({
+      where: { userId_academyId: { userId, academyId } },
     });
     if (!enrollment) {
-      throw new NotFoundException('Not enrolled in this course');
+      throw new NotFoundException('Not enrolled in this academy');
     }
     if (enrollment.diagnosticCompleted) {
       throw new BadRequestException('Diagnostic already completed');
     }
 
-    // Check for existing in_progress session
     const existing = await this.prisma.diagnosticSession.findFirst({
-      where: { userId, courseId, status: 'in_progress' },
+      where: { userId, academyId, status: 'in_progress' },
       include: { masterySnapshots: true, currentProblem: { include: { knowledgePoint: { select: { conceptId: true } } } } },
     });
 
@@ -71,13 +67,13 @@ export class DiagnosticSessionService {
         (Date.now() - existing.updatedAt.getTime()) / (1000 * 60 * 60);
 
       if (hoursSinceUpdate < STALE_SESSION_HOURS) {
-        // Resume existing session
         const concepts = await this.prisma.concept.findMany({
-          where: activeConceptWhere({ courseId }),
+          where: activeConceptWhere({
+            course: { academyId },
+          }),
           select: { id: true, slug: true, difficultyTheta: true, courseId: true },
         });
 
-        // If no current problem (shouldn't happen, but defensive), pick one
         let problem = existing.currentProblem;
         if (!problem && existing.currentConceptId) {
           problem = await this.pickProblemForConcept(existing.currentConceptId);
@@ -92,30 +88,39 @@ export class DiagnosticSessionService {
         };
       }
 
-      // Stale — mark abandoned, start fresh
       await this.prisma.diagnosticSession.update({
         where: { id: existing.id },
         data: { status: 'abandoned' },
       });
     }
 
-    // Load graph data
     const concepts = await this.prisma.concept.findMany({
-      where: activeConceptWhere({ courseId }),
+      where: activeConceptWhere({
+        course: { academyId },
+      }),
       select: { id: true, slug: true, difficultyTheta: true, courseId: true },
     });
 
     const prereqEdges = await this.prisma.prerequisiteEdge.findMany({
-      where: activePrerequisiteEdgeWhere(courseId),
+      where: {
+        sourceConcept: activeConceptWhere({
+          course: { academyId },
+        }),
+        targetConcept: activeConceptWhere({
+          course: { academyId },
+        }),
+      },
     });
     const edges: SimpleEdge[] = prereqEdges.map((e) => ({
       source: e.sourceConceptId,
       target: e.targetConceptId,
     }));
 
-    const masteries = await this.studentState.getMasteryMap(userId, courseId);
+    const masteries = await this.studentState.getMasteryMapForAcademy(
+      userId,
+      academyId,
+    );
 
-    // Select first concept
     const testedIds = new Set<string>();
     const firstConceptId = selectNextConcept(
       masteries,
@@ -128,22 +133,20 @@ export class DiagnosticSessionService {
       throw new BadRequestException('No concepts available for diagnostic');
     }
 
-    // Pick a problem for the selected concept
     const problem = await this.pickProblemForConcept(firstConceptId);
     if (!problem) {
       throw new BadRequestException('No problems available for diagnostic');
     }
 
-    // Create session + snapshots in a transaction.
-    // The partial unique index prevents duplicate in_progress sessions;
-    // if a concurrent request created one first, retry as resume.
+    const firstConcept = concepts.find((concept) => concept.id === firstConceptId);
     let session: { id: string };
     try {
       session = await this.prisma.$transaction(async (tx) => {
       const sess = await tx.diagnosticSession.create({
         data: {
           userId,
-          courseId,
+          courseId: firstConcept?.courseId ?? concepts[0].courseId,
+          academyId,
           orgId,
           status: 'in_progress',
           questionCount: 0,
@@ -171,8 +174,7 @@ export class DiagnosticSessionService {
     });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        // Concurrent create hit the unique index — recurse to resume the other session
-        return this.startDiagnostic(orgId, userId, courseId);
+        return this.startDiagnostic(orgId, userId, academyId);
       }
       throw err;
     }
@@ -181,7 +183,13 @@ export class DiagnosticSessionService {
       severityNumber: SeverityNumber.INFO,
       severityText: 'INFO',
       body: `Diagnostic started`,
-      attributes: { 'user.id': userId, 'course.id': courseId, 'session.id': session.id, 'concepts.total': concepts.length },
+      attributes: {
+        'user.id': userId,
+        'academy.id': academyId,
+        'course.id': firstConcept?.courseId ?? '',
+        'session.id': session.id,
+        'concepts.total': concepts.length,
+      },
     });
 
     return {
@@ -191,6 +199,11 @@ export class DiagnosticSessionService {
       isComplete: false,
       question: this.sanitizeProblem(problem),
     };
+  }
+
+  async startDiagnosticForCourse(orgId: string, userId: string, courseId: string) {
+    const academyId = await this.resolveAcademyIdForCourse(courseId);
+    return this.startDiagnostic(orgId, userId, academyId);
   }
 
   async submitAnswer(
@@ -221,13 +234,21 @@ export class DiagnosticSessionService {
       throw new BadRequestException('No active question');
     }
 
-    // Re-fetch static graph data
     const concepts = await this.prisma.concept.findMany({
-      where: activeConceptWhere({ courseId: session.courseId }),
-      select: { id: true, difficultyTheta: true },
+      where: activeConceptWhere({
+        course: { academyId: session.academyId },
+      }),
+      select: { id: true, difficultyTheta: true, courseId: true },
     });
     const prereqEdges = await this.prisma.prerequisiteEdge.findMany({
-      where: activePrerequisiteEdgeWhere(session.courseId),
+      where: {
+        sourceConcept: activeConceptWhere({
+          course: { academyId: session.academyId },
+        }),
+        targetConcept: activeConceptWhere({
+          course: { academyId: session.academyId },
+        }),
+      },
     });
     const edges: SimpleEdge[] = prereqEdges.map((e) => ({
       source: e.sourceConceptId,
@@ -326,7 +347,7 @@ export class DiagnosticSessionService {
       return this.completeDiagnostic(
         sessionId,
         session.userId,
-        session.courseId,
+        session.academyId,
         masteries,
         responses,
         concepts,
@@ -350,7 +371,7 @@ export class DiagnosticSessionService {
       return this.completeDiagnostic(
         sessionId,
         session.userId,
-        session.courseId,
+        session.academyId,
         masteries,
         responses,
         concepts,
@@ -367,7 +388,7 @@ export class DiagnosticSessionService {
       return this.completeDiagnostic(
         sessionId,
         session.userId,
-        session.courseId,
+        session.academyId,
         masteries,
         responses,
         concepts,
@@ -378,6 +399,7 @@ export class DiagnosticSessionService {
         correct,
       );
     }
+    const nextConcept = concepts.find((concept) => concept.id === nextConceptId);
 
     // Persist everything in a transaction
     await this.prisma.$transaction([
@@ -428,16 +450,30 @@ export class DiagnosticSessionService {
       masteries.set(snap.conceptId, snap.pL);
     }
 
-    return this.buildResult(masteries, session.questionCount);
+    // Fetch concept-to-course mapping for course breakdown
+    const conceptIds = session.masterySnapshots.map((s) => s.conceptId);
+    const concepts = await this.prisma.concept.findMany({
+      where: { id: { in: conceptIds } },
+      select: { id: true, courseId: true, course: { select: { name: true } } },
+    });
+    const conceptCourseMap = new Map<string, { courseId: string; courseName: string }>();
+    for (const c of concepts) {
+      conceptCourseMap.set(c.id, {
+        courseId: c.courseId,
+        courseName: c.course.name,
+      });
+    }
+
+    return this.buildResult(masteries, session.questionCount, conceptCourseMap);
   }
 
   private async completeDiagnostic(
     sessionId: string,
     sessionUserId: string,
-    courseId: string,
+    academyId: string,
     masteries: Map<string, number>,
     responses: DiagnosticResponse[],
-    concepts: Array<{ id: string; difficultyTheta: number }>,
+    concepts: Array<{ id: string; difficultyTheta: number; courseId?: string }>,
     questionCount: number,
     snapshotUpserts: any[],
     currentProblem: any,
@@ -488,24 +524,49 @@ export class DiagnosticSessionService {
       speedResult.conceptSpeeds,
     );
 
-    await this.studentState.markDiagnosticComplete(sessionUserId, courseId);
+    await this.studentState.markDiagnosticComplete(sessionUserId, academyId);
 
     logger.emit({
       severityNumber: SeverityNumber.INFO,
       severityText: 'INFO',
       body: `Diagnostic completed`,
-      attributes: { 'user.id': sessionUserId, 'course.id': courseId, 'session.id': sessionId, 'questions.answered': questionCount },
+      attributes: {
+        'user.id': sessionUserId,
+        'academy.id': academyId,
+        'session.id': sessionId,
+        'questions.answered': questionCount,
+      },
     });
+
+    // Build concept-to-course mapping for course breakdown
+    const courses = await this.prisma.course.findMany({
+      where: { academyId },
+      select: { id: true, name: true },
+    });
+    const courseTitleMap = new Map(courses.map((c) => [c.id, c.name]));
+    const conceptCourseMap = new Map<string, { courseId: string; courseName: string }>();
+    for (const concept of concepts) {
+      if (concept.courseId) {
+        conceptCourseMap.set(concept.id, {
+          courseId: concept.courseId,
+          courseName: courseTitleMap.get(concept.courseId) ?? '',
+        });
+      }
+    }
 
     return {
       sessionId,
       isComplete: true,
       questionsAnswered: questionCount,
-      result: this.buildResult(masteries, questionCount),
+      result: this.buildResult(masteries, questionCount, conceptCourseMap),
     };
   }
 
-  private buildResult(masteries: Map<string, number>, questionCount: number) {
+  private buildResult(
+    masteries: Map<string, number>,
+    questionCount: number,
+    conceptCourseMap?: Map<string, { courseId: string; courseName: string }>,
+  ) {
     const breakdown = { mastered: 0, conditionally_mastered: 0, partially_known: 0, unknown: 0 };
 
     for (const pL of masteries.values()) {
@@ -513,18 +574,76 @@ export class DiagnosticSessionService {
       breakdown[state]++;
     }
 
+    const conceptDetails = Array.from(masteries.entries()).map(
+      ([conceptId, pL]) => ({
+        conceptId,
+        pL: Math.round(pL * 1000) / 1000,
+        classification: classifyDiagnosticState(pL),
+      }),
+    );
+
     return {
       totalConcepts: masteries.size,
       questionsAnswered: questionCount,
       breakdown,
-      conceptDetails: Array.from(masteries.entries()).map(
-        ([conceptId, pL]) => ({
-          conceptId,
-          pL: Math.round(pL * 1000) / 1000,
-          classification: classifyDiagnosticState(pL),
-        }),
-      ),
+      conceptDetails,
+      courseBreakdown: this.buildCourseBreakdown(conceptDetails, conceptCourseMap),
     };
+  }
+
+  private buildCourseBreakdown(
+    conceptDetails: Array<{
+      conceptId: string;
+      pL: number;
+      classification: ReturnType<typeof classifyDiagnosticState>;
+    }>,
+    conceptCourseMap?: Map<string, { courseId: string; courseName: string }>,
+  ): Array<{
+    courseId: string;
+    courseName: string;
+    totalConcepts: number;
+    mastered: number;
+    partiallyKnown: number;
+    unknown: number;
+  }> {
+    if (!conceptCourseMap || conceptCourseMap.size === 0) {
+      return [];
+    }
+
+    const courseAgg = new Map<
+      string,
+      { courseName: string; totalConcepts: number; mastered: number; partiallyKnown: number; unknown: number }
+    >();
+
+    for (const detail of conceptDetails) {
+      const courseInfo = conceptCourseMap.get(detail.conceptId);
+      if (!courseInfo) continue;
+
+      if (!courseAgg.has(courseInfo.courseId)) {
+        courseAgg.set(courseInfo.courseId, {
+          courseName: courseInfo.courseName,
+          totalConcepts: 0,
+          mastered: 0,
+          partiallyKnown: 0,
+          unknown: 0,
+        });
+      }
+      const entry = courseAgg.get(courseInfo.courseId)!;
+      entry.totalConcepts++;
+      if (detail.classification === 'mastered') {
+        entry.mastered++;
+      } else if (detail.classification === 'unknown') {
+        entry.unknown++;
+      } else {
+        // conditionally_mastered and partially_known both count as partiallyKnown
+        entry.partiallyKnown++;
+      }
+    }
+
+    return Array.from(courseAgg.entries()).map(([courseId, stats]) => ({
+      courseId,
+      ...stats,
+    }));
   }
 
   private async pickProblemForConcept(conceptId: string) {
@@ -545,12 +664,25 @@ export class DiagnosticSessionService {
   }
 
   private evaluateAnswerForProblem(problem: any, answer: any): boolean {
-    return evaluateAnswer(problem.type, answer, problem.correctAnswer).correct;
+    return evaluateAnswer(problem.type, answer, problem.correctAnswer, undefined, problem.options).correct;
   }
 
   private sanitizeProblem(problem: any) {
     // Strip correctAnswer and explanation from the response
     const { correctAnswer, explanation, explanationAudioUrl, knowledgePoint, ...safe } = problem;
     return serializeProblemForClient(safe);
+  }
+
+  private async resolveAcademyIdForCourse(courseId: string): Promise<string> {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { academyId: true },
+    });
+
+    if (!course?.academyId) {
+      throw new NotFoundException('Course academy not found');
+    }
+
+    return course.academyId;
   }
 }

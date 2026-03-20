@@ -47,7 +47,7 @@ export class LessonService {
     }
 
     // Check if concept is blocked by an active remediation
-    const blockedIds = await this.remediationService.getBlockedConceptIds(
+    const blockedIds = await this.remediationService.getBlockedConceptIdsForCourse(
       userId,
       courseId,
     );

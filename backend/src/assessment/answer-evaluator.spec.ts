@@ -79,12 +79,12 @@ describe('Answer Evaluator', () => {
   });
 
   describe('evaluateOrdering', () => {
-    it('should return correct for matching order', () => {
+    it('should return correct for matching order (array correctAnswer)', () => {
       const result = evaluateOrdering(['a', 'b', 'c'], ['a', 'b', 'c']);
       expect(result.correct).toBe(true);
     });
 
-    it('should return incorrect for wrong order', () => {
+    it('should return incorrect for wrong order (array correctAnswer)', () => {
       const result = evaluateOrdering(['b', 'a', 'c'], ['a', 'b', 'c']);
       expect(result.correct).toBe(false);
     });
@@ -94,8 +94,34 @@ describe('Answer Evaluator', () => {
       expect(result.correct).toBe(false);
     });
 
-    it('should return incorrect for non-array input', () => {
+    it('should return incorrect for non-array student answer', () => {
       const result = evaluateOrdering('not-array', ['a', 'b']);
+      expect(result.correct).toBe(false);
+      expect(result.feedback).toBe('Invalid answer format.');
+    });
+
+    it('should resolve index-based correctAnswer string against options', () => {
+      // Options in shuffled order as stored in DB
+      const options = ['Cardinality', 'Entities', 'Join tables', 'Attributes', 'Relationships'];
+      // Correct order: Entities(1), Attributes(3), Relationships(4), Cardinality(0), Join tables(2)
+      const correctAnswer = '1,3,4,0,2';
+      const studentAnswer = ['Entities', 'Attributes', 'Relationships', 'Cardinality', 'Join tables'];
+
+      const result = evaluateOrdering(studentAnswer, correctAnswer, undefined, options);
+      expect(result.correct).toBe(true);
+    });
+
+    it('should reject wrong order with index-based correctAnswer', () => {
+      const options = ['Cardinality', 'Entities', 'Join tables', 'Attributes', 'Relationships'];
+      const correctAnswer = '1,3,4,0,2';
+      const studentAnswer = ['Cardinality', 'Entities', 'Join tables', 'Attributes', 'Relationships'];
+
+      const result = evaluateOrdering(studentAnswer, correctAnswer, undefined, options);
+      expect(result.correct).toBe(false);
+    });
+
+    it('should return invalid when index-based but no options provided', () => {
+      const result = evaluateOrdering(['a', 'b'], '1,0');
       expect(result.correct).toBe(false);
       expect(result.feedback).toBe('Invalid answer format.');
     });

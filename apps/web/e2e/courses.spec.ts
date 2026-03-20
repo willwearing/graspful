@@ -1,5 +1,16 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { signUpTestUser } from "./helpers/auth";
+
+/**
+ * Get a course card locator from the dashboard.
+ * The dashboard still renders CourseCard components with `/browse/<courseId>` links.
+ */
+async function getFirstDashboardCourseCard(page: Page) {
+  // signUpTestUser lands on /dashboard already
+  const firstCourse = page.locator("a[href^='/browse/']").first();
+  await expect(firstCourse).toBeVisible({ timeout: 10_000 });
+  return firstCourse;
+}
 
 test.describe("Course browsing (authenticated)", () => {
   test.beforeEach(async ({ page }) => {
@@ -15,35 +26,33 @@ test.describe("Course browsing (authenticated)", () => {
     await expect(courseCards.first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test("browse page lists available courses", async ({ page }) => {
+  test("browse page lists available academies", async ({ page }) => {
     await page.goto("/browse");
-    await expect(page.getByText("Browse Courses")).toBeVisible();
+    await expect(page.getByText("Browse Academies")).toBeVisible();
 
-    const courseCards = page.locator("a[href^='/browse/']");
-    const count = await courseCards.count();
+    // Should show at least one academy card with an "Open Academy" button
+    const academyCards = page.getByRole("button", { name: "Open Academy" });
+    await expect(academyCards.first()).toBeVisible({ timeout: 10_000 });
+    const count = await academyCards.count();
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
   test("clicking a course navigates to course detail page", async ({
     page,
   }) => {
-    await page.goto("/browse");
-    await expect(page.getByText("Browse Courses")).toBeVisible();
-
-    const firstCourse = page.locator("a[href^='/browse/']").first();
-    await expect(firstCourse).toBeVisible({ timeout: 10_000 });
+    const firstCourse = await getFirstDashboardCourseCard(page);
     await firstCourse.click();
 
-    // Should be on course detail page
-    await expect(page.getByText("Back to Courses")).toBeVisible();
+    // Should be on course detail page — back link text depends on academy context
+    await expect(
+      page.getByText(/Back to (Academy|Courses)/)
+    ).toBeVisible();
     // Course heading should exist
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   });
 
   test("course detail page shows concepts list", async ({ page }) => {
-    await page.goto("/browse");
-    const firstCourse = page.locator("a[href^='/browse/']").first();
-    await expect(firstCourse).toBeVisible({ timeout: 10_000 });
+    const firstCourse = await getFirstDashboardCourseCard(page);
     await firstCourse.click();
 
     // Should show concepts heading
@@ -59,9 +68,7 @@ test.describe("Course browsing (authenticated)", () => {
   });
 
   test("course detail page shows progress summary", async ({ page }) => {
-    await page.goto("/browse");
-    const firstCourse = page.locator("a[href^='/browse/']").first();
-    await expect(firstCourse).toBeVisible({ timeout: 10_000 });
+    const firstCourse = await getFirstDashboardCourseCard(page);
     await firstCourse.click();
 
     // Should show progress section
@@ -71,16 +78,16 @@ test.describe("Course browsing (authenticated)", () => {
     await expect(progressSection.first()).toBeVisible();
   });
 
-  test("back to courses link works on detail page", async ({ page }) => {
-    await page.goto("/browse");
-    const firstCourse = page.locator("a[href^='/browse/']").first();
-    await expect(firstCourse).toBeVisible({ timeout: 10_000 });
+  test("back navigation works on detail page", async ({ page }) => {
+    const firstCourse = await getFirstDashboardCourseCard(page);
     await firstCourse.click();
 
-    await expect(page.getByText("Back to Courses")).toBeVisible();
-    await page.getByText("Back to Courses").click();
-    await expect(page).toHaveURL(/\/browse$/);
-    await expect(page.getByText("Browse Courses")).toBeVisible();
+    // Back link text depends on whether course has an academy
+    const backLink = page.getByText(/Back to (Academy|Courses)/);
+    await expect(backLink).toBeVisible();
+    await backLink.click();
+    // Should navigate to either /browse or /academy/:id
+    await expect(page).toHaveURL(/\/(browse|academy\/.+)$/);
   });
 });
 
@@ -110,10 +117,7 @@ test.describe("Study and diagnostic routes (authenticated)", () => {
   test("study route loads without error for a valid course", async ({
     page,
   }) => {
-    await page.goto("/browse");
-    const firstCourse = page.locator("a[href^='/browse/']").first();
-    await expect(firstCourse).toBeVisible({ timeout: 10_000 });
-
+    const firstCourse = await getFirstDashboardCourseCard(page);
     const href = await firstCourse.getAttribute("href");
     const courseId = href?.replace("/browse/", "");
     expect(courseId).toBeTruthy();
@@ -129,10 +133,7 @@ test.describe("Study and diagnostic routes (authenticated)", () => {
   test("diagnostic route loads without error for a valid course", async ({
     page,
   }) => {
-    await page.goto("/browse");
-    const firstCourse = page.locator("a[href^='/browse/']").first();
-    await expect(firstCourse).toBeVisible({ timeout: 10_000 });
-
+    const firstCourse = await getFirstDashboardCourseCard(page);
     const href = await firstCourse.getAttribute("href");
     const courseId = href?.replace("/browse/", "");
 

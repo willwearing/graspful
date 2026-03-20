@@ -11,6 +11,7 @@ describe('DiagnosticController', () => {
 
   beforeEach(async () => {
     mockDiagnostic = {
+      startDiagnosticForCourse: jest.fn(),
       startDiagnostic: jest.fn(),
       submitAnswer: jest.fn(),
       getResult: jest.fn(),
@@ -39,13 +40,13 @@ describe('DiagnosticController', () => {
         isComplete: false,
         question: { id: 'p1', questionText: 'Q1' },
       };
-      mockDiagnostic.startDiagnostic.mockResolvedValue(startResult);
+      mockDiagnostic.startDiagnosticForCourse.mockResolvedValue(startResult);
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
       const result = await controller.startDiagnostic('course-1', orgCtx as any);
 
       expect(result).toEqual(startResult);
-      expect(mockDiagnostic.startDiagnostic).toHaveBeenCalledWith('org-1', 'u1', 'course-1');
+      expect(mockDiagnostic.startDiagnosticForCourse).toHaveBeenCalledWith('org-1', 'u1', 'course-1');
     });
   });
 

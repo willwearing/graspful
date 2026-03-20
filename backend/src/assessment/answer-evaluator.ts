@@ -82,25 +82,52 @@ export function evaluateFillBlank(
 }
 
 /**
- * Ordering: compare ordered array of IDs.
- * correctAnswer: string[] (ordered IDs)
- * answer: string[] (student's ordered IDs)
+ * Ordering: compare ordered array of items.
+ *
+ * The student answer is always string[] (the option texts in the order they chose).
+ *
+ * correctAnswer may be:
+ *   - string[] (the option texts in correct order) — direct comparison
+ *   - string   (comma-separated indices like "1,3,4,0,2") — resolve indices
+ *               against the options array to build the correct text order
+ *
+ * When correctAnswer is index-based, `options` must be provided so the
+ * indices can be mapped back to text for comparison.
  */
 export function evaluateOrdering(
   answer: unknown,
   correctAnswer: unknown,
   explanation?: string,
+  options?: unknown[] | null,
 ): EvaluationResult {
-  const studentOrder = answer as string[];
-  const correctOrder = correctAnswer as string[];
+  const studentOrder = Array.isArray(answer) ? (answer as string[]) : null;
+  if (!studentOrder) {
+    return { correct: false, feedback: 'Invalid answer format.' };
+  }
 
-  if (!Array.isArray(studentOrder) || !Array.isArray(correctOrder)) {
+  let resolvedCorrectOrder: string[];
+
+  if (Array.isArray(correctAnswer)) {
+    resolvedCorrectOrder = correctAnswer.map(String);
+  } else if (typeof correctAnswer === 'string') {
+    // Index-based format: "1,3,4,0,2"
+    const indices = correctAnswer.split(',').map((s) => parseInt(s.trim(), 10));
+    const optionTexts = Array.isArray(options)
+      ? options.map(String)
+      : [];
+
+    if (optionTexts.length === 0 || indices.some(isNaN)) {
+      return { correct: false, feedback: 'Invalid answer format.' };
+    }
+
+    resolvedCorrectOrder = indices.map((idx) => optionTexts[idx] ?? '');
+  } else {
     return { correct: false, feedback: 'Invalid answer format.' };
   }
 
   const correct =
-    studentOrder.length === correctOrder.length &&
-    studentOrder.every((id, i) => id === correctOrder[i]);
+    studentOrder.length === resolvedCorrectOrder.length &&
+    studentOrder.every((text, i) => text === resolvedCorrectOrder[i]);
 
   return {
     correct,
@@ -157,12 +184,15 @@ export function evaluateScenario(
 
 /**
  * Main evaluator dispatcher.
+ * @param options - The problem's options array. Required for ordering problems
+ *                  where correctAnswer is stored as comma-separated indices.
  */
 export function evaluateAnswer(
   type: string,
   answer: unknown,
   correctAnswer: unknown,
   explanation?: string,
+  options?: unknown[] | null,
 ): EvaluationResult {
   switch (type) {
     case 'multiple_choice':
@@ -172,7 +202,7 @@ export function evaluateAnswer(
     case 'fill_blank':
       return evaluateFillBlank(answer, correctAnswer, explanation);
     case 'ordering':
-      return evaluateOrdering(answer, correctAnswer, explanation);
+      return evaluateOrdering(answer, correctAnswer, explanation, options);
     case 'matching':
       return evaluateMatching(answer, correctAnswer, explanation);
     case 'scenario':

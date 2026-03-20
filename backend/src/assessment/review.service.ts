@@ -155,10 +155,10 @@ export class ReviewService {
     const score = totalCount > 0 ? correctCount / totalCount : 0;
     const passed = score >= 0.6; // 60% pass threshold
 
-    // Get the concept's courseId for implicit propagation
+    // Get the concept's courseId and academyId for implicit propagation
     const concept = await this.prisma.concept.findUnique({
       where: { id: session.conceptId },
-      select: { courseId: true },
+      select: { courseId: true, course: { select: { academyId: true } } },
     });
 
     // Update mastery state
@@ -192,7 +192,7 @@ export class ReviewService {
       session.conceptId,
       passed,
       score, // quality = accuracy ratio
-      concept?.courseId,
+      concept?.course?.academyId,
     );
 
     if (concept?.courseId) {
