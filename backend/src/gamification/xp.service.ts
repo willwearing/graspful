@@ -3,6 +3,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 
 export interface RecordXPInput {
   userId: string;
+  academyId?: string;
   courseId: string;
   source: 'lesson' | 'review' | 'quiz' | 'remediation' | 'bonus';
   amount: number;
@@ -33,6 +34,8 @@ export class XPService {
       return { amount: 0 };
     }
 
+    const scope = await this.resolveScope(input.courseId, input.academyId);
+
     // Check daily cap
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -40,7 +43,7 @@ export class XPService {
     const todayXP = await this.prisma.xPEvent.aggregate({
       where: {
         userId: input.userId,
-        courseId: input.courseId,
+        academyId: scope.academyId,
         createdAt: { gte: todayStart },
       },
       _sum: { amount: true },
@@ -58,37 +61,43 @@ export class XPService {
     await this.prisma.xPEvent.create({
       data: {
         userId: input.userId,
-        courseId: input.courseId,
+        academyId: scope.academyId,
+        courseId: scope.courseId,
         source: input.source,
         amount: clampedAmount,
         conceptId: input.conceptId,
       },
     });
 
-    // Get enrollment to find orgId for streak update
-    const enrollment = await this.prisma.courseEnrollment.findUnique({
+    const academyEnrollment = await this.prisma.academyEnrollment.findUnique({
       where: {
-        userId_courseId: {
+        userId_academyId: {
           userId: input.userId,
-          courseId: input.courseId,
+          academyId: scope.academyId,
         },
       },
-      include: { course: { select: { orgId: true } } },
+      include: { academy: { select: { orgId: true } } },
     });
 
-    // Update enrollment total
-    await this.prisma.courseEnrollment.update({
+    await this.prisma.academyEnrollment.update({
       where: {
-        userId_courseId: {
+        userId_academyId: {
           userId: input.userId,
-          courseId: input.courseId,
+          academyId: scope.academyId,
         },
       },
       data: { totalXPEarned: { increment: clampedAmount } },
     });
 
-    // Update today's UserStreak xpEarned
-    if (enrollment) {
+    await this.prisma.courseEnrollment.updateMany({
+      where: {
+        userId: input.userId,
+        courseId: scope.courseId,
+      },
+      data: { totalXPEarned: { increment: clampedAmount } },
+    });
+
+    if (academyEnrollment) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -96,13 +105,13 @@ export class XPService {
         where: {
           userId_orgId_date: {
             userId: input.userId,
-            orgId: enrollment.course.orgId,
+            orgId: academyEnrollment.academy.orgId,
             date: today,
           },
         },
         create: {
           userId: input.userId,
-          orgId: enrollment.course.orgId,
+          orgId: academyEnrollment.academy.orgId,
           date: today,
           xpEarned: clampedAmount,
         },
@@ -182,5 +191,99 @@ export class XPService {
     }
 
     return days;
+  }
+
+  async getAcademyXPSummary(
+    userId: string,
+    academyId: string,
+  ): Promise<XPSummary> {
+    const enrollment = await this.prisma.academyEnrollment.findUnique({
+      where: { userId_academyId: { userId, academyId } },
+    });
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+
+    const [todayAgg, weekAgg] = await Promise.all([
+      this.prisma.xPEvent.aggregate({
+        where: { userId, academyId, createdAt: { gte: todayStart } },
+        _sum: { amount: true },
+      }),
+      this.prisma.xPEvent.aggregate({
+        where: { userId, academyId, createdAt: { gte: weekStart } },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    return {
+      today: todayAgg._sum.amount ?? 0,
+      thisWeek: weekAgg._sum.amount ?? 0,
+      total: enrollment?.totalXPEarned ?? 0,
+      dailyTarget: enrollment?.dailyXPTarget ?? 40,
+      dailyCap: DAILY_XP_CAP,
+    };
+  }
+
+  async getAcademyWeeklyXPBreakdown(
+    userId: string,
+    academyId: string,
+  ): Promise<DailyXP[]> {
+    const days: DailyXP[] = [];
+    const now = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = new Date(now);
+      dayStart.setDate(now.getDate() - i);
+      dayStart.setHours(0, 0, 0, 0);
+
+      days.push({
+        date: dayStart.toISOString().split('T')[0],
+        xp: 0,
+      });
+    }
+
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - 6);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const events = await this.prisma.xPEvent.findMany({
+      where: {
+        userId,
+        academyId,
+        createdAt: { gte: weekStart },
+      },
+      select: { createdAt: true, amount: true },
+    });
+
+    for (const event of events) {
+      const dateStr = event.createdAt.toISOString().split('T')[0];
+      const day = days.find((candidate) => candidate.date === dateStr);
+      if (day) {
+        day.xp += event.amount;
+      }
+    }
+
+    return days;
+  }
+
+  private async resolveScope(courseId: string, academyId?: string) {
+    if (academyId) {
+      return { academyId, courseId };
+    }
+
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { academyId: true },
+    });
+
+    if (!course?.academyId) {
+      throw new Error(`Course ${courseId} is missing academyId`);
+    }
+
+    return { academyId: course.academyId, courseId };
   }
 }

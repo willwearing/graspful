@@ -48,6 +48,7 @@ export function generateStudySession(
   frontier: string[],
   dailyXPTarget: number,
   xpSinceLastQuiz: number,
+  academyId = '',
 ): StudySession {
   const tasks: TaskRecommendation[] = [];
   let accumulatedXP = 0;
@@ -68,6 +69,7 @@ export function generateStudySession(
       edges,
       availableFrontier,
       runningXPSinceQuiz,
+      academyId,
     );
 
     // Guard against infinite loops: if the task selector returns

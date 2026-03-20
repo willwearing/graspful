@@ -19,6 +19,7 @@ describe('StudentModelController', () => {
     };
 
     mockStudentState = {
+      getAcademyIdForCourse: jest.fn(),
       getConceptStates: jest.fn(),
       getMasteryMap: jest.fn(),
       isDiagnosticCompleted: jest.fn(),
@@ -81,6 +82,7 @@ describe('StudentModelController', () => {
         { conceptId: 'c3', masteryState: 'unstarted' },
         { conceptId: 'c4', masteryState: 'in_progress' },
       ];
+      mockStudentState.getAcademyIdForCourse.mockResolvedValue('academy-1');
       mockStudentState.getConceptStates.mockResolvedValue(states);
       mockStudentState.isDiagnosticCompleted.mockResolvedValue(true);
       mockSectionExam.getSectionStates.mockResolvedValue([
@@ -99,7 +101,7 @@ describe('StudentModelController', () => {
       expect(result.diagnosticCompleted).toBe(true);
       expect(result.certifiedSections).toBe(1);
       expect(result.examReadySections).toBe(1);
-      expect(mockStudentState.isDiagnosticCompleted).toHaveBeenCalledWith('u1', 'course-1');
+      expect(mockStudentState.isDiagnosticCompleted).toHaveBeenCalledWith('u1', 'academy-1');
     });
   });
 });

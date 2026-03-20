@@ -3,6 +3,7 @@ import type {
   NextTask,
   SectionProgress,
 } from "@/lib/types";
+import { getCourseTaskHref } from "@/lib/academy-routes";
 
 interface SectionConcept {
   id: string;
@@ -16,31 +17,6 @@ interface GetSectionHrefParams {
   concepts: SectionConcept[];
   nextTask: NextTask | null;
   sectionProgress: SectionProgress;
-}
-
-function getTaskHref(courseId: string, task: NextTask): string | null {
-  switch (task.taskType) {
-    case "lesson":
-      return task.conceptId
-        ? `/study/${courseId}/lesson/${task.conceptId}`
-        : null;
-    case "remediation":
-      return task.conceptId
-        ? `/study/${courseId}/lesson/${task.conceptId}?mode=remediation`
-        : null;
-    case "review":
-      return task.conceptId
-        ? `/study/${courseId}/review/${task.conceptId}`
-        : null;
-    case "section_exam":
-      return task.sectionId
-        ? `/study/${courseId}/sections/${task.sectionId}/exam`
-        : null;
-    case "quiz":
-      return `/study/${courseId}/quiz`;
-    default:
-      return null;
-  }
 }
 
 function findFirstConceptByState(
@@ -86,14 +62,14 @@ export function getSectionHref({
 
   if (nextTask) {
     if (nextTask.sectionId === sectionProgress.sectionId) {
-      return getTaskHref(courseId, nextTask);
+      return getCourseTaskHref(courseId, nextTask);
     }
 
     if (
       nextTask.conceptId &&
       sectionConceptIds.has(nextTask.conceptId)
     ) {
-      return getTaskHref(courseId, nextTask);
+      return getCourseTaskHref(courseId, nextTask);
     }
   }
 

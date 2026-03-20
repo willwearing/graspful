@@ -27,6 +27,97 @@ export class CourseReadService {
     });
   }
 
+  async listAcademies(orgId: string) {
+    return this.prisma.academy.findMany({
+      where: { orgId },
+      include: {
+        courses: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            description: true,
+            sortOrder: true,
+            partId: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getAcademy(orgId: string, academyId: string) {
+    return this.findAcademyOrThrow(orgId, academyId);
+  }
+
+  async listAcademyCourses(orgId: string, academyId: string) {
+    await this.findAcademyOrThrow(orgId, academyId);
+
+    return this.prisma.course.findMany({
+      where: { orgId, academyId },
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
+
+  async getAcademyGraph(orgId: string, academyId: string) {
+    const academy = await this.findAcademyOrThrow(orgId, academyId);
+
+    const [parts, courses, sections, concepts, prerequisiteEdges, encompassingEdges] =
+      await Promise.all([
+        this.prisma.academyPart.findMany({
+          where: { academyId },
+          orderBy: { sortOrder: 'asc' },
+        }),
+        this.prisma.course.findMany({
+          where: { academyId },
+          orderBy: { sortOrder: 'asc' },
+        }),
+        this.prisma.courseSection.findMany({
+          where: activeSectionWhere({
+            course: { academyId },
+          }),
+          orderBy: [{ course: { sortOrder: 'asc' } }, { sortOrder: 'asc' }],
+        }),
+        this.prisma.concept.findMany({
+          where: activeConceptWhere({
+            course: { academyId },
+          }),
+          orderBy: [{ course: { sortOrder: 'asc' } }, { sortOrder: 'asc' }],
+        }),
+        this.prisma.prerequisiteEdge.findMany({
+          where: {
+            sourceConcept: activeConceptWhere({
+              course: { academyId },
+            }),
+            targetConcept: activeConceptWhere({
+              course: { academyId },
+            }),
+          },
+        }),
+        this.prisma.encompassingEdge.findMany({
+          where: {
+            sourceConcept: activeConceptWhere({
+              course: { academyId },
+            }),
+            targetConcept: activeConceptWhere({
+              course: { academyId },
+            }),
+          },
+        }),
+      ]);
+
+    return {
+      academy,
+      parts,
+      courses,
+      sections,
+      concepts,
+      prerequisiteEdges,
+      encompassingEdges,
+    };
+  }
+
   async getCourseGraph(orgId: string, courseId: string) {
     const course = await this.findCourseOrThrow(orgId, courseId);
 
@@ -127,6 +218,75 @@ export class CourseReadService {
     );
   }
 
+  async validateAcademyGraph(
+    orgId: string,
+    academyId: string,
+  ): Promise<ValidationResult> {
+    await this.findAcademyOrThrow(orgId, academyId);
+
+    const [courses, concepts, prereqEdges, encompEdges] = await Promise.all([
+      this.prisma.course.findMany({
+        where: { academyId },
+        select: { slug: true },
+        orderBy: { sortOrder: 'asc' },
+      }),
+      this.prisma.concept.findMany({
+        where: activeConceptWhere({
+          course: { academyId },
+        }),
+        select: {
+          id: true,
+          course: {
+            select: {
+              slug: true,
+            },
+          },
+        },
+      }),
+      this.prisma.prerequisiteEdge.findMany({
+        where: {
+          sourceConcept: activeConceptWhere({
+            course: { academyId },
+          }),
+          targetConcept: activeConceptWhere({
+            course: { academyId },
+          }),
+        },
+      }),
+      this.prisma.encompassingEdge.findMany({
+        where: {
+          sourceConcept: activeConceptWhere({
+            course: { academyId },
+          }),
+          targetConcept: activeConceptWhere({
+            course: { academyId },
+          }),
+        },
+      }),
+    ]);
+
+    const courseSlugs = courses.map((course) => course.slug);
+    const simplePrereqs = prereqEdges.map((edge) => ({
+      source: edge.sourceConceptId,
+      target: edge.targetConceptId,
+    }));
+    const weightedEncompassing = encompEdges.map((edge) => ({
+      source: edge.sourceConceptId,
+      target: edge.targetConceptId,
+      weight: edge.weight,
+    }));
+
+    return this.graphValidation.validateAcademy(
+      courseSlugs,
+      concepts.map((concept) => ({
+        id: concept.id,
+        courseSlug: concept.course.slug,
+      })),
+      simplePrereqs,
+      weightedEncompassing,
+    );
+  }
+
   async getKnowledgeFrontier(orgId: string, courseId: string, userId: string) {
     await this.findCourseOrThrow(orgId, courseId);
 
@@ -165,6 +325,59 @@ export class CourseReadService {
     };
   }
 
+  async getAcademyKnowledgeFrontier(
+    orgId: string,
+    academyId: string,
+    userId: string,
+  ) {
+    await this.findAcademyOrThrow(orgId, academyId);
+
+    const [concepts, prereqEdges, conceptStates] = await Promise.all([
+      this.prisma.concept.findMany({
+        where: activeConceptWhere({
+          course: { academyId },
+        }),
+      }),
+      this.prisma.prerequisiteEdge.findMany({
+        where: {
+          sourceConcept: activeConceptWhere({
+            course: { academyId },
+          }),
+          targetConcept: activeConceptWhere({
+            course: { academyId },
+          }),
+        },
+      }),
+      this.studentState.getConceptStatesForAcademy(userId, academyId),
+    ]);
+
+    const masteredIds = new Set(
+      conceptStates
+        .filter((state) => state.masteryState === 'mastered')
+        .map((state) => state.conceptId),
+    );
+
+    const conceptIds = concepts.map((concept) => concept.id);
+    const edges = prereqEdges.map((edge) => ({
+      source: edge.sourceConceptId,
+      target: edge.targetConceptId,
+    }));
+
+    const frontier = this.graphQuery.knowledgeFrontier(
+      conceptIds,
+      edges,
+      masteredIds,
+    );
+
+    return {
+      academyId,
+      userId,
+      frontier,
+      totalConcepts: concepts.length,
+      masteredCount: masteredIds.size,
+    };
+  }
+
   private async findCourseOrThrow(orgId: string, courseId: string) {
     const course = await this.prisma.course.findFirst({
       where: { id: courseId, orgId },
@@ -175,5 +388,17 @@ export class CourseReadService {
     }
 
     return course;
+  }
+
+  private async findAcademyOrThrow(orgId: string, academyId: string) {
+    const academy = await this.prisma.academy.findFirst({
+      where: { id: academyId, orgId },
+    });
+
+    if (!academy) {
+      throw new NotFoundException('Academy not found');
+    }
+
+    return academy;
   }
 }

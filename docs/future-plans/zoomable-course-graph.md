@@ -1,98 +1,163 @@
-# Zoomable Course & Section Graphs
+# Zoomable Academy, Course, Section, and Concept Graphs
 
 **Status:** Future
 
 ## Problem
 
-The knowledge graph visualization (built in Phase 11 with @xyflow/react) shows all 37 concepts at once. This works for courses with ~50 concepts but gets overwhelming as courses grow. More importantly, it only shows one level of detail — there's no way for students to see the high-level structure of a course at a glance.
+The current knowledge graph visualization shows concept nodes for one course at a time. That is too flat for larger domains and does not match the way *The Math Academy Way* describes curriculum structure:
+
+- the knowledge graph is the real structure
+- course graphs are compressed views for humans
+- learners need to see both the big picture and the next local milestone
+
+For PostHog TAM specifically, the current course-level view hides the real teaching structure. The foundations should become multiple real courses inside a larger academy, so the graph UI must support more than one level above sections.
 
 ## Proposal
 
-Add two additional graph views that let students zoom between three levels of the knowledge graph, inspired by the course graph concept from *The Math Academy Way* Ch 4 (pp. 72-73): "a course graph... can be interpreted as a highly-compressed version of a knowledge graph where a single entity represents hundreds of topics."
+Add zoomable graph views that let learners move between four levels of the curriculum:
 
-### Three zoom levels
+- `academy graph`
+- `course graph`
+- `section graph`
+- `concept graph`
 
-**1. Course graph (most zoomed out)**
+This is directly inspired by *The Math Academy Way* Ch. 4 (pp. 72-73): course graphs are highly compressed summaries of the underlying knowledge graph.
 
-Each node represents a top-level learning area. For the PostHog TAM course, this would be three nodes:
+## Four Zoom Levels
 
-```
-Data Models → Data Pipelines → PostHog
-```
+### 1. Academy graph (most zoomed out)
 
-Each node shows aggregate progress (e.g., "12/13 concepts mastered"). Clicking a node zooms into the section graph for that area.
+Each node represents a real course inside an academy.
 
-This answers: "Where am I in the big picture?"
+For the PostHog TAM academy, the first view would eventually look like:
 
-**2. Section graph (mid-level)**
+```text
+Part 1
+  Data Models
+  Data Pipelines
+  PostHog Data Model
+  PostHog Ingestion Pipeline
 
-Each node represents a section. For the PostHog TAM course, this would be 10 nodes arranged by the section DAG:
-
-```
-Data Modeling Basics → Data Modeling Design → Pipeline Basics → Pipeline Architecture
-    → PostHog Data Model → PostHog Ingestion → Identification → Group Analytics → ...
-```
-
-Each node shows section-level progress. Clicking a node zooms into the knowledge graph for that section's concepts.
-
-This answers: "What learning milestones have I hit?"
-
-**3. Knowledge graph (most zoomed in) — already built**
-
-The existing concept-level DAG. Could be filtered to show only one section's concepts when entering from the section graph.
-
-### Interaction model
-
-- Default view: section graph (most useful day-to-day)
-- Zoom out button → course graph
-- Click a section node → knowledge graph filtered to that section
-- Breadcrumb nav: Course > Section > Concepts
-
-### Data requirements
-
-All data already exists:
-- Course sections with sortOrder (`CourseSection` model)
-- Section-to-section dependencies (derived from cross-section concept prerequisites)
-- Per-concept mastery states (`StudentConceptState`)
-- Section-level progress = aggregate of concept states within section
-
-The section DAG can be computed from existing prerequisite edges:
-```typescript
-// For each section, find which other sections it depends on
-for (const concept of concepts) {
-  for (const prereq of concept.prerequisites) {
-    if (prereq.sectionId !== concept.sectionId) {
-      sectionDeps[concept.sectionId].add(prereq.sectionId);
-    }
-  }
-}
+Part 2
+  Anonymous Events
+  Identified Events
+  Groups
 ```
 
-### Course-level grouping
+Each node shows aggregate progress, readiness, and blocked/available status. Clicking a course zooms into that course graph.
 
-Sections could optionally be grouped into "course areas" (a new level above sections) for the most zoomed-out view. For now, this can be derived from section naming conventions or a new `area` field on sections:
+This answers:
 
-```yaml
-sections:
-  - id: data-modeling-basics
-    name: "Data Modeling Basics"
-    area: "Data Models"          # optional grouping for course graph
-  - id: pipeline-basics
-    name: "Pipeline Basics"
-    area: "Data Pipelines"
+- "What are the major branches of this academy?"
+- "Which courses are unlocked, in progress, or blocked?"
+
+### 2. Course graph
+
+Each node represents a section inside a single course.
+
+For `Course 3: PostHog Data Model`, this might show:
+
+```text
+Events -> Event Properties -> Persons -> Person Properties -> distinct_id -> Sessions -> Actions
 ```
 
-Alternatively, the course graph could just show sections grouped by their first word/prefix.
+Each node shows section-level progress. Clicking a section zooms into its concept graph.
 
-### Implementation notes
+This answers:
 
-- Reuse @xyflow/react (already a dependency)
-- Dagre layout (already used for the knowledge graph) works at all three levels
-- Section graph nodes could show a mini progress bar inside each node
+- "What are the major milestones inside this course?"
+- "How far through this course am I?"
+
+### 3. Section graph
+
+Each node represents a concept inside that section or tightly related section slice.
+
+This is the "what concepts make up this milestone?" view. It helps learners understand the local dependency structure before dropping to the fully detailed concept graph.
+
+This answers:
+
+- "What concepts are in this part of the course?"
+- "Which concept is my current frontier?"
+
+### 4. Concept graph (most zoomed in)
+
+The existing concept-level DAG, with prerequisite and encompassing relationships visible.
+
+This answers:
+
+- "What exact concept comes next?"
+- "What supports this concept?"
+
+## Interaction Model
+
+- Default view for enrolled learners: academy graph or last-active course graph, depending on context
+- Click academy node -> course graph
+- Click course node -> section graph
+- Click section node -> concept graph
+- Breadcrumb nav: `Academy > Course > Section > Concepts`
+- Progress overlays at every zoom level
+- Visual distinction between:
+  - ready frontier nodes
+  - blocked nodes
+  - mastered nodes
+  - review-due nodes
+
+## Data Requirements
+
+This requires first-class academy support in the learning model.
+
+Needed entities:
+
+- `Academy`
+- `Course`
+- `CourseSection`
+- `Concept`
+- prerequisite edges that may cross course boundaries
+- encompassing edges that may cross course boundaries
+- learner progress at concept scope, aggregated upward to section/course/academy scope
+
+Derived graphs:
+
+- academy DAG from cross-course prerequisite relationships
+- course DAG from cross-section prerequisite relationships
+- section DAG from concept prerequisite relationships
+
+## Authoring Implications
+
+The UI model should match the authoring model:
+
+- one academy manifest defines the academy tree
+- each real course defines its own sections and concepts
+- concept edges remain the real source of truth
+- course and section graphs are derived/compressed views
+
+This is especially important for parallel authoring. If the structure is real in the engine and real in the authoring model, multiple agents can safely work on different courses without inventing contradictory hierarchies.
+
+## PostHog TAM Example
+
+The near-term academy graph should show at least these four foundations courses:
+
+- `Data Models`
+- `Data Pipelines`
+- `PostHog Data Model`
+- `PostHog Ingestion Pipeline`
+
+Those should not be fake "areas" inside one course. They should be real courses in the academy graph, with cross-course edges when one course depends on another.
+
+## Implementation Notes
+
+- Reuse `@xyflow/react`
+- Keep Dagre or another DAG layout system for each zoom level
+- Aggregate progress up from concept states to section/course/academy nodes
+- Allow course and section nodes to expose quick stats:
+  - mastered / total concepts
+  - review due count
+  - ready vs blocked state
 - Animate transitions between zoom levels for spatial continuity
 
 ## References
 
-- *The Math Academy Way* Ch 4 (pp. 72-73) — course graphs as compressed knowledge graphs
-- *The Math Academy Way* Ch 13 (p213) — knowledge profile visualization showing mastery overlay on the graph
-- Existing implementation: `apps/web/src/components/app/knowledge-graph.tsx`
+- *The Math Academy Way* Ch. 4 (pp. 72-73) -- course graphs as compressed knowledge graphs
+- *The Math Academy Way* Ch. 13 (pp. 210-214) -- frontier-based advancement across ready topics
+- *The Math Academy Way* Ch. 14 (pp. 217-220) -- splitting large stairs into smaller stairs
+- *The Math Academy Way* Ch. 16 (pp. 241-245) -- hierarchical connected learning sequences

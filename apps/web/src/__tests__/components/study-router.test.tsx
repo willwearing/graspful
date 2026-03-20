@@ -8,6 +8,22 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("StudyRouter", () => {
+  it("uses task.courseId when rendered from academy study entry", () => {
+    render(
+      <StudyRouter
+        academyId="academy-1"
+        task={{
+          academyId: "academy-1",
+          courseId: "c1",
+          taskType: "lesson",
+          conceptId: "concept-1",
+          reason: "Next in sequence",
+        }}
+      />,
+    );
+    expect(mockPush).toHaveBeenCalledWith("/study/c1/lesson/concept-1");
+  });
+
   it("redirects to lesson page for lesson task", () => {
     render(
       <StudyRouter

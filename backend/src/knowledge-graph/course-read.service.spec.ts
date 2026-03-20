@@ -10,6 +10,9 @@ describe('CourseReadService', () => {
 
   beforeEach(() => {
     mockPrisma = {
+      academy: {
+        findFirst: jest.fn(),
+      },
       course: {
         findMany: jest.fn(),
         findFirst: jest.fn(),
@@ -39,6 +42,7 @@ describe('CourseReadService', () => {
 
     mockGraphValidation = {
       validate: jest.fn(),
+      validateAcademy: jest.fn(),
     };
 
     service = new CourseReadService(
@@ -122,5 +126,46 @@ describe('CourseReadService', () => {
     await expect(
       service.getCourseGraph('org-1', 'course-1'),
     ).rejects.toThrow(NotFoundException);
+  });
+
+  it('validates an academy graph across all persisted academy concepts', async () => {
+    mockPrisma.academy.findFirst.mockResolvedValue({ id: 'academy-1' });
+    mockPrisma.course.findMany.mockResolvedValue([
+      { slug: 'data-models' },
+      { slug: 'pipelines' },
+    ]);
+    mockPrisma.concept.findMany.mockResolvedValue([
+      { id: 'concept-1', course: { slug: 'data-models' } },
+      { id: 'concept-2', course: { slug: 'pipelines' } },
+    ]);
+    mockPrisma.prerequisiteEdge.findMany.mockResolvedValue([
+      { sourceConceptId: 'concept-1', targetConceptId: 'concept-2' },
+    ]);
+    mockPrisma.encompassingEdge.findMany.mockResolvedValue([
+      { sourceConceptId: 'concept-2', targetConceptId: 'concept-1', weight: 0.4 },
+    ]);
+    mockGraphValidation.validateAcademy.mockReturnValue({
+      isValid: true,
+      errors: [],
+      warnings: [],
+    });
+
+    await expect(
+      service.validateAcademyGraph('org-1', 'academy-1'),
+    ).resolves.toEqual({
+      isValid: true,
+      errors: [],
+      warnings: [],
+    });
+
+    expect(mockGraphValidation.validateAcademy).toHaveBeenCalledWith(
+      ['data-models', 'pipelines'],
+      [
+        { id: 'concept-1', courseSlug: 'data-models' },
+        { id: 'concept-2', courseSlug: 'pipelines' },
+      ],
+      [{ source: 'concept-1', target: 'concept-2' }],
+      [{ source: 'concept-2', target: 'concept-1', weight: 0.4 }],
+    );
   });
 });

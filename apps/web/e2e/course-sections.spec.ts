@@ -1,47 +1,35 @@
 import { test, expect, type Page } from "@playwright/test";
+import { POSTHOG_TEST_BRAND_ID, signUpBrandedTestUser } from "./helpers/auth";
 
-const POSTHOG_BRAND_ID = "posthog";
+/**
+ * Navigate from /browse through the academy that contains "PostHog TAM"
+ * to the course detail page.
+ */
+async function navigateToPosthogCourse(page: Page) {
+  await page.goto("/browse");
 
-/** Sign up a test user under the PostHog brand */
-async function signUpPosthogUser(page: Page): Promise<string> {
-  const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.example.com`;
-  const password = "TestPassword123!";
+  // Find the academy card whose heading contains "PostHog TAM" and open it
+  const openBtn = page.getByRole("button", { name: "Open Academy" }).first();
+  await expect(openBtn).toBeVisible({ timeout: 10_000 });
+  await openBtn.click();
 
-  await page.context().addCookies([
-    {
-      name: "dev-brand-override",
-      value: POSTHOG_BRAND_ID,
-      domain: "localhost",
-      path: "/",
-    },
-  ]);
-
-  await page.goto("/sign-up");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Create Account" }).click();
-
-  await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
-
-  return email;
+  // On academy page — click the PostHog TAM course card
+  const posthogCourse = page
+    .locator("a[href^='/browse/']")
+    .filter({ hasText: "PostHog TAM" });
+  await expect(posthogCourse).toBeVisible({ timeout: 10_000 });
+  await posthogCourse.click();
 }
 
 test.describe("Course sections display", () => {
   test.beforeEach(async ({ page }) => {
-    await signUpPosthogUser(page);
+    await signUpBrandedTestUser(page, POSTHOG_TEST_BRAND_ID);
   });
 
   test("PostHog course detail page shows section headings", async ({
     page,
   }) => {
-    await page.goto("/browse");
-
-    // Find and click the PostHog TAM course
-    const posthogCourse = page
-      .locator("a[href^='/browse/']")
-      .filter({ hasText: "PostHog TAM" });
-    await expect(posthogCourse).toBeVisible({ timeout: 10_000 });
-    await posthogCourse.click();
+    await navigateToPosthogCourse(page);
 
     // Should be on course detail page
     await expect(
@@ -80,12 +68,7 @@ test.describe("Course sections display", () => {
   test("concepts are grouped under their section headings", async ({
     page,
   }) => {
-    await page.goto("/browse");
-    const posthogCourse = page
-      .locator("a[href^='/browse/']")
-      .filter({ hasText: "PostHog TAM" });
-    await expect(posthogCourse).toBeVisible({ timeout: 10_000 });
-    await posthogCourse.click();
+    await navigateToPosthogCourse(page);
 
     const conceptsSection = page
       .locator("div")
@@ -110,12 +93,7 @@ test.describe("Course sections display", () => {
   test("course shows correct progress summary with sections", async ({
     page,
   }) => {
-    await page.goto("/browse");
-    const posthogCourse = page
-      .locator("a[href^='/browse/']")
-      .filter({ hasText: "PostHog TAM" });
-    await expect(posthogCourse).toBeVisible({ timeout: 10_000 });
-    await posthogCourse.click();
+    await navigateToPosthogCourse(page);
 
     // Should show progress section
     await expect(page.getByText("Course Progress")).toBeVisible();

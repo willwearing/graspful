@@ -6,6 +6,7 @@ import { BookOpen, ChevronRight } from "lucide-react";
 
 interface CourseCardProps {
   courseId: string;
+  href?: string;
   name: string;
   description: string | null;
   orgId: string;
@@ -16,6 +17,7 @@ interface CourseCardProps {
 
 export function CourseCard({
   courseId,
+  href = `/browse/${courseId}`,
   name,
   description,
   completionPercent,
@@ -23,7 +25,7 @@ export function CourseCard({
   mastered,
 }: CourseCardProps) {
   return (
-    <Link href={`/browse/${courseId}`}>
+    <Link href={href}>
       <Card className="group border-border hover:border-primary/50 transition-colors cursor-pointer">
         <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
           <div className="flex items-center gap-3">

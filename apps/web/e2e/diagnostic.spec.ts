@@ -36,7 +36,7 @@ test.describe("Diagnostic flow", () => {
   test.beforeEach(async ({ page }) => {
     await signUpTestUser(page);
 
-    await page.goto("/browse");
+    // Grab courseId from the dashboard course card (signUpTestUser lands on /dashboard)
     const firstCourse = page.locator("a[href^='/browse/']").first();
     await expect(firstCourse).toBeVisible({ timeout: 10_000 });
     const href = await firstCourse.getAttribute("href");

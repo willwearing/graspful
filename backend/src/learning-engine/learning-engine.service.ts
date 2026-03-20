@@ -10,7 +10,6 @@ import { detectPlateau, findWeakPrerequisites } from './plateau-detector';
 import { SectionExamService } from '@/assessment/section-exam.service';
 import {
   activeConceptWhere,
-  activePrerequisiteEdgeWhere,
   activeSectionWhere,
 } from '@/knowledge-graph/active-course-content';
 import {
@@ -37,27 +36,33 @@ export class LearningEngineService {
 
   async getNextTask(
     userId: string,
-    courseId: string,
+    academyId: string,
   ): Promise<TaskRecommendation> {
-    // Decay memory before building context so values are current
-    await this.memoryDecay.decayAllMemory(userId, courseId);
+    const enrollment = await this.prisma.academyEnrollment.findUnique({
+      where: { userId_academyId: { userId, academyId } },
+      select: { id: true },
+    });
+
+    if (!enrollment) {
+      throw new NotFoundException('Not enrolled in this academy');
+    }
+
+    await this.memoryDecay.decayAllMemory(userId, academyId);
 
     const { snapshots, sections, edges, frontier } = await this.buildContext(
       userId,
-      courseId,
+      academyId,
     );
 
-    // Detect plateaus and create remediations proactively
-    await this.syncRemediations(userId, courseId, snapshots, edges);
+    await this.syncRemediations(userId, academyId, snapshots, edges);
 
-    // Filter frontier to exclude blocked concepts
     const blockedIds = await this.remediationService.getBlockedConceptIds(
       userId,
-      courseId,
+      academyId,
     );
     const availableFrontier = frontier.filter((id) => !blockedIds.has(id));
 
-    const xpSinceLastQuiz = await this.computeXPSinceLastQuiz(userId, courseId);
+    const xpSinceLastQuiz = await this.computeXPSinceLastQuiz(userId, academyId);
 
     const task = selectNextTask(
       snapshots,
@@ -65,49 +70,62 @@ export class LearningEngineService {
       edges,
       availableFrontier,
       xpSinceLastQuiz,
+      academyId,
     );
 
     logger.emit({
       severityNumber: SeverityNumber.INFO,
       severityText: 'INFO',
       body: `Next task selected`,
-      attributes: { 'user.id': userId, 'course.id': courseId, 'task.type': task.taskType, 'frontier.size': availableFrontier.length },
+      attributes: {
+        'user.id': userId,
+        'academy.id': academyId,
+        'course.id': task.courseId ?? '',
+        'task.type': task.taskType,
+        'frontier.size': availableFrontier.length,
+      },
     });
 
     return task;
   }
 
-  async getStudySession(
+  async getNextTaskForCourse(
     userId: string,
     courseId: string,
+  ): Promise<TaskRecommendation> {
+    const academyId = await this.studentState.getAcademyIdForCourse(courseId);
+    return this.getNextTask(userId, academyId);
+  }
+
+  async getStudySession(
+    userId: string,
+    academyId: string,
   ): Promise<StudySession> {
-    const enrollment = await this.prisma.courseEnrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
+    const enrollment = await this.prisma.academyEnrollment.findUnique({
+      where: { userId_academyId: { userId, academyId } },
       select: { dailyXPTarget: true },
     });
 
     if (!enrollment) {
-      throw new NotFoundException('Not enrolled in this course');
+      throw new NotFoundException('Not enrolled in this academy');
     }
 
-    // Decay memory before building context so values are current
-    await this.memoryDecay.decayAllMemory(userId, courseId);
+    await this.memoryDecay.decayAllMemory(userId, academyId);
 
     const { snapshots, sections, edges, frontier } = await this.buildContext(
       userId,
-      courseId,
+      academyId,
     );
 
-    // Sync remediations so blocked concepts are up to date
-    await this.syncRemediations(userId, courseId, snapshots, edges);
+    await this.syncRemediations(userId, academyId, snapshots, edges);
 
     const blockedIds = await this.remediationService.getBlockedConceptIds(
       userId,
-      courseId,
+      academyId,
     );
     const availableFrontier = frontier.filter((id) => !blockedIds.has(id));
 
-    const xpSinceLastQuiz = await this.computeXPSinceLastQuiz(userId, courseId);
+    const xpSinceLastQuiz = await this.computeXPSinceLastQuiz(userId, academyId);
 
     return generateStudySession(
       snapshots,
@@ -116,34 +134,81 @@ export class LearningEngineService {
       availableFrontier,
       enrollment.dailyXPTarget,
       xpSinceLastQuiz,
+      academyId,
     );
+  }
+
+  async getStudySessionForCourse(
+    userId: string,
+    courseId: string,
+  ): Promise<StudySession> {
+    const academyId = await this.studentState.getAcademyIdForCourse(courseId);
+    return this.getStudySession(userId, academyId);
   }
 
   /**
    * Build the context needed by pure functions: snapshots, edges, frontier.
    */
-  private async buildContext(userId: string, courseId: string) {
-    await this.sectionExamService.syncSectionStates(userId, courseId);
+  private async buildContext(userId: string, academyId: string) {
+    const courses = await this.prisma.course.findMany({
+      where: { academyId },
+      select: { id: true },
+      orderBy: { sortOrder: 'asc' },
+    });
 
-    // Fetch concept states and edges in parallel
+    await Promise.all(
+      courses.map((course) =>
+        this.sectionExamService.syncSectionStates(userId, course.id),
+      ),
+    );
+
     const [conceptStates, concepts, prereqEdges, sectionStates] = await Promise.all([
-      this.studentState.getConceptStates(userId, courseId),
+      this.studentState.getConceptStatesForAcademy(userId, academyId),
       this.prisma.concept.findMany({
-        where: activeConceptWhere({ courseId }),
-        select: { id: true, sectionId: true },
+        where: activeConceptWhere({
+          course: { academyId },
+        }),
+        select: {
+          id: true,
+          courseId: true,
+          sectionId: true,
+          difficulty: true,
+        },
       }),
       this.prisma.prerequisiteEdge.findMany({
-        where: activePrerequisiteEdgeWhere(courseId),
+        where: {
+          sourceConcept: activeConceptWhere({
+            course: { academyId },
+          }),
+          targetConcept: activeConceptWhere({
+            course: { academyId },
+          }),
+        },
         select: { sourceConceptId: true, targetConceptId: true },
       }),
       this.prisma.studentSectionState.findMany({
-        where: { userId, courseId, section: activeSectionWhere() },
-        select: { sectionId: true, status: true },
+        where: {
+          userId,
+          course: { academyId },
+          section: activeSectionWhere(),
+        },
+        select: {
+          courseId: true,
+          sectionId: true,
+          status: true,
+          section: {
+            select: { sortOrder: true },
+          },
+        },
       }),
     ]);
 
     const snapshots: ConceptSnapshot[] = conceptStates.map((s) => ({
       conceptId: s.conceptId,
+      courseId: s.concept.courseId,
+      sectionId: s.concept.sectionId,
+      difficulty: s.concept.difficulty,
+      lastPracticedAt: s.lastPracticedAt,
       masteryState: s.masteryState as ConceptSnapshot['masteryState'],
       memory: s.memory,
       failCount: s.failCount,
@@ -155,11 +220,17 @@ export class LearningEngineService {
     }));
 
     const sections: SectionSnapshot[] = sectionStates.map((state) => ({
+      courseId: state.courseId,
       sectionId: state.sectionId,
+      sortOrder: state.section.sortOrder,
       status: state.status as SectionSnapshot['status'],
     }));
 
     const conceptIds = concepts.map((c) => c.id);
+    const conceptById = new Map(concepts.map((concept) => [concept.id, concept]));
+    const sectionById = new Map(
+      sections.map((section) => [section.sectionId, section]),
+    );
     const masteredIds = new Set(
       snapshots
         .filter((s) => s.masteryState === 'mastered')
@@ -171,11 +242,11 @@ export class LearningEngineService {
       edges,
       masteredIds,
     ).filter((conceptId) => {
-      const sectionId = concepts.find((concept) => concept.id === conceptId)?.sectionId;
+      const sectionId = conceptById.get(conceptId)?.sectionId;
       if (!sectionId) {
         return true;
       }
-      const section = sections.find((candidate) => candidate.sectionId === sectionId);
+      const section = sectionById.get(sectionId);
       return section?.status === 'lesson_in_progress';
     });
 
@@ -188,54 +259,36 @@ export class LearningEngineService {
    */
   private async computeXPSinceLastQuiz(
     userId: string,
-    courseId: string,
+    academyId: string,
   ): Promise<number> {
-    // Find the most recent quiz attempt (problem where the attempt was part of a quiz).
-    // Since quizzes use ProblemAttempt records, we look for the most recent attempt
-    // that was part of a quiz-eligible set. A simpler approach: sum XP from all
-    // attempts after the last quiz completion timestamp.
-    // For now, use totalXPEarned from enrollment and subtract XP up to last quiz.
-    // Simplest correct approach: sum all XP awarded since the last quiz attempt timestamp.
-
-    // Get enrollment for totalXPEarned
-    const enrollment = await this.prisma.courseEnrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
+    const enrollment = await this.prisma.academyEnrollment.findUnique({
+      where: { userId_academyId: { userId, academyId } },
       select: { totalXPEarned: true },
     });
 
-    if (!enrollment) return 0;
+    if (!enrollment) {
+      return 0;
+    }
 
-    // Find the timestamp of the student's most recent problem attempt that was
-    // part of a quiz. We identify quiz attempts by looking for clusters of attempts
-    // created very close together. Simpler: just sum XP from attempts since we don't
-    // have a dedicated quiz completion record.
-    //
-    // Best available heuristic: get the last quiz session's latest attempt timestamp.
-    // Since we don't persist quiz sessions, use a simpler method:
-    // Sum xpAwarded from all attempts for this user in this course's concepts.
     const lastQuizAttempt = await this.prisma.problemAttempt.findFirst({
       where: {
         userId,
         problem: {
           knowledgePoint: {
-            concept: { courseId },
+            concept: {
+              course: { academyId },
+            },
           },
         },
-        // Quiz attempts have xpAwarded calculated via quiz formula
-        // We can't perfectly distinguish, so get the most recent attempt
-        // and sum XP since then. This is approximate but correct for the
-        // common case where quizzes reset the counter.
       },
       orderBy: { createdAt: 'desc' },
       select: { createdAt: true },
     });
 
-    // If no attempts at all, XP since last quiz = totalXPEarned
-    if (!lastQuizAttempt) return enrollment.totalXPEarned;
+    if (!lastQuizAttempt) {
+      return enrollment.totalXPEarned;
+    }
 
-    // For a proper implementation, we'd need a QuizResult table.
-    // For now, return totalXPEarned which is correct for first-time quiz trigger
-    // and approximately correct otherwise (quizzes happen ~every 150 XP).
     return enrollment.totalXPEarned;
   }
 
@@ -245,7 +298,7 @@ export class LearningEngineService {
    */
   private async syncRemediations(
     userId: string,
-    courseId: string,
+    academyId: string,
     snapshots: ConceptSnapshot[],
     edges: SimpleEdge[],
   ) {
@@ -273,12 +326,27 @@ export class LearningEngineService {
     // Create all remediations (upserts are idempotent)
     await Promise.all(
       remediationsToCreate.map(({ blockedConceptId, prereqId }) =>
-        this.remediationService.createRemediation(
-          userId,
-          courseId,
-          blockedConceptId,
-          prereqId,
-        ),
+        {
+          const blockedSnapshot = snapshots.find(
+            (snapshot) => snapshot.conceptId === blockedConceptId,
+          );
+
+          if (!blockedSnapshot) {
+            return Promise.resolve(null);
+          }
+
+          if (!blockedSnapshot.courseId) {
+            return Promise.resolve(null);
+          }
+
+          return this.remediationService.createRemediation(
+            userId,
+            academyId,
+            blockedConceptId,
+            prereqId,
+            blockedSnapshot.courseId,
+          );
+        },
       ),
     );
   }

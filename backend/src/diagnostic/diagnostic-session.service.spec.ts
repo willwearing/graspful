@@ -12,6 +12,7 @@ describe('DiagnosticSessionService', () => {
 
   const orgId = 'org-1';
   const userId = 'user-1';
+  const academyId = 'academy-1';
   const courseId = 'course-1';
   const sessionId = 'session-1';
 
@@ -28,8 +29,12 @@ describe('DiagnosticSessionService', () => {
 
   beforeEach(async () => {
     mockPrisma = {
-      courseEnrollment: {
+      academyEnrollment: {
         findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      course: {
+        findMany: jest.fn().mockResolvedValue([]),
       },
       concept: {
         findMany: jest.fn(),
@@ -62,6 +67,7 @@ describe('DiagnosticSessionService', () => {
       bulkUpdateMasteries: jest.fn(),
       updateSpeedParameters: jest.fn(),
       markDiagnosticComplete: jest.fn(),
+      getMasteryMapForAcademy: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -78,7 +84,7 @@ describe('DiagnosticSessionService', () => {
 
   describe('startDiagnostic', () => {
     it('should return the first question for an enrolled student', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         id: 'e1',
         diagnosticCompleted: false,
       });
@@ -91,7 +97,7 @@ describe('DiagnosticSessionService', () => {
       mockPrisma.concept.findMany.mockResolvedValue(concepts);
       mockPrisma.prerequisiteEdge.findMany.mockResolvedValue([]);
 
-      mockStudentState.getMasteryMap.mockResolvedValue(
+      mockStudentState.getMasteryMapForAcademy.mockResolvedValue(
         new Map([
           ['c1', 0.5],
           ['c2', 0.5],
@@ -114,7 +120,7 @@ describe('DiagnosticSessionService', () => {
         return fn(mockTx);
       });
 
-      const result = await service.startDiagnostic(orgId, userId, courseId);
+      const result = await service.startDiagnostic(orgId, userId, academyId);
 
       expect(result.sessionId).toBe(sessionId);
       expect(result.question).toBeDefined();
@@ -123,7 +129,7 @@ describe('DiagnosticSessionService', () => {
     });
 
     it('should serialize ordering problems with items for the web app', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         id: 'e1',
         diagnosticCompleted: false,
       });
@@ -132,7 +138,7 @@ describe('DiagnosticSessionService', () => {
         { id: 'c1', slug: 'a', difficultyTheta: 0, courseId },
       ]);
       mockPrisma.prerequisiteEdge.findMany.mockResolvedValue([]);
-      mockStudentState.getMasteryMap.mockResolvedValue(new Map([['c1', 0.5]]));
+      mockStudentState.getMasteryMapForAcademy.mockResolvedValue(new Map([['c1', 0.5]]));
       mockPrisma.problem.findMany.mockResolvedValue([
         makeProblem({
           type: 'ordering',
@@ -152,14 +158,14 @@ describe('DiagnosticSessionService', () => {
         return fn(mockTx);
       });
 
-      const result = await service.startDiagnostic(orgId, userId, courseId);
+      const result = await service.startDiagnostic(orgId, userId, academyId);
 
       expect(result.question.items).toEqual(['Capture', 'Edit', 'Mix', 'Master']);
       expect(result.question.options).toBeUndefined();
     });
 
     it('should resume an existing in-progress session', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         id: 'e1',
         diagnosticCompleted: false,
       });
@@ -169,6 +175,7 @@ describe('DiagnosticSessionService', () => {
         id: sessionId,
         userId,
         courseId,
+        academyId,
         orgId,
         status: 'in_progress',
         questionCount: 3,
@@ -189,7 +196,7 @@ describe('DiagnosticSessionService', () => {
       ];
       mockPrisma.concept.findMany.mockResolvedValue(concepts);
 
-      const result = await service.startDiagnostic(orgId, userId, courseId);
+      const result = await service.startDiagnostic(orgId, userId, academyId);
 
       expect(result.sessionId).toBe(sessionId);
       expect(result.questionNumber).toBe(4); // resumed from question 4
@@ -197,7 +204,7 @@ describe('DiagnosticSessionService', () => {
     });
 
     it('should abandon stale session and start fresh', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         id: 'e1',
         diagnosticCompleted: false,
       });
@@ -207,6 +214,7 @@ describe('DiagnosticSessionService', () => {
         id: 'old-session',
         userId,
         courseId,
+        academyId,
         orgId,
         status: 'in_progress',
         questionCount: 2,
@@ -223,7 +231,7 @@ describe('DiagnosticSessionService', () => {
       ];
       mockPrisma.concept.findMany.mockResolvedValue(concepts);
       mockPrisma.prerequisiteEdge.findMany.mockResolvedValue([]);
-      mockStudentState.getMasteryMap.mockResolvedValue(new Map([['c1', 0.5]]));
+      mockStudentState.getMasteryMapForAcademy.mockResolvedValue(new Map([['c1', 0.5]]));
 
       const problem = makeProblem();
       mockPrisma.problem.findMany.mockResolvedValue([problem]);
@@ -240,7 +248,7 @@ describe('DiagnosticSessionService', () => {
         return fn(mockTx);
       });
 
-      const result = await service.startDiagnostic(orgId, userId, courseId);
+      const result = await service.startDiagnostic(orgId, userId, academyId);
 
       // Should have abandoned the old session
       expect(mockPrisma.diagnosticSession.update).toHaveBeenCalledWith({
@@ -252,20 +260,20 @@ describe('DiagnosticSessionService', () => {
     });
 
     it('should throw NotFoundException if not enrolled', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue(null);
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.startDiagnostic(orgId, userId, courseId),
+        service.startDiagnostic(orgId, userId, academyId),
       ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw BadRequestException if diagnostic already completed', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         diagnosticCompleted: true,
       });
 
       await expect(
-        service.startDiagnostic(orgId, userId, courseId),
+        service.startDiagnostic(orgId, userId, academyId),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -277,6 +285,7 @@ describe('DiagnosticSessionService', () => {
         id: sessionId,
         userId,
         courseId,
+        academyId,
         orgId,
         status: 'in_progress',
         questionCount: 0,
@@ -296,6 +305,7 @@ describe('DiagnosticSessionService', () => {
       mockStudentState.updateConceptDiagnosticState.mockResolvedValue({});
       mockStudentState.updateSpeedParameters.mockResolvedValue([]);
       mockStudentState.markDiagnosticComplete.mockResolvedValue({});
+      mockPrisma.academyEnrollment.update.mockResolvedValue({});
 
       // $transaction receives an array of promises
       mockPrisma.$transaction.mockResolvedValue([]);
@@ -326,6 +336,7 @@ describe('DiagnosticSessionService', () => {
       mockPrisma.diagnosticSession.findUnique.mockResolvedValue({
         id: sessionId,
         userId: 'other-user',
+        academyId,
         status: 'in_progress',
         masterySnapshots: [],
       });
@@ -340,7 +351,55 @@ describe('DiagnosticSessionService', () => {
   });
 
   describe('getResult', () => {
-    it('should return results for a valid session', async () => {
+    it('should return results with course breakdown for a valid session', async () => {
+      mockPrisma.diagnosticSession.findUnique.mockResolvedValue({
+        id: sessionId,
+        userId,
+        questionCount: 5,
+        masterySnapshots: [
+          { conceptId: 'c1', pL: 0.9, tested: true },
+          { conceptId: 'c2', pL: 0.3, tested: true },
+          { conceptId: 'c3', pL: 0.85, tested: true },
+        ],
+      });
+
+      mockPrisma.concept.findMany.mockResolvedValue([
+        { id: 'c1', courseId: 'course-1', course: { name: 'Course One' } },
+        { id: 'c2', courseId: 'course-1', course: { name: 'Course One' } },
+        { id: 'c3', courseId: 'course-2', course: { name: 'Course Two' } },
+      ]);
+
+      const result = await service.getResult(sessionId, userId);
+
+      expect(result.totalConcepts).toBe(3);
+      expect(result.questionsAnswered).toBe(5);
+      expect(result.breakdown).toBeDefined();
+      expect(result.conceptDetails).toHaveLength(3);
+
+      // Verify course breakdown
+      expect(result.courseBreakdown).toBeDefined();
+      expect(result.courseBreakdown).toHaveLength(2);
+
+      const course1Breakdown = result.courseBreakdown.find(
+        (cb: any) => cb.courseId === 'course-1',
+      );
+      expect(course1Breakdown).toBeDefined();
+      expect(course1Breakdown!.courseName).toBe('Course One');
+      expect(course1Breakdown!.totalConcepts).toBe(2);
+      expect(course1Breakdown!.mastered).toBe(1); // c1 pL=0.9
+      expect(course1Breakdown!.unknown).toBe(0);
+      expect(course1Breakdown!.partiallyKnown).toBe(1); // c2 pL=0.3 -> partially_known
+
+      const course2Breakdown = result.courseBreakdown.find(
+        (cb: any) => cb.courseId === 'course-2',
+      );
+      expect(course2Breakdown).toBeDefined();
+      expect(course2Breakdown!.courseName).toBe('Course Two');
+      expect(course2Breakdown!.totalConcepts).toBe(1);
+      expect(course2Breakdown!.mastered).toBe(1); // c3 pL=0.85
+    });
+
+    it('should return empty course breakdown when no concepts found', async () => {
       mockPrisma.diagnosticSession.findUnique.mockResolvedValue({
         id: sessionId,
         userId,
@@ -351,12 +410,12 @@ describe('DiagnosticSessionService', () => {
         ],
       });
 
+      mockPrisma.concept.findMany.mockResolvedValue([]);
+
       const result = await service.getResult(sessionId, userId);
 
       expect(result.totalConcepts).toBe(2);
-      expect(result.questionsAnswered).toBe(5);
-      expect(result.breakdown).toBeDefined();
-      expect(result.conceptDetails).toHaveLength(2);
+      expect(result.courseBreakdown).toEqual([]);
     });
 
     it('should throw NotFoundException for invalid session', async () => {

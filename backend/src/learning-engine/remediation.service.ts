@@ -5,17 +5,18 @@ import { PrismaService } from '@/prisma/prisma.service';
 export class RemediationService {
   constructor(private prisma: PrismaService) {}
 
-  async getActiveRemediations(userId: string, courseId: string) {
+  async getActiveRemediations(userId: string, academyId: string) {
     return this.prisma.remediation.findMany({
-      where: { userId, courseId, resolved: false },
+      where: { userId, academyId, resolved: false },
     });
   }
 
   async createRemediation(
     userId: string,
-    courseId: string,
+    academyId: string,
     blockedConceptId: string,
     weakPrerequisiteId: string,
+    courseId: string,
   ) {
     return this.prisma.remediation.upsert({
       where: {
@@ -27,11 +28,14 @@ export class RemediationService {
       },
       create: {
         userId,
+        academyId,
         courseId,
         blockedConceptId,
         weakPrerequisiteId,
       },
       update: {
+        academyId,
+        courseId,
         resolved: false,
         resolvedAt: null,
       },
@@ -57,9 +61,31 @@ export class RemediationService {
 
   async getBlockedConceptIds(
     userId: string,
-    courseId: string,
+    academyId: string,
   ): Promise<Set<string>> {
-    const active = await this.getActiveRemediations(userId, courseId);
+    const active = await this.getActiveRemediations(userId, academyId);
     return new Set(active.map((r) => r.blockedConceptId));
   }
+
+  async getBlockedConceptIdsForCourse(
+    userId: string,
+    courseId: string,
+  ): Promise<Set<string>> {
+    const academyId = await this.getAcademyIdForCourse(courseId);
+    return this.getBlockedConceptIds(userId, academyId);
+  }
+
+  private async getAcademyIdForCourse(courseId: string): Promise<string> {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { academyId: true },
+    });
+
+    if (!course?.academyId) {
+      throw new Error(`Course ${courseId} is missing academyId`);
+    }
+
+    return course.academyId;
+  }
+
 }

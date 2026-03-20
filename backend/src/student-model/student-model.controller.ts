@@ -11,6 +11,7 @@ import { EnrollmentService } from './enrollment.service';
 import { StudentStateService } from './student-state.service';
 import { SectionExamService } from '@/assessment/section-exam.service';
 
+/** @deprecated Use AcademyStudentModelController instead. Kept as compatibility shim. */
 @Controller('orgs/:orgId/courses/:courseId')
 @UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
 export class StudentModelController {
@@ -49,11 +50,12 @@ export class StudentModelController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    const states = await this.studentState.getConceptStates(org.userId, courseId);
-    const sectionStates = await this.sectionExamService.getSectionStates(
-      org.userId,
-      courseId,
-    );
+    const academyId = await this.studentState.getAcademyIdForCourse(courseId);
+    const [states, sectionStates, diagnosticCompleted] = await Promise.all([
+      this.studentState.getConceptStates(org.userId, courseId),
+      this.sectionExamService.getSectionStates(org.userId, courseId),
+      this.studentState.isDiagnosticCompleted(org.userId, academyId),
+    ]);
 
     const counts = {
       mastered: 0,
@@ -68,7 +70,6 @@ export class StudentModelController {
     }
 
     const total = states.length;
-    const diagnosticCompleted = await this.studentState.isDiagnosticCompleted(org.userId, courseId);
     return {
       totalConcepts: total,
       mastered: counts.mastered,

@@ -25,7 +25,18 @@ describe('LearningEngineController', () => {
         conceptId: 'c2',
         reason: 'New lesson at frontier',
       }),
+      getNextTaskForCourse: jest.fn().mockResolvedValue({
+        taskType: 'lesson',
+        conceptId: 'c2',
+        reason: 'New lesson at frontier',
+      }),
       getStudySession: jest.fn().mockResolvedValue({
+        tasks: [
+          { taskType: 'lesson', conceptId: 'c2', reason: 'frontier' },
+        ],
+        estimatedXP: 15,
+      }),
+      getStudySessionForCourse: jest.fn().mockResolvedValue({
         tasks: [
           { taskType: 'lesson', conceptId: 'c2', reason: 'frontier' },
         ],
@@ -67,7 +78,7 @@ describe('LearningEngineController', () => {
 
       expect(result.taskType).toBe('lesson');
       expect(result.conceptId).toBe('c2');
-      expect(mockEngine.getNextTask).toHaveBeenCalledWith('u1', 'course-1');
+      expect(mockEngine.getNextTaskForCourse).toHaveBeenCalledWith('u1', 'course-1');
     });
   });
 
@@ -77,7 +88,7 @@ describe('LearningEngineController', () => {
 
       expect(result.tasks).toHaveLength(1);
       expect(result.estimatedXP).toBe(15);
-      expect(mockEngine.getStudySession).toHaveBeenCalledWith('u1', 'course-1');
+      expect(mockEngine.getStudySessionForCourse).toHaveBeenCalledWith('u1', 'course-1');
     });
   });
 

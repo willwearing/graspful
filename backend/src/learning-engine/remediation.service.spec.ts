@@ -11,6 +11,7 @@ describe('RemediationService', () => {
         upsert: jest.fn().mockResolvedValue({
           id: 'rem-1',
           userId: 'u1',
+          academyId: 'academy-1',
           courseId: 'course-1',
           blockedConceptId: 'c2',
           weakPrerequisiteId: 'c1',
@@ -36,18 +37,18 @@ describe('RemediationService', () => {
         },
       ]);
 
-      const result = await service.getActiveRemediations('u1', 'course-1');
+      const result = await service.getActiveRemediations('u1', 'academy-1');
       expect(result).toHaveLength(1);
       expect(result[0].blockedConceptId).toBe('c2');
       expect(mockPrisma.remediation.findMany).toHaveBeenCalledWith({
-        where: { userId: 'u1', courseId: 'course-1', resolved: false },
+        where: { userId: 'u1', academyId: 'academy-1', resolved: false },
       });
     });
   });
 
   describe('createRemediation', () => {
     it('should upsert a remediation record', async () => {
-      await service.createRemediation('u1', 'course-1', 'c2', 'c1');
+      await service.createRemediation('u1', 'academy-1', 'c2', 'c1', 'course-1');
 
       expect(mockPrisma.remediation.upsert).toHaveBeenCalledWith({
         where: {
@@ -59,11 +60,14 @@ describe('RemediationService', () => {
         },
         create: {
           userId: 'u1',
+          academyId: 'academy-1',
           courseId: 'course-1',
           blockedConceptId: 'c2',
           weakPrerequisiteId: 'c1',
         },
         update: {
+          academyId: 'academy-1',
+          courseId: 'course-1',
           resolved: false,
           resolvedAt: null,
         },
@@ -96,7 +100,7 @@ describe('RemediationService', () => {
         { blockedConceptId: 'c3', weakPrerequisiteId: 'c1', resolved: false },
       ]);
 
-      const result = await service.getBlockedConceptIds('u1', 'course-1');
+      const result = await service.getBlockedConceptIds('u1', 'academy-1');
       expect(result).toEqual(new Set(['c2', 'c3']));
     });
   });

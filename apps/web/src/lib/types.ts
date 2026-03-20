@@ -54,6 +54,8 @@ export interface Problem {
 export type ProblemAnswer = string | boolean | string[] | Record<string, string>;
 
 export interface NextTask {
+  academyId?: string;
+  courseId?: string;
   taskType: TaskType;
   conceptId?: string;
   sectionId?: string;

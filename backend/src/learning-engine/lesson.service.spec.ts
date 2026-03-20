@@ -65,6 +65,7 @@ describe('LessonService', () => {
 
     mockRemediationService = {
       getBlockedConceptIds: jest.fn().mockResolvedValue(new Set()),
+      getBlockedConceptIdsForCourse: jest.fn().mockResolvedValue(new Set()),
     };
 
     service = new LessonService(mockPrisma, mockRemediationService);
@@ -113,7 +114,7 @@ describe('LessonService', () => {
     });
 
     it('should throw when concept is blocked by remediation', async () => {
-      mockRemediationService.getBlockedConceptIds.mockResolvedValue(
+      mockRemediationService.getBlockedConceptIdsForCourse.mockResolvedValue(
         new Set(['c2']),
       );
 

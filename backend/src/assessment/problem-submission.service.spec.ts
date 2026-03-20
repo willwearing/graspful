@@ -25,6 +25,7 @@ describe('ProblemSubmissionService', () => {
         difficultyTheta: 0,
         timeIntensity: 0,
         timeIntensitySD: 0.8,
+        course: { academyId: 'academy-1' },
       },
     },
   };

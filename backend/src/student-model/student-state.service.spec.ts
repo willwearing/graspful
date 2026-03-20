@@ -6,9 +6,14 @@ import { activeConceptWhere } from '@/knowledge-graph/active-course-content';
 describe('StudentStateService', () => {
   let service: StudentStateService;
   let mockPrisma: any;
+  const academyId = 'academy-1';
+  const courseId = 'course-1';
 
   beforeEach(async () => {
     mockPrisma = {
+      course: {
+        findUnique: jest.fn().mockResolvedValue({ academyId }),
+      },
       concept: {
         findMany: jest.fn(),
       },
@@ -21,6 +26,10 @@ describe('StudentStateService', () => {
       },
       studentKPState: {
         upsert: jest.fn(),
+      },
+      academyEnrollment: {
+        findUnique: jest.fn(),
+        update: jest.fn(),
       },
       courseEnrollment: {
         findUnique: jest.fn(),
@@ -58,7 +67,14 @@ describe('StudentStateService', () => {
       const result = await service.getConceptStates('u1', 'course-1');
       expect(result).toEqual(states);
       expect(mockPrisma.studentConceptState.createMany).not.toHaveBeenCalled();
-      expect(mockPrisma.studentConceptState.findMany).toHaveBeenCalledWith({
+      expect(mockPrisma.studentConceptState.findMany).toHaveBeenNthCalledWith(1, {
+        where: {
+          userId: 'u1',
+          concept: activeConceptWhere({ course: { academyId } }),
+        },
+        select: { conceptId: true },
+      });
+      expect(mockPrisma.studentConceptState.findMany).toHaveBeenNthCalledWith(2, {
         where: {
           userId: 'u1',
           concept: activeConceptWhere({ courseId: 'course-1' }),
@@ -223,16 +239,90 @@ describe('StudentStateService', () => {
     });
   });
 
+  describe('getConceptStatesForAcademyCourse', () => {
+    it('should return concept states filtered by course within academy', async () => {
+      mockPrisma.concept.findMany.mockResolvedValue([
+        { id: 'c1' },
+        { id: 'c2' },
+        { id: 'c3' },
+      ]);
+      mockPrisma.studentConceptState.findMany
+        .mockResolvedValueOnce([
+          { conceptId: 'c1' },
+          { conceptId: 'c2' },
+          { conceptId: 'c3' },
+        ])
+        .mockResolvedValueOnce([
+          { id: 's1', userId: 'u1', conceptId: 'c1', masteryState: 'mastered', concept: { courseId } },
+          { id: 's2', userId: 'u1', conceptId: 'c2', masteryState: 'unstarted', concept: { courseId } },
+        ]);
+
+      const result = await service.getConceptStatesForAcademyCourse('u1', academyId, courseId);
+      expect(result).toHaveLength(2);
+      expect(mockPrisma.studentConceptState.findMany).toHaveBeenLastCalledWith({
+        where: {
+          userId: 'u1',
+          concept: activeConceptWhere({ courseId, course: { academyId } }),
+        },
+        include: { concept: true },
+      });
+    });
+  });
+
+  describe('getAcademyCourseMasterySummary', () => {
+    it('should return per-course mastery breakdown', async () => {
+      mockPrisma.concept.findMany.mockResolvedValue([
+        { id: 'c1' },
+        { id: 'c2' },
+        { id: 'c3' },
+      ]);
+      mockPrisma.studentConceptState.findMany
+        .mockResolvedValueOnce([
+          { conceptId: 'c1' },
+          { conceptId: 'c2' },
+          { conceptId: 'c3' },
+        ])
+        .mockResolvedValueOnce([
+          { conceptId: 'c1', masteryState: 'mastered', concept: { courseId: 'course-1' } },
+          { conceptId: 'c2', masteryState: 'in_progress', concept: { courseId: 'course-1' } },
+          { conceptId: 'c3', masteryState: 'unstarted', concept: { courseId: 'course-2' } },
+        ]);
+
+      const result = await service.getAcademyCourseMasterySummary('u1', academyId);
+
+      expect(result).toBeInstanceOf(Map);
+      expect(result.size).toBe(2);
+
+      const course1 = result.get('course-1');
+      expect(course1).toEqual({ total: 2, mastered: 1, inProgress: 1, unstarted: 0 });
+
+      const course2 = result.get('course-2');
+      expect(course2).toEqual({ total: 1, mastered: 0, inProgress: 0, unstarted: 1 });
+    });
+
+    it('should return empty map when no concept states exist', async () => {
+      mockPrisma.concept.findMany.mockResolvedValue([]);
+      mockPrisma.studentConceptState.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+
+      const result = await service.getAcademyCourseMasterySummary('u1', academyId);
+
+      expect(result).toBeInstanceOf(Map);
+      expect(result.size).toBe(0);
+    });
+  });
+
   describe('markDiagnosticComplete', () => {
     it('should update enrollment diagnosticCompleted flag', async () => {
-      mockPrisma.courseEnrollment.update.mockResolvedValue({
+      mockPrisma.academyEnrollment.update.mockResolvedValue({
         diagnosticCompleted: true,
       });
 
-      await service.markDiagnosticComplete('u1', 'course-1');
+      await service.markDiagnosticComplete('u1', academyId);
 
-      expect(mockPrisma.courseEnrollment.update).toHaveBeenCalledWith({
-        where: { userId_courseId: { userId: 'u1', courseId: 'course-1' } },
+      expect(mockPrisma.academyEnrollment.update).toHaveBeenCalledWith({
+        where: { userId_academyId: { userId: 'u1', academyId } },
         data: {
           diagnosticCompleted: true,
           diagnosticCompletedAt: expect.any(Date),

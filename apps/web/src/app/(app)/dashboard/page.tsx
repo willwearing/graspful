@@ -16,6 +16,7 @@ import { fetchCourseProfiles, type CourseProfile } from "@/lib/course-profiles";
 import Link from "next/link";
 
 interface Course {
+  academyId: string;
   id: string;
   orgId: string;
   slug: string;
@@ -152,7 +153,11 @@ export default async function DashboardPage() {
         if (profile && profile.completionPercent > 0) {
           return (
             <div className="mb-8">
-              <ContinueStudying courseId={firstCourse.id} courseName={firstCourse.name} />
+              <ContinueStudying
+                academyId={firstCourse.academyId}
+                courseId={firstCourse.id}
+                courseName={firstCourse.name}
+              />
             </div>
           );
         }

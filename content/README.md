@@ -2,11 +2,19 @@
 
 ## Overview
 
-Courses are defined as YAML files in `content/courses/`. Each file defines a complete knowledge graph for one certification exam: concepts, prerequisite edges, encompassing edges, knowledge points, and practice problems.
+Courses are defined as YAML files in `content/courses/`. Each file defines a knowledge graph slice: concepts, prerequisite edges, encompassing edges, knowledge points, and practice problems.
 
 Sections can also define `sectionExam` blocks. These create section-end certification checkpoints between lesson mastery and course-level quizzes.
 
 **No code is needed to add a new course.** The backend imports YAML, validates the graph, and builds the knowledge graph in the database.
+
+Important structural rule:
+
+- Do not assume one YAML file should represent the entire learning domain
+- If the subject naturally breaks into multiple major branches, plan an academy/track with multiple real courses before authoring detailed lessons
+- A monolithic course file is a storage convenience, not a pedagogical ideal
+
+This is straight from *The Math Academy Way*: the graph is the source of truth, course graphs are compressed summaries, large stairs should be split, and later learning should stay connected to earlier learning through explicit structure.
 
 ## Directory Structure
 
@@ -74,6 +82,22 @@ sections:
 ```
 
 ## Authoring Guidelines
+
+### Course vs academy boundary
+
+Before authoring detailed content, decide whether you are building:
+
+- one standalone course
+- or one course inside a larger academy/track
+
+Use an academy/track when:
+
+- the material has multiple major branches
+- those branches lead to different downstream topics
+- learners should be able to continue advancing on one branch if another branch stalls
+- forcing everything into one course would create oversized mixed sections
+
+For domains like PostHog TAM, the right target is a connected academy with multiple real courses, not one monolithic course with many sections.
 
 ### Progress-safe evolution
 

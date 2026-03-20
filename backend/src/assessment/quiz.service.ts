@@ -192,6 +192,7 @@ export class QuizService {
       answer,
       problem.correctAnswer,
       problem.explanation ?? undefined,
+      problem.options as unknown[] | null,
     );
 
     session.answers.push({
