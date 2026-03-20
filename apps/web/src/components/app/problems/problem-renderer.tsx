@@ -1,6 +1,7 @@
 "use client";
 
 import type { Problem, ProblemAnswer } from "@/lib/types";
+import { normalizeProblem } from "@/lib/problem-normalization";
 import { MultipleChoice, type ProblemFeedback } from "./multiple-choice";
 import { TrueFalse } from "./true-false";
 import { FillBlank } from "./fill-blank";
@@ -17,21 +18,23 @@ interface ProblemRendererProps {
 }
 
 export function ProblemRenderer({ problem, onSubmit, disabled, loading, feedback }: ProblemRendererProps) {
-  switch (problem.type) {
+  const normalizedProblem = normalizeProblem(problem);
+
+  switch (normalizedProblem.type) {
     case "multiple_choice":
-      return <MultipleChoice problem={problem} onSubmit={onSubmit as (answer: string) => void} disabled={disabled} loading={loading} feedback={feedback} />;
+      return <MultipleChoice problem={normalizedProblem} onSubmit={onSubmit as (answer: string) => void} disabled={disabled} loading={loading} feedback={feedback} />;
     case "true_false":
-      return <TrueFalse problem={problem} onSubmit={onSubmit as (answer: boolean) => void} disabled={disabled} loading={loading} feedback={feedback} />;
+      return <TrueFalse problem={normalizedProblem} onSubmit={onSubmit as (answer: boolean) => void} disabled={disabled} loading={loading} feedback={feedback} />;
     case "fill_blank":
-      return <FillBlank problem={problem} onSubmit={onSubmit as (answer: string) => void} disabled={disabled} loading={loading} feedback={feedback} />;
+      return <FillBlank problem={normalizedProblem} onSubmit={onSubmit as (answer: string) => void} disabled={disabled} loading={loading} feedback={feedback} />;
     case "ordering":
-      return <Ordering problem={problem} onSubmit={onSubmit as (answer: string[]) => void} disabled={disabled} loading={loading} feedback={feedback} />;
+      return <Ordering problem={normalizedProblem} onSubmit={onSubmit as (answer: string[]) => void} disabled={disabled} loading={loading} feedback={feedback} />;
     case "matching":
-      return <Matching problem={problem} onSubmit={onSubmit as (answer: Record<string, string>) => void} disabled={disabled} loading={loading} feedback={feedback} />;
+      return <Matching problem={normalizedProblem} onSubmit={onSubmit as (answer: Record<string, string>) => void} disabled={disabled} loading={loading} feedback={feedback} />;
     case "scenario":
-      return <Scenario problem={problem} onSubmit={onSubmit as (answer: string) => void} disabled={disabled} loading={loading} feedback={feedback} />;
+      return <Scenario problem={normalizedProblem} onSubmit={onSubmit as (answer: string) => void} disabled={disabled} loading={loading} feedback={feedback} />;
     default:
-      return <p className="text-muted-foreground">Unsupported problem type: {problem.type}</p>;
+      return <p className="text-muted-foreground">Unsupported problem type: {normalizedProblem.type}</p>;
   }
 }
 

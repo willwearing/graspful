@@ -150,24 +150,33 @@ describe('YAML Course File Validation (integration)', () => {
         (sum, concept) => sum + concept.encompassing.length,
         0,
       );
+      const reviewedConceptIds = [
+        'group-identify',
+        'ph-cdp-overview',
+        'ph-destinations-exports',
+        'cohorts',
+        'hogql-basics',
+      ];
 
       expect(parsed.concepts.length).toBeGreaterThanOrEqual(35);
       expect(encompassingCount).toBeGreaterThanOrEqual(5);
-      expect(
-        conceptById.get('group-identify')?.knowledgePoints[0]?.workedExample,
-      ).toBeTruthy();
-      expect(
-        conceptById.get('ph-cdp-overview')?.knowledgePoints[0]?.workedExample,
-      ).toBeTruthy();
-      expect(
-        conceptById.get('ph-destinations-exports')?.knowledgePoints[0]?.workedExample,
-      ).toBeTruthy();
-      expect(
-        conceptById.get('cohorts')?.knowledgePoints[0]?.workedExample,
-      ).toBeTruthy();
-      expect(
-        conceptById.get('hogql-basics')?.knowledgePoints[0]?.workedExample,
-      ).toBeTruthy();
+
+      for (const conceptId of reviewedConceptIds) {
+        const concept = conceptById.get(conceptId);
+
+        expect(concept).toBeDefined();
+        expect(concept?.knowledgePoints.length).toBeGreaterThanOrEqual(2);
+        expect(
+          concept?.knowledgePoints.some((kp) => Boolean(kp.workedExample?.trim())),
+        ).toBe(true);
+        expect(
+          concept?.knowledgePoints.some(
+            (kp) =>
+              (kp.instructionContent?.length ?? 0) > 0 ||
+              (kp.workedExampleContent?.length ?? 0) > 0,
+          ),
+        ).toBe(true);
+      }
     });
   });
 });

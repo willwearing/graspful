@@ -4,23 +4,21 @@ import { ApiError } from "@/lib/api-client";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
 
-/** Server-side API fetch with Supabase JWT attached */
-export async function apiFetch<T>(path: string, options?: { method?: string; body?: unknown }): Promise<T> {
-  const supabase = await createSupabaseServerClient();
+export interface ApiFetchOptions {
+  method?: string;
+  body?: unknown;
+}
 
-  // getUser() verifies the JWT server-side; getSession() alone trusts the client
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export type ApiFetcher = <T>(
+  path: string,
+  options?: ApiFetchOptions,
+) => Promise<T>;
 
-  let accessToken: string | undefined;
-  if (user) {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    accessToken = session?.access_token;
-  }
-
+async function apiFetchWithAccessToken<T>(
+  path: string,
+  accessToken?: string,
+  options?: ApiFetchOptions,
+): Promise<T> {
   const res = await fetch(`${BACKEND_URL}${path}`, {
     method: options?.method ?? "GET",
     headers: {
@@ -36,4 +34,32 @@ export async function apiFetch<T>(path: string, options?: { method?: string; bod
   }
 
   return res.json();
+}
+
+export function createApiFetcher(accessToken?: string): ApiFetcher {
+  return async <T>(path: string, options?: ApiFetchOptions) =>
+    apiFetchWithAccessToken<T>(path, accessToken, options);
+}
+
+/** Server-side API fetch with Supabase JWT attached */
+export async function apiFetch<T>(
+  path: string,
+  options?: ApiFetchOptions,
+): Promise<T> {
+  const supabase = await createSupabaseServerClient();
+
+  // getUser() verifies the JWT server-side; getSession() alone trusts the client
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let accessToken: string | undefined;
+  if (user) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    accessToken = session?.access_token;
+  }
+
+  return apiFetchWithAccessToken<T>(path, accessToken, options);
 }

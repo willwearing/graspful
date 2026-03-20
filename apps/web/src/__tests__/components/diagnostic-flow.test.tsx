@@ -45,6 +45,11 @@ describe("DiagnosticFlow", () => {
     );
     expect(screen.getByText("What is NFPA?")).toBeTruthy();
     expect(screen.getByText("Question 1 of ~10")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "This diagnostic is adaptive, so questions may jump between topics and sections."
+      )
+    ).toBeTruthy();
   });
 
   it("submits an answer and shows feedback", async () => {

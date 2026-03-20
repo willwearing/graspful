@@ -36,10 +36,10 @@ export function Features({ features }: FeaturesProps) {
         Turn dead time into study time. Learn while your hands and eyes are busy.
       </p>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {features.map((feature, i) => {
+        {features.map((feature) => {
           const Icon = iconMap[feature.icon] || Zap;
           return (
-            <Card key={i} className="border-border bg-card">
+            <Card key={`${feature.icon}-${feature.title}`} className="border-border bg-card">
               <CardHeader>
                 <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                   <Icon className="h-6 w-6 text-primary" />

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, createApiFetcher } from "@/lib/api";
 import { resolvePageBrand } from "@/lib/brand/resolve";
 import { CourseCard } from "@/components/app/course-card";
 import { StreakCounter } from "@/components/app/streak-counter";
@@ -12,16 +12,8 @@ import { CompletionEstimate } from "@/components/app/completion-estimate";
 import { Leaderboard } from "@/components/app/leaderboard";
 import { KnowledgeGraphSection } from "@/components/app/knowledge-graph-section";
 import { Button } from "@/components/ui/button";
+import { fetchCourseProfiles, type CourseProfile } from "@/lib/course-profiles";
 import Link from "next/link";
-
-interface CourseProfile {
-  totalConcepts: number;
-  mastered: number;
-  inProgress: number;
-  needsReview: number;
-  unstarted: number;
-  completionPercent: number;
-}
 
 interface Course {
   id: string;
@@ -79,30 +71,20 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/sign-in");
 
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const serverApiFetch = createApiFetcher(session?.access_token);
+
   const brand = await resolvePageBrand();
 
   // Fetch enrolled courses
   let courses: Course[] = [];
-  const profiles: Map<string, CourseProfile> = new Map();
+  let profiles: Map<string, CourseProfile> = new Map();
 
   try {
-    courses = await apiFetch<Course[]>(`/orgs/${brand.orgSlug}/courses`);
-
-    // Fetch profile for each course
-    const profileResults = await Promise.allSettled(
-      courses.map(async (course) => {
-        const profile = await apiFetch<CourseProfile>(
-          `/orgs/${brand.orgSlug}/courses/${course.id}/profile`
-        );
-        return { courseId: course.id, profile };
-      })
-    );
-
-    for (const result of profileResults) {
-      if (result.status === "fulfilled") {
-        profiles.set(result.value.courseId, result.value.profile);
-      }
-    }
+    courses = await serverApiFetch<Course[]>(`/orgs/${brand.orgSlug}/courses`);
+    profiles = await fetchCourseProfiles(brand.orgSlug, courses, serverApiFetch);
   } catch {
     // API may not be running -- show empty state
   }
@@ -120,11 +102,11 @@ export default async function DashboardPage() {
 
     const [xpRes, streakRes, weeklyRes, boardRes, statsRes] =
       await Promise.allSettled([
-        apiFetch<XPSummary>(`${basePath}/xp`),
-        apiFetch<StreakStatusResponse>(`${basePath}/streak`),
-        apiFetch<DailyXP[]>(`${basePath}/xp/weekly`),
-        apiFetch<LeaderboardEntry[]>(`${basePath}/leaderboard`),
-        apiFetch<StatsResponse>(`${basePath}/stats`),
+        serverApiFetch<XPSummary>(`${basePath}/xp`),
+        serverApiFetch<StreakStatusResponse>(`${basePath}/streak`),
+        serverApiFetch<DailyXP[]>(`${basePath}/xp/weekly`),
+        serverApiFetch<LeaderboardEntry[]>(`${basePath}/leaderboard`),
+        serverApiFetch<StatsResponse>(`${basePath}/stats`),
       ]);
 
     xpSummary = xpRes.status === "fulfilled" ? xpRes.value : null;

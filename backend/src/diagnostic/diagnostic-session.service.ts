@@ -29,6 +29,7 @@ import {
 } from './speed-bootstrap';
 import { evaluateAnswer } from '../assessment/answer-evaluator';
 import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
+import { serializeProblemForClient } from '@/shared/utils/problem-presentation';
 
 const STALE_SESSION_HOURS = 24;
 const logger = getLogger('diagnostic');
@@ -550,23 +551,6 @@ export class DiagnosticSessionService {
   private sanitizeProblem(problem: any) {
     // Strip correctAnswer and explanation from the response
     const { correctAnswer, explanation, explanationAudioUrl, knowledgePoint, ...safe } = problem;
-
-    if (safe.type === 'matching' && Array.isArray(safe.options)) {
-      safe.pairs = safe.options.map((item: string) => {
-        const [left, right] = item.split('|');
-        return { left: left?.trim() ?? item, right: right?.trim() ?? '' };
-      });
-      delete safe.options;
-    } else if (safe.type === 'ordering' && Array.isArray(safe.options)) {
-      safe.items = safe.options.map((item: string) => item.trim());
-      delete safe.options;
-    } else if (Array.isArray(safe.options)) {
-      safe.options = safe.options.map((text: string, i: number) => ({
-        id: String(i),
-        text,
-      }));
-    }
-
-    return safe;
+    return serializeProblemForClient(safe);
   }
 }

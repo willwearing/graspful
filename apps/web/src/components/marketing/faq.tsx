@@ -20,7 +20,10 @@ export function FAQ({ items }: FAQProps) {
       </h2>
       <Accordion className="w-full">
         {items.map((item, i) => (
-          <AccordionItem key={i} value={`faq-${i}`}>
+          <AccordionItem
+            key={`${item.question}-${item.answer}`}
+            value={`faq-${i}`}
+          >
             <AccordionTrigger className="text-left text-foreground">
               {item.question}
             </AccordionTrigger>

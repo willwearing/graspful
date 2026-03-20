@@ -70,6 +70,10 @@ describe('ReviewService', () => {
       expect(result.totalProblems).toBe(3);
       expect(result.currentProblem).toBeDefined();
       expect(result.problemNumber).toBe(1);
+      expect(result.currentProblem.options).toEqual([
+        { id: '0', text: 'A' },
+        { id: '1', text: 'B' },
+      ]);
     });
 
     it('should throw when concept state not found', async () => {

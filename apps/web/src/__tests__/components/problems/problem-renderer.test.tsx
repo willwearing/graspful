@@ -16,6 +16,21 @@ describe("ProblemRenderer", () => {
     expect(screen.getByText("Option A")).toBeTruthy();
   });
 
+  it("normalizes string options before rendering multiple choice problems", () => {
+    const problem = {
+      id: "p1-raw",
+      questionText: "How many entities are there?",
+      type: "multiple_choice" as const,
+      options: ["1", "2", "3", "4"],
+      difficulty: 2,
+    } as any;
+
+    render(<ProblemRenderer problem={problem} onSubmit={vi.fn()} />);
+
+    expect(screen.getByText("1")).toBeTruthy();
+    expect(screen.getByText("4")).toBeTruthy();
+  });
+
   it("renders TrueFalse for true_false type", () => {
     const problem = {
       id: "p2",

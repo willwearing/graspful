@@ -45,8 +45,8 @@ export function Matching({ problem, onSubmit, disabled, loading, feedback }: Mat
               className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground disabled:opacity-50"
             >
               <option value="">Select match...</option>
-              {rightItems.map((right, index) => (
-                <option key={`${right}-${index}`} value={right}>
+              {rightItems.map((right) => (
+                <option key={right} value={right}>
                   {right}
                 </option>
               ))}
