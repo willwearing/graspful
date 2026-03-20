@@ -114,12 +114,17 @@ A concept = one teachable idea that can be tested independently. Too broad = stu
 
 ### Knowledge Points (KPs)
 
-- 1-4 KPs per concept, progressively harder
+- Do not optimize for the fewest possible KPs. Optimize for enough scaffolding that a learner can actually master the idea in sequence.
+- Fully-authored concepts should usually have 2-4 KPs, progressively harder
+- Use 1 KP only when the concept is genuinely tiny and atomic, or when the concept is still a graph stub rather than a finished lesson
 - Each KP should follow: instruction -> content -> worked example -> practice
+- Each KP should teach one load-bearing move, distinction, or case. If one KP needs to cover definition + design rule + caveat + implementation pattern, split it.
+- Difficulty should rise one small step at a time. Learners should feel like they are climbing a staircase, not jumping over a gap.
 - Each fully-authored KP needs: instruction text, 2-3 practice problems minimum
 - Applied or high-transfer KPs should usually include a worked example, not just prose plus problems
 - 2 consecutive correct answers = KP passed
 - Problems should test understanding, not just recall
+- Explanations are reactive feedback, not answer reveals. They should name the likely misconception and point the learner back to the rule, contrast, or earlier skill they missed.
 
 ### Structured content blocks
 
@@ -144,6 +149,7 @@ In lesson flow, `problems` are the practice session for a KP. Author them as a s
 - First problem: confirm the learner recognized the key idea
 - Middle problem: test application or comparison
 - Final problem: use a scenario when the concept shows up in real TAM work
+- Explanations should tell the learner what to change on the next attempt, not just what the correct option was
 
 ### Section exam authoring
 

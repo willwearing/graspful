@@ -10,6 +10,7 @@ import {
   activeConceptWhere,
   activeKnowledgePointWhere,
 } from '@/knowledge-graph/active-course-content';
+import { serializeProblemForClient } from '@/shared/utils/problem-presentation';
 
 @Injectable()
 export class LessonService {
@@ -159,31 +160,6 @@ export class LessonService {
     options: Prisma.JsonValue;
     difficulty: number;
   }) {
-    const options = Array.isArray(problem.options)
-      ? problem.options.filter((item): item is string => typeof item === 'string')
-      : null;
-
-    const safe: Record<string, unknown> = {
-      id: problem.id,
-      questionText: problem.questionText,
-      type: problem.type,
-      difficulty: problem.difficulty,
-    };
-
-    if (problem.type === 'matching' && options) {
-      safe.pairs = options.map((item: string) => {
-        const [left, right] = item.split('|');
-        return { left: left?.trim() ?? item, right: right?.trim() ?? '' };
-      });
-    } else if (problem.type === 'ordering' && options) {
-      safe.items = options.map((item: string) => item.trim());
-    } else if (options) {
-      safe.options = options.map((text: string, i: number) => ({
-        id: String(i),
-        text,
-      }));
-    }
-
-    return safe;
+    return serializeProblemForClient(problem);
   }
 }

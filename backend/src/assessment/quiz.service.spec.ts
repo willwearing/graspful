@@ -62,6 +62,10 @@ describe('QuizService', () => {
       expect(result.quizId).toBeDefined();
       expect(result.totalProblems).toBeGreaterThan(0);
       expect(result.timeLimitMs).toBe(15 * 60 * 1000);
+      expect(result.problems[0]?.options).toEqual([
+        { id: '0', text: 'A' },
+        { id: '1', text: 'B' },
+      ]);
       // Should not include correct answers
       for (const p of result.problems) {
         expect((p as any).correctAnswer).toBeUndefined();

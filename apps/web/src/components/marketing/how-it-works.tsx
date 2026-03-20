@@ -18,7 +18,10 @@ export function HowItWorks({ steps }: HowItWorksProps) {
 
           <div className="space-y-12">
             {steps.map((step, i) => (
-              <div key={i} className="flex gap-6 items-start">
+              <div
+                key={`${step.title}-${step.description}`}
+                className="flex gap-6 items-start"
+              >
                 <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xl font-bold shadow-lg">
                   {i + 1}
                 </div>

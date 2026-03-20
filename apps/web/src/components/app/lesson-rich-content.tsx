@@ -7,15 +7,35 @@ interface LessonRichContentProps {
   blocks: RichContentBlock[];
 }
 
+function getBlockKey(block: RichContentBlock): string {
+  switch (block.type) {
+    case "image":
+      return `image-${block.url}`;
+    case "video":
+      return `video-${block.url}`;
+    case "link":
+      return `link-${block.url}`;
+    case "callout":
+      return `callout-${block.title}-${block.body}`;
+  }
+}
+
 export function LessonRichContent({ blocks }: LessonRichContentProps) {
   if (blocks.length === 0) return null;
 
+  const keyCounts = new Map<string, number>();
+
   return (
     <div className="space-y-4">
-      {blocks.map((block, index) => {
+      {blocks.map((block) => {
+        const baseKey = getBlockKey(block);
+        const seenCount = keyCounts.get(baseKey) ?? 0;
+        keyCounts.set(baseKey, seenCount + 1);
+        const blockKey = seenCount === 0 ? baseKey : `${baseKey}-${seenCount}`;
+
         if (block.type === "image") {
           return (
-            <figure key={`${block.type}-${index}`} className="rounded-xl border border-border bg-muted/20 p-4">
+            <figure key={blockKey} className="rounded-xl border border-border bg-muted/20 p-4">
               <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 <ImageIcon className="size-4" />
                 Visual
@@ -35,7 +55,7 @@ export function LessonRichContent({ blocks }: LessonRichContentProps) {
 
         if (block.type === "video") {
           return (
-            <div key={`${block.type}-${index}`} className="rounded-xl border border-border bg-muted/20 p-4">
+            <div key={blockKey} className="rounded-xl border border-border bg-muted/20 p-4">
               <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 <PlayCircle className="size-4" />
                 Video
@@ -58,7 +78,7 @@ export function LessonRichContent({ blocks }: LessonRichContentProps) {
 
         if (block.type === "link") {
           return (
-            <div key={`${block.type}-${index}`} className="rounded-xl border border-border bg-background p-4">
+            <div key={blockKey} className="rounded-xl border border-border bg-background p-4">
               <a
                 href={block.url}
                 target="_blank"
@@ -76,7 +96,7 @@ export function LessonRichContent({ blocks }: LessonRichContentProps) {
         }
 
         return (
-          <div key={`${block.type}-${index}`} className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+          <div key={blockKey} className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
             <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-300">
               <Lightbulb className="size-4" />
               Callout

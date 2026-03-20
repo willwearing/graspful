@@ -1,13 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { Home, BookOpen, Settings, LogOut } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { usePathname } from "next/navigation";
+import { Home, BookOpen, Settings } from "lucide-react";
 import { useBrand } from "@/lib/brand/context";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -23,23 +20,13 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const brand = useBrand();
   const pathname = usePathname();
-  const router = useRouter();
-  const supabase = createSupabaseBrowserClient();
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUserEmail(data.session?.user?.email ?? null);
-      setUserAvatar(data.session?.user?.user_metadata?.avatar_url ?? null);
-    });
-  }, [supabase]);
+    setPendingPath(null);
+  }, [pathname]);
 
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-    router.push("/");
-    router.refresh();
-  }
+  const activePath = pendingPath ?? pathname;
 
   return (
     <>
@@ -60,22 +47,25 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         `}
       >
         {/* Brand */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-border">
+        <div className="flex min-h-16 items-center gap-3 border-b border-border px-5">
           <span className="text-lg font-bold text-foreground">{brand.name}</span>
         </div>
 
         {/* Nav */}
-        <nav className="flex flex-col gap-1 p-3 flex-1">
+        <nav className="flex flex-1 flex-col gap-1 p-2.5">
           {navItems.map((item) => {
-            const isActive = pathname.startsWith(item.href);
+            const isActive = activePath.startsWith(item.href);
             const Icon = item.icon;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={onClose}
+                onClick={() => {
+                  setPendingPath(item.href === pathname ? null : item.href);
+                  onClose();
+                }}
                 className={`
-                  flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium
+                  flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium
                   transition-colors duration-200
                   ${
                     isActive
@@ -90,32 +80,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             );
           })}
         </nav>
-
-        {/* User + Sign out */}
-        <div className="flex items-center gap-3 border-t border-border px-4 py-3">
-          {userEmail && (
-            <>
-              <Avatar className="size-7 shrink-0">
-                {userAvatar && <AvatarImage src={userAvatar} alt={userEmail} />}
-                <AvatarFallback className="text-[10px]">
-                  {userEmail.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className="flex-1 truncate text-xs text-muted-foreground">
-                {userEmail}
-              </span>
-            </>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0 text-muted-foreground"
-            onClick={handleSignOut}
-            title="Sign out"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
       </aside>
     </>
   );

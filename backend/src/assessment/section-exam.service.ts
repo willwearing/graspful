@@ -17,6 +17,7 @@ import {
 } from '@/knowledge-graph/active-course-content';
 import { evaluateAnswer } from './answer-evaluator';
 import { calculateQuizXP } from './xp-calculator';
+import { serializeProblemForClient } from '@/shared/utils/problem-presentation';
 
 type SectionExamConfig = {
   enabled?: boolean;
@@ -762,45 +763,6 @@ export class SectionExamService {
     options: Prisma.JsonValue | null;
     difficulty: number;
   }) {
-    const values = Array.isArray(problem.options)
-      ? problem.options.map((item) => String(item))
-      : [];
-
-    if (problem.type === 'matching') {
-      return {
-        id: problem.id,
-        questionText: problem.questionText,
-        type: problem.type,
-        pairs: values.map((item) => {
-          const [left, right] = item.split('|');
-          return {
-            left: left?.trim() ?? item,
-            right: right?.trim() ?? '',
-          };
-        }),
-        difficulty: problem.difficulty,
-      };
-    }
-
-    if (problem.type === 'ordering') {
-      return {
-        id: problem.id,
-        questionText: problem.questionText,
-        type: problem.type,
-        items: values,
-        difficulty: problem.difficulty,
-      };
-    }
-
-    return {
-      id: problem.id,
-      questionText: problem.questionText,
-      type: problem.type,
-      options: values.map((text, index) => ({
-        id: String(index),
-        text,
-      })),
-      difficulty: problem.difficulty,
-    };
+    return serializeProblemForClient(problem);
   }
 }

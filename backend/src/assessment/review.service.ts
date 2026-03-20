@@ -4,17 +4,15 @@ import { FireUpdateService } from '@/spaced-repetition/fire-update.service';
 import { ProblemSubmissionService } from './problem-submission.service';
 import { SectionExamService } from './section-exam.service';
 import { activeKnowledgePointWhere } from '@/knowledge-graph/active-course-content';
+import {
+  type ClientProblem,
+  serializeProblemForClient,
+} from '@/shared/utils/problem-presentation';
 
 export interface ReviewSession {
   conceptId: string;
   userId: string;
-  problems: Array<{
-    id: string;
-    questionText: string;
-    type: string;
-    options: unknown;
-    difficulty: number;
-  }>;
+  problems: ClientProblem[];
   answers: Array<{
     problemId: string;
     correct: boolean;
@@ -89,13 +87,7 @@ export class ReviewService {
     const session: ReviewSession = {
       conceptId,
       userId,
-      problems: finalProblems.map((p) => ({
-        id: p.id,
-        questionText: p.questionText,
-        type: p.type,
-        options: p.options,
-        difficulty: p.difficulty,
-      })),
+      problems: finalProblems.map((problem) => serializeProblemForClient(problem)),
       answers: [],
       isComplete: false,
     };

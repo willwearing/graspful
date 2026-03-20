@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { apiFetch } from "@/lib/api";
+import { createApiFetcher } from "@/lib/api";
 import { resolvePageBrand } from "@/lib/brand/resolve";
 import { CourseCard } from "@/components/app/course-card";
+import { fetchCourseProfiles, type CourseProfile } from "@/lib/course-profiles";
 
 interface Course {
   id: string;
@@ -20,11 +21,18 @@ export default async function BrowsePage() {
 
   if (!user) redirect("/sign-in");
 
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const serverApiFetch = createApiFetcher(session?.access_token);
+
   const brand = await resolvePageBrand();
 
   let courses: Course[] = [];
+  let profiles: Map<string, CourseProfile> = new Map();
   try {
-    courses = await apiFetch<Course[]>(`/orgs/${brand.orgSlug}/courses`);
+    courses = await serverApiFetch<Course[]>(`/orgs/${brand.orgSlug}/courses`);
+    profiles = await fetchCourseProfiles(brand.orgSlug, courses, serverApiFetch);
   } catch {
     // Backend may not be running
   }
@@ -42,18 +50,21 @@ export default async function BrowsePage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {courses.map((course) => (
-            <CourseCard
-              key={course.id}
-              courseId={course.id}
-              name={course.name}
-              description={course.description}
-              orgId={course.orgId}
-              completionPercent={0}
-              totalConcepts={0}
-              mastered={0}
-            />
-          ))}
+          {courses.map((course) => {
+            const profile = profiles.get(course.id);
+            return (
+              <CourseCard
+                key={course.id}
+                courseId={course.id}
+                name={course.name}
+                description={course.description}
+                orgId={course.orgId}
+                completionPercent={profile?.completionPercent ?? 0}
+                totalConcepts={profile?.totalConcepts ?? 0}
+                mastered={profile?.mastered ?? 0}
+              />
+            );
+          })}
         </div>
       )}
     </div>

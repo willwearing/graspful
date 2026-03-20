@@ -21,7 +21,7 @@ export function Hero({ headline, subheadline, ctaText }: HeroProps) {
         <h1 className="text-4xl font-bold leading-[1.25] tracking-tight sm:text-5xl lg:text-6xl xl:text-7xl">
           {words.map((word, i) => (
             <span
-              key={i}
+              key={`${word}-${i}`}
               className={`inline-block animate-word-enter ${
                 i >= words.length - 1 ? "text-gradient" : "text-foreground"
               }`}

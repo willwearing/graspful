@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronUp, ChevronDown, Loader2 } from "lucide-react";
 import type { Problem } from "@/lib/types";
@@ -15,14 +15,31 @@ interface OrderingProps {
   feedback?: ProblemFeedback;
 }
 
-export function Ordering({ problem, onSubmit, disabled, loading, feedback }: OrderingProps) {
-  const [items, setItems] = useState<string[]>(
+interface OrderingItem {
+  id: string;
+  text: string;
+}
+
+function buildOrderingItems(problem: Problem): OrderingItem[] {
+  const values =
     problem.items ??
-      problem.options?.map((option) =>
-        typeof option === "string" ? option : option.text,
-      ) ??
-      [],
-  );
+    problem.options?.map((option) =>
+      typeof option === "string" ? option : option.text,
+    ) ??
+    [];
+
+  return values.map((text, index) => ({
+    id: `${problem.id}-${index}-${text}`,
+    text,
+  }));
+}
+
+export function Ordering({ problem, onSubmit, disabled, loading, feedback }: OrderingProps) {
+  const [items, setItems] = useState<OrderingItem[]>(() => buildOrderingItems(problem));
+
+  useEffect(() => {
+    setItems(buildOrderingItems(problem));
+  }, [problem]);
 
   function moveItem(index: number, direction: -1 | 1) {
     if (disabled) return;
@@ -40,13 +57,13 @@ export function Ordering({ problem, onSubmit, disabled, loading, feedback }: Ord
       <div className="space-y-2">
         {items.map((item, index) => (
           <div
-            key={`${item}-${index}`}
+            key={item.id}
             className="flex items-center gap-2 rounded-lg border border-border bg-card p-3"
           >
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
               {index + 1}
             </span>
-            <span className="flex-1 text-sm text-foreground">{item}</span>
+            <span className="flex-1 text-sm text-foreground">{item.text}</span>
             <div className="flex gap-1">
               <button
                 type="button"
@@ -80,7 +97,11 @@ export function Ordering({ problem, onSubmit, disabled, loading, feedback }: Ord
       ) : null}
 
       {!feedback && (
-        <Button onClick={() => onSubmit(items)} disabled={disabled} className="w-full">
+        <Button
+          onClick={() => onSubmit(items.map((item) => item.text))}
+          disabled={disabled}
+          className="w-full"
+        >
           {loading ? <><Loader2 className="size-4 animate-spin" /> Submitting...</> : "Submit Answer"}
         </Button>
       )}

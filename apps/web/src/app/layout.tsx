@@ -7,6 +7,7 @@ import { BrandThemeStyle } from "@/lib/brand/theme-style";
 import { resolveBrand } from "@/lib/brand/resolve";
 import { PostHogProvider } from "@/lib/posthog/provider";
 import { DevBrandSwitcher } from "@/components/dev/brand-switcher";
+import { ThemeProvider, themeInitScript } from "@/lib/theme/theme-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -45,18 +46,21 @@ export default async function RootLayout({
   const brand = await resolveBrand(hostname, cookieHeader);
 
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
         <BrandThemeStyle brand={brand} />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link rel="icon" href={brand.faviconUrl} />
       </head>
       <body className="min-h-screen bg-background text-foreground">
-        <BrandProvider brand={brand}>
-          <Suspense fallback={null}>
-            <PostHogProvider>{children}</PostHogProvider>
-          </Suspense>
-          <DevBrandSwitcher />
-        </BrandProvider>
+        <ThemeProvider>
+          <BrandProvider brand={brand}>
+            <Suspense fallback={null}>
+              <PostHogProvider>{children}</PostHogProvider>
+            </Suspense>
+            <DevBrandSwitcher />
+          </BrandProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

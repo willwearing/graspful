@@ -173,7 +173,18 @@ This follows Chapter 4's distinction between prerequisites and encompassings: en
 
 ### Step 8: Run a review-agent pass
 
-After the authoring agent finishes the YAML skeleton, a second agent should review the graph abstractly before the course is treated as ready.
+After the authoring agent finishes the YAML skeleton, the workflow must spawn a second agent to review the graph abstractly before the course is treated as ready. Self-review by the authoring agent is not enough.
+
+This second agent is reviewing the first agent's work, not assisting it. It should assume the first draft is under-split or under-connected until the graph and lesson staircase prove otherwise. The review agent should challenge the first agent's decisions and require rewrites when the structure is technically valid but still too large for smooth learning.
+
+The review agent should return findings ordered by severity with file and line references where possible. Approval is not the default outcome.
+
+The handoff should be explicit:
+
+- Agent 1 authors or revises the graph and lesson draft.
+- Agent 2 reviews that output as an adversarial checker.
+- Agent 1 (or a fresh authoring pass) fixes the issues raised by Agent 2.
+- The course is not treated as complete until the review findings are resolved or consciously accepted.
 
 The review agent should check:
 
@@ -184,18 +195,24 @@ The review agent should check:
 5. Are there missing cross-branch edges where one branch quietly depends on another?
 6. Do sections reflect the graph, or are they hiding a broken graph?
 7. Does the course create a clear root -> trunk -> branch -> leaf progression?
+8. For each concept, is the lesson broken into a real staircase of KPs with increasing difficulty, or is it still a mini-chapter disguised as one KP?
+9. If a learner missed a later KP, would the failure point tell us something precise about the missing foundation or missing subskill?
 
 The review agent must explicitly ask:
 
 - "Is this foundational, or can it go further up?"
 - "What breaks downstream if this concept is missing?"
 - "Would a student who mastered the stated prerequisites actually be ready for this?"
+- "Is this lesson small-step enough to be learnable in audio form, or did the first agent pack multiple ideas into one KP?"
+- "Do the practice explanations provide reactive feedback that tells the learner what to fix next?"
 
 The review outcome should be one of:
 
 - `approved`
 - `approved with edge adjustments`
+- `approved with lesson split adjustments`
 - `rewrite graph structure before authoring KPs`
+- `rewrite KPs before shipping`
 
 The review agent should evaluate the graph against the PDF's core claims:
 
@@ -219,9 +236,18 @@ Every fully-authored knowledge point should follow this pattern:
 
 Important constraint: `instruction` and `workedExample` should remain readable as plain text because they also power audio. Put screenshots, diagrams, external references, and video links in the structured `*Content` blocks instead of burying URLs inside the prose.
 
+Lesson-quality rules:
+
+- Do not optimize for the shortest possible course or the fewest possible KPs. Optimize for successful mastery through enough scaffolding, examples, and reactive feedback.
+- Fully-authored concepts should usually have 2-4 KPs. One oversized KP is almost always worse than two smaller KPs.
+- Each KP should teach one load-bearing move, contrast, or case. If the prose has to cover definition + why it matters + tradeoffs + caveats + operational pattern, split it.
+- KPs must increase in difficulty in small steps. The learner should move from recognition -> guided application -> judgment / transfer, not from definition straight to edge cases.
+- Treat `problems` + `explanation` as reactive feedback. Wrong-answer explanations should diagnose the likely misconception and tell the learner what rule, distinction, or prerequisite to revisit.
+- If a concept still reads like a short chapter instead of a staircase, stop and split it before polishing prose.
+
 ### Step 11: Run a content review before calling the course done
 
-After the graph review and the content pass, run one final review focused on lesson quality:
+After the graph review and the content pass, run one final review focused on lesson quality. Prefer a separate review agent here too if the course changed materially after the first review.
 
 1. Does every fully-authored KP include `instruction` and practice problems?
 2. Does the instruction explain one idea clearly without depending on the example?
@@ -230,6 +256,9 @@ After the graph review and the content pass, run one final review focused on les
 5. Do the practice problems check understanding and application, not just wording recall?
 6. Are the linked visuals sized intentionally and captioned clearly?
 7. Would a first-time learner understand what to do next at every step?
+8. Does each concept have a real increasing-difficulty staircase of KPs, rather than one dense KP plus a quiz?
+9. Do explanations act as reactive feedback by naming likely misconceptions and telling the learner how to recover?
+10. If the learner failed a later KP twice, would the failure location and feedback point to a specific missing idea or prerequisite?
 
 Do not mark the course complete until both the graph review and the content review pass.
 
@@ -411,6 +440,9 @@ Authoring rules:
 - Size images intentionally. Use widths that keep screenshots readable on desktop without overwhelming mobile.
 - Prefer one strong visual over a gallery of weak ones.
 - If a section is highly abstract, a `callout` or `link` is acceptable when no useful visual exists.
+- Split aggressively when needed. If a KP has to introduce the term, explain the design rule, compare alternatives, and cover pitfalls, it should become multiple KPs.
+- Design the KPs as a staircase: first recognition, then direct application, then troubleshooting / transfer.
+- Explanations should be corrective feedback. Tell the learner what distinction they missed and what to look for next time.
 
 ### Sections
 
@@ -608,6 +640,7 @@ Quality bar:
 - Include at least one problem that checks transfer or diagnosis, not just vocabulary
 - Distractors should reflect realistic TAM misunderstandings
 - If the learner misses a problem, the explanation should teach, not just reveal the answer
+- Across a concept's KPs, difficulty should ratchet upward. Do not keep all problems at the same recognition level.
 
 ### Authoring Guidelines
 

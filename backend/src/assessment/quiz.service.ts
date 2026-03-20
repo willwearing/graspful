@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { XPService } from '@/gamification/xp.service';
 import { evaluateAnswer } from './answer-evaluator';
@@ -7,6 +8,7 @@ import {
   activeConceptWhere,
   activeKnowledgePointWhere,
 } from '@/knowledge-graph/active-course-content';
+import { serializeProblemForClient } from '@/shared/utils/problem-presentation';
 
 export interface QuizSession {
   quizId: string;
@@ -17,7 +19,8 @@ export interface QuizSession {
     conceptId: string;
     questionText: string;
     type: string;
-    options: unknown;
+    options: Prisma.JsonValue | null;
+    difficulty: number;
     correctAnswer: unknown;
     explanation: string | null;
   }>;
@@ -122,6 +125,7 @@ export class QuizService {
         questionText: p.questionText,
         type: p.type,
         options: p.options,
+        difficulty: p.difficulty,
         correctAnswer: p.correctAnswer,
         explanation: p.explanation,
       })),
@@ -138,12 +142,15 @@ export class QuizService {
       quizId,
       totalProblems: session.problems.length,
       timeLimitMs: QUIZ_TIME_LIMIT_MS,
-      problems: session.problems.map((p) => ({
-        id: p.id,
-        questionText: p.questionText,
-        type: p.type,
-        options: p.options,
-      })),
+      problems: session.problems.map((problem) =>
+        serializeProblemForClient({
+          id: problem.id,
+          questionText: problem.questionText,
+          type: problem.type,
+          options: problem.options,
+          difficulty: problem.difficulty,
+        }),
+      ),
     };
   }
 

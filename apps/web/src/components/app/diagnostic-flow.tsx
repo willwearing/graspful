@@ -174,6 +174,10 @@ export function DiagnosticFlow({ orgSlug, courseId, token, initialData }: Diagno
         <Progress value={Math.min(progressPercent, 100)} className="h-2" />
       </div>
 
+      <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+        This diagnostic is adaptive, so questions may jump between topics and sections.
+      </div>
+
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
           {error}
