@@ -16,6 +16,7 @@ interface ConceptNode {
   id: string;
   name: string;
   masteryState: MasteryState;
+  courseId?: string;
 }
 
 interface PrereqEdge {
@@ -26,6 +27,7 @@ interface PrereqEdge {
 interface KnowledgeGraphProps {
   concepts: ConceptNode[];
   edges: PrereqEdge[];
+  courseIds?: string[];
 }
 
 const MASTERY_COLORS: Record<MasteryState, string> = {
@@ -42,23 +44,29 @@ const MASTERY_LABELS: Record<MasteryState, string> = {
   unstarted: "Unstarted",
 };
 
+// Course-level border colors for academy view
+const COURSE_BORDER_COLORS = [
+  "#6366f1", // indigo
+  "#f59e0b", // amber
+  "#10b981", // emerald
+  "#ef4444", // red
+  "#8b5cf6", // violet
+  "#06b6d4", // cyan
+  "#f97316", // orange
+  "#ec4899", // pink
+];
+
 const NODE_WIDTH = 150;
 const NODE_HEIGHT = 50;
 const HORIZONTAL_GAP = 40;
 const VERTICAL_GAP = 80;
 
-/**
- * Hierarchical DAG layout via topological layering.
- * Layer = 1 + max(layer of prerequisites). Roots at top, leaves at bottom.
- * Within each layer, nodes are spread horizontally and centered.
- */
 function computeHierarchicalLayout(
   concepts: ConceptNode[],
   edges: PrereqEdge[]
 ): { id: string; x: number; y: number }[] {
   const ids = new Set(concepts.map((c) => c.id));
 
-  // Build adjacency: parent -> children, child -> parents
   const children = new Map<string, string[]>();
   const parents = new Map<string, string[]>();
   for (const id of ids) {
@@ -71,13 +79,12 @@ function computeHierarchicalLayout(
     parents.get(e.targetConceptId)!.push(e.sourceConceptId);
   }
 
-  // Assign layers: layer[node] = 0 if root, else 1 + max(layer of parents)
   const layer = new Map<string, number>();
   const visited = new Set<string>();
 
   function assignLayer(id: string): number {
     if (layer.has(id)) return layer.get(id)!;
-    if (visited.has(id)) return 0; // cycle guard
+    if (visited.has(id)) return 0;
     visited.add(id);
 
     const pars = parents.get(id) ?? [];
@@ -89,24 +96,20 @@ function computeHierarchicalLayout(
 
   for (const id of ids) assignLayer(id);
 
-  // Group by layer
   const layers = new Map<number, string[]>();
   for (const [id, l] of layer) {
     if (!layers.has(l)) layers.set(l, []);
     layers.get(l)!.push(id);
   }
 
-  // Sort layers in reverse so roots are at the bottom
   const sortedLayerKeys = [...layers.keys()].sort((a, b) => a - b);
   const maxLayer = sortedLayerKeys[sortedLayerKeys.length - 1] ?? 0;
 
-  // Find the widest layer to center everything
   const maxNodesInLayer = Math.max(
     ...sortedLayerKeys.map((k) => layers.get(k)!.length)
   );
   const totalWidth = maxNodesInLayer * (NODE_WIDTH + HORIZONTAL_GAP);
 
-  // Position nodes: centered per layer
   const positions: { id: string; x: number; y: number }[] = [];
 
   for (const layerKey of sortedLayerKeys) {
@@ -127,8 +130,18 @@ function computeHierarchicalLayout(
   return positions;
 }
 
-export function KnowledgeGraph({ concepts, edges }: KnowledgeGraphProps) {
+export function KnowledgeGraph({ concepts, edges, courseIds }: KnowledgeGraphProps) {
   const safeEdges = edges ?? [];
+
+  // Build course color map for academy view
+  const courseColorMap = useMemo(() => {
+    if (!courseIds || courseIds.length <= 1) return null;
+    const map = new Map<string, string>();
+    courseIds.forEach((id, i) => {
+      map.set(id, COURSE_BORDER_COLORS[i % COURSE_BORDER_COLORS.length]);
+    });
+    return map;
+  }, [courseIds]);
 
   const initialNodes = useMemo(() => {
     const positions = computeHierarchicalLayout(concepts, safeEdges);
@@ -139,6 +152,9 @@ export function KnowledgeGraph({ concepts, edges }: KnowledgeGraphProps) {
         x: (i % 5) * 200,
         y: Math.floor(i / 5) * 120,
       };
+      const borderColor = courseColorMap && c.courseId
+        ? courseColorMap.get(c.courseId) ?? "#e2e8f0"
+        : "#e2e8f0";
       return {
         id: c.id,
         position: pos,
@@ -148,7 +164,7 @@ export function KnowledgeGraph({ concepts, edges }: KnowledgeGraphProps) {
         selectable: false,
         style: {
           background: MASTERY_COLORS[c.masteryState],
-          border: "1px solid #e2e8f0",
+          border: `2px solid ${borderColor}`,
           borderRadius: "8px",
           padding: "8px 12px",
           fontSize: "12px",
@@ -161,7 +177,7 @@ export function KnowledgeGraph({ concepts, edges }: KnowledgeGraphProps) {
         targetPosition: Position.Bottom,
       };
     });
-  }, [concepts, safeEdges]);
+  }, [concepts, safeEdges, courseColorMap]);
 
   const initialEdges = useMemo(
     () =>
@@ -220,6 +236,27 @@ export function KnowledgeGraph({ concepts, edges }: KnowledgeGraphProps) {
             )
           )}
         </div>
+
+        {/* Course color legend for academy view */}
+        {courseColorMap && courseIds && courseIds.length > 1 && (
+          <div className="flex flex-wrap gap-4 mt-2 pt-2 border-t border-border">
+            <span className="text-xs text-muted-foreground font-medium">Courses:</span>
+            {courseIds.map((id, i) => (
+              <div key={id} className="flex items-center gap-2">
+                <div
+                  className="h-3 w-3 rounded border"
+                  style={{
+                    borderColor: COURSE_BORDER_COLORS[i % COURSE_BORDER_COLORS.length],
+                    borderWidth: "2px",
+                  }}
+                />
+                <span className="text-xs text-muted-foreground">
+                  Course {i + 1}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

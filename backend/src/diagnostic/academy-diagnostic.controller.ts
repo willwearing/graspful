@@ -38,7 +38,7 @@ export class AcademyDiagnosticController {
     });
   }
 
-  @Get(':sessionId')
+  @Get('result/:sessionId')
   async getResult(
     @Param('sessionId') sessionId: string,
     @CurrentOrg() org: OrgContext,

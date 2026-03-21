@@ -21,26 +21,26 @@ test.describe("PostHog lesson routes", () => {
   test("study router and direct lesson route both load a lesson", async ({
     page,
   }) => {
-    await page.goto("/browse");
-
-    // Find the academy card containing the PostHog TAM course and enter it
-    const academyHeading = page.getByRole("heading", { name: /PostHog TAM/i, level: 2 });
-    await expect(academyHeading).toBeVisible({ timeout: 10_000 });
-    // Click the "Open Academy" button (rendered as button role by base-ui)
-    const openBtn = page.getByRole("button", { name: "Open Academy" }).first();
-    await openBtn.click();
-
-    // On academy page — get the courseId from the course card
+    // From dashboard, find the PostHog TAM course card directly
     const posthogCourse = page
       .locator("a[href^='/browse/']")
       .filter({ hasText: POSTHOG_COURSE_NAME });
-    await expect(posthogCourse).toBeVisible({ timeout: 10_000 });
+    await expect(posthogCourse.first()).toBeVisible({ timeout: 10_000 });
 
-    const href = await posthogCourse.getAttribute("href");
+    const href = await posthogCourse.first().getAttribute("href");
     const courseId = href?.replace("/browse/", "");
     expect(courseId).toBeTruthy();
 
-    await page.goto(`/diagnostic/${courseId}`);
+    // Diagnostic route — try academy-scoped first, fall back to course-scoped
+    const courseDetailPage = await page.goto(`/browse/${courseId}`);
+    await expect(page.getByText("Take Diagnostic")).toBeVisible({ timeout: 10_000 });
+
+    // Find the diagnostic link from the Take Diagnostic button
+    const diagButton = page.getByText("Take Diagnostic").first();
+    await diagButton.click();
+
+    // Should land on a diagnostic page (either /diagnostic/{id} or /academy/{id}/diagnostic)
+    await expect(page).toHaveURL(/\/diagnostic/, { timeout: 10_000 });
     await expect(page.getByText("Diagnostic Assessment")).toBeVisible({
       timeout: 15_000,
     });

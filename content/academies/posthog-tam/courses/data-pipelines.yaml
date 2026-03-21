@@ -1,0 +1,640 @@
+course:
+  id: data-pipelines
+  name: Data Pipelines
+  description: >-
+    Generic pipeline concepts — ingestion patterns, storage layers,
+    transformation, orchestration, serving, and operational tradeoffs.
+  estimatedHours: 2
+  version: '2026.1'
+  sourceDocument: PostHog product documentation and data pipeline fundamentals, reviewed March 2026
+
+sections:
+  - id: pipeline-basics
+    name: Pipeline Basics
+    description: What data pipelines are, where data comes from, and where it's stored.
+  - id: pipeline-architecture
+    name: Pipeline Architecture
+    description: Transformation patterns, orchestration, and the tradeoffs that shape pipeline design.
+
+concepts:
+  - id: what-is-a-pipeline
+    name: What Is a Data Pipeline?
+    difficulty: 2
+    estimatedMinutes: 14
+    tags:
+      - foundational
+      - pipelines
+    prerequisites:
+      - data-models:data-modeling-process
+    encompassing: []
+    knowledgePoints:
+      - id: pipeline-definition-and-flow
+        instruction: >-
+          A data pipeline is a system that moves data from where it is produced to where it is needed, and often transforms it on the way. The usual stages are source, ingestion, storage,
+          transformation, and serving. Different tools may collapse or rename those stages, but the core idea stays the same: get data in, preserve it safely, shape it, and deliver it to someone who
+          can use it.
+        instructionContent:
+          - type: image
+            url: https://posthog.com/images/products/data-pipeline/data-pipeline.png
+            alt: Data pipeline product overview showing flow between systems
+            caption: A concrete pipeline view helps learners map the abstract stages to a real product interface.
+            width: 960
+        problems:
+          - id: pipeline-p1
+            type: multiple_choice
+            question: What is a data pipeline?
+            options:
+              - A type of database optimized for storing large files
+              - A system that moves and transforms data from sources to destinations
+              - A programming language for writing SQL queries
+              - A physical cable connecting two servers
+            correct: 1
+            explanation: >-
+              A data pipeline is a system that moves data from where it is produced (sources) to where it is needed (destinations), transforming it along the way. It is a logical system, not a
+              physical object or a language.
+          - id: pipeline-p2
+            type: ordering
+            question: Place these data pipeline stages in the typical order.
+            options:
+              - Transform
+              - Ingest
+              - Serve/Analyze
+              - Store
+            correct: 1,3,0,2
+            explanation: >-
+              The typical flow is: Ingest (collect from sources), Store (land somewhere durable), Transform (clean and process), Serve/Analyze (deliver to consumers). Data must be collected before
+              stored, stored before transformed, and transformed before served.
+          - id: pipeline-p5
+            type: true_false
+            question: A data pipeline always includes all five stages (source, ingestion, storage, transformation, and serving) in every implementation.
+            correct: 'false'
+            explanation: >-
+              Different tools may collapse, rename, or skip stages. A simple pipeline might go straight from ingestion to serving without a separate transformation step. The five stages are a mental
+              model, not a mandatory checklist for every pipeline.
+      - id: pipeline-failure-points
+        instruction: >-
+          Once you know the stages, you can use them as a debugging map. Missing data often means the failure happened upstream. Stale data often means ingestion or transformation is delayed. Wrong
+          numbers often mean data arrived but the transformation or serving layer applied the wrong logic. A TAM does not need to memorize every vendor's internals to help. They need to ask which stage
+          first stopped behaving as expected.
+        instructionContent:
+          - type: callout
+            title: TAM lens
+            body: >-
+              When a customer says data is missing or stale, ask which stage failed first: source, ingestion, storage, transformation, or delivery.
+        problems:
+          - id: pipeline-p3
+            type: true_false
+            question: A data pipeline only moves data — it never modifies or transforms data along the way.
+            correct: 'false'
+            explanation: Pipelines both move AND transform data. Transformation is a core stage — cleaning, filtering, aggregating, joining, and reshaping data as it flows from source to destination.
+          - id: pipeline-p4
+            type: scenario
+            question: >-
+              Events are arriving at the platform, but the dashboard that depends on a daily aggregation has not updated since this morning. Which stage is the best first place to investigate?
+            options:
+              - The source system only
+              - The transformation or serving step that builds the aggregate
+              - The user's browser cache
+              - The entity-relationship model
+            correct: 1
+            explanation: >-
+              If raw events are arriving but the derived dashboard is stale, the likely failure is downstream in transformation or serving, not in the original event source.
+          - id: pipeline-p6
+            type: multiple_choice
+            question: >-
+              A customer reports that their data appears in the warehouse but the numbers in their dashboard look wrong. Which pipeline stage should a TAM investigate first?
+            options:
+              - The source system
+              - The ingestion step
+              - The transformation or serving layer
+              - The network connection between systems
+            correct: 2
+            explanation: >-
+              If data arrived in the warehouse but the numbers are wrong, the issue is likely in transformation (bad logic) or serving (wrong query or aggregation). The source and ingestion steps
+              worked because the data did land. Start downstream and work backward.
+    section: pipeline-basics
+  - id: sources-and-ingestion
+    name: Sources & Ingestion Patterns
+    difficulty: 3
+    estimatedMinutes: 15
+    tags:
+      - foundational
+      - pipelines
+    prerequisites:
+      - what-is-a-pipeline
+    encompassing: []
+    knowledgePoints:
+      - id: where-data-comes-from
+        instruction: >-
+          **Data sources** are any system that produces data your pipeline needs to consume. Common sources include:
+
+
+          **Application databases** (PostgreSQL, MySQL) — the operational databases your app writes to. **Event streams** (user clicks, pageviews, API calls) — real-time actions. **Third-party APIs** (Stripe for payments, Salesforce for CRM data). **Flat files** (CSVs, JSON exports). **Server logs** (access logs, error logs).
+
+
+          Sources differ in how they produce data. **Batch sources** produce data in chunks at intervals — a nightly database export, a weekly CSV from a vendor. **Streaming sources** produce data continuously in real-time — user clickstreams, IoT sensor readings, application event logs.
+
+
+          Batch is simpler to build and operate but introduces latency (data can be hours or days old). Streaming is faster (near real-time) but harder to build, debug, and operate. Most real-world pipelines use a mix of both.
+        instructionContent:
+          - type: callout
+            title: Classification shortcut
+            body: >-
+              First ask what system emits the data. Then ask whether it arrives continuously or on a schedule. That gives you both the source type and the operating pattern.
+        problems:
+          - id: sources-p1
+            type: multiple_choice
+            question: Which of the following is an example of a streaming data source?
+            options:
+              - A nightly CSV export from a vendor
+              - A weekly database backup
+              - Real-time user clickstream events from a web application
+              - A monthly financial report
+            correct: 2
+            explanation: >-
+              User clickstream events are produced continuously in real-time as users interact with the application — this is a streaming source. The other options are all batch sources (periodic
+              exports at fixed intervals).
+          - id: sources-p2
+            type: matching
+            question: Match each data source to its category.
+            options:
+              - User clickstream events|Streaming
+              - Nightly database export|Batch
+              - IoT sensor readings|Streaming
+              - Weekly CSV from a vendor|Batch
+            correct: 0,1,2,3
+            explanation: Clickstreams and IoT sensors produce data continuously (streaming). Nightly exports and weekly CSVs are produced at intervals (batch).
+          - id: sources-p3
+            type: true_false
+            question: Batch data sources always produce lower-quality data than streaming sources.
+            correct: 'false'
+            explanation: >-
+              Data quality depends on the source system and pipeline design, not on whether it is batch or streaming. A well-designed nightly export can be higher quality than a poorly instrumented
+              real-time stream. The batch vs streaming distinction is about latency and operational complexity, not data quality.
+      - id: ingestion-approaches
+        instruction: >-
+          **Ingestion** is the process of collecting data from sources into your pipeline. There are three main patterns.
+
+
+          **Pull-based ingestion:** the pipeline periodically requests data from the source. Example: a scheduled job that queries an API every hour. The pipeline controls the timing.
+
+
+          **Push-based ingestion:** the source sends data to the pipeline as it is produced. Example: a web application sends events to an analytics endpoint, or a webhook fires when a payment succeeds. The source controls the timing.
+
+
+          **Change Data Capture (CDC):** a specialized technique that watches a database's transaction log (WAL in PostgreSQL, binlog in MySQL) and captures every INSERT, UPDATE, and DELETE as it happens. CDC gives you streaming-like freshness from a batch source without querying the database directly — it reads the log instead.
+
+
+          Most product analytics tools (including PostHog) use push-based ingestion: your application sends events to their API.
+        workedExample: >-
+          Stripe sending a webhook when a payment succeeds is push-based ingestion. A cron job polling Salesforce every hour is pull-based ingestion. A connector reading PostgreSQL WAL records is CDC.
+          Same goal, different control point.
+        problems:
+          - id: ingestion-p1
+            type: multiple_choice
+            question: In push-based ingestion, who initiates the data transfer?
+            options:
+              - The pipeline requests data on a schedule
+              - The source sends data as it is produced
+              - A third-party orchestrator triggers both sides
+              - The database log is read directly
+            correct: 1
+            explanation: In push-based ingestion, the source sends data to the pipeline. A web app posting events to an analytics API is a classic example. The source controls the timing, not the pipeline.
+          - id: ingestion-p2
+            type: scenario
+            question: >-
+              Your company uses a third-party CRM (like Salesforce) that does not support webhooks. You need updated deal data in your warehouse every few hours. Which ingestion pattern is most
+              appropriate?
+            options:
+              - Push-based — have Salesforce send data to your pipeline
+              - Pull-based — schedule your pipeline to query the Salesforce API periodically
+              - Change Data Capture — read Salesforce's database logs
+              - Manual — have someone export a CSV daily
+            correct: 1
+            explanation: >-
+              Without webhook support, you cannot use push-based ingestion. You do not have access to Salesforce's database logs for CDC. Pull-based is the right choice: schedule your pipeline to call
+              the Salesforce API every few hours to fetch updated records.
+          - id: ingestion-p3
+            type: true_false
+            question: Change Data Capture (CDC) works by periodically querying a database for new rows.
+            correct: 'false'
+            explanation: >-
+              CDC does NOT query the database. It reads the database's transaction log (WAL/binlog) to capture every INSERT, UPDATE, and DELETE as it happens. This avoids putting query load on the
+              production database and provides near real-time data.
+    section: pipeline-basics
+  - id: storage-layers
+    name: Storage Layers — Where Data Lives
+    difficulty: 3
+    estimatedMinutes: 16
+    tags:
+      - foundational
+      - pipelines
+    prerequisites:
+      - sources-and-ingestion
+    encompassing: []
+    knowledgePoints:
+      - id: raw-lake-warehouse
+        instruction: >-
+          Data usually moves through layers as it becomes more useful. Raw storage or a landing zone is the first stop after ingestion. It keeps the original payload untouched so you can replay or
+          reprocess later. A data lake is cheap, flexible storage for large volumes of raw or semi-structured data. A data warehouse is optimized for analytical queries on structured tables. The same
+          data may move through all three layers, but each layer exists for a different reason.
+        instructionContent:
+          - type: callout
+            title: Same data, different jobs
+            body: >-
+              Raw storage protects recoverability, lakes protect cheap flexible retention, and warehouses protect query speed.
+        problems:
+          - id: storage-p1
+            type: multiple_choice
+            question: What is the primary advantage of keeping a raw storage layer in your pipeline?
+            options:
+              - Raw storage is the fastest to query
+              - It preserves original data so you can reprocess if something goes wrong downstream
+              - It eliminates the need for a data warehouse
+              - Raw storage automatically cleans and transforms data
+            correct: 1
+            explanation: >-
+              Raw storage is your safety net. By preserving the original data untouched, you can always go back and reprocess it if a transformation bug corrupts downstream data. Raw storage is not
+              fast to query — that is the warehouse's job.
+          - id: storage-p2
+            type: matching
+            question: Match each storage layer to its primary characteristic.
+            options:
+              - Raw storage|Preserves original data exactly as received
+              - Data lake|Cheap, flexible storage for semi-structured data
+              - Data warehouse|Optimized for fast analytical queries
+              - Landing zone|First place data lands after ingestion
+            correct: 0,1,2,3
+            explanation: >-
+              Raw storage and landing zone both describe the initial ingestion target (preserving original data). Data lakes prioritize cheap, flexible storage. Data warehouses prioritize fast
+              analytical queries with structured schemas.
+          - id: storage-p5
+            type: multiple_choice
+            question: Which storage layer is optimized for fast analytical queries on structured, schema-defined tables?
+            options:
+              - Raw storage / landing zone
+              - Data lake
+              - Data warehouse
+              - Application database (OLTP)
+            correct: 2
+            explanation: >-
+              Data warehouses are built for analytical query speed on structured data. Raw storage preserves originals, lakes store cheap flexible data, and OLTP databases optimize for transactional
+              writes, not analytical reads.
+      - id: choosing-storage-layers
+        instruction: >-
+          Choosing the right layer depends on the job. Use raw storage when recoverability matters. Use a lake when you need cheap retention of varied file types. Use a warehouse when people need to
+          ask analytical questions quickly. The mistake is expecting one layer to optimize for every outcome at once. Cheap flexible storage is not automatically fast, and fast structured analytics is
+          not automatically the best place to keep every original payload forever.
+        problems:
+          - id: storage-p3
+            type: true_false
+            question: A data warehouse is optimized for cheap storage of unstructured data like images and videos.
+            correct: 'false'
+            explanation: >-
+              A data warehouse is optimized for fast analytical queries on structured data (tables with defined schemas). Cheap storage of unstructured data is the role of a data lake (like S3).
+              Warehouses trade storage cost for query speed.
+          - id: storage-p4
+            type: scenario
+            question: >-
+              A transformation bug corrupted yesterday's aggregate tables. The team needs the original event payloads so they can rebuild the data correctly. Which storage layer is most important here?
+            options:
+              - The BI dashboard cache
+              - The raw landing zone
+              - The semantic layer only
+              - The metrics definition document
+            correct: 1
+            explanation: >-
+              The raw landing zone preserves the original data exactly as received. That is what lets the team rerun the downstream transformations after a bug.
+          - id: storage-p6
+            type: scenario
+            question: >-
+              A team asks: 'Can we just put everything in our data warehouse and skip the raw layer and lake?' What is the strongest argument against this?
+            options:
+              - Warehouses cannot store JSON data
+              - If a transformation bug corrupts warehouse data, you have no original copy to reprocess from
+              - Warehouses are always more expensive than lakes
+              - This approach violates database licensing rules
+            correct: 1
+            explanation: >-
+              Without a raw layer, you lose recoverability. If downstream transformation logic is wrong, you cannot replay the original data. The raw layer is your safety net, not redundant storage.
+    section: pipeline-basics
+  - id: transformation-etl-elt
+    name: Transformation — ETL vs ELT
+    difficulty: 4
+    estimatedMinutes: 15
+    tags:
+      - foundational
+      - pipelines
+    prerequisites:
+      - storage-layers
+    encompassing: []
+    knowledgePoints:
+      - id: what-transformation-does
+        instruction: >-
+          **Transformation** is the stage where raw data becomes usable data. It is where you clean, reshape, enrich, and aggregate. Common operations include:
+
+
+          **Cleaning** — removing duplicates, fixing null values, correcting data types. **Filtering** — dropping irrelevant records. **Joining** — combining data from multiple sources, such as enriching events with user attributes. **Aggregating** — summing, counting, averaging to turn raw events into metrics. **Normalizing** — standardizing formats like dates, currencies, or country codes.
+
+
+          For example, raw event data might look like individual "user_clicked_button" records with timestamps. After transformation, you might have an aggregated table of "daily_clicks_per_user" that is much easier to query.
+
+
+          Transformation is where **business logic** lives. The rules about what counts as an "active user" or how "revenue" is calculated are encoded in transformation steps.
+        instructionContent:
+          - type: image
+            url: https://posthog.com/images/products/data-warehouse/screenshot-data-warehouse.png
+            alt: PostHog data warehouse interface for querying transformed data
+            caption: Warehouses expose the outputs of transformation work in a form analysts and TAMs can inspect directly.
+            width: 960
+          - type: callout
+            title: Important distinction
+            body: >-
+              Instrumentation creates raw facts. Transformation turns those facts into business definitions like active users, MRR, or qualified accounts.
+        problems:
+          - id: transform-p1
+            type: multiple_choice
+            question: Which of the following is NOT a common transformation operation?
+            options:
+              - Removing duplicate records
+              - Aggregating raw events into daily summaries
+              - Collecting data from a third-party API
+              - Joining event data with user profile data
+            correct: 2
+            explanation: >-
+              Collecting data from an API is ingestion, not transformation. Transformation operates on data already in the pipeline — deduplication, aggregation, and joining are all transformation
+              operations.
+          - id: transform-p2
+            type: multiple_choice
+            question: The transformation stage is where what kind of logic is encoded — rules like what counts as an active user or how revenue is calculated?
+            options:
+              - business logic
+              - presentation logic
+              - authentication logic
+              - transport logic
+            correct: 0
+            explanation: >-
+              Business logic lives in the transformation layer. Definitions like 'active user = logged in within last 30 days' or 'MRR = sum of all active subscription amounts' are transformation
+              rules that turn raw data into meaningful metrics.
+          - id: transform-p3
+            type: scenario
+            question: >-
+              Two teams at the same company disagree on the definition of 'active user.' The marketing team counts anyone who logged in, while the product team counts anyone who performed a core action.
+              Where should this definition be codified?
+            options:
+              - In the application code
+              - In the transformation layer as a documented business rule
+              - In the BI dashboard configuration
+              - In the source database schema
+            correct: 1
+            explanation: >-
+              Business definitions like 'active user' belong in the transformation layer where raw data becomes metrics. This is where business logic lives. Codifying it there ensures all downstream
+              consumers use the same definition instead of each team computing their own version.
+      - id: etl-vs-elt
+        instruction: >-
+          There are two major approaches to when transformation happens.
+
+
+          **ETL (Extract, Transform, Load):** data is extracted from sources, transformed in a separate processing system, and then loaded into the destination warehouse. This was the traditional approach when storage was expensive — you only stored the clean, transformed data.
+
+
+          **ELT (Extract, Load, Transform):** data is extracted from sources, loaded raw into the destination, and then transformed inside the warehouse using SQL or the warehouse's own compute engine. This is the modern approach, enabled by cheap cloud storage (S3, GCS).
+
+
+          The advantage of ELT is **flexibility:** if your business logic changes, you can re-transform from the raw data without re-ingesting. You also preserve the original data for auditing.
+
+
+          Most modern analytics systems, including PostHog, use an ELT-like pattern: events are ingested raw, stored in ClickHouse, and then queried and transformed at read time using HogQL.
+        problems:
+          - id: etl-elt-p1
+            type: multiple_choice
+            question: What is the key difference between ETL and ELT?
+            options:
+              - ETL uses SQL; ELT uses Python
+              - ETL transforms data before loading it into the warehouse; ELT loads raw data first and transforms inside the warehouse
+              - ETL is for batch data; ELT is for streaming data
+              - ETL is open source; ELT is proprietary
+            correct: 1
+            explanation: >-
+              The difference is when transformation happens. ETL transforms before loading (data enters the warehouse already clean). ELT loads raw data first and transforms inside the warehouse. ELT
+              is the modern approach enabled by cheap storage.
+          - id: etl-elt-p2
+            type: true_false
+            question: ELT became practical because cloud storage costs dropped, making it affordable to store raw data and transform later.
+            correct: 'true'
+            explanation: >-
+              Cheap cloud storage (S3, GCS, Azure Blob) is the key enabler of ELT. When storage was expensive, you had to transform before loading to minimize what you stored (ETL). Now you can afford
+              to keep everything raw and transform on demand.
+          - id: etl-elt-p3
+            type: scenario
+            question: Your company realizes their definition of 'active user' was wrong for the past 6 months. Under which approach can you fix the historical data without re-ingesting from the source?
+            options:
+              - ETL — because the transformed data is already clean
+              - ELT — because the raw data is preserved in the warehouse and you can re-transform it
+              - Neither — you must always re-ingest from the source
+              - Both — there is no difference for this scenario
+            correct: 1
+            explanation: >-
+              ELT preserves the raw data in the warehouse. When business logic changes, you can re-run transformations on the existing raw data. With ETL, raw data is discarded after transformation,
+              so you would need to re-ingest from the source (if it is even still available).
+    section: pipeline-architecture
+  - id: orchestration-and-serving
+    name: Orchestration & Serving Data
+    difficulty: 3
+    estimatedMinutes: 10
+    tags:
+      - foundational
+      - pipelines
+    prerequisites:
+      - transformation-etl-elt
+    encompassing: []
+    knowledgePoints:
+      - id: workflow-orchestration
+        instruction: >-
+          Pipelines have multiple steps that must run in a specific order with specific dependencies. **Orchestration** is the coordination of these steps.
+
+
+          An orchestrator schedules and manages execution: extract data from source A, then transform it, then load it, then refresh the dashboard. If the extract step fails, the transform step should not run.
+
+
+          Tasks are organized as a **DAG — a Directed Acyclic Graph**. "Directed" means edges have a direction (step A must complete before step B). "Acyclic" means there are no loops (step B cannot depend on step C which depends on step B).
+
+
+          The orchestrator handles four jobs: **scheduling** (run this pipeline every hour), **dependency management** (only run step B after step A succeeds), **retries** (if a step fails, retry it), and **alerting** (notify the team if a pipeline fails).
+
+
+          Common orchestration tools include Apache Airflow, Dagster, Prefect, and dbt for transformation-specific orchestration.
+        instructionContent:
+          - type: callout
+            title: Orchestration is control flow
+            body: >-
+              The orchestrator is not the data itself. It is the system that decides what runs next, what retries, and what should stop when an upstream step fails.
+        problems:
+          - id: orch-p1
+            type: multiple_choice
+            question: What does DAG stand for in the context of pipeline orchestration?
+            options:
+              - Data Aggregation Gateway
+              - Directed Acyclic Graph
+              - Distributed Analytics Grid
+              - Dynamic Allocation Group
+            correct: 1
+            explanation: >-
+              DAG stands for Directed Acyclic Graph. 'Directed' means steps have a defined order. 'Acyclic' means there are no circular dependencies. Pipeline tasks form a DAG where each step depends
+              on previous steps completing.
+          - id: orch-p2
+            type: true_false
+            question: In a pipeline DAG, it is acceptable for step B to depend on step C, and step C to depend on step B.
+            correct: 'false'
+            explanation: A DAG is acyclic — no circular dependencies are allowed. If B depends on C and C depends on B, neither can ever start. This is a cycle, which the orchestrator would reject.
+          - id: orch-p3
+            type: scenario
+            question: >-
+              A pipeline has three steps: Extract from API, Transform data, Load into warehouse. The Extract step fails due to an API timeout. What should a well-configured orchestrator do?
+            options:
+              - Run Transform and Load anyway with whatever data is available
+              - Skip all remaining steps, retry Extract according to its retry policy, and alert the team if retries are exhausted
+              - Delete the partially extracted data and start over tomorrow
+              - Ignore the failure and mark the run as successful
+            correct: 1
+            explanation: >-
+              A good orchestrator respects dependencies: if Extract fails, Transform should not run because it has no input. The orchestrator retries the failed step and alerts the team if retries
+              are exhausted. Running downstream steps on incomplete data produces silently wrong results.
+      - id: serving-data
+        instruction: >-
+          Once data is processed, it must be delivered to the people and systems that need it. This is the **serving layer**.
+
+
+          **Common consumers:** BI dashboards (Looker, Metabase, Grafana) for business metrics and KPIs. Data scientists and ML engineers who need clean datasets for model training. Product analytics tools for understanding user behavior. Internal applications for reporting, billing, or customer-facing features.
+
+
+          **Common serving patterns:** direct warehouse access (users query the warehouse with SQL), semantic or metrics layers (a shared definition of metrics that dashboards and tools can reference), APIs (REST or GraphQL endpoints that serve processed data to applications), and cached materialized views (pre-computed query results for frequently accessed data).
+
+
+          The choice of serving layer depends on the consumer. Analysts want SQL access. Product managers want dashboards. Applications want APIs.
+        workedExample: >-
+          One warehouse can serve three audiences at once: analysts query it directly in SQL, executives see KPIs through a BI dashboard, and the product surface calls an API backed by curated
+          warehouse tables. The serving pattern changes with the consumer, not with the raw data itself.
+        problems:
+          - id: serving-p1
+            type: multiple_choice
+            question: Which serving pattern is most appropriate for a product manager who needs a weekly KPI dashboard?
+            options:
+              - Direct SQL access to the data warehouse
+              - A BI dashboard tool (like Looker or Metabase) connected to the warehouse
+              - A raw data dump to their email
+              - An API endpoint returning JSON
+            correct: 1
+            explanation: >-
+              BI dashboards are designed for non-technical consumers who need visual, regularly updated KPI views. Direct SQL access suits analysts. APIs suit applications. Raw data dumps are not
+              user-friendly.
+          - id: serving-p2
+            type: matching
+            question: Match each data consumer to their ideal serving pattern.
+            options:
+              - Data analyst|Direct SQL access to the warehouse
+              - Product manager|BI dashboard
+              - Mobile app|REST API endpoint
+              - ML engineer|Clean dataset export or warehouse access
+            correct: 0,1,2,3
+            explanation: Analysts want SQL flexibility. PMs want visual dashboards. Apps need programmatic API access. ML engineers need structured datasets for training.
+          - id: serving-p3
+            type: true_false
+            question: The best serving pattern is always direct SQL access to the warehouse because it is the most flexible.
+            correct: 'false'
+            explanation: >-
+              The best serving pattern depends on the consumer. Analysts benefit from SQL access, but product managers need dashboards, and applications need APIs. Flexibility for one consumer does
+              not mean it is the best choice for all consumers.
+    section: pipeline-architecture
+  - id: pipeline-tradeoffs
+    name: Pipeline Tradeoffs — Latency, Cost, Complexity
+    difficulty: 4
+    estimatedMinutes: 15
+    tags:
+      - foundational
+      - pipelines
+    prerequisites:
+      - orchestration-and-serving
+    encompassing: []
+    knowledgePoints:
+      - id: three-tensions
+        instruction: >-
+          Every pipeline design pulls on three tensions at once: latency, cost, and complexity. Lower latency usually means more infrastructure and more operational burden. Simpler batch systems are
+          cheaper and easier to debug, but the data is less fresh. The right question is not "can we make this real time?" It is "what freshness does this use case actually need?"
+        problems:
+          - id: tradeoffs-p1
+            type: multiple_choice
+            question: Which of the following correctly describes the tradeoff between batch and streaming pipelines?
+            options:
+              - Batch is always better because it is faster
+              - Streaming is always better because it is cheaper
+              - Streaming offers lower latency but higher cost and complexity compared to batch
+              - There is no meaningful difference between batch and streaming
+            correct: 2
+            explanation: >-
+              Streaming delivers data faster (lower latency) but costs more to build and operate (higher cost and complexity). Batch is simpler and cheaper but data is less fresh. The right choice
+              depends on your requirements.
+          - id: tradeoffs-p3
+            type: true_false
+            question: For most analytics use cases, real-time data freshness (sub-second latency) is required.
+            correct: 'false'
+            explanation: >-
+              Most analytics questions are fine with minutes-to-hours of latency. Real-time should be chosen for a demonstrated need, not as a default badge of sophistication.
+          - id: tradeoffs-p5
+            type: scenario
+            question: >-
+              A team wants to build a real-time streaming pipeline for a weekly executive summary report. What is the main concern with this approach?
+            options:
+              - Streaming pipelines cannot produce summary reports
+              - The added cost and complexity of streaming is not justified when the data only needs to be fresh once a week
+              - Weekly reports require a data lake, not a stream
+              - Real-time pipelines do not support aggregation
+            correct: 1
+            explanation: >-
+              The right question is 'what freshness does this use case actually need?' A weekly report needs weekly freshness, not sub-second latency. Building a streaming pipeline for this use
+              case adds unnecessary cost and complexity. Batch is the better fit.
+      - id: operational-safety
+        instruction: >-
+          Once a pipeline is in production, two safety requirements matter constantly. Idempotency means the pipeline can be rerun without producing duplicate or conflicting results. Monitoring means
+          you notice failures, delays, null spikes, schema changes, and suspicious row counts before customers do. These are not optional polish items. They are what make a pipeline survivable in the
+          real world.
+        instructionContent:
+          - type: callout
+            title: Production rule
+            body: >-
+              A pipeline that cannot be rerun safely and cannot alert on bad output will eventually fail in a way that is expensive to untangle.
+        problems:
+          - id: tradeoffs-p2
+            type: scenario
+            question: >-
+              Your pipeline occasionally fails halfway through processing. When restarted, it creates duplicate rows in the warehouse. A colleague suggests making the pipeline idempotent. What does
+              this mean?
+            options:
+              - The pipeline should run faster to avoid failures
+              - The pipeline should be safe to rerun without creating duplicate data
+              - The pipeline should skip failed records and continue
+              - The pipeline should send an alert when it fails
+            correct: 1
+            explanation: >-
+              Idempotency means the pipeline produces the same result whether it runs once or multiple times. If restarted after a failure, it should not create duplicates. Techniques include upserts
+              (INSERT ... ON CONFLICT UPDATE) and deduplication checks.
+          - id: tradeoffs-p4
+            type: scenario
+            question: >-
+              A daily pipeline still runs, but today's row count is 90% lower than normal because an upstream schema change dropped a key field. Which capability would have caught this fastest?
+            options:
+              - Lower latency infrastructure
+              - Monitoring on row counts and schema expectations
+              - A different primary key design
+              - Moving the data to a lake instead of a warehouse
+            correct: 1
+            explanation: >-
+              This is exactly what monitoring is for. Healthy production pipelines watch both failures and suspicious outputs so teams can catch silent bad data before users trust it.
+          - id: tradeoffs-p6
+            type: true_false
+            question: An idempotent pipeline produces different results when rerun multiple times on the same input data.
+            correct: 'false'
+            explanation: >-
+              Idempotent means the pipeline produces the same result whether it runs once or many times on the same input. If rerunning creates duplicates or different outputs, the pipeline is not
+              idempotent, which makes recovery from failures risky.
+    section: pipeline-architecture

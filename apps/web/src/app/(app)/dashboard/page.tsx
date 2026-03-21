@@ -90,7 +90,10 @@ export default async function DashboardPage() {
     // API may not be running -- show empty state
   }
 
-  // Fetch gamification data for first course
+  // Detect academy enrollment from first course
+  const academyId = courses.length > 0 ? courses[0].academyId : null;
+
+  // Fetch gamification data — prefer academy-scoped if available
   let xpSummary: XPSummary | null = null;
   let streakStatus: StreakStatusResponse | null = null;
   let weeklyXP: DailyXP[] = [];
@@ -98,8 +101,9 @@ export default async function DashboardPage() {
   let stats: StatsResponse | null = null;
 
   if (courses.length > 0) {
-    const courseId = courses[0].id;
-    const basePath = `/orgs/${brand.orgSlug}/courses/${courseId}`;
+    const basePath = academyId
+      ? `/orgs/${brand.orgSlug}/academies/${academyId}`
+      : `/orgs/${brand.orgSlug}/courses/${courses[0].id}`;
 
     const [xpRes, streakRes, weeklyRes, boardRes, statsRes] =
       await Promise.allSettled([
@@ -171,8 +175,33 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Mastery chart — show for first course with data */}
+      {/* Mastery chart — use academy profile if available */}
       {courses.length > 0 && (() => {
+        // Aggregate mastery across all courses for academy view
+        if (academyId && profiles.size > 0) {
+          let mastered = 0, inProgress = 0, needsReview = 0, unstarted = 0, totalConcepts = 0;
+          for (const profile of profiles.values()) {
+            mastered += profile.mastered;
+            inProgress += profile.inProgress;
+            needsReview += profile.needsReview;
+            unstarted += profile.unstarted;
+            totalConcepts += profile.totalConcepts;
+          }
+          if (totalConcepts > 0) {
+            return (
+              <div className="mb-8">
+                <MasteryChart
+                  mastered={mastered}
+                  inProgress={inProgress}
+                  needsReview={needsReview}
+                  unstarted={unstarted}
+                  totalConcepts={totalConcepts}
+                />
+              </div>
+            );
+          }
+        }
+        // Fallback to first course
         const firstCourse = courses[0];
         const profile = profiles.get(firstCourse.id);
         if (profile && profile.totalConcepts > 0) {
@@ -198,18 +227,21 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Knowledge graph */}
+      {/* Knowledge graph — academy or course */}
       {courses.length > 0 && (
         <div className="mb-8">
           <KnowledgeGraphSection
             orgSlug={brand.orgSlug}
             courseId={courses[0].id}
+            academyId={academyId ?? undefined}
           />
         </div>
       )}
 
       {/* Courses */}
-      <h2 className="text-xl font-semibold text-foreground mb-4">Your Courses</h2>
+      <h2 className="text-xl font-semibold text-foreground mb-4">
+        {academyId ? "Academy Courses" : "Your Courses"}
+      </h2>
 
       {courses.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border p-12 text-center">

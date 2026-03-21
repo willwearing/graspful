@@ -75,4 +75,39 @@ describe('LeaderboardService', () => {
       expect(board).toEqual([]);
     });
   });
+
+  describe('getAcademyWeeklyLeaderboard', () => {
+    it('should aggregate XP by academyId instead of courseId', async () => {
+      mockPrisma.xPEvent.groupBy.mockResolvedValue([
+        { userId: 'user-a', _sum: { amount: 300 } },
+        { userId: 'user-b', _sum: { amount: 150 } },
+      ]);
+      mockPrisma.user.findMany.mockResolvedValue([
+        { id: 'user-a', displayName: 'Alice', avatarUrl: null },
+        { id: 'user-b', displayName: 'Bob', avatarUrl: null },
+      ]);
+
+      const board = await service.getAcademyWeeklyLeaderboard('org-1', 'academy-1');
+
+      expect(board).toHaveLength(2);
+      expect(board[0].rank).toBe(1);
+      expect(board[0].weeklyXP).toBe(300);
+      expect(board[1].rank).toBe(2);
+
+      // Verify the query used academyId
+      expect(mockPrisma.xPEvent.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ academyId: 'academy-1' }),
+        }),
+      );
+    });
+
+    it('should return empty array when no academy XP events', async () => {
+      mockPrisma.xPEvent.groupBy.mockResolvedValue([]);
+
+      const board = await service.getAcademyWeeklyLeaderboard('org-1', 'academy-1');
+
+      expect(board).toEqual([]);
+    });
+  });
 });

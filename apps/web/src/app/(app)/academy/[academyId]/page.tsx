@@ -5,10 +5,11 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createApiFetcher } from "@/lib/api";
 import { resolvePageBrand } from "@/lib/brand/resolve";
 import { CourseCard } from "@/components/app/course-card";
+import { KnowledgeGraphSection } from "@/components/app/knowledge-graph-section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { fetchCourseProfiles } from "@/lib/course-profiles";
+import { fetchCourseProfiles, type CourseProfile } from "@/lib/course-profiles";
 import {
   getAcademyStudyHref,
   getCourseBrowseHref,
@@ -150,6 +151,15 @@ export default async function AcademyPage({
           </div>
         </div>
       ) : null}
+
+      {/* Knowledge graph */}
+      <div className="mb-8">
+        <KnowledgeGraphSection
+          orgSlug={brand.orgSlug}
+          courseId={courses[0]?.id ?? ""}
+          academyId={academyId}
+        />
+      </div>
 
       <h2 className="mb-4 text-xl font-semibold text-foreground">Courses</h2>
 

@@ -2,6 +2,7 @@ import { CourseProgressReadService } from './course-progress-read.service';
 import {
   activeConceptWhere,
   activePrerequisiteEdgeWhere,
+  activePrerequisiteEdgeWhereAcademy,
 } from '@/knowledge-graph/active-course-content';
 
 describe('CourseProgressReadService', () => {
@@ -49,6 +50,47 @@ describe('CourseProgressReadService', () => {
     });
     expect(mockPrisma.prerequisiteEdge.findMany).toHaveBeenCalledWith({
       where: activePrerequisiteEdgeWhere('course-1'),
+      select: { sourceConceptId: true, targetConceptId: true },
+    });
+  });
+
+  it('returns academy graph with courseId attribution', async () => {
+    mockPrisma.concept.findMany.mockResolvedValue([
+      { id: 'concept-1', name: 'Grounding', courseId: 'course-a' },
+      { id: 'concept-2', name: 'Bonding', courseId: 'course-a' },
+      { id: 'concept-3', name: 'Wiring', courseId: 'course-b' },
+    ]);
+    mockPrisma.prerequisiteEdge.findMany.mockResolvedValue([
+      { sourceConceptId: 'concept-1', targetConceptId: 'concept-3' },
+    ]);
+    mockPrisma.studentConceptState.findMany.mockResolvedValue([
+      { conceptId: 'concept-1', masteryState: 'mastered' },
+    ]);
+
+    const result = await service.getAcademyGraph('user-1', 'academy-1');
+
+    expect(result.concepts).toHaveLength(3);
+    expect(result.concepts[0]).toEqual({
+      id: 'concept-1',
+      name: 'Grounding',
+      courseId: 'course-a',
+      masteryState: 'mastered',
+    });
+    expect(result.concepts[2]).toEqual({
+      id: 'concept-3',
+      name: 'Wiring',
+      courseId: 'course-b',
+      masteryState: 'unstarted',
+    });
+    expect(result.edges).toHaveLength(1);
+
+    expect(mockPrisma.concept.findMany).toHaveBeenCalledWith({
+      where: activeConceptWhere({ course: { academyId: 'academy-1' } }),
+      select: { id: true, name: true, courseId: true },
+      orderBy: { sortOrder: 'asc' },
+    });
+    expect(mockPrisma.prerequisiteEdge.findMany).toHaveBeenCalledWith({
+      where: activePrerequisiteEdgeWhereAcademy('academy-1'),
       select: { sourceConceptId: true, targetConceptId: true },
     });
   });

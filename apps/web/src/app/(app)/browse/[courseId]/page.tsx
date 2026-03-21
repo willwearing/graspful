@@ -10,7 +10,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { MasteryState, NextTask, SectionProgress, SectionMasteryState } from "@/lib/types";
 import { getSectionHref } from "@/lib/course-section-entry";
-import { getAcademyHref, getAcademyStudyHref } from "@/lib/academy-routes";
+import { getAcademyHref, getAcademyStudyHref, getAcademyDiagnosticHref } from "@/lib/academy-routes";
 
 interface CourseSection {
   id: string;
@@ -265,7 +265,7 @@ export default async function CourseDetailPage({
           <p className="text-sm text-muted-foreground mb-4">
             Take a diagnostic assessment to skip what you already know.
           </p>
-          <Button render={<Link href={`/diagnostic/${courseId}`} />}>
+          <Button render={<Link href={graph.course.academyId ? getAcademyDiagnosticHref(graph.course.academyId) : `/diagnostic/${courseId}`} />}>
             Take Diagnostic
           </Button>
         </div>

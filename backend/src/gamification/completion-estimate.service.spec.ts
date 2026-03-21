@@ -12,6 +12,9 @@ const mockPrisma = {
   courseEnrollment: {
     findUnique: jest.fn(),
   },
+  academyEnrollment: {
+    findUnique: jest.fn(),
+  },
   xPEvent: {
     aggregate: jest.fn(),
   },
@@ -61,6 +64,23 @@ describe('CompletionEstimateService', () => {
 
       expect(estimate.completionPercent).toBe(0);
       expect(estimate.estimatedWeeksRemaining).toBeNull();
+    });
+
+    it('should estimate for academy across multiple courses', async () => {
+      mockPrisma.concept.count.mockResolvedValue(200);
+      mockPrisma.studentConceptState.count.mockResolvedValue(80);
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
+        totalXPEarned: 1500,
+        dailyXPTarget: 40,
+        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      });
+
+      const estimate = await service.getAcademyEstimate('user-1', 'academy-1');
+
+      expect(estimate.completionPercent).toBe(40);
+      expect(estimate.totalConcepts).toBe(200);
+      expect(estimate.masteredConcepts).toBe(80);
+      expect(estimate.estimatedWeeksRemaining).toBeGreaterThan(0);
     });
 
     it('should return 0 weeks when already complete', async () => {

@@ -380,9 +380,10 @@ Entry gate:
 | `completed` | Discovery | Read `docs/adding-a-course.md`, read the Math Academy PDF sections, audit the current TAM course |
 | `completed` | DDD architecture alignment | Update architecture + authoring docs so they all target an academy-scoped graph with multiple real courses |
 | `completed` | Academy graph design | Define academy, course, section, concept, and edge semantics in the knowledge-graph context |
-| `work in progress` | Academy graph implementation | Extend schema, importer, validators, graph reads, diagnostics, and task selection for academy scope |
-| `not started` | Academy UI design | Define browse and graph views for `academy -> course -> section -> concept` |
-| `not started` | Academy UI implementation | Ship the zoomable academy/course/section/concept views |
+| `completed` | Academy graph implementation | Schema, importer, validators, graph reads, diagnostics, task selection, cross-course implicit review — all academy-scoped |
+| `completed` | Content quality pass | 22 word-blob KPs restructured, 65 problem variants added, adding-a-course.md updated with quality rules |
+| `work in progress` | Academy UI design | Define browse and graph views for `academy -> course -> section -> concept` |
+| `work in progress` | Academy UI implementation | Academy browse, overview, and study entry shipped; diagnostic UI and deeper nesting still open |
 | `not started` | Foundations outline | Canonical outline for Courses 1-4 |
 | `not started` | Foundations graph split | Re-map concepts and prerequisites into the four foundations courses |
 | `not started` | Foundations review | Adversarial review of the new academy graph before content expansion |

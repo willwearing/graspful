@@ -37,6 +37,10 @@ export function getCourseTaskHref(courseId: string, task: NextTask): string | nu
   }
 }
 
+export function getAcademyDiagnosticHref(academyId: string) {
+  return `${getAcademyHref(academyId)}/diagnostic`;
+}
+
 export function getContinueStudyingHref(courseId: string, academyId?: string | null) {
   if (academyId) {
     return getAcademyStudyHref(academyId);

@@ -8,12 +8,13 @@ import { useAuthToken } from "@/lib/hooks/use-auth-token";
 interface KnowledgeGraphSectionProps {
   orgSlug: string;
   courseId: string;
+  academyId?: string;
 }
 
 type MasteryState = "unstarted" | "in_progress" | "mastered" | "needs_review";
 
 interface RawGraphData {
-  concepts: Array<{ id: string; name: string }>;
+  concepts: Array<{ id: string; name: string; courseId?: string }>;
   edges?: Array<{ sourceConceptId: string; targetConceptId: string }>;
   prerequisiteEdges?: Array<{ sourceConceptId: string; targetConceptId: string }>;
 }
@@ -26,20 +27,25 @@ interface ConceptState {
 export function KnowledgeGraphSection({
   orgSlug,
   courseId,
+  academyId,
 }: KnowledgeGraphSectionProps) {
   const token = useAuthToken();
-  const [concepts, setConcepts] = useState<Array<{ id: string; name: string; masteryState: MasteryState }> | null>(null);
+  const [concepts, setConcepts] = useState<Array<{ id: string; name: string; masteryState: MasteryState; courseId?: string }> | null>(null);
   const [edges, setEdges] = useState<Array<{ sourceConceptId: string; targetConceptId: string }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!token) return;
 
-    const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
+    const basePath = academyId
+      ? `/orgs/${orgSlug}/academies/${academyId}`
+      : `/orgs/${orgSlug}/courses/${courseId}`;
 
     Promise.all([
       apiClientFetch<RawGraphData>(`${basePath}/graph`, token),
-      apiClientFetch<ConceptState[]>(`${basePath}/mastery`, token).catch(() => [] as ConceptState[]),
+      academyId
+        ? Promise.resolve([] as ConceptState[]) // Academy graph endpoint includes mastery
+        : apiClientFetch<ConceptState[]>(`${basePath}/mastery`, token).catch(() => [] as ConceptState[]),
     ])
       .then(([graphData, masteryData]) => {
         const masteryMap = new Map<string, MasteryState>();
@@ -51,14 +57,16 @@ export function KnowledgeGraphSection({
           graphData.concepts.map((c) => ({
             id: c.id,
             name: c.name,
-            masteryState: masteryMap.get(c.id) ?? "unstarted",
+            courseId: c.courseId,
+            // Academy graph includes masteryState inline; course graph needs overlay
+            masteryState: (c as any).masteryState ?? masteryMap.get(c.id) ?? "unstarted",
           }))
         );
         setEdges(graphData.edges ?? graphData.prerequisiteEdges ?? []);
       })
       .catch(() => setConcepts(null))
       .finally(() => setLoading(false));
-  }, [orgSlug, courseId, token]);
+  }, [orgSlug, courseId, academyId, token]);
 
   if (loading) {
     return (
@@ -70,5 +78,10 @@ export function KnowledgeGraphSection({
 
   if (!concepts || concepts.length === 0) return null;
 
-  return <KnowledgeGraph concepts={concepts} edges={edges} />;
+  // Extract unique course IDs for academy-level color legend
+  const courseIds = academyId
+    ? [...new Set(concepts.map((c) => c.courseId).filter(Boolean))] as string[]
+    : undefined;
+
+  return <KnowledgeGraph concepts={concepts} edges={edges} courseIds={courseIds} />;
 }

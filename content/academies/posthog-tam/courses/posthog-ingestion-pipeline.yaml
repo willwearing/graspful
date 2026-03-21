@@ -1,0 +1,457 @@
+course:
+  id: posthog-ingestion-pipeline
+  name: PostHog Ingestion Pipeline
+  description: >-
+    PostHog-specific ingestion — event capture, the Kafka-to-ClickHouse
+    pipeline, storage architecture, and person processing.
+  estimatedHours: 2
+  version: '2026.1'
+  sourceDocument: PostHog product documentation (ingestion pipeline and ClickHouse architecture docs), reviewed March 2026
+
+sections:
+  - id: posthog-ingestion
+    name: PostHog Ingestion Pipeline
+    description: How events flow from capture through Kafka to ClickHouse storage.
+    sectionExam:
+      enabled: true
+      passingScore: 0.75
+      timeLimitMinutes: 12
+      questionCount: 6
+      blueprint:
+        - conceptId: ph-event-capture
+          minQuestions: 2
+        - conceptId: ph-ingestion-pipeline
+          minQuestions: 2
+        - conceptId: ph-clickhouse-storage
+          minQuestions: 1
+        - conceptId: ph-person-processing
+          minQuestions: 1
+      instructions: >-
+        Show that you can trace what happens to an event after capture and explain where identity and storage fit.
+
+concepts:
+  - id: ph-event-capture
+    name: Event Capture — SDKs, API, and Autocapture
+    difficulty: 3
+    estimatedMinutes: 15
+    tags:
+      - posthog
+      - ingestion
+    sourceRef: https://posthog.com/docs/product-analytics/capture-events
+    prerequisites:
+      - posthog-data-model:ph-events
+      - posthog-data-model:ph-event-properties
+    encompassing: []
+    knowledgePoints:
+      - id: how-events-enter-posthog
+        instruction: >-
+          Events reach PostHog through three surfaces: client-side SDKs, server-side SDKs, and the raw HTTP API. Client SDKs run in the browser or app, auto-generate anonymous IDs, and can observe UI
+          behavior like pageviews or autocapture. Server SDKs run on your backend, require an explicit distinct_id, and are better for backend actions such as API calls or jobs. The HTTP API is the
+          lowest-level option when you need to send capture requests without an official SDK.
+        instructionContent:
+          - type: image
+            url: https://posthog.com/images/products/product-os/event-pipelines.png
+            alt: Event pipeline illustration showing data flowing from sources through PostHog
+            caption: This visual helps learners connect the capture surface to the metadata and capabilities each path can provide.
+            width: 960
+          - type: link
+            url: https://posthog.com/docs/product-analytics/capture-events
+            title: Capturing events docs
+            description: Official reference for SDK behavior and capture examples.
+        problems:
+          - id: ph-capture-p1
+            type: multiple_choice
+            question: Which type of PostHog SDK supports autocapture and session recording?
+            options:
+              - Server-side SDKs (Node.js, Python, Go)
+              - Client-side SDKs (JS web, React Native, iOS, Android)
+              - Both client-side and server-side SDKs equally
+              - Neither — autocapture requires a separate tool
+            correct: 1
+            explanation: >-
+              Only client-side SDKs support autocapture and session recording because they run in the user's browser or app and can observe UI interactions directly.
+          - id: ph-capture-p2
+            type: matching
+            question: Match each SDK type to its characteristic.
+            options:
+              - Client-side SDK|Auto-generates distinct_id, supports autocapture
+              - Server-side SDK|Requires explicit distinct_id, no autocapture
+              - HTTP API|Direct POST to /capture endpoint without SDK
+              - JS web SDK|Supports session recording and the toolbar
+            correct: 0,1,2,3
+            explanation: >-
+              Client-side SDKs handle identity and autocapture automatically. Server-side SDKs need manual distinct_id and lack UI features. The HTTP API is the raw endpoint.
+          - id: ph-capture-p5
+            type: true_false
+            question: Server-side PostHog SDKs can observe UI interactions like button clicks and page scrolls just like client-side SDKs.
+            correct: 'false'
+            explanation: >-
+              Server-side SDKs run on your backend with no access to the browser or app UI. They cannot observe clicks, scrolls, or other UI interactions. Only client-side SDKs running in the
+              user's browser or app can do autocapture and session recording.
+      - id: choosing-a-capture-surface
+        instruction: >-
+          All three capture surfaces use a push model: your systems send events to PostHog. The important design choice is which surface owns the event. Use a client SDK when the event depends on UI
+          context like page URL or session behavior. Use a server SDK when the event is a backend fact such as a webhook, billing job, or API outcome. Use the HTTP API when you need raw transport
+          without an official SDK or when building a custom integration layer.
+        instructionContent:
+          - type: link
+            url: https://posthog.com/docs/how-posthog-works
+            title: PostHog architecture overview
+            description: Reference when a learner wants to see capture API, ingestion, and storage in one picture.
+        problems:
+          - id: ph-capture-p3
+            type: true_false
+            question: PostHog uses a pull-based ingestion model, periodically fetching data from your application.
+            correct: 'false'
+            explanation: PostHog uses push-based ingestion. Your application sends events to PostHog's capture endpoint via SDKs or the HTTP API.
+          - id: ph-capture-p4
+            type: scenario
+            question: >-
+              A backend worker written in an unsupported language needs to send billing events into PostHog with an explicit user ID. Which capture path is the best fit?
+            options:
+              - The JS web SDK
+              - A session replay integration
+              - The raw HTTP capture API
+              - Autocapture only
+            correct: 2
+            explanation: >-
+              If there is no official SDK, the raw HTTP capture API is the fallback surface. It still lets the worker push events into PostHog with an explicit distinct_id.
+          - id: ph-capture-p6
+            type: scenario
+            question: >-
+              A customer needs to track when a webhook from Stripe confirms a successful payment. The event happens entirely on the server with no UI involved. Which capture surface should they use?
+            options:
+              - The JS web SDK with autocapture
+              - A server-side SDK (e.g., Node.js, Python) with an explicit distinct_id
+              - Session recording
+              - The PostHog toolbar
+            correct: 1
+            explanation: >-
+              Backend events like webhook confirmations have no UI context. A server-side SDK is the right choice because it runs on the backend and lets you explicitly set the distinct_id to the
+              customer who made the payment.
+    section: posthog-ingestion
+  - id: ph-ingestion-pipeline
+    name: The Ingestion Pipeline — Kafka to ClickHouse
+    difficulty: 5
+    estimatedMinutes: 18
+    tags:
+      - posthog
+      - ingestion
+    sourceRef: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
+    prerequisites:
+      - ph-event-capture
+      - data-pipelines:storage-layers
+    encompassing: []
+    knowledgePoints:
+      - id: why-not-straight-to-db
+        instruction: >-
+          PostHog does not write events directly into ClickHouse (its analytics database). Instead, events land in **Apache Kafka** first — a distributed message queue designed for high-throughput, durable message streaming.
+
+
+          Why the indirection? Three reasons:
+
+
+          **Resilience:** if ClickHouse is temporarily slow, overloaded, or undergoing maintenance, events queue up safely in Kafka rather than being lost or causing backpressure on the capture API.
+
+
+          **Throughput:** Kafka can absorb massive bursts of events and smooth them out for ClickHouse to consume at a steady rate.
+
+
+          **Decoupling:** the capture API and ClickHouse do not need to know about each other — Kafka sits between them as a buffer.
+
+
+          This is the same pattern described in pipeline fundamentals: a message queue between ingestion and storage makes the pipeline more resilient and scalable. The capture API's only job is to validate the event and write it to Kafka. Everything else — person processing, property enrichment, storage — happens downstream.
+        instructionContent:
+          - type: callout
+            title: Mental model
+            body: >-
+              Capture API -> Kafka buffer -> downstream consumers -> ClickHouse. Kafka buys resilience by absorbing bursts and outages between ingestion and storage.
+          - type: link
+            url: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
+            title: Ingestion pipeline diagram
+            description: Use this when explaining why Kafka exists and what happens after the capture endpoint accepts an event.
+        problems:
+          - id: ph-pipeline-p1
+            type: multiple_choice
+            question: Why does PostHog write events to Kafka before ClickHouse instead of directly to ClickHouse?
+            options:
+              - ClickHouse cannot accept data from external sources
+              - Kafka provides a buffer so events are not lost if ClickHouse is temporarily slow or down
+              - Kafka transforms events into the correct format for ClickHouse
+              - It is a legacy design that PostHog plans to remove
+            correct: 1
+            explanation: >-
+              Kafka acts as a durable buffer between ingestion and storage. If ClickHouse is slow or undergoing maintenance, events queue in Kafka safely. Without this buffer, events could be lost
+              during ClickHouse downtime.
+          - id: ph-pipeline-p2
+            type: true_false
+            question: PostHog's capture API writes events directly into ClickHouse tables.
+            correct: 'false'
+            explanation: >-
+              The capture API writes events to Kafka, not directly to ClickHouse. Kafka then feeds events into ClickHouse through a table engine and materialized view. This decoupling provides
+              resilience and throughput benefits.
+          - id: ph-pipeline-p3
+            type: scenario
+            question: >-
+              A PostHog Cloud customer reports that their ClickHouse cluster had a brief maintenance window, but they did not lose any events during that period. What component of the architecture
+              prevented data loss?
+            options:
+              - The client-side SDK cached events in local storage
+              - Kafka queued the events durably until ClickHouse was ready to consume them again
+              - PostgreSQL stored the events as a backup
+              - The capture API retried failed writes automatically
+            correct: 1
+            explanation: >-
+              Kafka is a durable message queue. When ClickHouse is unavailable, events queue in Kafka and are consumed once ClickHouse recovers. This is the primary reason for the Kafka buffer in
+              PostHog's architecture.
+      - id: the-full-flow
+        instruction: >-
+          The complete ingestion flow from your app to queryable data:
+
+
+          **Step 1:** Your app sends an event via SDK or API.
+
+
+          **Step 2:** PostHog's capture endpoint validates the event and writes it to a Kafka topic.
+
+
+          **Step 3:** ClickHouse has a Kafka table engine (`kafka_events`) that acts as a consumer, reading events from Kafka and advancing offsets.
+
+
+          **Step 4:** A materialized view (`events_mv`) reads from `kafka_events` and inserts into the storage tables.
+
+
+          **Step 5:** Writes go through `writable_events` — a ClickHouse Distributed table that routes each event to the correct shard by hashing distinct_id using sipHash64. This means all events for the same user land on the same shard, making person-level queries efficient.
+
+
+          **Step 6:** Data lands in `sharded_events` — a ReplicatedReplacingMergeTree table that provides actual durable, replicated storage.
+
+
+          For reads, queries go through the `events` Distributed table, which fans out to all shards and aggregates results.
+        instructionContent:
+          - type: link
+            url: https://posthog.com/docs/how-posthog-works/clickhouse
+            title: ClickHouse tables diagram
+            description: Visual walkthrough of the table roles in PostHog's ingestion and storage path.
+        problems:
+          - id: ph-flow-p1
+            type: ordering
+            question: Place these PostHog ingestion steps in the correct order.
+            options:
+              - Materialized view (events_mv) inserts into storage tables
+              - App sends event via SDK
+              - Data lands in sharded_events (ReplicatedReplacingMergeTree)
+              - Capture endpoint writes event to Kafka
+              - kafka_events table engine reads from Kafka
+            correct: 1,3,4,0,2
+            explanation: >-
+              The flow is: App sends event, capture endpoint writes to Kafka, kafka_events reads from Kafka, events_mv materialized view inserts into storage, data lands in sharded_events for durable
+              storage.
+          - id: ph-flow-p2
+            type: multiple_choice
+            question: How does PostHog decide which ClickHouse shard to store an event on?
+            options:
+              - Random assignment for load balancing
+              - Round-robin across all available shards
+              - By hashing the distinct_id using sipHash64
+              - Based on the event timestamp
+            correct: 2
+            explanation: >-
+              PostHog shards events by sipHash64(distinct_id). This ensures all events for the same user land on the same shard, making person-level queries (like 'all events for user X') efficient
+              because they only need to hit one shard.
+          - id: ph-flow-p3
+            type: multiple_choice
+            question: In PostHog's ClickHouse architecture, which Distributed table handles writes, while reads go through the events Distributed table?
+            options:
+              - events
+              - writable_events
+              - sharded_events
+              - person_distinct_id_overrides
+            correct: 1
+            explanation: >-
+              writable_events is the Distributed table used for writes — it routes events to the correct shard. The events table is a separate Distributed table used for reads — it fans out queries to
+              all shards and aggregates results.
+    section: posthog-ingestion
+  - id: ph-clickhouse-storage
+    name: ClickHouse Storage — Tables and Sharding
+    difficulty: 6
+    estimatedMinutes: 18
+    tags:
+      - posthog
+      - ingestion
+    sourceRef: https://posthog.com/docs/how-posthog-works/clickhouse
+    prerequisites:
+      - ph-ingestion-pipeline
+    encompassing: []
+    knowledgePoints:
+      - id: table-roles
+        instruction: >-
+          PostHog's ClickHouse setup uses several tables with different jobs. `kafka_events` consumes from Kafka. `events_mv` is the materialized view that pushes records downstream. `sharded_events`
+          is the real durable storage table. `writable_events` and `events` are distributed access layers that sit in front of that storage. The point of learning these names is not memorization for
+          its own sake. It is being able to ask which layer is responsible when writes succeed, reads lag, or duplicates appear.
+        instructionContent:
+          - type: link
+            url: https://posthog.com/docs/how-posthog-works/clickhouse
+            title: ClickHouse architecture docs
+            description: Official diagram and table walkthrough for the storage path described here.
+        problems:
+          - id: ph-ch-p1
+            type: matching
+            question: Match each ClickHouse table to its role in PostHog's architecture.
+            options:
+              - kafka_events|Kafka consumer bridge that reads events from Kafka
+              - events_mv|Materialized view that pipes data from Kafka into storage
+              - writable_events|Distributed table for writes, routes to correct shard
+              - sharded_events|ReplicatedReplacingMergeTree for actual durable storage
+            correct: 0,1,2,3
+            explanation: kafka_events reads from Kafka. events_mv moves data from the Kafka bridge to storage. writable_events routes writes to the right shard. sharded_events is the actual storage engine.
+          - id: ph-ch-p4
+            type: multiple_choice
+            question: Which ClickHouse table engine does sharded_events use?
+            options:
+              - MergeTree
+              - ReplicatedMergeTree
+              - ReplicatedReplacingMergeTree
+              - Distributed
+            correct: 2
+            explanation: >-
+              ReplicatedReplacingMergeTree combines replication for durability, replacing behavior for eventual deduplication, and the MergeTree storage engine used for analytical workloads.
+          - id: ph-ch-p5
+            type: true_false
+            question: In PostHog's ClickHouse architecture, kafka_events is where events are durably stored for long-term queries.
+            correct: 'false'
+            explanation: >-
+              kafka_events is a Kafka consumer bridge — it reads events from Kafka and passes them downstream. Durable long-term storage is handled by sharded_events
+              (ReplicatedReplacingMergeTree). If you confused the two, the fix is to think of kafka_events as a pipeline stage, not a final destination.
+      - id: reads-writes-and-sharding
+        instruction: >-
+          The second key idea is separation of read and write paths. Writes go through `writable_events`, which chooses a shard by hashing `distinct_id`. Reads go through the `events` distributed
+          table, which fans queries out across shards and aggregates the results. That split matters because ingestion and querying have different optimization goals. Sharding by `distinct_id` also
+          keeps one user's events together, which helps person-level queries.
+        problems:
+          - id: ph-ch-p2
+            type: multiple_choice
+            question: When you run a query in PostHog's insights UI, which ClickHouse table handles the read?
+            options:
+              - kafka_events
+              - writable_events
+              - sharded_events directly
+              - The events Distributed table
+            correct: 3
+            explanation: >-
+              If you chose `writable_events`, you mixed up the write path with the read path. Insights read through `events`, which fans queries across shards and assembles the result.
+          - id: ph-ch-p3
+            type: true_false
+            question: In PostHog's ClickHouse setup, the same Distributed table is used for both reads and writes.
+            correct: 'false'
+            explanation: >-
+              PostHog uses separate Distributed tables: `writable_events` for writes and `events` for reads. This allows different routing and optimization strategies for ingestion versus querying.
+          - id: ph-ch-p6
+            type: scenario
+            question: >-
+              A PostHog engineer mentions that querying all events for a single user is fast because of how data is sharded. Why is this the case?
+            options:
+              - PostHog caches all user queries in memory
+              - Events are sharded by sipHash64(distinct_id), so all events for one user live on the same shard
+              - ClickHouse reads all shards in parallel regardless of the query
+              - User events are stored in a separate high-speed table
+            correct: 1
+            explanation: >-
+              Sharding by distinct_id ensures all events for the same user land on the same shard. A person-level query only needs to hit one shard instead of scanning all of them. This is a
+              deliberate design choice that optimizes the most common PostHog query pattern.
+    section: posthog-ingestion
+  - id: ph-person-processing
+    name: Person Processing — Resolving Events to Profiles
+    difficulty: 5
+    estimatedMinutes: 17
+    tags:
+      - posthog
+      - ingestion
+    sourceRef: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
+    prerequisites:
+      - ph-ingestion-pipeline
+      - posthog-data-model:ph-persons
+      - posthog-data-model:ph-distinct-id
+    encompassing:
+      - concept: posthog-data-model:ph-persons
+        weight: 0.55
+      - concept: posthog-data-model:ph-distinct-id
+        weight: 0.65
+    knowledgePoints:
+      - id: how-person-processing-works
+        instruction: >-
+          Person processing is the ingestion step where PostHog decides whether an event should link to an existing person, create a new one, or trigger a merge. That requires identity lookups,
+          possible writes, and sometimes profile reconciliation. Person data lives in PostgreSQL as the source of truth and is replicated into ClickHouse for query performance.
+        instructionContent:
+          - type: link
+            url: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
+            title: Ingestion pipeline docs
+            description: Official reference for where person processing sits in the full event flow.
+        problems:
+          - id: ph-pp-p1
+            type: multiple_choice
+            question: Why is person processing the most expensive part of PostHog's ingestion pipeline?
+            options:
+              - It requires sending data to external third-party services
+              - It involves database lookups, potential writes, and occasionally complex merge operations
+              - It encrypts all person data with military-grade encryption
+              - It runs machine learning models on every event
+            correct: 1
+            explanation: >-
+              Person processing is expensive because it may need to look up existing identity state, create or update person records, and merge profiles when IDs connect.
+          - id: ph-pp-p3
+            type: true_false
+            question: Person data in PostHog is stored only in ClickHouse.
+            correct: 'false'
+            explanation: >-
+              The misconception here is assuming all analytics state lives only in ClickHouse. Person data is authored in PostgreSQL, then replicated into ClickHouse so queries stay fast.
+          - id: ph-pp-p5
+            type: multiple_choice
+            question: Where does PostHog store person data as the source of truth before replicating it to ClickHouse?
+            options:
+              - Apache Kafka
+              - Redis
+              - PostgreSQL
+              - Amazon S3
+            correct: 2
+            explanation: >-
+              Person data is authored in PostgreSQL (the source of truth) and then replicated into ClickHouse for fast query performance. If you chose Kafka, that is the event buffer, not the
+              person store. The dual-storage design separates identity management (PostgreSQL) from analytical queries (ClickHouse).
+      - id: cost-control-and-skip-rules
+        instruction: >-
+          Because person processing is expensive, PostHog can skip it when the event does not need person-level behavior. In `identified_only` mode, anonymous events with no identify, no `$set`, and
+          no group linkage skip person processing entirely. That makes this mode a good fit for high-volume anonymous traffic where the team still wants aggregate analytics but does not need person
+          profiles for every visitor.
+        problems:
+          - id: ph-pp-p2
+            type: scenario
+            question: >-
+              A customer is on PostHog Cloud and notices their bill is higher than expected. They have millions of anonymous pageview events from marketing landing pages where users never log in. What
+              configuration change could reduce their costs?
+            options:
+              - 'Switch to person_profiles: ''always'' to create profiles for every visitor'
+              - 'Switch to person_profiles: ''identified_only'' so anonymous events skip person processing'
+              - Disable event capture entirely on landing pages
+              - Move to self-hosted PostHog
+            correct: 1
+            explanation: >-
+              With `identified_only` mode, anonymous events skip person processing entirely. Since the landing page visitors never log in, their events do not need person profiles.
+          - id: ph-pp-p4
+            type: multiple_choice
+            question: Which event would skip person processing in identified_only mode?
+            options:
+              - A plain anonymous $pageview with no identify, no $set, and no group linkage
+              - An identify() call after login
+              - A capture call that includes $set person properties
+              - A group() call that links the session to a company
+            correct: 0
+            explanation: >-
+              In `identified_only` mode, plain anonymous events skip person processing. Events that identify, set person properties, or link groups need person-level handling and therefore do not skip it.
+          - id: ph-pp-p6
+            type: true_false
+            question: In identified_only mode, a capture call that includes $set person properties will skip person processing just like a plain anonymous event.
+            correct: 'false'
+            explanation: >-
+              Events with $set, identify, alias, or group linkage trigger person processing even in identified_only mode. Only plain anonymous events with no identification signals skip it. The
+              mode is about skipping processing for truly anonymous traffic, not for any event that lacks an identify() call.
+    section: posthog-ingestion

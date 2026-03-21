@@ -12,6 +12,9 @@ const mockPrisma = {
     findUnique: jest.fn(),
     update: jest.fn(),
   },
+  academyEnrollment: {
+    findUnique: jest.fn(),
+  },
 };
 
 describe('StreakService', () => {
@@ -118,6 +121,45 @@ describe('StreakService', () => {
       // Streak should survive one gap
       expect(status.currentStreak).toBe(4); // 3 days + 1 frozen day
       expect(status.freezeTokensRemaining).toBe(0);
+    });
+  });
+
+  describe('getAcademyStreakStatus', () => {
+    it('should return 0-day streak when no enrollment', async () => {
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue(null);
+
+      const status = await service.getAcademyStreakStatus('user-1', 'academy-1');
+
+      expect(status.currentStreak).toBe(0);
+      expect(status.todayComplete).toBe(false);
+    });
+
+    it('should count consecutive days using academy enrollment', async () => {
+      mockPrisma.academyEnrollment.findUnique
+        .mockResolvedValueOnce({
+          dailyXPTarget: 40,
+          streakFreezeTokens: 1,
+          academy: { orgId: 'org-1' },
+        })
+        .mockResolvedValueOnce({
+          dailyXPTarget: 40,
+          academy: { orgId: 'org-1' },
+        });
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+
+      mockPrisma.userStreak.findMany.mockResolvedValue([
+        { date: today, xpEarned: 50 },
+        { date: yesterday, xpEarned: 45 },
+      ]);
+
+      const status = await service.getAcademyStreakStatus('user-1', 'academy-1');
+
+      expect(status.currentStreak).toBe(2);
+      expect(status.todayComplete).toBe(true);
     });
   });
 

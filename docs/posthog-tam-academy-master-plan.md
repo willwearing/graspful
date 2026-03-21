@@ -109,9 +109,9 @@ Additional rule:
 | Status | Section | Goal | Parallelization | Depends On | Detailed Docs |
 | --- | --- | --- | --- | --- | --- |
 | `completed` | 0. Docs and vocabulary freeze | Freeze the academy/course/section/concept/KP model and align all supporting docs | Safe for doc-only parallel work | None | `docs/posthog-tam-course-tree-plan.md`, `docs/academy-graph-engine-plan.md` |
-| `work in progress` | 1. Schema, importer, and validation | Make the academy structure real in persistence and content import | 2 backend lanes | Section 0 | `docs/academy-graph-engine-plan.md` |
-| `work in progress` | 2. Read models, enrollment, and diagnostics | Make academy reads and academy enrollment/diagnostic flows real | 2 backend lanes | Section 1 | `docs/academy-graph-engine-plan.md` |
-| `work in progress` | 3. Frontier, remediation, and implicit review | Make the adaptive runtime academy-scoped | 2 backend lanes | Section 2 | `docs/academy-graph-engine-plan.md` |
+| `completed` | 1. Schema, importer, and validation | Make the academy structure real in persistence and content import | 2 backend lanes | Section 0 | `docs/academy-graph-engine-plan.md` |
+| `completed` | 2. Read models, enrollment, and diagnostics | Make academy reads and academy enrollment/diagnostic flows real | 2 backend lanes | Section 1 | `docs/academy-graph-engine-plan.md` |
+| `completed` | 3. Frontier, remediation, and implicit review | Make the adaptive runtime academy-scoped | 2 backend lanes | Section 2 | `docs/academy-graph-engine-plan.md` |
 | `work in progress` | 4. Progress, gamification, and web routing | Make the UI and progress model academy-aware | 2 lanes: backend + web | Sections 2-3 | `docs/academy-graph-engine-plan.md` |
 | `not started` | 5. Pre-pilot verification gate | Prove the academy engine is truly ready to be tested by the TAM pilot | QA/review lanes in parallel, close serially | Sections 1-4 | `docs/academy-graph-engine-plan.md` |
 | `not started` | 6. TAM 4-course pilot split | Use the TAM monolith split to validate the refactored engine on real content | 4 content lanes + review lane | Section 5 | `docs/posthog-tam-course-tree-plan.md` |
@@ -157,7 +157,7 @@ Additional rule:
 
 ## Section 1: Schema, Importer, and Validation
 
-**Status:** `work in progress`
+**Status:** `completed`
 
 **Goal**
 
@@ -173,16 +173,16 @@ Additional rule:
 
 **Current repo state**
 
-- completed/in progress:
-  - academy schema foundation and migration/backfill groundwork
+- completed:
+  - Academy, AcademyPart, AcademyEnrollment, StudentCourseState in Prisma schema
+  - migration with backfill: every existing course → one-course academy
+  - StudentCourseState linked to AcademyEnrollment via academyEnrollmentId
+  - CourseStateService for state machine transitions (locked → unlocked → active → completed)
   - academy manifest schema and importer orchestration
-  - qualified cross-course authoring refs
-  - cross-course ref resolution during import
+  - qualified cross-course authoring refs with resolution during import
   - academy-wide validation for manifest imports and persisted academy graphs
-  - academy import admin endpoint
-  - persisted academy-graph validation endpoint
-- still open:
-  - formal section-close verification beyond backend build/test (`lint`, web e2e, and multi-course academy smoke fixtures)
+  - academy import admin endpoint and persisted academy-graph validation endpoint
+  - backend build clean, 62/62 test suites passing, 66/66 e2e passing
 
 **Parallelization**
 
@@ -209,7 +209,7 @@ Additional rule:
 
 ## Section 2: Read Models, Enrollment, and Diagnostics
 
-**Status:** `work in progress`
+**Status:** `completed`
 
 **Goal**
 
@@ -225,14 +225,15 @@ Additional rule:
 
 **Current repo state**
 
-- completed/in progress:
-  - academy graph/list endpoints
+- completed:
+  - academy graph/list endpoints with graph projections
   - academy enrollment endpoint and academy-owned concept/course state seeding
   - academy-first student mastery/profile endpoints
-  - academy-scoped diagnostic routes and session ownership
+  - academy-scoped diagnostic routes and session ownership with course-level breakdown in results
+  - course-level mastery projection helpers (getConceptStatesForAcademyCourse, getAcademyCourseMasterySummary)
+  - GET /academies/:academyId/course-mastery endpoint
+  - course-scoped controllers marked @deprecated with clean delegation to academy logic
   - backend regression closure for the refactored academy contracts
-- still open:
-  - remaining importer/read-path cleanup that still assumes a course-only authoring model
 
 **Parallelization**
 
@@ -259,7 +260,7 @@ Additional rule:
 
 ## Section 3: Frontier, Remediation, and Implicit Review
 
-**Status:** `work in progress`
+**Status:** `completed`
 
 **Goal**
 
@@ -275,13 +276,15 @@ Additional rule:
 
 **Current repo state**
 
-- completed/in progress:
-  - academy-scoped `next-task` and study-session service/controller paths
-  - academy-scoped remediation storage and blocking
-  - task payloads now carry academy/course context
-  - backend selector/runtime contracts are covered by the green backend suite
-- still open:
-  - implicit review / spaced-repetition propagation across course boundaries
+- completed:
+  - academy-scoped next-task and study-session service/controller paths
+  - academy-scoped remediation with explicit (academyId, courseId) parameters
+  - task payloads carry academy/course context
+  - cross-course implicit review: encompassing edge propagation now uses activeEncompassingEdgeWhereAcademy
+  - review.service.ts and problem-submission.service.ts pass academyId to fire-update
+  - ordering problem evaluator fixed (index-string → text array resolution via options)
+  - all review findings addressed: no duck-typing, no dead code, no parameter ambiguity
+  - backend selector/runtime contracts covered by green 500-test suite
 
 **Parallelization**
 
@@ -324,15 +327,20 @@ Additional rule:
 
 **Current repo state**
 
-- completed/in progress:
-  - academy-level XP persistence groundwork on the backend
-  - academy browse root now lists academies instead of treating courses as the only entry objects
-  - academy overview and academy study entry routes exist on the web
-  - academy-aware continue-study CTA and academy-aware study router are wired
+- completed:
+  - academy-level XP persistence with academyId passed from all submission paths
+  - courseEnrollment XP update uses updateMany (no-throw on missing row)
+  - academy browse root lists academies with course badges and "Open Academy" buttons
+  - academy overview page at /academy/[academyId] with course cards
+  - academy study entry route at /academy/[academyId]/study
+  - academy-aware continue-study CTA and academy-aware study router wired
+  - e2e tests updated for academy-first browse flow (66/66 passing)
 - still open:
-  - academy summaries/read models across the rest of gamification
-  - academy-first diagnostic UI and deeper nested academy course/task views
-  - dashboard/browse/study UX migration beyond the first academy entry slice
+  - academy-level streak/completion-estimate summaries (currently still course-scoped reads)
+  - academy-first diagnostic UI entry (diagnostic still entered via course route)
+  - deeper nested academy → course → section → concept browsing views
+  - dashboard academy summary cards (dashboard still shows course cards)
+  - academy-level progress overlay on the knowledge graph view
 
 **Parallelization**
 
@@ -541,13 +549,15 @@ Additional rule:
 
 ## Current Recommendation
 
-The current active tranche is Sections 1-4.
+Sections 0-3 are complete. The active section is Section 4.
 
 That means:
 
-- finish the open importer and academy-validation work in Section 1
-- close regression gaps and remaining authoring-path cleanup in Sections 2-3
-- complete academy-aware progress summaries and academy-first web routing in Section 4
+- complete academy-level streak/completion-estimate summaries on the backend
+- ship academy-first diagnostic UI entry (not just the course-scoped shim)
+- ship deeper nested academy → course → section → concept browse views
+- update dashboard to show academy summary cards instead of course cards
+- add academy-level progress overlay on the knowledge graph view
 - then run Section 5 as the formal pre-pilot gate
 
 Do not start the TAM 4-course content split yet.

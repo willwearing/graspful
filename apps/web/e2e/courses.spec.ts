@@ -19,7 +19,7 @@ test.describe("Course browsing (authenticated)", () => {
 
   test("dashboard loads and shows courses from backend", async ({ page }) => {
     await expect(page.getByText("Welcome back")).toBeVisible();
-    await expect(page.getByText("Your Courses")).toBeVisible();
+    await expect(page.getByText(/Academy Courses|Your Courses/)).toBeVisible();
 
     // Should show at least one course card (seeded data)
     const courseCards = page.locator("a[href^='/browse/']");
