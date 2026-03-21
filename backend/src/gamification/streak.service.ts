@@ -118,6 +118,73 @@ export class StreakService {
     return { streak, freezesUsed };
   }
 
+  async getAcademyStreakStatus(
+    userId: string,
+    academyId: string,
+  ): Promise<StreakStatus> {
+    const enrollment = await this.prisma.academyEnrollment.findUnique({
+      where: { userId_academyId: { userId, academyId } },
+      include: { academy: { select: { orgId: true } } },
+    });
+
+    const dailyTarget = enrollment?.dailyXPTarget ?? 40;
+    const freezeTokens = (enrollment as any)?.streakFreezeTokens ?? 1;
+    const orgId = enrollment?.academy?.orgId;
+
+    if (!orgId) {
+      return {
+        currentStreak: 0,
+        longestStreak: 0,
+        todayComplete: false,
+        todayXP: 0,
+        dailyTarget,
+        freezeTokensRemaining: freezeTokens,
+      };
+    }
+
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    ninetyDaysAgo.setHours(0, 0, 0, 0);
+
+    const streaks = await this.prisma.userStreak.findMany({
+      where: {
+        userId,
+        orgId,
+        date: { gte: ninetyDaysAgo },
+      },
+      orderBy: { date: 'desc' },
+    });
+
+    const xpByDate = new Map<string, number>();
+    for (const s of streaks) {
+      const dateStr = s.date.toISOString().split('T')[0];
+      xpByDate.set(dateStr, (s as any).xpEarned ?? 0);
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+    const todayXP = xpByDate.get(todayStr) ?? 0;
+    const todayComplete = todayXP >= dailyTarget;
+
+    const { streak: currentStreak, freezesUsed } = this.countStreak(
+      xpByDate,
+      today,
+      dailyTarget,
+      freezeTokens,
+    );
+    const longestStreak = await this.getLongestAcademyStreak(userId, academyId);
+
+    return {
+      currentStreak,
+      longestStreak,
+      todayComplete,
+      todayXP,
+      dailyTarget,
+      freezeTokensRemaining: Math.max(0, freezeTokens - freezesUsed),
+    };
+  }
+
   async getLongestStreak(userId: string, courseId: string): Promise<number> {
     const enrollment = await this.prisma.courseEnrollment.findUnique({
       where: { userId_courseId: { userId, courseId } },
@@ -126,10 +193,38 @@ export class StreakService {
 
     if (!enrollment?.course?.orgId) return 0;
 
-    const dailyTarget = enrollment.dailyXPTarget;
+    return this.computeLongestStreak(
+      userId,
+      enrollment.course.orgId,
+      enrollment.dailyXPTarget,
+    );
+  }
 
+  async getLongestAcademyStreak(
+    userId: string,
+    academyId: string,
+  ): Promise<number> {
+    const enrollment = await this.prisma.academyEnrollment.findUnique({
+      where: { userId_academyId: { userId, academyId } },
+      include: { academy: { select: { orgId: true } } },
+    });
+
+    if (!enrollment?.academy?.orgId) return 0;
+
+    return this.computeLongestStreak(
+      userId,
+      enrollment.academy.orgId,
+      enrollment.dailyXPTarget,
+    );
+  }
+
+  private async computeLongestStreak(
+    userId: string,
+    orgId: string,
+    dailyTarget: number,
+  ): Promise<number> {
     const streaks = await this.prisma.userStreak.findMany({
-      where: { userId, orgId: enrollment.course.orgId },
+      where: { userId, orgId },
       orderBy: { date: 'asc' },
     });
 

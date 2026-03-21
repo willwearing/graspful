@@ -121,7 +121,7 @@ export class AcademyImporterService {
       }
 
       return { academy, courseResults };
-    });
+    }, { timeout: 60_000 });
 
     return {
       academyId: academy.id,

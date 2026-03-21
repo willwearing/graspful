@@ -33,11 +33,12 @@ interface DiagnosticResult {
 interface DiagnosticFlowProps {
   orgSlug: string;
   courseId: string;
+  academyId?: string;
   token: string;
   initialData: DiagnosticState;
 }
 
-export function DiagnosticFlow({ orgSlug, courseId, token, initialData }: DiagnosticFlowProps) {
+export function DiagnosticFlow({ orgSlug, courseId, academyId, token, initialData }: DiagnosticFlowProps) {
   const router = useRouter();
   const [state, setState] = useState<DiagnosticState>(initialData);
   const [feedback, setFeedback] = useState<ProblemFeedback | null>(null);
@@ -47,12 +48,14 @@ export function DiagnosticFlow({ orgSlug, courseId, token, initialData }: Diagno
   const startTimeRef = useRef(Date.now());
   const fetchingRef = useRef(false);
 
-  const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
+  const diagnosticBasePath = academyId
+    ? `/orgs/${orgSlug}/academies/${academyId}/diagnostic`
+    : `/orgs/${orgSlug}/courses/${courseId}/diagnostic`;
 
   // Fetch result when complete
   const fetchResult = useCallback(async (sessionId: string) => {
     const res = await apiClientFetch<DiagnosticResult>(
-      `${basePath}/diagnostic/result/${sessionId}`,
+      `${diagnosticBasePath}/result/${sessionId}`,
       token
     );
     setResult(res);
@@ -61,7 +64,7 @@ export function DiagnosticFlow({ orgSlug, courseId, token, initialData }: Diagno
       res.breakdown.mastered + res.breakdown.conditionally_mastered,
       res.totalConcepts,
     );
-  }, [basePath, token]);
+  }, [diagnosticBasePath, token]);
 
   // If initially complete, fetch result
   useEffect(() => {
@@ -80,7 +83,7 @@ export function DiagnosticFlow({ orgSlug, courseId, token, initialData }: Diagno
 
     try {
       const response = await apiClientFetch<any>(
-        `${basePath}/diagnostic/answer`,
+        `${diagnosticBasePath}/answer`,
         token,
         {
           method: "POST",
@@ -150,8 +153,8 @@ export function DiagnosticFlow({ orgSlug, courseId, token, initialData }: Diagno
               </div>
             </div>
 
-            <Button onClick={() => router.push("/dashboard")} className="mt-4">
-              Go to Dashboard
+            <Button onClick={() => router.push(academyId ? `/academy/${academyId}` : "/dashboard")} className="mt-4">
+              {academyId ? "Go to Academy" : "Go to Dashboard"}
             </Button>
           </>
         ) : (

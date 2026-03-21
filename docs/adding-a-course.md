@@ -69,7 +69,7 @@ Important rule:
 - Do not force a multi-branch domain into one course just because the current content is easier to store that way
 - Do not split a connected domain into disconnected standalone courses if the learning engine will lose cross-course prerequisite, remediation, or review-compression logic
 
-For PostHog TAM, the correct target is an academy with multiple real courses, not one monolithic course with relabeled sections.
+For example, a large multi-section technical onboarding course should typically become an academy with multiple real courses, not one monolithic course with relabeled sections.
 
 ### Step 1: Start from the tree, not the prose
 
@@ -242,6 +242,8 @@ The review agent should check:
 8. Does the course or academy create a clear root -> trunk -> branch -> leaf progression?
 9. For each concept, is the lesson broken into a real staircase of KPs with increasing difficulty, or is it still a mini-chapter disguised as one KP?
 10. If a learner missed a later KP, would the failure point tell us something precise about the missing foundation or missing subskill?
+11. **Are any questions repeated or near-identical across KPs or concepts?** Duplicate questions train memorization, not understanding. If a learner sees the same question on retake, the spaced-repetition loop is worthless — they are recalling the answer, not reconstructing the reasoning. The review agent must grep the problem pool for duplicate `question` text, duplicate `explanation` text, and questions that test the same atomic fact at the same cognitive level. Cross-concept overlap is especially dangerous because it inflates apparent mastery without real depth.
+12. **Does each concept's problem set escalate in difficulty?** Problems within a concept must form a staircase: recognition → guided application → judgment / transfer. If every problem in a concept is at recognition level (definitions, true/false recall, simple matching), the concept has no depth — the learner can "pass" without ever applying the knowledge. Flag any concept where all problems test the same cognitive level.
 
 The review agent must explicitly ask:
 
@@ -252,12 +254,15 @@ The review agent must explicitly ask:
 - "If this becomes its own course, do we still preserve the real prerequisite and layering structure across courses?"
 - "Is this lesson small-step enough to be learnable in audio form, or did the first agent pack multiple ideas into one KP?"
 - "Do the practice explanations provide reactive feedback that tells the learner what to fix next?"
+- "Have I seen this exact question — or a question testing the same fact at the same cognitive level — anywhere else in the course?" (If yes, one of them must be deleted, escalated, or rewritten to test a different angle.)
+- "Do this concept's problems actually escalate in difficulty, or are they all recognition-level?" (If all problems can be answered from a single definition, the concept lacks depth.)
 
 The review outcome should be one of:
 
 - `approved`
 - `approved with edge adjustments`
 - `approved with lesson split adjustments`
+- `deduplicate and escalate problems` — duplicate questions found; must be deleted, rewritten, or escalated before shipping
 - `rewrite graph structure before authoring KPs`
 - `rewrite KPs before shipping`
 
@@ -307,6 +312,9 @@ After the graph review and the content pass, run one final review focused on les
 8. Does each concept have a real increasing-difficulty staircase of KPs, rather than one dense KP plus a quiz?
 9. Do explanations act as reactive feedback by naming likely misconceptions and telling the learner how to recover?
 10. If the learner failed a later KP twice, would the failure location and feedback point to a specific missing idea or prerequisite?
+11. **DEDUPLICATION CHECK (mandatory):** Grep every `question:` field in the YAML and flag any pair of questions that test the same atomic fact at the same cognitive level — even if the wording differs or the problem type differs. Repeated questions are the single most common failure mode in AI-authored courses. They create the illusion of mastery by training the learner to memorize the answer rather than reconstruct the reasoning. This check must be run cross-concept, not just within a single concept, because cross-concept duplication is harder to spot and more damaging. If duplicates are found, the review agent must either (a) delete the weaker variant, (b) rewrite it to test a genuinely different angle/application/scenario, or (c) escalate its difficulty so it adds a new rung on the staircase.
+12. **DIFFICULTY STAIRCASE CHECK (mandatory):** For each concept, list the cognitive level of every problem (recognition / application / judgment-transfer). If all problems are at the same level, the concept fails this check. The fix is to add at least one problem at a higher cognitive level: scenario-based application, multi-step tracing, "design the right approach" judgment, or troubleshooting a realistic failure. A course where every problem is recognition-level teaches vocabulary, not competence.
+13. **CROSS-CONCEPT FACT COVERAGE CHECK:** Identify the 5-10 most-tested facts across the entire course. If any single fact is tested more than 3 times across different concepts (even via encompassing), flag it. Some overlap from layering is expected, but excessive repetition of the same fact signals that the problem pool lacks variety, not that the concept is well-reinforced.
 
 Do not mark the course complete until both the graph review and the content review pass.
 
@@ -373,6 +381,36 @@ instruction: >-
 - Section exams draw from the concept's problem pool. If the pool has only 1-2 questions, the learner will see the same questions on retakes, which defeats the purpose.
 - Problem types should vary: mix multiple choice, true/false, scenario-based, fill-in-the-blank, ordering, and matching where appropriate.
 - Wrong-answer explanations must diagnose the likely misconception and tell the learner what to fix — they are reactive feedback, not just "that's wrong."
+
+### Question uniqueness and deduplication (CRITICAL)
+
+**Repeated questions are the #1 failure mode in AI-authored courses.** When a learner encounters the same question twice — whether word-for-word identical or testing the same atomic fact at the same cognitive level — they memorize the answer instead of building understanding. This defeats the entire purpose of spaced repetition and mastery learning.
+
+Rules:
+
+- **No two problems in the entire course may test the same atomic fact at the same cognitive level.** "Same atomic fact" means: if you wrote a one-sentence summary of what each question tests, the summaries would be identical. "Same cognitive level" means: both are recognition, both are application, or both are judgment. Testing the same fact at a *different* cognitive level (e.g., recognition in KP1, then scenario-based application in KP3) is not just acceptable — it's the desired staircase pattern.
+- **Cross-concept duplication is worse than within-concept duplication.** When the same fact appears as a question in concept A and again in concept B, the learner gets false confidence — they think they "know" two things when they really know one thing twice. The review agent must check for this explicitly.
+- **Flipping a question is not a new question.** "Which features require person profiles?" and "Which features work without person profiles?" test the same discrimination. Rephrasing is not reframing.
+- **Common duplication patterns to watch for:**
+  - True/false in one KP, multiple-choice asking the same fact in another KP
+  - "What is X?" in one concept, "What must you do to get X?" in a related concept (same underlying knowledge)
+  - Matching tasks where one pair tests a fact that also appears as a standalone question elsewhere
+  - Scenario questions that are thin wrappers around recognition questions — the scenario adds narrative but the cognitive demand is unchanged
+
+How to fix duplicates:
+
+1. **Delete the weaker variant** if the stronger one already covers the fact.
+2. **Escalate the duplicate** to a higher cognitive level: turn recognition into application, application into judgment, judgment into design/troubleshooting.
+3. **Change the angle**: instead of testing "does X require Y?", test "given this customer scenario with X and Y present, what would you investigate first?" — this tests the same knowledge but through transfer, not recall.
+4. **Move the duplicate to a different concept** where it serves as a genuine encompassing exercise rather than a repeat.
+
+### Difficulty staircase within concepts
+
+- Problems within a concept must escalate in difficulty: recognition → guided application → judgment / transfer.
+- If every problem in a concept can be answered by recalling a single definition, the concept has no depth.
+- A concept that passes every student at the recognition level has not tested whether the student can *use* the knowledge in context.
+- The minimum bar: at least one problem per concept must require the learner to apply the knowledge to a scenario they haven't seen before, or to discriminate between two plausible approaches in context.
+- If the authoring agent produces problems that are all at the same level, the review agent must reject the concept and require rewrites before the course ships.
 
 ### Callout and reference blocks
 
@@ -600,7 +638,7 @@ This means: **getting the prerequisite edges right is the single most important 
 Sections have internal prerequisite structure (concepts within a section depend on each other — that's normal). The sections themselves should form a forward-flowing DAG: section B can depend on section A, but not the reverse. The section DAG is a compressed view of the knowledge graph and should tell you the learning flow at a glance:
 
 ```
-data-modeling-basics → data-modeling-design → pipeline-basics → pipeline-architecture → posthog-data-model → ...
+fundamentals → core-design → applied-basics → applied-architecture → domain-specific-model → ...
 ```
 
 **Principle 2: Smaller foundational sections = faster mastery (the learning staircase).**
@@ -652,7 +690,7 @@ A section name should answer "what can I do after completing this?" not just "wh
 
 **Example 1: cross-topic prerequisites.** "Data Pipelines" concepts need "Data Modeling" concepts as prerequisites — you can't understand how data moves without understanding what data is. `what-is-a-pipeline` should require `entities`. `storage-layers` should require `keys-and-identity` (you need to understand how data is identified before understanding how it's stored). Without these cross-topic prerequisites, the graph shows models and pipelines as parallel roots at the same tier — which tells students they can learn either one first, when in reality models must come first.
 
-**Example 2: capstone prerequisites.** Suppose you have a "Data Modeling" section (ending with `data-modeling-process`) and a "PostHog Data Model" section (starting with `ph-events`). If `ph-events` only requires `entities` and `attributes` (early modeling concepts), the graph will show `ph-events` at the same tier as mid-level foundations. Fix: add `data-modeling-process` as a prerequisite to `ph-events`. This creates a "bridge" that enforces "finish all modeling before starting PostHog."
+**Example 2: capstone prerequisites.** Suppose you have a "Data Modeling" section (ending with `data-modeling-process`) and a "Domain-Specific Model" section (starting with `domain-events`). If `domain-events` only requires `entities` and `attributes` (early modeling concepts), the graph will show `domain-events` at the same tier as mid-level foundations. Fix: add `data-modeling-process` as a prerequisite to `domain-events`. This creates a "bridge" that enforces "finish all general modeling before starting the domain-specific model."
 
 **How to catch these issues:** After building the graph, look at the visualization. If a concept appears at the same tier as something that should come before it, it's missing a prerequisite. The graph never lies — if the visual structure doesn't match your intended learning flow, the prerequisites are incomplete.
 
@@ -734,12 +772,12 @@ If the question is testing recognition, discrimination, or applied judgment, rew
 
 Bad `fill_blank` example:
 
-- "Backend PostHog SDKs do not auto-generate a distinct_id — you must ___ one on every capture call."
+- "The server SDK does not auto-generate an identifier — you must ___ one on every capture call."
 
 Better rewrites:
 
-- `multiple_choice`: "What must backend SDK users provide on every capture call?" with plausible distractors
-- `true_false`: "Backend PostHog SDKs auto-generate `distinct_id` values for you."
+- `multiple_choice`: "What must server SDK users provide on every capture call?" with plausible distractors
+- `true_false`: "Server SDKs auto-generate unique identifiers for you."
 - `scenario`: "You are instrumenting a backend worker. What identifier must you send with each event?"
 
 Rule of thumb: if a human reviewer would accept 3+ materially different phrasings as correct, do not use `fill_blank`.
@@ -757,7 +795,7 @@ Quality bar:
 - Minimum 2 problems per fully-authored KP
 - Prefer 3 when the concept has operational nuance
 - Include at least one problem that checks transfer or diagnosis, not just vocabulary
-- Distractors should reflect realistic TAM misunderstandings
+- Distractors should reflect realistic learner misunderstandings for the domain
 - If the learner misses a problem, the explanation should teach, not just reveal the answer
 - Across a concept's KPs, difficulty should ratchet upward. Do not keep all problems at the same recognition level.
 

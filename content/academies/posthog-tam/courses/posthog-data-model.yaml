@@ -1,40 +1,14 @@
 course:
-  id: posthog-tam-onboarding
-  name: PostHog TAM Technical Onboarding
+  id: posthog-data-model
+  name: PostHog Data Model
   description: >-
-    Comprehensive technical onboarding for PostHog Technical Account Managers — from data modeling fundamentals through the PostHog data model, ingestion pipeline, identification, group analytics,
-    CDP, and querying.
-  estimatedHours: 12
+    PostHog-specific data model — events, persons, properties, sessions,
+    actions, identification, groups, CDP, cohorts, and HogQL.
+  estimatedHours: 6
   version: '2026.1'
   sourceDocument: PostHog product documentation (analytics, persons, group analytics, CDP, and HogQL docs), reviewed March 2026
+
 sections:
-  - id: data-modeling-basics
-    name: Data Modeling Basics
-    description: Entities, attributes, and keys — the building blocks of any data model.
-    sectionExam:
-      enabled: true
-      passingScore: 0.75
-      timeLimitMinutes: 12
-      questionCount: 6
-      blueprint:
-        - conceptId: entities
-          minQuestions: 2
-        - conceptId: attributes
-          minQuestions: 2
-        - conceptId: keys-and-identity
-          minQuestions: 2
-      instructions: >-
-        Work without step-by-step cues. Show that you can distinguish entities, attributes, and keys,
-        then apply those ideas to realistic PostHog-flavored examples.
-  - id: data-modeling-design
-    name: Data Modeling Design
-    description: Relationships, cardinality, join tables, and the design process.
-  - id: pipeline-basics
-    name: Pipeline Basics
-    description: What data pipelines are, where data comes from, and where it's stored.
-  - id: pipeline-architecture
-    name: Pipeline Architecture
-    description: Transformation patterns, orchestration, and the tradeoffs that shape pipeline design.
   - id: posthog-data-model
     name: PostHog Data Model
     description: PostHog's specific entities — events, persons, properties, sessions, and actions.
@@ -57,25 +31,6 @@ sections:
       instructions: >-
         This exam checks whether you can reason about the core PostHog entities and how they connect
         in analysis, ingestion, and product usage.
-  - id: posthog-ingestion
-    name: PostHog Ingestion Pipeline
-    description: How events flow from capture through Kafka to ClickHouse storage.
-    sectionExam:
-      enabled: true
-      passingScore: 0.75
-      timeLimitMinutes: 12
-      questionCount: 6
-      blueprint:
-        - conceptId: ph-event-capture
-          minQuestions: 2
-        - conceptId: ph-ingestion-pipeline
-          minQuestions: 2
-        - conceptId: ph-clickhouse-storage
-          minQuestions: 1
-        - conceptId: ph-person-processing
-          minQuestions: 1
-      instructions: >-
-        Show that you can trace what happens to an event after capture and explain where identity and storage fit.
   - id: identification
     name: Identification
     description: Anonymous vs identified events, the identify call, person merging, and common pitfalls.
@@ -145,1444 +100,11 @@ sections:
       instructions: >-
         This exam checks whether you can move from product questions to the right querying tool,
         especially when HogQL is the right fit.
+
 concepts:
-  - id: entities
-    name: Entities — Things That Exist
-    difficulty: 2
-    estimatedMinutes: 10
-    tags:
-      - foundational
-      - data-modeling
-    prerequisites: []
-    encompassing: []
-    knowledgePoints:
-      - id: what-is-an-entity
-        instruction: >-
-          An **entity** is anything you need to store information about in a system. Entities are the nouns — the people, places, things, and concepts that matter to your business.
-
-
-          If you find yourself wanting to describe something with multiple facts (attributes), you are looking at an entity. A Customer is an entity because you want to track their name, email, and signup date. An Order is an entity because it has an order number, total, and status. A Product is an entity because it has a SKU, price, and description.
-
-
-          Entities are not actions or verbs — those become relationships later.
-
-
-          **The key test:** can you have more than one of this thing, and do you need to tell them apart? If yes, it is an entity.
-
-
-          In a hospital system, Patient, Doctor, Appointment, and Medication are all entities. In a music streaming app, User, Song, Playlist, and Artist are entities.
-
-
-          Recognizing entities is the first and most important step in data modeling because everything else — attributes, keys, relationships — hangs off of them.
-        instructionContent:
-          - type: callout
-            title: Entity identification shortcut
-            body: >-
-              Ask three questions in order: can there be many of these, do we need to distinguish one from another, and do we track multiple facts about each one?
-          - type: link
-            url: https://www.lucidchart.com/pages/er-diagrams
-            title: Visual ER diagram primer
-            description: Use this when the learner needs a picture of how entities become boxes in a model.
-        problems:
-          - id: entities-p1
-            type: multiple_choice
-            question: Which of the following best describes an entity in data modeling?
-            options:
-              - A verb that describes an action in the system
-              - A thing you need to store information about, like a Customer or Order
-              - A single data value, like a name or email address
-              - A rule that governs how data is validated
-            correct: 1
-            explanation: >-
-              An entity is a noun — a thing you need to store information about. Customer, Order, and Product are classic examples. Verbs become relationships, single values become attributes, and
-              rules become constraints.
-          - id: entities-p2
-            type: true_false
-            question: In data modeling, an entity represents a single data value like a phone number or email address.
-            correct: 'false'
-            explanation: >-
-              A single data value like a phone number is an attribute, not an entity. An entity is a thing (like a Customer) that has multiple attributes (name, phone number, email). Entities are the
-              nouns; attributes are the facts about those nouns.
-          - id: entities-p3
-            type: scenario
-            question: You are building a project management tool. Users create projects, add tasks to projects, and assign tasks to team members. Which of the following is NOT an entity in this system?
-            options:
-              - User
-              - Project
-              - Assigns (the act of assigning a task)
-              - Task
-            correct: 2
-            explanation: >-
-              'Assigns' is a verb describing the relationship between a User and a Task — it is a relationship, not an entity. User, Project, and Task are all nouns that you would store information
-              about, making them entities.
-      - id: identifying-entities
-        instruction: >-
-          The first step in any data modeling exercise is identifying entities. A reliable technique: read or write a plain-English description of the system and **circle the nouns**.
-
-
-          In the sentence "Customers place orders for products," the nouns are Customer, Order, and Product — those are your candidate entities. Verbs like "place" and "for" hint at relationships you will define later.
-
-
-          Not every noun becomes an entity. A good entity has three qualities: it has **multiple instances** (there are many customers, not just one), it needs to be **uniquely identified** (Customer 42 vs Customer 43), and it has **its own attributes** worth tracking.
-
-
-          If a noun is really just a single attribute of another entity, it is not its own entity. For example, "color" is probably an attribute of Product, not a standalone entity — unless your system needs to track detailed information about each color (name, hex code, pantone number), in which case it might become one.
-        workedExample: >-
-          Consider an e-commerce system described as: 'Customers browse a catalog of products. They add items to a shopping cart and place orders. Each order contains one or more line items, and
-          payments are processed for each order.' Step 1: Circle the nouns — Customer, Catalog, Product, Shopping Cart, Order, Line Item, Payment. Step 2: Evaluate each. Catalog is probably just the
-          collection of products, not a separate entity. Shopping Cart might be an entity or might be a temporary state of an Order. The strong entities are: Customer, Product, Order, Line Item, and
-          Payment. Each has multiple instances, needs unique identification, and has its own attributes.
-        problems:
-          - id: identifying-entities-p1
-            type: multiple_choice
-            question: In the sentence 'Students enroll in courses taught by professors,' how many entities can you identify?
-            options:
-              - 1 — only Student
-              - 2 — Student and Course
-              - 3 — Student, Course, and Professor
-              - 4 — Student, Course, Professor, and Enroll
-            correct: 2
-            explanation: Student, Course, and Professor are the three entities (nouns that need to be tracked). 'Enroll' and 'taught by' are verbs describing relationships, not entities.
-          - id: identifying-entities-p2
-            type: multiple_choice
-            question: The first step in data modeling is to identify entities by looking for the ___ in a system description.
-            options:
-              - nouns
-              - verbs
-              - numbers
-              - dates
-            correct: 0
-            explanation: Entities are the nouns in your system — the people, places, things, and concepts you need to store information about. Verbs become relationships.
-          - id: identifying-entities-p3
-            type: scenario
-            question: >-
-              You read this product brief: 'Drivers deliver packages to customers. Each delivery has a timestamp and a signature.' A teammate says Delivery is not an entity because it started as a verb.
-              How do you respond?
-            options:
-              - They are correct — 'deliver' is a verb, so Delivery cannot be an entity
-              - Delivery has its own attributes (timestamp, signature) and multiple instances, so it qualifies as an entity
-              - Delivery should be stored as an attribute on Package instead
-              - Delivery is only a relationship and can never become an entity
-            correct: 1
-            explanation: >-
-              The three-part test still applies. Delivery has multiple instances, needs unique identification, and has its own attributes (timestamp, signature). Some words that start as verbs evolve
-              into entities once they accumulate their own facts. If you agreed with the teammate, revisit the entity identification shortcut.
-    section: data-modeling-basics
-  - id: attributes
-    name: Attributes — Properties of Entities
-    difficulty: 2
-    estimatedMinutes: 14
-    tags:
-      - foundational
-      - data-modeling
-    prerequisites:
-      - entities
-    encompassing: []
-    knowledgePoints:
-      - id: what-are-attributes
-        instruction: >-
-          Attributes are the individual facts stored about one entity instance. A Customer might have first_name, email, and signup_date. An Order might have order_number, total_amount, and status.
-          The first quality bar is atomicity: each attribute should hold one fact, not a bundled sentence. A field like 'name_and_address' is really several attributes hiding inside one column.
-          Atomic attributes are easier to validate, filter, sort, and reuse in analysis.
-        instructionContent:
-          - type: callout
-            title: Atomic first
-            body: >-
-              If you cannot answer "what single fact does this field store?" without saying "and", the field is probably too wide.
-          - type: link
-            url: https://www.postgresql.org/docs/current/datatype.html
-            title: PostgreSQL data types overview
-            description: Use this as a concrete reference for the kinds of atomic values attributes are usually meant to hold.
-        problems:
-          - id: attributes-p1
-            type: multiple_choice
-            question: Which of the following is the best set of attributes for a Product entity in an e-commerce system?
-            options:
-              - product_info (containing name, price, and description in one field)
-              - sku, name, price, description, category, created_at
-              - product, details, misc_data
-              - name, order_id, customer_email
-            correct: 1
-            explanation: >-
-              Good attributes are atomic (one fact each), descriptive, and belong to the entity. Option B has clear, atomic attributes that all describe a Product. Option A violates atomicity by
-              combining values. Option C is too vague. Option D mixes in attributes from other entities (order_id, customer_email).
-          - id: attributes-p2
-            type: true_false
-            question: An attribute called 'full_address' that stores '123 Main St, Springfield, IL 62704' follows good data modeling practice.
-            correct: 'false'
-            explanation: >-
-              This violates the atomicity principle. A good data model would break this into separate attributes: street, city, state, and zip_code. Atomic attributes make it possible to query,
-              filter, and sort by individual components (e.g., find all customers in Illinois).
-          - id: attributes-p5
-            type: scenario
-            question: >-
-              A teammate designs a Customer table with a field called 'contact_info' that stores 'jane@co.com | 555-1234 | San Francisco'. What feedback would you give?
-            options:
-              - This is efficient because it saves columns
-              - The field violates atomicity — it should be split into email, phone, and city
-              - Contact info is not an attribute at all
-              - This is fine as long as the application parses it correctly
-            correct: 1
-            explanation: >-
-              Bundling multiple facts into one field makes filtering, sorting, and validating each fact impossible at the database level. Split it into email, phone, and city so each attribute holds
-              one fact. If you thought application parsing is good enough, consider what happens when someone queries 'find all customers in San Francisco' — a bundled field makes that painful.
-      - id: attribute-boundaries
-        instruction: >-
-          After you list candidate attributes, ask two follow-up questions. First: does this field really belong to this entity? Second: is this still an attribute, or has it become its own entity or
-          relationship? Repeated structured data often signals a missing relationship. If Order and Invoice both store customer_name, that fact probably belongs on Customer instead. Attribute design is
-          really boundary design: one fact, owned by one entity, in the place where it can stay accurate over time.
-        workedExample: >-
-          Imagine a catalog where every Product row stores color_name, color_hex, and pantone_code. That works until the business wants one shared color catalog used across many products. At that
-          point, Color is no longer just a label on Product. It has its own reusable structure, so Product should reference Color instead of duplicating those fields everywhere.
-        instructionContent:
-          - type: link
-            url: https://www.postgresql.org/docs/current/tutorial-fk.html
-            title: PostgreSQL foreign key tutorial
-            description: Helpful once a learner sees that repeated attributes usually point to a missing reference entity.
-        problems:
-          - id: attributes-p3
-            type: multiple_choice
-            question: If you find the attribute 'customer_name' appearing on both the Order entity and the Invoice entity, what does this likely indicate?
-            options:
-              - This is good practice — data should be duplicated for safety
-              - A missing relationship — both entities should reference the Customer entity instead
-              - The Order and Invoice entities should be combined into one
-              - customer_name should be removed from both entities
-            correct: 1
-            explanation: >-
-              When the same attribute appears on multiple entities, it usually means there is a missing relationship. Both Order and Invoice should reference a Customer entity via a foreign key,
-              rather than duplicating the customer's name.
-          - id: attributes-p4
-            type: scenario
-            question: >-
-              A merch store keeps color_name, color_hex, and pantone_code directly on every Product row. The team now wants one reusable color catalog shared across many products. What is the best next
-              move?
-            options:
-              - Keep the color fields on Product and add more color columns as needed
-              - Create a Color entity and reference it from Product
-              - Combine the three fields into one text blob so the row stays shorter
-              - Remove color entirely because attributes should never repeat
-            correct: 1
-            explanation: >-
-              Once color has its own reusable structure, it has crossed the line from "simple attribute" into "reference entity." A Color entity keeps the shared facts in one place and lets Product
-              point to them cleanly.
-          - id: attributes-p6
-            type: true_false
-            question: If the same structured data (like color_name, color_hex) appears on multiple entities, it is always best to leave those fields duplicated on each entity.
-            correct: 'false'
-            explanation: >-
-              Repeated structured data across entities usually signals a missing reference entity. When the same cluster of fields appears in multiple places, extract them into their own entity and
-              reference it via foreign key. This avoids duplication and keeps updates consistent.
-    section: data-modeling-basics
-  - id: keys-and-identity
-    name: Keys — Uniquely Identifying Things
-    difficulty: 3
-    estimatedMinutes: 18
-    tags:
-      - foundational
-      - data-modeling
-    prerequisites:
-      - entities
-      - attributes
-    encompassing: []
-    knowledgePoints:
-      - id: primary-keys
-        instruction: >-
-          Every entity needs a primary key: the attribute, or combination of attributes, that uniquely identifies one instance. Customer 42 is different from Customer 43 because their keys are
-          different. The first job of a primary key is identity inside the entity itself. A good primary key is unique, stable over time, and never null. If any of those fail, the entity becomes hard
-          to trust because duplicates, broken references, or missing records start to appear.
-        instructionContent:
-          - type: callout
-            title: Three tests for a primary key
-            body: >-
-              Ask three questions: can two rows share it, can it change later, and can it ever be missing? If the answer is yes to any of those, it is a weak primary key candidate.
-          - type: link
-            url: https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-PRIMARY-KEYS
-            title: PostgreSQL primary key reference
-            description: A concrete reference for how databases enforce the uniqueness and non-null guarantees discussed here.
-        workedExample: >-
-          Imagine an Order table keyed by order_id. If order_id is unique, present on every row, and never reused, then each order stays distinguishable even when many orders have the same amount,
-          date, or customer. That is what makes order_id a real identity field instead of just another attribute.
-        problems:
-          - id: keys-p1
-            type: multiple_choice
-            question: What is the primary purpose of a primary key in data modeling?
-            options:
-              - To store the most important attribute of an entity
-              - To uniquely identify each instance of an entity
-              - To encrypt sensitive data in the entity
-              - To define the data type of each attribute
-            correct: 1
-            explanation: >-
-              A primary key uniquely identifies each instance of an entity. It ensures no two records are the same and allows other entities to reference it. It is not about importance, encryption, or
-              data types.
-          - id: keys-p4
-            type: multiple_choice
-            question: Which combination best describes a strong primary key?
-            options:
-              - Easy to memorize, human-readable, and optional
-              - Unique, stable over time, and never null
-              - Long text, frequently updated, and visible to users
-              - Derived from several changing business rules
-            correct: 1
-            explanation: >-
-              If you were drawn to readability, you focused on convenience instead of identity quality. A strong primary key must stay unique, stable, and present even when business labels change.
-          - id: keys-p7
-            type: scenario
-            question: >-
-              A developer proposes using 'order_date' as the primary key for an Orders table because each order has a different date. On a busy day the system creates two orders at the exact same
-              timestamp. What problem does this cause?
-            options:
-              - No problem — timestamps are always unique
-              - The primary key constraint fails because two rows share the same value
-              - The database automatically adds a suffix to make them unique
-              - The second order overwrites the first
-            correct: 1
-            explanation: >-
-              Timestamps are not guaranteed unique, especially under high throughput. A primary key must be unique for every row. If you assumed timestamps are always distinct, the mental model fix
-              is to separate 'usually unique' from 'guaranteed unique.' Use a surrogate key instead.
-      - id: foreign-keys-need-stable-targets
-        instruction: >-
-          Once an entity has a trustworthy primary key, other entities can point at it with foreign keys. That is how a model expresses connections such as "this Order belongs to Customer 42." This
-          only works if the referenced key stays stable. If the target key changes, every relationship that points to it becomes harder to maintain. That is why key choice is not just a local table
-          decision. It shapes whether the rest of the model can connect safely.
-        instructionContent:
-          - type: callout
-            title: Identity spreads outward
-            body: >-
-              A weak key does not stay a local problem. The moment another table references it, that weakness becomes a relationship problem too.
-          - type: link
-            url: https://www.postgresql.org/docs/current/tutorial-fk.html
-            title: PostgreSQL foreign key tutorial
-            description: Useful reference for how foreign keys depend on stable primary keys.
-        workedExample: >-
-          Suppose Orders stores customer_id to show which customer placed each order. If customer_id is a stable surrogate key, every order can keep pointing to the right customer even if the
-          customer's email or company name changes later.
-        problems:
-          - id: keys-p5
-            type: scenario
-            question: An Order row stores customer_id = 42. What role is customer_id playing inside the Order entity?
-            options:
-              - It is the Order's primary key
-              - It is a foreign key pointing to the Customer entity
-              - It is an optional display label
-              - It is a session identifier
-            correct: 1
-            explanation: >-
-              Inside Order, customer_id points to a Customer record, so it is a foreign key. If you chose "primary key," you mixed up "identifies this row" with "references another row."
-          - id: keys-p6
-            type: multiple_choice
-            question: Why does key stability matter beyond the table where the key lives?
-            options:
-              - Stable keys make column names shorter
-              - Other entities may reference that key, so changing it can break relationships
-              - Stable keys automatically improve query speed
-              - Only unstable keys can be indexed
-            correct: 1
-            explanation: >-
-              Other entities depend on that key as a reference target. If you missed this, the misconception is treating key design as a local table concern instead of the backbone of relationships.
-          - id: keys-p8
-            type: true_false
-            question: A foreign key can safely point to a primary key that is occasionally updated, as long as the updates are small.
-            correct: 'false'
-            explanation: >-
-              Any change to a referenced primary key risks breaking every foreign key that points to it. Size of change does not matter — even a small edit creates a mismatch. Stability means no
-              changes, not small changes.
-      - id: choosing-key-types
-        instruction: >-
-          Once you know an entity needs a key, the next decision is what kind. Surrogate keys are system-generated IDs such as integers or UUIDs. Natural keys come from the business domain, like email
-          or SKU. Composite keys combine multiple fields. Surrogate keys are usually the safest default because they stay stable even when business data changes. Natural and composite keys can still be
-          useful, but only when their uniqueness and stability are truly dependable.
-        workedExample: >-
-          Suppose a User table uses email as its primary key. That feels convenient until someone changes their email address, or two employees share a team inbox. A surrogate user_id avoids that
-          instability, while email can remain a normal attribute with its own unique constraint if the business needs it.
-        instructionContent:
-          - type: callout
-            title: Safe default
-            body: >-
-              If the business field might change, let it be an attribute with a uniqueness rule and keep a surrogate ID as the true primary key.
-        problems:
-          - id: keys-p2
-            type: multiple_choice
-            question: A system-generated ID with no business meaning (like an auto-incrementing integer) is called what kind of key?
-            options:
-              - natural key
-              - surrogate key
-              - composite key
-              - foreign key
-            correct: 1
-            explanation: >-
-              A surrogate key is a system-generated identifier with no inherent business meaning. It is preferred over natural keys (like email or SSN) because surrogate keys are guaranteed to be
-              stable and unique.
-          - id: keys-p3
-            type: true_false
-            question: Using an email address as a primary key is always a good choice because every user has a unique email.
-            correct: 'false'
-            explanation: >-
-              Email addresses can change and they are not guaranteed to map cleanly to one durable identity. If you answered true, the likely mistake is confusing "often unique right now" with
-              "safe primary key for the life of the record." Surrogate keys are safer because they stay stable even when business data changes.
-          - id: keys-p9
-            type: scenario
-            question: >-
-              A Product table uses SKU as its primary key. The business decides to change the SKU format from '5-digit number' to 'prefix-5-digit' for all existing products. What risk does this create?
-            options:
-              - No risk — SKUs are just labels
-              - Every table with a foreign key referencing Product.sku must also be updated, which is error-prone at scale
-              - The database automatically cascades the change
-              - Only new products are affected
-            correct: 1
-            explanation: >-
-              Changing a natural key that is referenced as a foreign key in other tables requires coordinated updates everywhere. This is exactly why surrogate keys are the safer default — they never
-              need to change when business labels evolve. Cascade rules can help but add complexity and risk.
-    section: data-modeling-basics
-  - id: relationships
-    name: Relationships — How Entities Connect
-    difficulty: 3
-    estimatedMinutes: 12
-    tags:
-      - foundational
-      - data-modeling
-    prerequisites:
-      - entities
-      - keys-and-identity
-    encompassing: []
-    knowledgePoints:
-      - id: what-are-relationships
-        instruction: >-
-          A **relationship** describes how two entities interact or connect. In the sentence "Customers place Orders," the verb "places" is the relationship between the Customer entity and the Order entity.
-
-
-          Relationships are the verbs and prepositions in your system description. They have a direction (Customer places Order, not the reverse) and a name that describes the interaction.
-
-
-          **Implementation:** relationships are implemented through foreign keys — an attribute on one entity that references the primary key of another. For example, the Order entity would have a customer_id attribute that points to the Customer entity's primary key.
-
-
-          Without relationships, your entities would be isolated silos of data with no way to answer questions like "which customer placed this order?" or "what orders does this customer have?"
-        instructionContent:
-          - type: callout
-            title: Read the arrow carefully
-            body: >-
-              The foreign key usually lives on the side that has many records. In Customer -> Order, the relationship is implemented by customer_id on Order.
-          - type: link
-            url: https://www.lucidchart.com/pages/er-diagrams
-            title: Relationship and foreign-key visual guide
-            description: Helpful when a learner needs to see one-to-many and many-to-many relationships drawn out.
-        problems:
-          - id: relationships-p1
-            type: multiple_choice
-            question: In data modeling, how are relationships between entities typically implemented?
-            options:
-              - By storing all related data in a single large table
-              - By using foreign keys — an attribute on one entity that references the primary key of another
-              - By duplicating data across multiple entities
-              - By creating a separate configuration file
-            correct: 1
-            explanation: >-
-              Relationships are implemented through foreign keys. A foreign key is an attribute on one entity (like customer_id on Order) that references the primary key of another entity (Customer).
-              This creates a link between the two without duplicating data.
-          - id: relationships-p2
-            type: scenario
-            question: >-
-              You are designing a blog platform. Posts are written by Authors, and each Post can have many Comments. A junior developer suggests storing the author's name and email directly on every
-              Post record instead of using a foreign key to an Author entity. What is the main problem with this approach?
-            options:
-              - It makes the Post table too wide
-              - It creates data duplication — if the author changes their email, you must update every Post
-              - It violates naming conventions
-              - It makes the database slower to read
-            correct: 1
-            explanation: >-
-              Duplicating author data on every Post creates an update anomaly — if the author changes their email, you must find and update every Post record. Using a foreign key (author_id on Post
-              referencing the Author entity) means the email is stored once and changes propagate automatically.
-          - id: relationships-p3
-            type: true_false
-            question: Without relationships (foreign keys), you could still answer the question 'which customer placed this order?' using only the Order table.
-            correct: 'false'
-            explanation: >-
-              Without a foreign key connecting Order to Customer, the Order table has no reference to the Customer entity. You could not determine which customer placed which order. Relationships are
-              what make cross-entity questions answerable.
-      - id: optional-vs-mandatory
-        instruction: >-
-          Relationships can be **optional** or **mandatory**.
-
-
-          A **mandatory** relationship means every instance of one entity must be connected to the other. An Order must have a Customer — it makes no sense to have an order with no buyer.
-
-
-          An **optional** relationship means the connection may or may not exist. A Customer may have zero orders (they signed up but never purchased).
-
-
-          These participation rules reflect real business logic and prevent invalid data.
-
-
-          **In database terms:** mandatory relationships translate to NOT NULL foreign keys — the foreign key column cannot be empty. Optional relationships allow NULL foreign keys.
-
-
-          Getting this right matters for data quality. If your model says "every order must have a customer" but the database allows null customer_id, you will eventually get orphaned orders that break reports and analytics.
-        problems:
-          - id: optional-mandatory-p1
-            type: multiple_choice
-            question: In a system where every Invoice must belong to a Customer, but a Customer may have zero invoices, which statement is correct?
-            options:
-              - Both sides of the relationship are mandatory
-              - The Invoice-to-Customer side is mandatory; the Customer-to-Invoice side is optional
-              - Both sides of the relationship are optional
-              - The Customer-to-Invoice side is mandatory; the Invoice-to-Customer side is optional
-            correct: 1
-            explanation: >-
-              Every Invoice must have a Customer (mandatory from Invoice side — the foreign key customer_id cannot be null). But a Customer can exist without any Invoices (optional from Customer
-              side). This asymmetry is very common in real data models.
-          - id: optional-mandatory-p2
-            type: true_false
-            question: If a relationship is optional on one side, it must also be optional on the other side.
-            correct: 'false'
-            explanation: Relationships can have different participation on each side. An Order must have a Customer (mandatory), but a Customer may have zero Orders (optional). The two sides are independent.
-          - id: optional-mandatory-p3
-            type: scenario
-            question: >-
-              A User entity has a profile_photo_id foreign key pointing to a Photo entity. Some users have not uploaded a photo. Should this foreign key be NOT NULL or nullable?
-            options:
-              - NOT NULL — every user must have a photo
-              - Nullable — the relationship is optional because not every user has a photo
-              - Remove the foreign key and store the photo data directly on User
-              - Use a default placeholder photo_id that all users without photos share
-            correct: 1
-            explanation: >-
-              Since some users have no photo, the relationship is optional and the foreign key should be nullable. Making it NOT NULL would prevent creating users who have not uploaded a photo yet.
-              The placeholder option works but masks the optionality with a workaround rather than modeling it cleanly.
-    section: data-modeling-design
-  - id: cardinality
-    name: Cardinality — How Many of Each?
-    difficulty: 4
-    estimatedMinutes: 18
-    tags:
-      - foundational
-      - data-modeling
-    prerequisites:
-      - relationships
-    encompassing: []
-    knowledgePoints:
-      - id: cardinality-types
-        instruction: >-
-          Cardinality answers the question "how many of A can connect to how many of B?" There are three patterns to recognize. One-to-one means each side matches one instance on the other side.
-          One-to-many means one record on the left can connect to many on the right, but each right-side record points back to only one left-side record. Many-to-many means both sides can have many
-          matches. Cardinality is the bridge between business rules and table design.
-        instructionContent:
-          - type: callout
-            title: Read both directions
-            body: >-
-              Always say the relationship out loud both ways. "One customer has many orders" and "each order belongs to one customer" is how you confirm you are truly looking at one-to-many.
-        problems:
-          - id: cardinality-p1
-            type: multiple_choice
-            question: A single Author can write many Books, but each Book has exactly one Author. What is the cardinality of this relationship?
-            options:
-              - One-to-one
-              - One-to-many
-              - Many-to-many
-              - Many-to-one
-            correct: 1
-            explanation: One Author to many Books is a one-to-many (1:N) relationship. The foreign key (author_id) goes on the Book entity — the 'many' side.
-          - id: cardinality-p2
-            type: matching
-            question: Match each real-world scenario to its cardinality type.
-            options:
-              - Person and Social Security Number|One-to-one
-              - Department and Employees|One-to-many
-              - Students and Courses|Many-to-many
-              - Country and Capital City|One-to-one
-            correct: 0,1,2,3
-            explanation: >-
-              A Person has one SSN and vice versa (1:1). A Department has many Employees, each Employee in one Department (1:N). Students take many Courses and Courses have many Students (M:N). A
-              Country has one Capital and each Capital belongs to one Country (1:1).
-          - id: cardinality-p5
-            type: true_false
-            question: In a one-to-many relationship, records on the 'many' side can each point to a different record on the 'one' side.
-            correct: 'true'
-            explanation: >-
-              In one-to-many, each record on the 'many' side points to exactly one record on the 'one' side — but different 'many' records can point to different 'one' records. For example, different
-              Orders can belong to different Customers. If you answered false, you may have confused this with one-to-one.
-      - id: implementing-cardinality
-        instruction: >-
-          Once you know the cardinality, you can decide the implementation pattern. One-to-many is usually implemented with a foreign key on the many side. One-to-one often uses a foreign key plus a
-          unique constraint, or it may signal that two entities should really be one. Many-to-many cannot be represented by a single foreign key, so it becomes a join table. The key move is to derive
-          the storage pattern from the business rule instead of memorizing table shapes.
-        instructionContent:
-          - type: link
-            url: https://www.postgresql.org/docs/current/tutorial-fk.html
-            title: PostgreSQL foreign key tutorial
-            description: Use this when the learner wants to see how one-to-many relationships become actual foreign-key columns.
-        problems:
-          - id: cardinality-p3
-            type: scenario
-            question: >-
-              You are modeling a music streaming service. Users can create many Playlists, and each Playlist belongs to one User. However, each Playlist can contain many Songs, and each Song can
-              appear in many Playlists. Which relationship is many-to-many?
-            options:
-              - User to Playlist
-              - Playlist to Song
-              - User to Song
-              - Both User to Playlist and Playlist to Song
-            correct: 1
-            explanation: >-
-              Playlist to Song is many-to-many: a Playlist contains many Songs, and a Song can appear in many Playlists. User to Playlist is one-to-many: one User creates many Playlists, but each
-              Playlist has one creator.
-          - id: cardinality-p4
-            type: multiple_choice
-            question: In a one-to-many relationship, where does the foreign key go?
-            options:
-              - On the 'one' side
-              - On the 'many' side
-              - On both sides
-              - In a separate table
-            correct: 1
-            explanation: The foreign key always goes on the 'many' side. In Customer (one) to Orders (many), the Order table gets a customer_id foreign key. Each Order points to its one Customer.
-          - id: cardinality-p6
-            type: scenario
-            question: >-
-              You discover that a one-to-one relationship between Employee and ParkingPass is implemented with a foreign key on ParkingPass but no unique constraint. What could go wrong?
-            options:
-              - Nothing — the foreign key is sufficient
-              - Without a unique constraint, one employee could accidentally get multiple parking passes, violating the one-to-one rule
-              - The database will enforce one-to-one automatically
-              - ParkingPass should not have a foreign key at all
-            correct: 1
-            explanation: >-
-              A foreign key alone enforces referential integrity, not uniqueness. For one-to-one, you also need a unique constraint on the foreign key column so that no two ParkingPass rows point
-              to the same Employee. Without it, the relationship silently degrades to one-to-many.
-    section: data-modeling-design
-  - id: associative-entities
-    name: Associative Entities — Join Tables
-    difficulty: 4
-    estimatedMinutes: 14
-    tags:
-      - foundational
-      - data-modeling
-    prerequisites:
-      - cardinality
-    encompassing: []
-    knowledgePoints:
-      - id: resolving-many-to-many
-        instruction: >-
-          Many-to-many relationships cannot be implemented with one foreign-key column. You need a third entity, usually called a join table or associative entity, that turns one many-to-many into two
-          one-to-many relationships. Students and Courses become Enrollment. Orders and Products become OrderLineItem. The join table is not a workaround; it is the real entity that represents each
-          pairing.
-        instructionContent:
-          - type: callout
-            title: Think in pairings
-            body: >-
-              A join-table row represents one specific pairing: this student in this course, this product in this order, this user in this role.
-        problems:
-          - id: assoc-p1
-            type: multiple_choice
-            question: Why can't a many-to-many relationship be implemented with a simple foreign key?
-            options:
-              - Foreign keys only support numeric data types
-              - A single foreign key column can only point to one record, but many-to-many requires pointing to multiple records on both sides
-              - Most databases do not support foreign keys
-              - Many-to-many relationships are not allowed in data modeling
-            correct: 1
-            explanation: >-
-              A foreign key column holds one value pointing to one record. In a many-to-many, each Student relates to multiple Courses and vice versa — a single column cannot represent this. A join
-              table with rows for each pairing solves the problem.
-          - id: assoc-p2
-            type: multiple_choice
-            question: An associative entity that resolves a many-to-many relationship between Order and Product is commonly called what?
-            options:
-              - OrderStatus
-              - OrderLineItem
-              - CustomerProfile
-              - ProductCatalog
-            correct: 1
-            explanation: OrderLineItem (or line_item) is the classic join table between Order and Product. Each row represents one product in one order, with its own attributes like quantity and unit_price.
-          - id: assoc-p5
-            type: true_false
-            question: A join table (associative entity) is just a workaround for a database limitation and does not represent a real concept in the data model.
-            correct: 'false'
-            explanation: >-
-              A join table is a real entity that represents each specific pairing. Enrollment is a real thing (this student in this course), not just a technical workaround. It can have its own
-              attributes like enrollment_date and grade. If you answered true, revisit the idea that the pairing itself is a first-class concept.
-      - id: relationship-level-attributes
-        instruction: >-
-          The most important mental model is this: some facts belong to the relationship itself, not to either side of the relationship. Grade belongs to an Enrollment. Quantity belongs to an
-          OrderLineItem. Assigned_at belongs to a RoleAssignment. If you find yourself wondering where a fact goes, ask: "does this describe the left entity, the right entity, or this specific
-          pairing?"
-        workedExample: >-
-          In a hospital, Doctor and Patient are separate entities. But diagnosis_date and treatment_notes do not belong permanently to either Doctor or Patient. They describe one encounter between
-          them, so they belong on a Visit entity that links the two.
-        instructionContent:
-          - type: link
-            url: https://www.postgresql.org/docs/current/tutorial-fk.html
-            title: PostgreSQL foreign key tutorial
-            description: Once the learner accepts the join table as a real entity, this is the next step for seeing how the references are stored.
-        problems:
-          - id: assoc-p3
-            type: scenario
-            question: >-
-              A hospital system has Doctors and Patients with a many-to-many relationship (a doctor treats many patients, a patient sees many doctors). You need to track the date of each visit and the
-              diagnosis. Where should these attributes live?
-            options:
-              - On the Doctor entity
-              - On the Patient entity
-              - On an associative entity (e.g., Visit) between Doctor and Patient
-              - In a separate configuration table
-            correct: 2
-            explanation: >-
-              Visit date and diagnosis describe the specific interaction between a Doctor and a Patient — they belong on the associative entity (Visit). They are not properties of the Doctor or
-              Patient alone, but of the relationship between them.
-          - id: assoc-p4
-            type: scenario
-            question: >-
-              Users can have many Roles, and Roles can be granted to many Users. You also need to store assigned_by and assigned_at. Where should those two fields live?
-            options:
-              - On User, because the grant affects the user
-              - On Role, because the grant describes the role
-              - On a RoleAssignment join table between User and Role
-              - In a separate audit table only
-            correct: 2
-            explanation: >-
-              assigned_by and assigned_at describe one specific grant of one role to one user. That makes them attributes of the relationship row, not permanent attributes of User or Role alone.
-          - id: assoc-p6
-            type: multiple_choice
-            question: >-
-              An e-commerce system has Orders and Products linked through OrderLineItem. The attribute 'quantity' describes how many of a specific product are in a specific order. Where does 'quantity'
-              belong?
-            options:
-              - On the Order entity
-              - On the Product entity
-              - On the OrderLineItem (the join table)
-              - In a separate configuration table
-            correct: 2
-            explanation: >-
-              Quantity describes one specific pairing of one product in one order — it is a relationship-level attribute. It does not belong on Order (which may have many products) or on Product
-              (which appears in many orders). It belongs on the join table that represents that specific pairing.
-    section: data-modeling-design
-  - id: data-modeling-process
-    name: The Data Modeling Design Process
-    difficulty: 3
-    estimatedMinutes: 15
-    tags:
-      - foundational
-      - data-modeling
-    prerequisites:
-      - associative-entities
-    encompassing: []
-    knowledgePoints:
-      - id: five-step-workflow
-        instruction: >-
-          Data modeling works best as a fixed sequence. First identify entities. Then list attributes. Then define relationships. Then decide the cardinality of those relationships. Finally, resolve
-          many-to-many relationships into join tables. The value of the workflow is not paperwork. It prevents you from jumping into tables too early and hiding structural mistakes inside SQL.
-        instructionContent:
-          - type: callout
-            title: Sequence matters
-            body: >-
-              If you skip straight to table creation, you usually discover entity, relationship, and cardinality mistakes after code has already made them expensive.
-        problems:
-          - id: process-p1
-            type: ordering
-            question: Place these data modeling steps in the correct order.
-            options:
-              - Determine cardinality for each relationship
-              - Identify entities
-              - Resolve many-to-many into join tables
-              - List attributes for each entity
-              - Define relationships between entities
-            correct: 1,3,4,0,2
-            explanation: >-
-              The five steps in order: (1) Identify entities, (2) List attributes, (3) Define relationships, (4) Determine cardinality, (5) Resolve many-to-many. You must know your entities before
-              their attributes, and relationships before their cardinality.
-          - id: process-p3
-            type: multiple_choice
-            question: What is the main benefit of designing a data model before writing code or SQL?
-            options:
-              - It guarantees the system will never need changes
-              - It produces cleaner queries, fewer bugs, and a system that is easier to evolve
-              - It eliminates the need for a database entirely
-              - It makes the system run faster at the hardware level
-            correct: 1
-            explanation: >-
-              Upfront data modeling produces a well-structured foundation. This leads to cleaner queries, fewer bugs, and a system that is easier to evolve as new features arrive.
-          - id: process-p5
-            type: true_false
-            question: It is fine to write SQL CREATE TABLE statements before identifying entities and their relationships, as long as you refactor later.
-            correct: 'false'
-            explanation: >-
-              Jumping to tables before identifying entities, attributes, and relationships hides structural mistakes inside SQL that become expensive to fix. The five-step workflow exists to prevent
-              rework. If you answered true, the misconception is treating modeling as optional paperwork rather than a design step that prevents downstream bugs.
-      - id: applying-the-workflow
-        instruction: >-
-          The five-step process becomes useful only when you can run it on a real system description. The goal is to move from vague product prose to concrete modeling choices. At each step, ask a
-          narrower question than the last: what things exist, what facts matter, how do they connect, how many of each connect, and which many-to-many pairings need their own entity?
-        workedExample: >-
-          Model a simple library system. Step 1 — Entities: Book, Member, Loan. Step 2 — Attributes: Book (isbn, title, author, published_year), Member (member_id, name, email, joined_date), Loan
-          (loan_id, borrowed_date, due_date, returned_date). Step 3 — Relationships: Members borrow Books via Loans. Step 4 — Cardinality: One Member has many Loans. One Book has many Loans over
-          time. Step 5 — Loan is the associative entity resolving the many-to-many between Member and Book.
-        problems:
-          - id: process-p2
-            type: scenario
-            question: >-
-              A startup asks you to model their system: 'Users create Projects. Each Project has many Tasks. Users can be assigned to Tasks, and each Task can have multiple Users assigned.' You have
-              identified User, Project, and Task as entities. What is the next modeling decision you need to make?
-            options:
-              - Choose a database vendor
-              - Write SQL CREATE TABLE statements
-              - Recognize that User-to-Task is many-to-many and create an associative entity (e.g., TaskAssignment)
-              - Delete the Task entity since it is redundant with Project
-            correct: 2
-            explanation: >-
-              User-to-Task is many-to-many (one User has many Tasks, one Task has many Users). You need an associative entity like TaskAssignment with user_id, task_id, and potentially attributes like
-              assigned_date and role. This is step 5 of the data modeling process.
-          - id: process-p4
-            type: scenario
-            question: >-
-              You are modeling a subscription product. You have identified Customer and Plan. The business rule says one Customer can change Plans over time, and the team wants to keep started_at and
-              cancelled_at for each change. What is the next strong modeling move?
-            options:
-              - Put started_at and cancelled_at directly on Customer
-              - Create a Subscription entity linking Customer and Plan
-              - Delete Plan because the dates matter more than the plan itself
-              - Skip the model and let the application code track history
-            correct: 1
-            explanation: >-
-              Once the relationship itself has history and dates, it deserves its own entity. Subscription captures the pairing between Customer and Plan over time, instead of forcing that history into
-              Customer.
-          - id: process-p6
-            type: multiple_choice
-            question: >-
-              In the five-step modeling workflow, at which step do you decide that Student-to-Course needs a join table?
-            options:
-              - Step 1 — Identify entities
-              - Step 3 — Define relationships
-              - Step 4 — Determine cardinality
-              - Step 5 — Resolve many-to-many into join tables
-            correct: 3
-            explanation: >-
-              The decision to create a join table happens at step 5, after you have already identified entities, listed attributes, defined relationships, and determined cardinality. You must know
-              the relationship is many-to-many (step 4) before resolving it (step 5).
-    section: data-modeling-design
-  - id: what-is-a-pipeline
-    name: What Is a Data Pipeline?
-    difficulty: 2
-    estimatedMinutes: 14
-    tags:
-      - foundational
-      - pipelines
-    prerequisites:
-      - data-modeling-process
-    encompassing: []
-    knowledgePoints:
-      - id: pipeline-definition-and-flow
-        instruction: >-
-          A data pipeline is a system that moves data from where it is produced to where it is needed, and often transforms it on the way. The usual stages are source, ingestion, storage,
-          transformation, and serving. Different tools may collapse or rename those stages, but the core idea stays the same: get data in, preserve it safely, shape it, and deliver it to someone who
-          can use it.
-        instructionContent:
-          - type: image
-            url: https://posthog.com/images/products/data-pipeline/data-pipeline.png
-            alt: Data pipeline product overview showing flow between systems
-            caption: A concrete pipeline view helps learners map the abstract stages to a real product interface.
-            width: 960
-        problems:
-          - id: pipeline-p1
-            type: multiple_choice
-            question: What is a data pipeline?
-            options:
-              - A type of database optimized for storing large files
-              - A system that moves and transforms data from sources to destinations
-              - A programming language for writing SQL queries
-              - A physical cable connecting two servers
-            correct: 1
-            explanation: >-
-              A data pipeline is a system that moves data from where it is produced (sources) to where it is needed (destinations), transforming it along the way. It is a logical system, not a
-              physical object or a language.
-          - id: pipeline-p2
-            type: ordering
-            question: Place these data pipeline stages in the typical order.
-            options:
-              - Transform
-              - Ingest
-              - Serve/Analyze
-              - Store
-            correct: 1,3,0,2
-            explanation: >-
-              The typical flow is: Ingest (collect from sources), Store (land somewhere durable), Transform (clean and process), Serve/Analyze (deliver to consumers). Data must be collected before
-              stored, stored before transformed, and transformed before served.
-          - id: pipeline-p5
-            type: true_false
-            question: A data pipeline always includes all five stages (source, ingestion, storage, transformation, and serving) in every implementation.
-            correct: 'false'
-            explanation: >-
-              Different tools may collapse, rename, or skip stages. A simple pipeline might go straight from ingestion to serving without a separate transformation step. The five stages are a mental
-              model, not a mandatory checklist for every pipeline.
-      - id: pipeline-failure-points
-        instruction: >-
-          Once you know the stages, you can use them as a debugging map. Missing data often means the failure happened upstream. Stale data often means ingestion or transformation is delayed. Wrong
-          numbers often mean data arrived but the transformation or serving layer applied the wrong logic. A TAM does not need to memorize every vendor's internals to help. They need to ask which stage
-          first stopped behaving as expected.
-        instructionContent:
-          - type: callout
-            title: TAM lens
-            body: >-
-              When a customer says data is missing or stale, ask which stage failed first: source, ingestion, storage, transformation, or delivery.
-        problems:
-          - id: pipeline-p3
-            type: true_false
-            question: A data pipeline only moves data — it never modifies or transforms data along the way.
-            correct: 'false'
-            explanation: Pipelines both move AND transform data. Transformation is a core stage — cleaning, filtering, aggregating, joining, and reshaping data as it flows from source to destination.
-          - id: pipeline-p4
-            type: scenario
-            question: >-
-              Events are arriving at the platform, but the dashboard that depends on a daily aggregation has not updated since this morning. Which stage is the best first place to investigate?
-            options:
-              - The source system only
-              - The transformation or serving step that builds the aggregate
-              - The user's browser cache
-              - The entity-relationship model
-            correct: 1
-            explanation: >-
-              If raw events are arriving but the derived dashboard is stale, the likely failure is downstream in transformation or serving, not in the original event source.
-          - id: pipeline-p6
-            type: multiple_choice
-            question: >-
-              A customer reports that their data appears in the warehouse but the numbers in their dashboard look wrong. Which pipeline stage should a TAM investigate first?
-            options:
-              - The source system
-              - The ingestion step
-              - The transformation or serving layer
-              - The network connection between systems
-            correct: 2
-            explanation: >-
-              If data arrived in the warehouse but the numbers are wrong, the issue is likely in transformation (bad logic) or serving (wrong query or aggregation). The source and ingestion steps
-              worked because the data did land. Start downstream and work backward.
-    section: pipeline-basics
-  - id: sources-and-ingestion
-    name: Sources & Ingestion Patterns
-    difficulty: 3
-    estimatedMinutes: 15
-    tags:
-      - foundational
-      - pipelines
-    prerequisites:
-      - what-is-a-pipeline
-    encompassing: []
-    knowledgePoints:
-      - id: where-data-comes-from
-        instruction: >-
-          **Data sources** are any system that produces data your pipeline needs to consume. Common sources include:
-
-
-          **Application databases** (PostgreSQL, MySQL) — the operational databases your app writes to. **Event streams** (user clicks, pageviews, API calls) — real-time actions. **Third-party APIs** (Stripe for payments, Salesforce for CRM data). **Flat files** (CSVs, JSON exports). **Server logs** (access logs, error logs).
-
-
-          Sources differ in how they produce data. **Batch sources** produce data in chunks at intervals — a nightly database export, a weekly CSV from a vendor. **Streaming sources** produce data continuously in real-time — user clickstreams, IoT sensor readings, application event logs.
-
-
-          Batch is simpler to build and operate but introduces latency (data can be hours or days old). Streaming is faster (near real-time) but harder to build, debug, and operate. Most real-world pipelines use a mix of both.
-        instructionContent:
-          - type: callout
-            title: Classification shortcut
-            body: >-
-              First ask what system emits the data. Then ask whether it arrives continuously or on a schedule. That gives you both the source type and the operating pattern.
-        problems:
-          - id: sources-p1
-            type: multiple_choice
-            question: Which of the following is an example of a streaming data source?
-            options:
-              - A nightly CSV export from a vendor
-              - A weekly database backup
-              - Real-time user clickstream events from a web application
-              - A monthly financial report
-            correct: 2
-            explanation: >-
-              User clickstream events are produced continuously in real-time as users interact with the application — this is a streaming source. The other options are all batch sources (periodic
-              exports at fixed intervals).
-          - id: sources-p2
-            type: matching
-            question: Match each data source to its category.
-            options:
-              - User clickstream events|Streaming
-              - Nightly database export|Batch
-              - IoT sensor readings|Streaming
-              - Weekly CSV from a vendor|Batch
-            correct: 0,1,2,3
-            explanation: Clickstreams and IoT sensors produce data continuously (streaming). Nightly exports and weekly CSVs are produced at intervals (batch).
-          - id: sources-p3
-            type: true_false
-            question: Batch data sources always produce lower-quality data than streaming sources.
-            correct: 'false'
-            explanation: >-
-              Data quality depends on the source system and pipeline design, not on whether it is batch or streaming. A well-designed nightly export can be higher quality than a poorly instrumented
-              real-time stream. The batch vs streaming distinction is about latency and operational complexity, not data quality.
-      - id: ingestion-approaches
-        instruction: >-
-          **Ingestion** is the process of collecting data from sources into your pipeline. There are three main patterns.
-
-
-          **Pull-based ingestion:** the pipeline periodically requests data from the source. Example: a scheduled job that queries an API every hour. The pipeline controls the timing.
-
-
-          **Push-based ingestion:** the source sends data to the pipeline as it is produced. Example: a web application sends events to an analytics endpoint, or a webhook fires when a payment succeeds. The source controls the timing.
-
-
-          **Change Data Capture (CDC):** a specialized technique that watches a database's transaction log (WAL in PostgreSQL, binlog in MySQL) and captures every INSERT, UPDATE, and DELETE as it happens. CDC gives you streaming-like freshness from a batch source without querying the database directly — it reads the log instead.
-
-
-          Most product analytics tools (including PostHog) use push-based ingestion: your application sends events to their API.
-        workedExample: >-
-          Stripe sending a webhook when a payment succeeds is push-based ingestion. A cron job polling Salesforce every hour is pull-based ingestion. A connector reading PostgreSQL WAL records is CDC.
-          Same goal, different control point.
-        problems:
-          - id: ingestion-p1
-            type: multiple_choice
-            question: In push-based ingestion, who initiates the data transfer?
-            options:
-              - The pipeline requests data on a schedule
-              - The source sends data as it is produced
-              - A third-party orchestrator triggers both sides
-              - The database log is read directly
-            correct: 1
-            explanation: In push-based ingestion, the source sends data to the pipeline. A web app posting events to an analytics API is a classic example. The source controls the timing, not the pipeline.
-          - id: ingestion-p2
-            type: scenario
-            question: >-
-              Your company uses a third-party CRM (like Salesforce) that does not support webhooks. You need updated deal data in your warehouse every few hours. Which ingestion pattern is most
-              appropriate?
-            options:
-              - Push-based — have Salesforce send data to your pipeline
-              - Pull-based — schedule your pipeline to query the Salesforce API periodically
-              - Change Data Capture — read Salesforce's database logs
-              - Manual — have someone export a CSV daily
-            correct: 1
-            explanation: >-
-              Without webhook support, you cannot use push-based ingestion. You do not have access to Salesforce's database logs for CDC. Pull-based is the right choice: schedule your pipeline to call
-              the Salesforce API every few hours to fetch updated records.
-          - id: ingestion-p3
-            type: true_false
-            question: Change Data Capture (CDC) works by periodically querying a database for new rows.
-            correct: 'false'
-            explanation: >-
-              CDC does NOT query the database. It reads the database's transaction log (WAL/binlog) to capture every INSERT, UPDATE, and DELETE as it happens. This avoids putting query load on the
-              production database and provides near real-time data.
-    section: pipeline-basics
-  - id: storage-layers
-    name: Storage Layers — Where Data Lives
-    difficulty: 3
-    estimatedMinutes: 16
-    tags:
-      - foundational
-      - pipelines
-    prerequisites:
-      - sources-and-ingestion
-    encompassing: []
-    knowledgePoints:
-      - id: raw-lake-warehouse
-        instruction: >-
-          Data usually moves through layers as it becomes more useful. Raw storage or a landing zone is the first stop after ingestion. It keeps the original payload untouched so you can replay or
-          reprocess later. A data lake is cheap, flexible storage for large volumes of raw or semi-structured data. A data warehouse is optimized for analytical queries on structured tables. The same
-          data may move through all three layers, but each layer exists for a different reason.
-        instructionContent:
-          - type: callout
-            title: Same data, different jobs
-            body: >-
-              Raw storage protects recoverability, lakes protect cheap flexible retention, and warehouses protect query speed.
-        problems:
-          - id: storage-p1
-            type: multiple_choice
-            question: What is the primary advantage of keeping a raw storage layer in your pipeline?
-            options:
-              - Raw storage is the fastest to query
-              - It preserves original data so you can reprocess if something goes wrong downstream
-              - It eliminates the need for a data warehouse
-              - Raw storage automatically cleans and transforms data
-            correct: 1
-            explanation: >-
-              Raw storage is your safety net. By preserving the original data untouched, you can always go back and reprocess it if a transformation bug corrupts downstream data. Raw storage is not
-              fast to query — that is the warehouse's job.
-          - id: storage-p2
-            type: matching
-            question: Match each storage layer to its primary characteristic.
-            options:
-              - Raw storage|Preserves original data exactly as received
-              - Data lake|Cheap, flexible storage for semi-structured data
-              - Data warehouse|Optimized for fast analytical queries
-              - Landing zone|First place data lands after ingestion
-            correct: 0,1,2,3
-            explanation: >-
-              Raw storage and landing zone both describe the initial ingestion target (preserving original data). Data lakes prioritize cheap, flexible storage. Data warehouses prioritize fast
-              analytical queries with structured schemas.
-          - id: storage-p5
-            type: multiple_choice
-            question: Which storage layer is optimized for fast analytical queries on structured, schema-defined tables?
-            options:
-              - Raw storage / landing zone
-              - Data lake
-              - Data warehouse
-              - Application database (OLTP)
-            correct: 2
-            explanation: >-
-              Data warehouses are built for analytical query speed on structured data. Raw storage preserves originals, lakes store cheap flexible data, and OLTP databases optimize for transactional
-              writes, not analytical reads.
-      - id: choosing-storage-layers
-        instruction: >-
-          Choosing the right layer depends on the job. Use raw storage when recoverability matters. Use a lake when you need cheap retention of varied file types. Use a warehouse when people need to
-          ask analytical questions quickly. The mistake is expecting one layer to optimize for every outcome at once. Cheap flexible storage is not automatically fast, and fast structured analytics is
-          not automatically the best place to keep every original payload forever.
-        problems:
-          - id: storage-p3
-            type: true_false
-            question: A data warehouse is optimized for cheap storage of unstructured data like images and videos.
-            correct: 'false'
-            explanation: >-
-              A data warehouse is optimized for fast analytical queries on structured data (tables with defined schemas). Cheap storage of unstructured data is the role of a data lake (like S3).
-              Warehouses trade storage cost for query speed.
-          - id: storage-p4
-            type: scenario
-            question: >-
-              A transformation bug corrupted yesterday's aggregate tables. The team needs the original event payloads so they can rebuild the data correctly. Which storage layer is most important here?
-            options:
-              - The BI dashboard cache
-              - The raw landing zone
-              - The semantic layer only
-              - The metrics definition document
-            correct: 1
-            explanation: >-
-              The raw landing zone preserves the original data exactly as received. That is what lets the team rerun the downstream transformations after a bug.
-          - id: storage-p6
-            type: scenario
-            question: >-
-              A team asks: 'Can we just put everything in our data warehouse and skip the raw layer and lake?' What is the strongest argument against this?
-            options:
-              - Warehouses cannot store JSON data
-              - If a transformation bug corrupts warehouse data, you have no original copy to reprocess from
-              - Warehouses are always more expensive than lakes
-              - This approach violates database licensing rules
-            correct: 1
-            explanation: >-
-              Without a raw layer, you lose recoverability. If downstream transformation logic is wrong, you cannot replay the original data. The raw layer is your safety net, not redundant storage.
-    section: pipeline-basics
-  - id: transformation-etl-elt
-    name: Transformation — ETL vs ELT
-    difficulty: 4
-    estimatedMinutes: 15
-    tags:
-      - foundational
-      - pipelines
-    prerequisites:
-      - storage-layers
-    encompassing: []
-    knowledgePoints:
-      - id: what-transformation-does
-        instruction: >-
-          **Transformation** is the stage where raw data becomes usable data. It is where you clean, reshape, enrich, and aggregate. Common operations include:
-
-
-          **Cleaning** — removing duplicates, fixing null values, correcting data types. **Filtering** — dropping irrelevant records. **Joining** — combining data from multiple sources, such as enriching events with user attributes. **Aggregating** — summing, counting, averaging to turn raw events into metrics. **Normalizing** — standardizing formats like dates, currencies, or country codes.
-
-
-          For example, raw event data might look like individual "user_clicked_button" records with timestamps. After transformation, you might have an aggregated table of "daily_clicks_per_user" that is much easier to query.
-
-
-          Transformation is where **business logic** lives. The rules about what counts as an "active user" or how "revenue" is calculated are encoded in transformation steps.
-        instructionContent:
-          - type: image
-            url: https://posthog.com/images/products/data-warehouse/screenshot-data-warehouse.png
-            alt: PostHog data warehouse interface for querying transformed data
-            caption: Warehouses expose the outputs of transformation work in a form analysts and TAMs can inspect directly.
-            width: 960
-          - type: callout
-            title: Important distinction
-            body: >-
-              Instrumentation creates raw facts. Transformation turns those facts into business definitions like active users, MRR, or qualified accounts.
-        problems:
-          - id: transform-p1
-            type: multiple_choice
-            question: Which of the following is NOT a common transformation operation?
-            options:
-              - Removing duplicate records
-              - Aggregating raw events into daily summaries
-              - Collecting data from a third-party API
-              - Joining event data with user profile data
-            correct: 2
-            explanation: >-
-              Collecting data from an API is ingestion, not transformation. Transformation operates on data already in the pipeline — deduplication, aggregation, and joining are all transformation
-              operations.
-          - id: transform-p2
-            type: multiple_choice
-            question: The transformation stage is where what kind of logic is encoded — rules like what counts as an active user or how revenue is calculated?
-            options:
-              - business logic
-              - presentation logic
-              - authentication logic
-              - transport logic
-            correct: 0
-            explanation: >-
-              Business logic lives in the transformation layer. Definitions like 'active user = logged in within last 30 days' or 'MRR = sum of all active subscription amounts' are transformation
-              rules that turn raw data into meaningful metrics.
-          - id: transform-p3
-            type: scenario
-            question: >-
-              Two teams at the same company disagree on the definition of 'active user.' The marketing team counts anyone who logged in, while the product team counts anyone who performed a core action.
-              Where should this definition be codified?
-            options:
-              - In the application code
-              - In the transformation layer as a documented business rule
-              - In the BI dashboard configuration
-              - In the source database schema
-            correct: 1
-            explanation: >-
-              Business definitions like 'active user' belong in the transformation layer where raw data becomes metrics. This is where business logic lives. Codifying it there ensures all downstream
-              consumers use the same definition instead of each team computing their own version.
-      - id: etl-vs-elt
-        instruction: >-
-          There are two major approaches to when transformation happens.
-
-
-          **ETL (Extract, Transform, Load):** data is extracted from sources, transformed in a separate processing system, and then loaded into the destination warehouse. This was the traditional approach when storage was expensive — you only stored the clean, transformed data.
-
-
-          **ELT (Extract, Load, Transform):** data is extracted from sources, loaded raw into the destination, and then transformed inside the warehouse using SQL or the warehouse's own compute engine. This is the modern approach, enabled by cheap cloud storage (S3, GCS).
-
-
-          The advantage of ELT is **flexibility:** if your business logic changes, you can re-transform from the raw data without re-ingesting. You also preserve the original data for auditing.
-
-
-          Most modern analytics systems, including PostHog, use an ELT-like pattern: events are ingested raw, stored in ClickHouse, and then queried and transformed at read time using HogQL.
-        problems:
-          - id: etl-elt-p1
-            type: multiple_choice
-            question: What is the key difference between ETL and ELT?
-            options:
-              - ETL uses SQL; ELT uses Python
-              - ETL transforms data before loading it into the warehouse; ELT loads raw data first and transforms inside the warehouse
-              - ETL is for batch data; ELT is for streaming data
-              - ETL is open source; ELT is proprietary
-            correct: 1
-            explanation: >-
-              The difference is when transformation happens. ETL transforms before loading (data enters the warehouse already clean). ELT loads raw data first and transforms inside the warehouse. ELT
-              is the modern approach enabled by cheap storage.
-          - id: etl-elt-p2
-            type: true_false
-            question: ELT became practical because cloud storage costs dropped, making it affordable to store raw data and transform later.
-            correct: 'true'
-            explanation: >-
-              Cheap cloud storage (S3, GCS, Azure Blob) is the key enabler of ELT. When storage was expensive, you had to transform before loading to minimize what you stored (ETL). Now you can afford
-              to keep everything raw and transform on demand.
-          - id: etl-elt-p3
-            type: scenario
-            question: Your company realizes their definition of 'active user' was wrong for the past 6 months. Under which approach can you fix the historical data without re-ingesting from the source?
-            options:
-              - ETL — because the transformed data is already clean
-              - ELT — because the raw data is preserved in the warehouse and you can re-transform it
-              - Neither — you must always re-ingest from the source
-              - Both — there is no difference for this scenario
-            correct: 1
-            explanation: >-
-              ELT preserves the raw data in the warehouse. When business logic changes, you can re-run transformations on the existing raw data. With ETL, raw data is discarded after transformation,
-              so you would need to re-ingest from the source (if it is even still available).
-    section: pipeline-architecture
-  - id: orchestration-and-serving
-    name: Orchestration & Serving Data
-    difficulty: 3
-    estimatedMinutes: 10
-    tags:
-      - foundational
-      - pipelines
-    prerequisites:
-      - transformation-etl-elt
-    encompassing: []
-    knowledgePoints:
-      - id: workflow-orchestration
-        instruction: >-
-          Pipelines have multiple steps that must run in a specific order with specific dependencies. **Orchestration** is the coordination of these steps.
-
-
-          An orchestrator schedules and manages execution: extract data from source A, then transform it, then load it, then refresh the dashboard. If the extract step fails, the transform step should not run.
-
-
-          Tasks are organized as a **DAG — a Directed Acyclic Graph**. "Directed" means edges have a direction (step A must complete before step B). "Acyclic" means there are no loops (step B cannot depend on step C which depends on step B).
-
-
-          The orchestrator handles four jobs: **scheduling** (run this pipeline every hour), **dependency management** (only run step B after step A succeeds), **retries** (if a step fails, retry it), and **alerting** (notify the team if a pipeline fails).
-
-
-          Common orchestration tools include Apache Airflow, Dagster, Prefect, and dbt for transformation-specific orchestration.
-        instructionContent:
-          - type: callout
-            title: Orchestration is control flow
-            body: >-
-              The orchestrator is not the data itself. It is the system that decides what runs next, what retries, and what should stop when an upstream step fails.
-        problems:
-          - id: orch-p1
-            type: multiple_choice
-            question: >-
-              A data pipeline has four stages: Extract → Validate → Transform → Load. The Transform stage needs output from both Extract and Validate. Which property of a DAG makes this dependency structure possible?
-            options:
-              - DAGs allow circular dependencies so Transform can wait for both inputs
-              - DAGs are directed and acyclic — each stage runs only after all its upstream dependencies complete, and no stage can depend on itself or create a loop
-              - DAGs process all stages simultaneously in parallel
-              - DAGs require each stage to have exactly one input and one output
-            correct: 1
-            explanation: >-
-              A Directed Acyclic Graph (DAG) models pipeline stages as nodes with directed edges showing dependencies. 'Directed' means edges have a direction (Extract → Transform, not the reverse). 'Acyclic' means no loops — you can't have Transform depend on Load which depends on Transform. This structure lets orchestrators like Airflow or Dagster determine execution order: run Extract and Validate first (no dependencies), then Transform (waits for both), then Load (waits for Transform).
-            difficulty: 3
-          - id: orch-p2
-            type: true_false
-            question: In a pipeline DAG, it is acceptable for step B to depend on step C, and step C to depend on step B.
-            correct: 'false'
-            explanation: A DAG is acyclic — no circular dependencies are allowed. If B depends on C and C depends on B, neither can ever start. This is a cycle, which the orchestrator would reject.
-          - id: orch-p3
-            type: scenario
-            question: >-
-              A pipeline has three steps: Extract from API, Transform data, Load into warehouse. The Extract step fails due to an API timeout. What should a well-configured orchestrator do?
-            options:
-              - Run Transform and Load anyway with whatever data is available
-              - Skip all remaining steps, retry Extract according to its retry policy, and alert the team if retries are exhausted
-              - Delete the partially extracted data and start over tomorrow
-              - Ignore the failure and mark the run as successful
-            correct: 1
-            explanation: >-
-              A good orchestrator respects dependencies: if Extract fails, Transform should not run because it has no input. The orchestrator retries the failed step and alerts the team if retries
-              are exhausted. Running downstream steps on incomplete data produces silently wrong results.
-      - id: serving-data
-        instruction: >-
-          Once data is processed, it must be delivered to the people and systems that need it. This is the **serving layer**.
-
-
-          **Common consumers:** BI dashboards (Looker, Metabase, Grafana) for business metrics and KPIs. Data scientists and ML engineers who need clean datasets for model training. Product analytics tools for understanding user behavior. Internal applications for reporting, billing, or customer-facing features.
-
-
-          **Common serving patterns:** direct warehouse access (users query the warehouse with SQL), semantic or metrics layers (a shared definition of metrics that dashboards and tools can reference), APIs (REST or GraphQL endpoints that serve processed data to applications), and cached materialized views (pre-computed query results for frequently accessed data).
-
-
-          The choice of serving layer depends on the consumer. Analysts want SQL access. Product managers want dashboards. Applications want APIs.
-        workedExample: >-
-          One warehouse can serve three audiences at once: analysts query it directly in SQL, executives see KPIs through a BI dashboard, and the product surface calls an API backed by curated
-          warehouse tables. The serving pattern changes with the consumer, not with the raw data itself.
-        problems:
-          - id: serving-p1
-            type: multiple_choice
-            question: Which serving pattern is most appropriate for a product manager who needs a weekly KPI dashboard?
-            options:
-              - Direct SQL access to the data warehouse
-              - A BI dashboard tool (like Looker or Metabase) connected to the warehouse
-              - A raw data dump to their email
-              - An API endpoint returning JSON
-            correct: 1
-            explanation: >-
-              BI dashboards are designed for non-technical consumers who need visual, regularly updated KPI views. Direct SQL access suits analysts. APIs suit applications. Raw data dumps are not
-              user-friendly.
-          - id: serving-p2
-            type: matching
-            question: Match each data consumer to their ideal serving pattern.
-            options:
-              - Data analyst|Direct SQL access to the warehouse
-              - Product manager|BI dashboard
-              - Mobile app|REST API endpoint
-              - ML engineer|Clean dataset export or warehouse access
-            correct: 0,1,2,3
-            explanation: Analysts want SQL flexibility. PMs want visual dashboards. Apps need programmatic API access. ML engineers need structured datasets for training.
-          - id: serving-p3
-            type: true_false
-            question: The best serving pattern is always direct SQL access to the warehouse because it is the most flexible.
-            correct: 'false'
-            explanation: >-
-              The best serving pattern depends on the consumer. Analysts benefit from SQL access, but product managers need dashboards, and applications need APIs. Flexibility for one consumer does
-              not mean it is the best choice for all consumers.
-    section: pipeline-architecture
-  - id: pipeline-tradeoffs
-    name: Pipeline Tradeoffs — Latency, Cost, Complexity
-    difficulty: 4
-    estimatedMinutes: 15
-    tags:
-      - foundational
-      - pipelines
-    prerequisites:
-      - orchestration-and-serving
-    encompassing: []
-    knowledgePoints:
-      - id: three-tensions
-        instruction: >-
-          Every pipeline design pulls on three tensions at once: latency, cost, and complexity. Lower latency usually means more infrastructure and more operational burden. Simpler batch systems are
-          cheaper and easier to debug, but the data is less fresh. The right question is not "can we make this real time?" It is "what freshness does this use case actually need?"
-        problems:
-          - id: tradeoffs-p1
-            type: multiple_choice
-            question: Which of the following correctly describes the tradeoff between batch and streaming pipelines?
-            options:
-              - Batch is always better because it is faster
-              - Streaming is always better because it is cheaper
-              - Streaming offers lower latency but higher cost and complexity compared to batch
-              - There is no meaningful difference between batch and streaming
-            correct: 2
-            explanation: >-
-              Streaming delivers data faster (lower latency) but costs more to build and operate (higher cost and complexity). Batch is simpler and cheaper but data is less fresh. The right choice
-              depends on your requirements.
-          - id: tradeoffs-p3
-            type: true_false
-            question: For most analytics use cases, real-time data freshness (sub-second latency) is required.
-            correct: 'false'
-            explanation: >-
-              Most analytics questions are fine with minutes-to-hours of latency. Real-time should be chosen for a demonstrated need, not as a default badge of sophistication.
-          - id: tradeoffs-p5
-            type: scenario
-            question: >-
-              A team wants to build a real-time streaming pipeline for a weekly executive summary report. What is the main concern with this approach?
-            options:
-              - Streaming pipelines cannot produce summary reports
-              - The added cost and complexity of streaming is not justified when the data only needs to be fresh once a week
-              - Weekly reports require a data lake, not a stream
-              - Real-time pipelines do not support aggregation
-            correct: 1
-            explanation: >-
-              The right question is 'what freshness does this use case actually need?' A weekly report needs weekly freshness, not sub-second latency. Building a streaming pipeline for this use
-              case adds unnecessary cost and complexity. Batch is the better fit.
-      - id: operational-safety
-        instruction: >-
-          Once a pipeline is in production, two safety requirements matter constantly. Idempotency means the pipeline can be rerun without producing duplicate or conflicting results. Monitoring means
-          you notice failures, delays, null spikes, schema changes, and suspicious row counts before customers do. These are not optional polish items. They are what make a pipeline survivable in the
-          real world.
-        instructionContent:
-          - type: callout
-            title: Production rule
-            body: >-
-              A pipeline that cannot be rerun safely and cannot alert on bad output will eventually fail in a way that is expensive to untangle.
-        problems:
-          - id: tradeoffs-p2
-            type: scenario
-            question: >-
-              Your pipeline occasionally fails halfway through processing. When restarted, it creates duplicate rows in the warehouse. A colleague suggests making the pipeline idempotent. What does
-              this mean?
-            options:
-              - The pipeline should run faster to avoid failures
-              - The pipeline should be safe to rerun without creating duplicate data
-              - The pipeline should skip failed records and continue
-              - The pipeline should send an alert when it fails
-            correct: 1
-            explanation: >-
-              Idempotency means the pipeline produces the same result whether it runs once or multiple times. If restarted after a failure, it should not create duplicates. Techniques include upserts
-              (INSERT ... ON CONFLICT UPDATE) and deduplication checks.
-          - id: tradeoffs-p4
-            type: scenario
-            question: >-
-              A daily pipeline still runs, but today's row count is 90% lower than normal because an upstream schema change dropped a key field. Which capability would have caught this fastest?
-            options:
-              - Lower latency infrastructure
-              - Monitoring on row counts and schema expectations
-              - A different primary key design
-              - Moving the data to a lake instead of a warehouse
-            correct: 1
-            explanation: >-
-              This is exactly what monitoring is for. Healthy production pipelines watch both failures and suspicious outputs so teams can catch silent bad data before users trust it.
-          - id: tradeoffs-p6
-            type: true_false
-            question: An idempotent pipeline produces different results when rerun multiple times on the same input data.
-            correct: 'false'
-            explanation: >-
-              Idempotent means the pipeline produces the same result whether it runs once or many times on the same input. If rerunning creates duplicates or different outputs, the pipeline is not
-              idempotent, which makes recovery from failures risky.
-    section: pipeline-architecture
+  # ============================================================
+  # Section: posthog-data-model
+  # ============================================================
   - id: ph-events
     name: PostHog Events — The Atomic Unit
     difficulty: 3
@@ -1592,9 +114,9 @@ concepts:
       - data-model
     sourceRef: https://posthog.com/docs/new-to-posthog/understand-posthog
     prerequisites:
-      - what-is-a-pipeline
+      - data-pipelines:what-is-a-pipeline
     encompassing:
-      - concept: entities
+      - concept: data-models:entities
         weight: 0.35
     knowledgePoints:
       - id: what-is-a-posthog-event
@@ -1816,19 +338,6 @@ concepts:
             explanation: >-
               Custom properties are schemaless — you can send any key-value pair in your capture call and PostHog will accept it. No pre-registration or UI configuration is needed. Properties appear
               in the UI automatically after the first event containing them is captured.
-          - id: ph-props-p4
-            type: scenario
-            question: >-
-              A customer wants to track which pricing plan a user is on when they perform any action in the app. They're debating two approaches: (A) send `plan: 'pro'` as an event property on every capture() call, or (B) set it once as a person property using $set. Which approach is better and why?
-            options:
-              - Approach A — event properties are more reliable than person properties
-              - Approach B — the plan is an attribute of the user, not the event. Setting it as a person property with $set means it's always available on every event via person property filters without needing to send it repeatedly
-              - Both are equally valid — it's a matter of preference
-              - Neither — plan should be tracked as a group property on the company
-            correct: 1
-            explanation: >-
-              Properties that describe the user (plan, role, company) belong as person properties. Properties that describe the specific action (button clicked, page URL, amount) belong as event properties. Using $set for `plan` means: (1) you set it once on login/plan change, (2) it's automatically available for filtering on all past and future events via person property filters, (3) you don't bloat every event payload. Approach A would work but creates redundant data and risks inconsistency if a capture() call forgets to include it.
-            difficulty: 4
       - id: event-vs-person-properties
         instruction: >-
           PostHog has two types of properties that are often confused: **event properties** and **person properties**.
@@ -1901,12 +410,12 @@ concepts:
     sourceRef: https://posthog.com/docs/data/persons
     prerequisites:
       - ph-events
-      - keys-and-identity
-      - relationships
+      - data-models:keys-and-identity
+      - data-models:relationships
     encompassing:
-      - concept: keys-and-identity
+      - concept: data-models:keys-and-identity
         weight: 0.7
-      - concept: relationships
+      - concept: data-models:relationships
         weight: 0.45
     knowledgePoints:
       - id: what-is-a-person
@@ -1959,16 +468,15 @@ concepts:
         problems:
           - id: ph-persons-p3a
             type: multiple_choice
-            question: >-
-              A customer has Product Analytics dashboards working but reports that their feature flag targeting rules are not matching any users. They confirm events are flowing. What is the most likely cause?
+            question: Which activity still works even if a project has event data but no usable person profiles?
             options:
-              - The feature flag has a syntax error in the targeting rule
-              - Events are being captured without person profiles — feature flags require identified users with person profiles
-              - The CDN is caching the old flag value
-              - PostHog's feature flag service is experiencing downtime
-            correct: 1
+              - Cohort targeting for feature flags
+              - Consistent experiment bucketing per user
+              - Counting total pageviews by day
+              - Inspecting one user's merged identity history
+            correct: 2
             explanation: >-
-              Feature flags evaluate targeting rules against person profiles. If events are captured anonymously (no identify() call, or person processing is off), no person profiles exist, and flag targeting has nothing to match against. The fix is to ensure identify() is called so person profiles are created.
+              Aggregate event counting still works because it does not require stable person identity. The other choices all depend on knowing which events belong to which user over time.
           - id: ph-persons-p4
             type: scenario
             question: >-
@@ -2068,6 +576,12 @@ concepts:
             correct: 1
             explanation: >-
               $set always overwrites the current value, regardless of what was there before. $set_once only writes the value if the property does not already exist on the person profile.
+          - id: ph-personprops-p3
+            type: true_false
+            question: If you call $set_once with a property that already has a value on the person profile, PostHog will overwrite it with the new value.
+            correct: 'false'
+            explanation: >-
+              $set_once explicitly does NOT overwrite existing values. If the property already has a value, $set_once silently does nothing.
           - id: ph-personprops-p5
             type: scenario
             question: >-
@@ -2106,16 +620,15 @@ concepts:
               $set_once for marketing channel preserves the original acquisition source. $set for plan ensures it always reflects the current subscription tier.
           - id: ph-personprops-p4
             type: multiple_choice
-            question: >-
-              A customer tracks both `current_plan` (changes on upgrade/downgrade) and `original_signup_source` (should never change). They're using `$set` for both. What problem will this cause and how should they fix it?
+            question: To set person properties that should never change after their initial value (like signup_source), which operator should you use?
             options:
-              - No problem — $set is correct for both since it always keeps the latest value
-              - '`original_signup_source` will be overwritten if the customer re-visits from a different source — use `$set_once` for it instead'
-              - Both properties should use `$set_once` to prevent any changes
-              - '`current_plan` will stop updating — they need to use `$set_once` for it'
-            correct: 1
+              - $set
+              - $append
+              - $set_once
+              - $identify
+            correct: 2
             explanation: >-
-              `$set` always overwrites with the latest value, which is correct for `current_plan` (you want it to reflect the current state). But `original_signup_source` should be immutable — `$set_once` writes only if the property has no existing value, preserving the first-touch attribution. The fix: use `$set` for mutable properties and `$set_once` for immutable ones.
+              Use `$set_once` when the first value should win. If you chose `$set`, you would keep overwriting the history you were trying to preserve.
           - id: ph-personprops-p6
             type: multiple_choice
             question: A customer wants to track both a user's current plan and their original signup date. Which combination of operators is correct?
@@ -2139,9 +652,9 @@ concepts:
     sourceRef: https://posthog.com/docs/data/persons
     prerequisites:
       - ph-persons
-      - keys-and-identity
+      - data-models:keys-and-identity
     encompassing:
-      - concept: keys-and-identity
+      - concept: data-models:keys-and-identity
         weight: 0.8
     knowledgePoints:
       - id: what-is-distinct-id
@@ -2344,19 +857,6 @@ concepts:
             explanation: >-
               Server-side SDKs do NOT auto-generate or attach $session_id. You must manually pass it if you want server events associated with a session. Only the JS web SDK and mobile SDKs handle
               this automatically.
-          - id: ph-sessions-p4
-            type: scenario
-            question: >-
-              A customer reports that their Session Replay recordings all appear as short 1-2 minute fragments instead of full user sessions. Users are navigating a single-page app (SPA) and sessions should be 10-15 minutes long. What is the most likely cause?
-            options:
-              - The Session Replay sampling rate is set too low
-              - The SPA is re-initializing the PostHog SDK on each route change, generating new session IDs
-              - PostHog's 30-minute inactivity timeout is too aggressive for their use case
-              - ClickHouse is splitting sessions during ingestion due to high event volume
-            correct: 1
-            explanation: >-
-              In a single-page app, if the PostHog SDK is re-initialized on each route change (e.g., calling posthog.init() inside a component that remounts), each initialization generates a new $session_id. This fragments what should be one continuous session into many short ones. The fix: initialize the SDK once at the app root level, not inside route-level components. The 30-minute timeout and 24-hour max duration are unlikely culprits since users are actively navigating.
-            difficulty: 4
       - id: session-properties
         instruction: >-
           PostHog computes **session-level properties** automatically from the events within a session. These are distinct from event properties and person properties — they describe the visit as a whole.
@@ -2441,6 +941,12 @@ concepts:
             explanation: >-
               An action is a saved grouping of events defined in PostHog's UI. It lets you combine multiple related events into one analytical unit. Actions are not custom events and are not defined
               in code.
+          - id: ph-actions-p2
+            type: true_false
+            question: Actions in PostHog only apply to events captured after the action is created.
+            correct: 'false'
+            explanation: >-
+              Actions apply retroactively. When you create a new action, it immediately matches all historical events that fit the criteria because actions are saved filters, not rewritten event data.
           - id: ph-actions-p5
             type: multiple_choice
             question: When you create a new action in PostHog, does it generate new event data or work with existing events?
@@ -2495,437 +1001,10 @@ concepts:
               Autocapture-based actions depend on UI element properties (text, selectors, position) that change with redesigns. For mission-critical metrics, a custom event fired explicitly in
               code is the stronger foundation because it survives UI changes. Actions are great as a convenience layer, not as the sole source of truth for revenue.
     section: posthog-data-model
-  - id: ph-event-capture
-    name: Event Capture — SDKs, API, and Autocapture
-    difficulty: 3
-    estimatedMinutes: 15
-    tags:
-      - posthog
-      - ingestion
-    sourceRef: https://posthog.com/docs/product-analytics/capture-events
-    prerequisites:
-      - ph-events
-      - ph-event-properties
-    encompassing: []
-    knowledgePoints:
-      - id: how-events-enter-posthog
-        instruction: >-
-          Events reach PostHog through three surfaces: client-side SDKs, server-side SDKs, and the raw HTTP API. Client SDKs run in the browser or app, auto-generate anonymous IDs, and can observe UI
-          behavior like pageviews or autocapture. Server SDKs run on your backend, require an explicit distinct_id, and are better for backend actions such as API calls or jobs. The HTTP API is the
-          lowest-level option when you need to send capture requests without an official SDK.
-        instructionContent:
-          - type: image
-            url: https://posthog.com/images/products/product-os/event-pipelines.png
-            alt: Event pipeline illustration showing data flowing from sources through PostHog
-            caption: This visual helps learners connect the capture surface to the metadata and capabilities each path can provide.
-            width: 960
-          - type: link
-            url: https://posthog.com/docs/product-analytics/capture-events
-            title: Capturing events docs
-            description: Official reference for SDK behavior and capture examples.
-        problems:
-          - id: ph-capture-p1
-            type: multiple_choice
-            question: Which type of PostHog SDK supports autocapture and session recording?
-            options:
-              - Server-side SDKs (Node.js, Python, Go)
-              - Client-side SDKs (JS web, React Native, iOS, Android)
-              - Both client-side and server-side SDKs equally
-              - Neither — autocapture requires a separate tool
-            correct: 1
-            explanation: >-
-              Only client-side SDKs support autocapture and session recording because they run in the user's browser or app and can observe UI interactions directly.
-          - id: ph-capture-p2
-            type: matching
-            question: Match each SDK type to its characteristic.
-            options:
-              - Client-side SDK|Auto-generates distinct_id, supports autocapture
-              - Server-side SDK|Best for backend jobs, webhooks, and API routes where no browser context exists
-              - HTTP API|Direct POST to /capture endpoint without SDK
-              - JS web SDK|Supports session recording and the toolbar
-            correct: 0,1,2,3
-            explanation: >-
-              Client-side SDKs handle identity and autocapture automatically. Server-side SDKs need manual distinct_id and lack UI features. The HTTP API is the raw endpoint.
-      - id: choosing-a-capture-surface
-        instruction: >-
-          All three capture surfaces use a push model: your systems send events to PostHog. The important design choice is which surface owns the event. Use a client SDK when the event depends on UI
-          context like page URL or session behavior. Use a server SDK when the event is a backend fact such as a webhook, billing job, or API outcome. Use the HTTP API when you need raw transport
-          without an official SDK or when building a custom integration layer.
-        instructionContent:
-          - type: link
-            url: https://posthog.com/docs/how-posthog-works
-            title: PostHog architecture overview
-            description: Reference when a learner wants to see capture API, ingestion, and storage in one picture.
-        problems:
-          - id: ph-capture-p3
-            type: true_false
-            question: PostHog uses a pull-based ingestion model, periodically fetching data from your application.
-            correct: 'false'
-            explanation: PostHog uses push-based ingestion. Your application sends events to PostHog's capture endpoint via SDKs or the HTTP API.
-          - id: ph-capture-p4
-            type: scenario
-            question: >-
-              A backend worker written in an unsupported language needs to send billing events into PostHog with an explicit user ID. Which capture path is the best fit?
-            options:
-              - The JS web SDK
-              - A session replay integration
-              - The raw HTTP capture API
-              - Autocapture only
-            correct: 2
-            explanation: >-
-              If there is no official SDK, the raw HTTP capture API is the fallback surface. It still lets the worker push events into PostHog with an explicit distinct_id.
-          - id: ph-capture-p6
-            type: scenario
-            question: >-
-              A customer needs to track when a webhook from Stripe confirms a successful payment. The event happens entirely on the server with no UI involved. Which capture surface should they use?
-            options:
-              - The JS web SDK with autocapture
-              - A server-side SDK (e.g., Node.js, Python) with an explicit distinct_id
-              - Session recording
-              - The PostHog toolbar
-            correct: 1
-            explanation: >-
-              Backend events like webhook confirmations have no UI context. A server-side SDK is the right choice because it runs on the backend and lets you explicitly set the distinct_id to the
-              customer who made the payment.
-    section: posthog-ingestion
-  - id: ph-ingestion-pipeline
-    name: The Ingestion Pipeline — Kafka to ClickHouse
-    difficulty: 5
-    estimatedMinutes: 18
-    tags:
-      - posthog
-      - ingestion
-    sourceRef: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
-    prerequisites:
-      - ph-event-capture
-      - storage-layers
-    encompassing: []
-    knowledgePoints:
-      - id: why-not-straight-to-db
-        instruction: >-
-          PostHog does not write events directly into ClickHouse (its analytics database). Instead, events land in **Apache Kafka** first — a distributed message queue designed for high-throughput, durable message streaming.
 
-
-          Why the indirection? Three reasons:
-
-
-          **Resilience:** if ClickHouse is temporarily slow, overloaded, or undergoing maintenance, events queue up safely in Kafka rather than being lost or causing backpressure on the capture API.
-
-
-          **Throughput:** Kafka can absorb massive bursts of events and smooth them out for ClickHouse to consume at a steady rate.
-
-
-          **Decoupling:** the capture API and ClickHouse do not need to know about each other — Kafka sits between them as a buffer.
-
-
-          This is the same pattern described in pipeline fundamentals: a message queue between ingestion and storage makes the pipeline more resilient and scalable. The capture API's only job is to validate the event and write it to Kafka. Everything else — person processing, property enrichment, storage — happens downstream.
-        instructionContent:
-          - type: callout
-            title: Mental model
-            body: >-
-              Capture API -> Kafka buffer -> downstream consumers -> ClickHouse. Kafka buys resilience by absorbing bursts and outages between ingestion and storage.
-          - type: link
-            url: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
-            title: Ingestion pipeline diagram
-            description: Use this when explaining why Kafka exists and what happens after the capture endpoint accepts an event.
-        problems:
-          - id: ph-pipeline-p1
-            type: multiple_choice
-            question: Why does PostHog write events to Kafka before ClickHouse instead of directly to ClickHouse?
-            options:
-              - ClickHouse cannot accept data from external sources
-              - Kafka provides a buffer so events are not lost if ClickHouse is temporarily slow or down
-              - Kafka transforms events into the correct format for ClickHouse
-              - It is a legacy design that PostHog plans to remove
-            correct: 1
-            explanation: >-
-              Kafka acts as a durable buffer between ingestion and storage. If ClickHouse is slow or undergoing maintenance, events queue in Kafka safely. Without this buffer, events could be lost
-              during ClickHouse downtime.
-          - id: ph-pipeline-p2
-            type: true_false
-            question: PostHog's capture API writes events directly into ClickHouse tables.
-            correct: 'false'
-            explanation: >-
-              The capture API writes events to Kafka, not directly to ClickHouse. Kafka then feeds events into ClickHouse through a table engine and materialized view. This decoupling provides
-              resilience and throughput benefits.
-          - id: ph-pipeline-p3
-            type: scenario
-            question: >-
-              A PostHog Cloud customer reports that their ClickHouse cluster had a brief maintenance window, but they did not lose any events during that period. What component of the architecture
-              prevented data loss?
-            options:
-              - The client-side SDK cached events in local storage
-              - Kafka queued the events durably until ClickHouse was ready to consume them again
-              - PostgreSQL stored the events as a backup
-              - The capture API retried failed writes automatically
-            correct: 1
-            explanation: >-
-              Kafka is a durable message queue. When ClickHouse is unavailable, events queue in Kafka and are consumed once ClickHouse recovers. This is the primary reason for the Kafka buffer in
-              PostHog's architecture.
-      - id: the-full-flow
-        instruction: >-
-          The complete ingestion flow from your app to queryable data:
-
-
-          **Step 1:** Your app sends an event via SDK or API.
-
-
-          **Step 2:** PostHog's capture endpoint validates the event and writes it to a Kafka topic.
-
-
-          **Step 3:** ClickHouse has a Kafka table engine (`kafka_events`) that acts as a consumer, reading events from Kafka and advancing offsets.
-
-
-          **Step 4:** A materialized view (`events_mv`) reads from `kafka_events` and inserts into the storage tables.
-
-
-          **Step 5:** Writes go through `writable_events` — a ClickHouse Distributed table that routes each event to the correct shard by hashing distinct_id using sipHash64. This means all events for the same user land on the same shard, making person-level queries efficient.
-
-
-          **Step 6:** Data lands in `sharded_events` — a ReplicatedReplacingMergeTree table that provides actual durable, replicated storage.
-
-
-          For reads, queries go through the `events` Distributed table, which fans out to all shards and aggregates results.
-        instructionContent:
-          - type: link
-            url: https://posthog.com/docs/how-posthog-works/clickhouse
-            title: ClickHouse tables diagram
-            description: Visual walkthrough of the table roles in PostHog's ingestion and storage path.
-        problems:
-          - id: ph-flow-p1
-            type: ordering
-            question: Place these PostHog ingestion steps in the correct order.
-            options:
-              - Materialized view (events_mv) inserts into storage tables
-              - App sends event via SDK
-              - Data lands in sharded_events (ReplicatedReplacingMergeTree)
-              - Capture endpoint writes event to Kafka
-              - kafka_events table engine reads from Kafka
-            correct: 1,3,4,0,2
-            explanation: >-
-              The flow is: App sends event, capture endpoint writes to Kafka, kafka_events reads from Kafka, events_mv materialized view inserts into storage, data lands in sharded_events for durable
-              storage.
-          - id: ph-flow-p2
-            type: multiple_choice
-            question: How does PostHog decide which ClickHouse shard to store an event on?
-            options:
-              - Random assignment for load balancing
-              - Round-robin across all available shards
-              - By hashing the distinct_id using sipHash64
-              - Based on the event timestamp
-            correct: 2
-            explanation: >-
-              PostHog shards events by sipHash64(distinct_id). This ensures all events for the same user land on the same shard, making person-level queries (like 'all events for user X') efficient
-              because they only need to hit one shard.
-          - id: ph-flow-p3
-            type: multiple_choice
-            question: In PostHog's ClickHouse architecture, which Distributed table handles writes, while reads go through the events Distributed table?
-            options:
-              - events
-              - writable_events
-              - sharded_events
-              - person_distinct_id_overrides
-            correct: 1
-            explanation: >-
-              writable_events is the Distributed table used for writes — it routes events to the correct shard. The events table is a separate Distributed table used for reads — it fans out queries to
-              all shards and aggregates results.
-    section: posthog-ingestion
-  - id: ph-clickhouse-storage
-    name: ClickHouse Storage — Tables and Sharding
-    difficulty: 6
-    estimatedMinutes: 18
-    tags:
-      - posthog
-      - ingestion
-    sourceRef: https://posthog.com/docs/how-posthog-works/clickhouse
-    prerequisites:
-      - ph-ingestion-pipeline
-    encompassing: []
-    knowledgePoints:
-      - id: table-roles
-        instruction: >-
-          PostHog's ClickHouse setup uses several tables with different jobs. `kafka_events` consumes from Kafka. `events_mv` is the materialized view that pushes records downstream. `sharded_events`
-          is the real durable storage table. `writable_events` and `events` are distributed access layers that sit in front of that storage. The point of learning these names is not memorization for
-          its own sake. It is being able to ask which layer is responsible when writes succeed, reads lag, or duplicates appear.
-        instructionContent:
-          - type: link
-            url: https://posthog.com/docs/how-posthog-works/clickhouse
-            title: ClickHouse architecture docs
-            description: Official diagram and table walkthrough for the storage path described here.
-        problems:
-          - id: ph-ch-p1
-            type: matching
-            question: Match each ClickHouse table to its role in PostHog's architecture.
-            options:
-              - kafka_events|Kafka consumer bridge that reads events from Kafka
-              - events_mv|Materialized view that pipes data from Kafka into storage
-              - writable_events|Distributed table for writes, routes to correct shard
-              - sharded_events|ReplicatedReplacingMergeTree for actual durable storage
-            correct: 0,1,2,3
-            explanation: kafka_events reads from Kafka. events_mv moves data from the Kafka bridge to storage. writable_events routes writes to the right shard. sharded_events is the actual storage engine.
-          - id: ph-ch-p4
-            type: multiple_choice
-            question: Which ClickHouse table engine does sharded_events use?
-            options:
-              - MergeTree
-              - ReplicatedMergeTree
-              - ReplicatedReplacingMergeTree
-              - Distributed
-            correct: 2
-            explanation: >-
-              ReplicatedReplacingMergeTree combines replication for durability, replacing behavior for eventual deduplication, and the MergeTree storage engine used for analytical workloads.
-          - id: ph-ch-p5
-            type: true_false
-            question: In PostHog's ClickHouse architecture, kafka_events is where events are durably stored for long-term queries.
-            correct: 'false'
-            explanation: >-
-              kafka_events is a Kafka consumer bridge — it reads events from Kafka and passes them downstream. Durable long-term storage is handled by sharded_events
-              (ReplicatedReplacingMergeTree). If you confused the two, the fix is to think of kafka_events as a pipeline stage, not a final destination.
-          - id: ph-ch-p7
-            type: scenario
-            question: >-
-              A self-hosted PostHog customer reports that events captured in the last 5 minutes appear in the Activity log but do not show up in Trends or other insights. The Kafka consumer is running. Where in the ClickHouse table chain is the most likely bottleneck?
-            options:
-              - The events table is full and rejecting new writes
-              - Events are stuck in kafka_events and the materialized view (events_mv) that moves data to writable_events is likely failing or lagging
-              - The sharded_events distributed table has lost connection to replica nodes
-              - ClickHouse is performing a background merge and all reads are blocked
-            correct: 1
-            explanation: >-
-              The ClickHouse ingestion chain flows: kafka_events → events_mv (materialized view) → writable_events → sharded_events → events (distributed). If events appear in the Activity log (which may read from kafka_events or a fast path) but not in insights (which query the events distributed table), the bottleneck is most likely in the materialized view step. The events_mv transforms and inserts data from the Kafka table into writable_events. If this view is failing (e.g., due to schema mismatch, disk space, or a ClickHouse error), data accumulates in kafka_events but never reaches the queryable tables.
-            difficulty: 5
-      - id: reads-writes-and-sharding
-        instruction: >-
-          The second key idea is separation of read and write paths. Writes go through `writable_events`, which chooses a shard by hashing `distinct_id`. Reads go through the `events` distributed
-          table, which fans queries out across shards and aggregates the results. That split matters because ingestion and querying have different optimization goals. Sharding by `distinct_id` also
-          keeps one user's events together, which helps person-level queries.
-        problems:
-          - id: ph-ch-p2
-            type: multiple_choice
-            question: When you run a query in PostHog's insights UI, which ClickHouse table handles the read?
-            options:
-              - kafka_events
-              - writable_events
-              - sharded_events directly
-              - The events Distributed table
-            correct: 3
-            explanation: >-
-              If you chose `writable_events`, you mixed up the write path with the read path. Insights read through `events`, which fans queries across shards and assembles the result.
-          - id: ph-ch-p3
-            type: true_false
-            question: In PostHog's ClickHouse setup, the same Distributed table is used for both reads and writes.
-            correct: 'false'
-            explanation: >-
-              PostHog uses separate Distributed tables: `writable_events` for writes and `events` for reads. This allows different routing and optimization strategies for ingestion versus querying.
-          - id: ph-ch-p6
-            type: scenario
-            question: >-
-              A PostHog engineer mentions that querying all events for a single user is fast because of how data is sharded. Why is this the case?
-            options:
-              - PostHog caches all user queries in memory
-              - Events are sharded by sipHash64(distinct_id), so all events for one user live on the same shard
-              - ClickHouse reads all shards in parallel regardless of the query
-              - User events are stored in a separate high-speed table
-            correct: 1
-            explanation: >-
-              Sharding by distinct_id ensures all events for the same user land on the same shard. A person-level query only needs to hit one shard instead of scanning all of them. This is a
-              deliberate design choice that optimizes the most common PostHog query pattern.
-    section: posthog-ingestion
-  - id: ph-person-processing
-    name: Person Processing — Resolving Events to Profiles
-    difficulty: 5
-    estimatedMinutes: 17
-    tags:
-      - posthog
-      - ingestion
-    sourceRef: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
-    prerequisites:
-      - ph-ingestion-pipeline
-      - ph-persons
-      - ph-distinct-id
-    encompassing:
-      - concept: ph-persons
-        weight: 0.55
-      - concept: ph-distinct-id
-        weight: 0.65
-    knowledgePoints:
-      - id: how-person-processing-works
-        instruction: >-
-          Person processing is the ingestion step where PostHog decides whether an event should link to an existing person, create a new one, or trigger a merge. That requires identity lookups,
-          possible writes, and sometimes profile reconciliation. Person data lives in PostgreSQL as the source of truth and is replicated into ClickHouse for query performance.
-        instructionContent:
-          - type: link
-            url: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
-            title: Ingestion pipeline docs
-            description: Official reference for where person processing sits in the full event flow.
-        problems:
-          - id: ph-pp-p1
-            type: multiple_choice
-            question: Why is person processing the most expensive part of PostHog's ingestion pipeline?
-            options:
-              - It requires sending data to external third-party services
-              - It involves database lookups, potential writes, and occasionally complex merge operations
-              - It encrypts all person data with military-grade encryption
-              - It runs machine learning models on every event
-            correct: 1
-            explanation: >-
-              Person processing is expensive because it may need to look up existing identity state, create or update person records, and merge profiles when IDs connect.
-          - id: ph-pp-p3
-            type: true_false
-            question: Person data in PostHog is stored only in ClickHouse.
-            correct: 'false'
-            explanation: >-
-              The misconception here is assuming all analytics state lives only in ClickHouse. Person data is authored in PostgreSQL, then replicated into ClickHouse so queries stay fast.
-          - id: ph-pp-p5
-            type: multiple_choice
-            question: Where does PostHog store person data as the source of truth before replicating it to ClickHouse?
-            options:
-              - Apache Kafka
-              - Redis
-              - PostgreSQL
-              - Amazon S3
-            correct: 2
-            explanation: >-
-              Person data is authored in PostgreSQL (the source of truth) and then replicated into ClickHouse for fast query performance. If you chose Kafka, that is the event buffer, not the
-              person store. The dual-storage design separates identity management (PostgreSQL) from analytical queries (ClickHouse).
-      - id: cost-control-and-skip-rules
-        instruction: >-
-          Because person processing is expensive, PostHog can skip it when the event does not need person-level behavior. In `identified_only` mode, anonymous events with no identify, no `$set`, and
-          no group linkage skip person processing entirely. That makes this mode a good fit for high-volume anonymous traffic where the team still wants aggregate analytics but does not need person
-          profiles for every visitor.
-        problems:
-          - id: ph-pp-p2
-            type: scenario
-            question: >-
-              A customer is on PostHog Cloud and notices their bill is higher than expected. They have millions of anonymous pageview events from marketing landing pages where users never log in. What
-              configuration change could reduce their costs?
-            options:
-              - 'Switch to person_profiles: ''always'' to create profiles for every visitor'
-              - 'Switch to person_profiles: ''identified_only'' so anonymous events skip person processing'
-              - Disable event capture entirely on landing pages
-              - Move to self-hosted PostHog
-            correct: 1
-            explanation: >-
-              With `identified_only` mode, anonymous events skip person processing entirely. Since the landing page visitors never log in, their events do not need person profiles.
-          - id: ph-pp-p4
-            type: multiple_choice
-            question: Which event would skip person processing in identified_only mode?
-            options:
-              - A plain anonymous $pageview with no identify, no $set, and no group linkage
-              - An identify() call after login
-              - A capture call that includes $set person properties
-              - A group() call that links the session to a company
-            correct: 0
-            explanation: >-
-              In `identified_only` mode, plain anonymous events skip person processing. Events that identify, set person properties, or link groups need person-level handling and therefore do not skip it.
-          - id: ph-pp-p6
-            type: true_false
-            question: In identified_only mode, a capture call that includes $set person properties will skip person processing just like a plain anonymous event.
-            correct: 'false'
-            explanation: >-
-              Events with $set, identify, alias, or group linkage trigger person processing even in identified_only mode. Only plain anonymous events with no identification signals skip it. The
-              mode is about skipping processing for truly anonymous traffic, not for any event that lacks an identify() call.
-    section: posthog-ingestion
+  # ============================================================
+  # Section: identification
+  # ============================================================
   - id: anonymous-vs-identified
     name: Anonymous vs Identified Events
     difficulty: 4
@@ -2935,7 +1014,6 @@ concepts:
       - identification
     sourceRef: https://posthog.com/docs/data/persons
     prerequisites:
-      - ph-person-processing
       - ph-person-properties
     encompassing: []
     knowledgePoints:
@@ -2999,6 +1077,17 @@ concepts:
             correct: 1
             explanation: >-
               Feature flags require person profiles to decide which variant to serve. The company must identify users after login so those profiles exist.
+          - id: anon-id-p4
+            type: multiple_choice
+            question: Which of the following PostHog features works with anonymous events (no person profile)?
+            options:
+              - Feature flags targeting specific users
+              - Experiments with consistent user bucketing
+              - Aggregate trend analysis (e.g., total pageviews per day)
+              - Cohorts based on person properties
+            correct: 2
+            explanation: >-
+              Aggregate trend analysis works with anonymous events because it does not require knowing who each user is. Feature flags, experiments, and cohorts do.
           - id: anon-id-p6
             type: true_false
             question: The best practice is to identify users as early as possible, even before they authenticate, to capture the most data.
@@ -3221,18 +1310,17 @@ concepts:
               Every agent's anonymous distinct_id was linked to 'admin@company.com' via identify(). PostHog dutifully merged them all into one person profile. The fix: each agent should identify with
               their own unique ID, not a shared account.
           - id: merge-wrong-p3
-            type: scenario
-            question: >-
-              A customer's React app calls posthog.identify(user.id) in a useEffect hook that runs on every page load, using the user object from their auth context. On the login page, before authentication completes, user.id is undefined. Users report seeing other people's feature flag values briefly after logging in. What is happening?
+            type: multiple_choice
+            question: When should you call posthog.identify() in relation to user authentication?
             options:
-              - PostHog's feature flag cache is stale and needs to be refreshed
-              - Calling identify(undefined) before auth completes links all pre-auth anonymous users to a single 'undefined' profile, causing cross-user contamination
-              - The useEffect hook is running twice due to React strict mode
-              - Feature flags are being evaluated server-side with the wrong API key
+              - Before the user enters their credentials, to capture login attempts
+              - After successful authentication, to ensure you have the correct user ID
+              - On every page load, regardless of authentication status
+              - Only on the user's very first visit
             correct: 1
             explanation: >-
-              When identify() is called with undefined or null, PostHog treats it as a literal identifier. All users who hit the login page before authenticating get identified as the same 'undefined' person, merging their anonymous profiles together. This causes feature flag values, person properties, and analytics to bleed across users. The fix: only call identify() after authentication succeeds and you have a valid, unique user ID. Guard the call: `if (user?.id) posthog.identify(user.id)`.
-            difficulty: 5
+              Call identify() after successful authentication. Calling it before risks associating anonymous browsing with the wrong user (e.g., if the user types an incorrect email first).
+              Authentication confirms the user's identity; identify() should follow, not precede, that confirmation.
     section: identification
   - id: person-modes
     name: Person Modes — identified_only vs Always
@@ -3295,6 +1383,12 @@ concepts:
           A team sends anonymous `$pageview` events with inline `$set` for `email` and expects feature flags to work before login in `identified_only` mode. They still have no person profile because
           they never triggered identification. The write looked person-shaped, but the identity step never happened.
         problems:
+          - id: modes-p2
+            type: true_false
+            question: In 'identified_only' mode, passing $set properties inside a posthog.capture() call will create a person profile even without calling identify() first.
+            correct: 'false'
+            explanation: >-
+              In `identified_only` mode, inline `$set` on a capture call does NOT create a person profile by itself. You still need an identification trigger.
           - id: modes-p4
             type: scenario
             question: >-
@@ -3396,18 +1490,17 @@ concepts:
           If the frontend identifies with `user_42`, the backend should also capture with `user_42`, not `usr-42` and not `alice@example.com`. The real job is consistency, not human readability.
         problems:
           - id: pitfall-dup-p2
-            type: scenario
-            question: >-
-              A B2B SaaS company uses email addresses as the distinct_id in their identify() calls. Support agents sometimes log in to customer accounts to troubleshoot issues. The product team notices that some customer profiles have merged with support agent profiles. What is the root cause, and what identifier should they use instead?
+            type: multiple_choice
+            question: What is the best canonical identifier to use across all PostHog SDKs to prevent duplicate profiles?
             options:
-              - Email is not unique enough — use phone numbers instead
-              - The support agents' events are merging profiles because identify() links the agent's anonymous ID to the customer's email — use an internal database user ID instead of email
-              - PostHog's merge algorithm has a bug with shared email domains
-              - The support agents should use incognito mode to prevent profile merges
+              - The user's email address
+              - The user's database primary key (e.g., user_id)
+              - A random UUID generated per session
+              - The user's full name
             correct: 1
             explanation: >-
-              When a support agent logs into a customer account and identify() fires with the customer's email, PostHog merges the agent's anonymous profile with the customer's profile. This is working as designed — identify() assumes the anonymous user IS the identified user. The fix: use an immutable, unique database primary key (like user_id from your database) as the distinct_id, not email. Additionally, support tools should use a separate PostHog project or be excluded from tracking.
-            difficulty: 5
+              Database primary keys are unique, stable, and consistent across all systems. Emails can change or be shared. Session UUIDs change per session. Names are not unique. Use the database
+              primary key in every identify() and capture() call.
           - id: pitfall-dup-p3
             type: scenario
             question: 'A customer''s web app calls posthog.identify(''user_42'') and their Node.js backend calls posthog.capture({ distinctId: ''usr-42'', event: ''api_call'' }) for the same user. What happens?'
@@ -3483,6 +1576,10 @@ concepts:
               The safest pattern: frontend calls identify() first (linking anonymous browsing to the known ID), then the backend uses the same known ID in all capture() calls. This ensures all events
               — anonymous frontend, identified frontend, and backend — are linked to one person.
     section: identification
+
+  # ============================================================
+  # Section: group-analytics
+  # ============================================================
   - id: group-types
     name: Group Types — Modeling Organizations
     difficulty: 4
@@ -3494,7 +1591,7 @@ concepts:
     prerequisites:
       - ph-persons
       - ph-event-properties
-      - relationships
+      - data-models:relationships
     encompassing: []
     knowledgePoints:
       - id: what-are-groups
@@ -3700,17 +1797,15 @@ concepts:
         problems:
           - id: link-grp-p1
             type: multiple_choice
-            question: >-
-              A customer's backend service sends 1,000 events per hour to PostHog. In their insights, none of these events are associated with any company group, even though they called group_identify() once at startup. What is the most likely cause?
+            question: In a backend SDK, how do you associate an event with a group?
             options:
-              - group_identify() needs to be called more frequently to refresh the link
-              - Backend SDKs do not persist group context — the groups object must be passed on every capture() call
-              - The group type 'company' was not registered in PostHog project settings
-              - ClickHouse has not finished processing the group_identify event yet
+              - Call posthog.group() once at application startup
+              - Pass a groups object on every capture() call
+              - Set a GROUP_ID environment variable
+              - Groups are automatically detected from the user's IP address
             correct: 1
             explanation: >-
-              Unlike frontend SDKs, backend SDKs are stateless — they do not maintain session context between calls. Calling group_identify() teaches PostHog about the group's properties, but it does not automatically attach future events to that group. Each posthog.capture() call must include a `groups: {'company': 'company_id'}` parameter. The fix is to pass the groups object on every capture call.
-            difficulty: 4
+              Backend SDKs have no persistent session. You must explicitly pass `groups: { company: 'acme-inc' }` on every capture call that should link to the group.
           - id: link-grp-p2
             type: true_false
             question: A single PostHog event can be linked to multiple groups of the same type (e.g., two different companies).
@@ -3812,16 +1907,16 @@ concepts:
           - id: gotcha-p5
             type: scenario
             question: >-
-              A customer set up group analytics for their 'workspace' group type. They can see workspace groups listed in People > Groups, and events are linked to workspaces in insights. But when they try to use a workspace-level property in a feature flag targeting rule, it doesn't appear as an option. What should you investigate?
+              A customer linked events to a 'company' group type and can filter insights by company. But when they go to People > Groups, the company list is empty. What is the most likely cause?
             options:
-              - Feature flags do not support group-level property targeting — only person properties work
-              - The workspace properties were set with $set_once and may not have propagated yet
-              - Group properties are only available for feature flags if the group type has been registered in Project Settings and group_identify() has been called with properties
-              - ClickHouse needs time to index the new group properties — wait 24 hours
-            correct: 2
+              - Group analytics is not enabled on their plan
+              - They linked events to groups but never called group_identify or set any group properties
+              - Groups only appear after 24 hours
+              - The People tab does not support groups
+            correct: 1
             explanation: >-
-              Group properties become available for feature flag targeting when: (1) the group type exists in Project Settings, (2) group_identify() has been called with properties for that group. If group_identify() was called without properties, or only posthog.group() was used on the frontend without properties, the group exists but has no properties to target against. Check that group_identify() includes the properties object.
-            difficulty: 4
+              A group needs at least one property to appear in the People/Groups view. Linking events alone creates the group association in the data model but does not populate the group profile.
+              The fix is to call group_identify or pass properties in the group() call.
       - id: limits-and-feature-constraints
         instruction: >-
           The second set of gotchas is product limits. Projects support at most 5 group types, so the customer must model carefully. Some product surfaces also do not support groups directly. That
@@ -3863,6 +1958,10 @@ concepts:
               Not every PostHog product surface supports groups the same way. Before recommending group-based filtering in a specific feature, verify that the feature actually supports it. A
               workable group model can still fail if the team assumes every surface understands groups identically.
     section: group-analytics
+
+  # ============================================================
+  # Section: posthog-cdp
+  # ============================================================
   - id: ph-cdp-overview
     name: PostHog CDP — Sources, Transformations, Destinations
     difficulty: 4
@@ -3872,12 +1971,9 @@ concepts:
       - cdp
     sourceRef: https://posthog.com/docs/cdp
     prerequisites:
-      - ph-ingestion-pipeline
-      - transformation-etl-elt
+      - data-pipelines:transformation-etl-elt
     encompassing:
-      - concept: ph-ingestion-pipeline
-        weight: 0.45
-      - concept: transformation-etl-elt
+      - concept: data-pipelines:transformation-etl-elt
         weight: 0.4
     knowledgePoints:
       - id: three-pieces
@@ -4054,6 +2150,10 @@ concepts:
               These are two different delivery patterns. The Slack alert needs immediate, event-driven delivery (realtime destination). The Snowflake sync needs scheduled bulk transfer (batch
               export). The right design uses both destination types together.
     section: posthog-cdp
+
+  # ============================================================
+  # Section: querying
+  # ============================================================
   - id: cohorts
     name: Cohorts — Static and Dynamic User Groups
     difficulty: 4

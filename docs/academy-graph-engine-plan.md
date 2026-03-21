@@ -2,32 +2,48 @@
 
 ## Status
 
-- `work in progress`
+- `work in progress` (Sections 0-4 complete, pre-pilot gate next)
 
 ### Progress Snapshot
 
 - completed:
   - docs/vocabulary freeze for the academy model
   - Prisma academy foundation (`Academy`, `AcademyPart`, `AcademyEnrollment`, `StudentCourseState`)
+  - `StudentCourseState` linked to `AcademyEnrollment` via `academyEnrollmentId`
+  - `CourseStateService` for state machine transitions (locked → unlocked → active → completed)
   - full backend regression/test closure for the refactored contracts
   - qualified cross-course authoring refs and cross-course import resolution
   - academy-wide validation in the manifest/import pipeline
-- work in progress:
-  - academy read APIs and graph projections
-  - academy enrollment and student-state ownership
-  - academy-scoped diagnostics
+  - academy read APIs, graph projections, and course-mastery summary endpoint
+  - academy enrollment with concept/section/course state seeding
+  - academy-scoped diagnostics with course-level breakdown in results
   - academy-scoped learning-engine runtime, task selection, remediation, and XP accounting
+  - cross-course implicit review via `activeEncompassingEdgeWhereAcademy`
+  - explicit `createRemediation(userId, academyId, blocked, weak, courseId)` signature
+  - ordering problem evaluator fixed (index-string → text array via options)
   - academy manifest/per-course importer replacement
   - academy-level import/validate admin paths
+  - course-scoped controllers marked `@deprecated` with clean delegation
+  - academy browse page, academy overview page, academy study entry route
+  - e2e tests updated for academy-first browse flow
+  - **Section 4: academy gamification backend** — `getAcademyStreakStatus`, `getAcademyEstimate`, `getAcademyWeeklyLeaderboard`, `getAcademyGraph` service methods + `AcademyGamificationController` with 6 endpoints
+  - **Section 4: academy diagnostic UI** — `/academy/[academyId]/diagnostic` page, `DiagnosticFlow` updated with `academyId` prop, browse page CTA links to academy diagnostic
+  - **Section 4: dashboard academy-first** — dashboard fetches gamification from academy endpoints, aggregated mastery chart, knowledge graph passes `academyId`
+  - **Section 4: knowledge graph academy overlay** — `KnowledgeGraphSection` accepts `academyId`, fetches from academy graph endpoint; `KnowledgeGraph` supports course-based border coloring with legend
+  - **Section 4: academy page enhancements** — knowledge graph section added to academy overview, per-course mastery via `fetchCourseProfiles`
+  - **Section 4: e2e tests** — new `academy.spec.ts` (5 tests), updated `courses.spec.ts` for academy heading compatibility
+  - **Section 5: Pre-Pilot Quality Gate tests** — 6 tests in `quality-gate.spec.ts`: cross-course prerequisite gating, blocked branch independence, prerequisite unlocking, cross-course remediation targeting
+  - **Section 6: TAM 4-course pilot split** — monolith split into academy manifest + 4 courses (data-models: 7, data-pipelines: 6, posthog-data-model: 20, posthog-ingestion-pipeline: 4 = 37/37 concepts, 22 cross-course refs, 0 duplicates)
+  - **Pre-launch: failure/remediation e2e tests** — `failure-remediation.spec.ts` with 4 tests covering wrong-answer feedback, diagnostic-to-study unlock, lesson completion, and mastery state rendering
 - not started:
-  - academy-first diagnostic UI and deeper nested academy course/task views
-  - TAM pilot content split
-  - Pre-Pilot Quality Gate verification
+  - TAM academy import and learner state migration
+  - Pre-launch: AI course creation stress tests (Alberta hunting, PAL, sailing)
+  - Pre-launch: review agent build and debug
 - verified locally:
   - backend Prisma client generation
-  - backend TypeScript build
-  - backend dev startup on a non-conflicting port with no app error logs
-  - backend Jest suite (`61/61` suites passing)
+  - backend TypeScript build (`nest build` clean)
+  - backend Jest suite (`64/64` suites, `518/518` tests passing)
+  - frontend Next.js build clean (all routes including `/academy/[academyId]/diagnostic`)
 
 ## Purpose
 
