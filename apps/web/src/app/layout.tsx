@@ -23,17 +23,33 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase: new URL(`https://${brand.domain}`),
-    title: brand.seo.title,
+    title: {
+      default: brand.seo.title,
+      template: `%s | ${brand.name}`,
+    },
     description: brand.seo.description,
     keywords: brand.seo.keywords,
+    authors: [{ name: brand.name }],
+    creator: brand.name,
+    publisher: brand.name,
     openGraph: {
       type: "website",
       locale: "en_US",
+      url: `https://${brand.domain}`,
       siteName: brand.name,
       title: brand.seo.title,
       description: brand.seo.description,
       ...(brand.ogImageUrl
-        ? { images: [{ url: brand.ogImageUrl, width: 1200, height: 630 }] }
+        ? {
+            images: [
+              {
+                url: brand.ogImageUrl,
+                width: 1200,
+                height: 630,
+                alt: brand.seo.title,
+              },
+            ],
+          }
         : {}),
     },
     twitter: {
@@ -41,6 +57,17 @@ export async function generateMetadata(): Promise<Metadata> {
       title: brand.seo.title,
       description: brand.seo.description,
       ...(brand.ogImageUrl ? { images: [brand.ogImageUrl] } : {}),
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
     },
     alternates: {
       canonical: `https://${brand.domain}`,

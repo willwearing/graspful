@@ -9,7 +9,6 @@ interface CourseCardProps {
   href?: string;
   name: string;
   description: string | null;
-  orgId: string;
   completionPercent: number;
   totalConcepts: number;
   mastered: number;

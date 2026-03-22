@@ -22,10 +22,15 @@ export default async function ReviewPage({
   const brand = await resolvePageBrand();
   const orgSlug = brand.orgSlug;
 
-  const reviewData = await apiFetch<any>(
-    `/orgs/${orgSlug}/courses/${courseId}/reviews/${conceptId}/start`,
-    { method: "POST" }
-  );
+  let reviewData: any;
+  try {
+    reviewData = await apiFetch<any>(
+      `/orgs/${orgSlug}/courses/${courseId}/reviews/${conceptId}/start`,
+      { method: "POST" }
+    );
+  } catch {
+    redirect(`/study/${courseId}`);
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 md:px-8">

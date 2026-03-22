@@ -62,6 +62,7 @@ export function PlayerBar() {
           seek(pct * duration);
         }}
         role="progressbar"
+        aria-label="Audio playback progress"
         aria-valuenow={currentTime}
         aria-valuemax={duration}
       >

@@ -13,15 +13,35 @@ import {
   Sparkles,
   ArrowRight,
 } from "lucide-react";
+import { SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 
 export const metadata: Metadata = {
-  title: "AI Agents — Graspful",
+  title: "AI Agents",
   description:
     "Build adaptive learning courses with AI agents. Define courses as YAML, import via CLI or MCP, and launch a complete product in minutes.",
   openGraph: {
     title: "Build courses with AI agents — Graspful",
     description:
       "Define courses as YAML, import via CLI or MCP, and get a live product with a landing page, knowledge graph, spaced repetition, and billing.",
+    url: "https://graspful.com/agents",
+    images: [
+      {
+        url: "/images/og-graspful.png",
+        width: 1200,
+        height: 630,
+        alt: "Build courses with AI agents — Graspful",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Build courses with AI agents — Graspful",
+    description:
+      "Define courses as YAML, import via CLI or MCP, and launch a complete product with adaptive learning in minutes.",
+    images: ["/images/og-graspful.png"],
+  },
+  alternates: {
+    canonical: "https://graspful.com/agents",
   },
 };
 
@@ -333,8 +353,28 @@ export default function AgentsPage() {
               Get Started <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
+          <div className="mt-6 flex items-center justify-center gap-6 text-sm text-muted-foreground">
+            <Link href="/docs" className="hover:text-foreground transition-colors">
+              Documentation
+            </Link>
+            <Link href="/pricing" className="hover:text-foreground transition-colors">
+              Pricing
+            </Link>
+            <Link href="/docs/mcp" className="hover:text-foreground transition-colors">
+              MCP Setup
+            </Link>
+          </div>
         </div>
       </section>
+
+      <SoftwareApplicationJsonLd
+        name="Graspful"
+        description="The course creation platform for AI agents. Define courses as YAML, import via CLI or MCP, and get adaptive learning with knowledge graphs, spaced repetition, and billing."
+        url="https://graspful.com"
+        applicationCategory="EducationalApplication"
+        operatingSystem="Web"
+        offers={{ price: 0, priceCurrency: "USD" }}
+      />
     </div>
   );
 }

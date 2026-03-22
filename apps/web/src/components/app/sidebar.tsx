@@ -26,6 +26,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     setPendingPath(null);
   }, [pathname]);
 
+  // Dismiss sidebar on Escape key (mobile)
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   const activePath = pendingPath ?? pathname;
 
   return (

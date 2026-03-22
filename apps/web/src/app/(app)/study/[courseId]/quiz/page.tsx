@@ -22,10 +22,15 @@ export default async function QuizPage({
   const brand = await resolvePageBrand();
   const orgSlug = brand.orgSlug;
 
-  const quizData = await apiFetch<any>(
-    `/orgs/${orgSlug}/courses/${courseId}/quizzes/generate`,
-    { method: "POST" }
-  );
+  let quizData: any;
+  try {
+    quizData = await apiFetch<any>(
+      `/orgs/${orgSlug}/courses/${courseId}/quizzes/generate`,
+      { method: "POST" }
+    );
+  } catch {
+    redirect(`/study/${courseId}`);
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 md:px-8">

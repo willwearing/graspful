@@ -100,3 +100,112 @@ export function OrganizationJsonLd({
     />
   );
 }
+
+interface WebSiteJsonLdProps {
+  name: string;
+  url: string;
+  description: string;
+}
+
+export function WebSiteJsonLd({
+  name,
+  url,
+  description,
+}: WebSiteJsonLdProps) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name,
+    url,
+    description,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${url}/docs?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  );
+}
+
+interface SoftwareApplicationJsonLdProps {
+  name: string;
+  description: string;
+  url: string;
+  applicationCategory: string;
+  operatingSystem: string;
+  offers: {
+    price: number;
+    priceCurrency: string;
+  };
+}
+
+export function SoftwareApplicationJsonLd({
+  name,
+  description,
+  url,
+  applicationCategory,
+  operatingSystem,
+  offers,
+}: SoftwareApplicationJsonLdProps) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name,
+    description,
+    url,
+    applicationCategory,
+    operatingSystem,
+    offers: {
+      "@type": "Offer",
+      price: offers.price,
+      priceCurrency: offers.priceCurrency,
+    },
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  );
+}
+
+interface FAQItem {
+  question: string;
+  answer: string;
+}
+
+interface FAQPageJsonLdProps {
+  items: FAQItem[];
+}
+
+export function FAQPageJsonLd({ items }: FAQPageJsonLdProps) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  );
+}

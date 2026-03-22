@@ -1,10 +1,12 @@
 import {
   Headphones, Brain, Timer, Shield, BookOpen, Zap, Code, Database, Workflow, UserCheck,
+  FileCode, Bot, Network, Palette, DollarSign, ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 
 const iconMap: Record<string, LucideIcon> = {
   Headphones, Brain, Timer, Shield, BookOpen, Zap, Code, Database, Workflow, UserCheck,
+  FileCode, Bot, Network, Palette, DollarSign, ShieldCheck,
 };
 
 interface FeaturesProps {

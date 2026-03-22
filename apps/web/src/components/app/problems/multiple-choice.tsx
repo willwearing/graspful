@@ -37,7 +37,7 @@ export function MultipleChoice({ problem, onSubmit, disabled, loading, feedback 
     <div className="space-y-6">
       <p className="text-lg font-medium text-foreground">{problem.questionText}</p>
 
-      <div className="space-y-3">
+      <div className="space-y-3" role="radiogroup">
         {problem.options?.map((option) => {
           let borderClass = "border-border";
           if (feedback && selected === option.id) {
@@ -56,6 +56,8 @@ export function MultipleChoice({ problem, onSubmit, disabled, loading, feedback 
             <button
               key={option.id}
               type="button"
+              role="radio"
+              aria-checked={selected === option.id}
               onClick={() => handleSelect(option.id)}
               disabled={disabled}
               className={`w-full rounded-lg border-2 p-4 text-left text-sm transition-colors ${borderClass} ${

@@ -23,8 +23,11 @@ export function generateLlmsTxt(input: LlmsTxtInput): string {
     `## Links`,
     "",
     `- Website: https://${input.domain}`,
-    `- Sign Up: https://${input.domain}/sign-up`,
+    `- AI Agents: https://${input.domain}/agents`,
+    `- Documentation: https://${input.domain}/docs`,
+    `- Quickstart: https://${input.domain}/docs/quickstart`,
     `- Pricing: https://${input.domain}/pricing`,
+    `- Sign Up: https://${input.domain}/sign-up`,
   ];
   return lines.join("\n");
 }

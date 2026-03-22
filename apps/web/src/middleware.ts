@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveBrand } from "@/lib/brand/resolve";
 
-const PUBLIC_ROUTES = ["/", "/sign-in", "/sign-up", "/auth/callback", "/auth/confirm", "/forgot-password", "/reset-password", "/pricing"];
+const PUBLIC_ROUTES = ["/", "/sign-in", "/sign-up", "/auth/callback", "/auth/confirm", "/forgot-password", "/reset-password", "/pricing", "/agents", "/docs"];
 
 function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.some(
@@ -21,7 +21,7 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
   response.headers.set("x-brand-id", brand.id);
   response.cookies.set("brand-id", brand.id, {
-    httpOnly: false,
+    httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
@@ -43,7 +43,7 @@ export async function middleware(request: NextRequest) {
           response = NextResponse.next({ request });
           response.headers.set("x-brand-id", brand.id);
           response.cookies.set("brand-id", brand.id, {
-            httpOnly: false,
+            httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
             path: "/",

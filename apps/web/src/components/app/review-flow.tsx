@@ -47,6 +47,9 @@ export function ReviewFlow({ orgSlug, courseId, conceptId, token, initialData }:
   const [result, setResult] = useState<ReviewResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const startTimeRef = useRef(Date.now());
+  const mountedRef = useRef(true);
+
+  useEffect(() => () => { mountedRef.current = false }, []);
 
   const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
 
@@ -86,6 +89,7 @@ export function ReviewFlow({ orgSlug, courseId, conceptId, token, initialData }:
       setFeedback({ wasCorrect, explanation: response.feedback });
 
       setTimeout(async () => {
+        if (!mountedRef.current) return;
         setFeedback(null);
 
         if (response.hasMore && response.nextProblem) {
@@ -178,6 +182,7 @@ export function ReviewFlow({ orgSlug, courseId, conceptId, token, initialData }:
       )}
 
       <ProblemRenderer
+        key={problem.id}
         problem={problem}
         onSubmit={handleSubmit}
         disabled={submitting || !!feedback}
