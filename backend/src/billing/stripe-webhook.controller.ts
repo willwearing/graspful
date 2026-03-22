@@ -34,7 +34,7 @@ export class StripeWebhookController {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.error(`Webhook error: ${message}`);
-      return res.status(400).json({ error: message });
+      return res.status(400).json({ error: 'Webhook processing failed' });
     }
   }
 

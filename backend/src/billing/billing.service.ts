@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PlanTier } from '@prisma/client';
 import Stripe from 'stripe';
 import { PrismaService } from '@/prisma/prisma.service';
+import { PLATFORM_FEE_PERCENT } from './connect.service';
 
 @Injectable()
 export class BillingService {
@@ -75,7 +76,11 @@ export class BillingService {
       metadata: { orgId, plan },
     });
 
-    return session.url!;
+    if (!session.url) {
+      throw new Error('Stripe checkout session was created but did not return a URL');
+    }
+
+    return session.url;
   }
 
   async createPortalSession(orgId: string, returnUrl: string): Promise<string> {
@@ -127,6 +132,11 @@ export class BillingService {
     successUrl: string,
     cancelUrl: string,
   ): Promise<string> {
+    // Validate priceId format; further validation should check against known prices
+    if (!priceId || !priceId.startsWith('price_')) {
+      throw new Error('Invalid price ID format');
+    }
+
     const org = await this.prisma.organization.findUniqueOrThrow({ where: { id: orgId } });
     if (!org.stripeConnectAccountId) {
       throw new Error('Organization does not have Stripe Connect configured');
@@ -136,7 +146,7 @@ export class BillingService {
       {
         mode: 'subscription',
         line_items: [{ price: priceId, quantity: 1 }],
-        subscription_data: { application_fee_percent: 30 },
+        subscription_data: { application_fee_percent: PLATFORM_FEE_PERCENT },
         success_url: successUrl,
         cancel_url: cancelUrl,
         metadata: { orgId },
@@ -146,7 +156,11 @@ export class BillingService {
       },
     );
 
-    return session.url!;
+    if (!session.url) {
+      throw new Error('Stripe checkout session was created but did not return a URL');
+    }
+
+    return session.url;
   }
 
   async handleWebhookEvent(event: Stripe.Event): Promise<void> {

@@ -6,6 +6,8 @@ import {
   Param,
   Post,
   UseGuards,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, MinRole } from '@/auth';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
@@ -14,6 +16,7 @@ import { CourseReadService } from './course-read.service';
 import { ReviewService, ReviewResult } from './review.service';
 import type { ValidationResult } from './graph-validation.service';
 import { PrismaService } from '@/prisma/prisma.service';
+import { ImportCourseDto, ReviewCourseDto } from './dto/import-course.dto';
 
 @Controller('orgs/:orgId/courses')
 @UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
@@ -57,14 +60,9 @@ export class KnowledgeGraphController {
 
   @Post('import')
   @MinRole('admin')
+  @UsePipes(new ValidationPipe({ whitelist: true }))
   async importCourse(
-    @Body()
-    body: {
-      yaml: string;
-      replace?: boolean;
-      archiveMissing?: boolean;
-      publish?: boolean;
-    },
+    @Body() body: ImportCourseDto,
     @CurrentOrg() org: OrgContext,
   ): Promise<ImportResult & { review?: ReviewResult }> {
     if (body.publish) {
@@ -89,8 +87,9 @@ export class KnowledgeGraphController {
 
   @Post('review')
   @MinRole('admin')
+  @UsePipes(new ValidationPipe({ whitelist: true }))
   async reviewCourse(
-    @Body() body: { yaml: string },
+    @Body() body: ReviewCourseDto,
   ): Promise<ReviewResult> {
     const courseYaml = this.importer.parseCourseYaml(body.yaml);
     return this.reviewService.review(courseYaml);

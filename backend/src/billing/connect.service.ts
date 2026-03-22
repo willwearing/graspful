@@ -3,6 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { PrismaService } from '@/prisma/prisma.service';
 
+/** Platform fee percentage applied to learner subscriptions via Stripe Connect */
+export const PLATFORM_FEE_PERCENT = 30;
+
 @Injectable()
 export class ConnectService {
   private stripe!: Stripe;
@@ -102,7 +105,8 @@ export class ConnectService {
     currency: string,
     learnerId?: string,
   ): Promise<void> {
-    const platformFee = Math.round(grossAmountCents * 0.3);
+    // Note: actual fee collected by Stripe may differ slightly due to rounding
+    const platformFee = Math.round(grossAmountCents * (PLATFORM_FEE_PERCENT / 100));
     const creatorPayout = grossAmountCents - platformFee;
 
     await this.prisma.revenueEvent.create({

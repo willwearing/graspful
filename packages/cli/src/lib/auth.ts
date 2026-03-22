@@ -39,11 +39,12 @@ export function resolveCredentials(): Credentials {
 export function saveCredentials(jwt: string, baseUrl?: string): void {
   const dir = path.dirname(CREDENTIALS_PATH);
   if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   }
   fs.writeFileSync(
     CREDENTIALS_PATH,
     JSON.stringify({ jwt, baseUrl: baseUrl || getBaseUrl() }, null, 2),
+    { mode: 0o600 },
   );
 }
 
