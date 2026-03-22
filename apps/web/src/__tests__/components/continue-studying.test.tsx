@@ -1,9 +1,21 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { ContinueStudying } from "@/components/app/continue-studying";
 
 vi.mock("next/link", () => ({
-  default: ({ children, href, ...props }: any) => <a href={href} {...props}>{children}</a>,
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children?: ReactNode;
+    href: string;
+  } & Omit<JSX.IntrinsicElements["a"], "href" | "children">) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 describe("ContinueStudying", () => {
@@ -17,6 +29,7 @@ describe("ContinueStudying", () => {
     );
     const link = screen.getByText(/continue studying/i).closest("a");
     expect(link?.getAttribute("href")).toBe("/academy/academy-1/study");
+    expect(link?.querySelector("button")).toBeNull();
   });
 
   it("renders a link to the study page for the course", () => {
@@ -24,6 +37,7 @@ describe("ContinueStudying", () => {
     const link = screen.getByText(/continue studying/i).closest("a");
     expect(link).toBeTruthy();
     expect(link?.getAttribute("href")).toBe("/study/course-1");
+    expect(link?.querySelector("button")).toBeNull();
   });
 
   it("shows the course name", () => {

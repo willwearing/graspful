@@ -55,4 +55,12 @@ describe("PricingSection", () => {
     expect(screen.getByText("1 exam")).toBeDefined();
     expect(screen.getByText("50 study items")).toBeDefined();
   });
+
+  it("renders CTA links without nested buttons", () => {
+    renderPricing();
+
+    const ctaLink = screen.getByText("Get Started").closest("a");
+    expect(ctaLink?.tagName).toBe("A");
+    expect(ctaLink.querySelector("button")).toBeNull();
+  });
 });

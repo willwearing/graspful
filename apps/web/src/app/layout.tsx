@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import { BrandProvider } from "@/lib/brand/context";
@@ -95,9 +94,7 @@ export default async function RootLayout({
       <body className="min-h-screen bg-background text-foreground">
         <ThemeProvider>
           <BrandProvider brand={brand}>
-            <Suspense fallback={null}>
-              <PostHogProvider>{children}</PostHogProvider>
-            </Suspense>
+            <PostHogProvider>{children}</PostHogProvider>
             <DevBrandSwitcher />
           </BrandProvider>
         </ThemeProvider>
