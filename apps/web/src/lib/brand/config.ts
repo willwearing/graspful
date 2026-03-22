@@ -49,19 +49,32 @@ export interface BrandConfig {
       subheadline: string;
       ctaText: string;
     };
-    features: Array<{
-      title: string;
-      description: string;
-      icon: string;
-    }>;
-    howItWorks: Array<{
-      title: string;
-      description: string;
-    }>;
+    features: {
+      heading: string;
+      subheading: string;
+      items: Array<{
+        title: string;
+        description: string;
+        icon: string;
+        /** Optional: span 2 columns in bento grid. Defaults false. */
+        wide?: boolean;
+      }>;
+    };
+    howItWorks: {
+      heading: string;
+      items: Array<{
+        title: string;
+        description: string;
+      }>;
+    };
     faq: Array<{
       question: string;
       answer: string;
     }>;
+    bottomCta: {
+      headline: string;
+      subheadline: string;
+    };
   };
 
   seo: {

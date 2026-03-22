@@ -2,25 +2,26 @@ import Link from "next/link";
 
 interface CTAProps {
   ctaText: string;
+  headline: string;
+  subheadline: string;
 }
 
-export function CTA({ ctaText }: CTAProps) {
+export function CTA({ ctaText, headline, subheadline }: CTAProps) {
   return (
-    <section className="relative overflow-hidden py-24">
-      <div className="gradient-mesh">
-        <div className="orb-1" />
-        <div className="orb-2" />
-      </div>
+    <section className="relative overflow-hidden py-24 bg-white dark:bg-background">
       <div className="relative z-10 mx-auto max-w-2xl px-6 text-center">
-        <h2 className="text-3xl font-bold text-foreground sm:text-4xl mb-6">
-          Ready to Start Studying?
+        <h2 className="text-3xl font-bold text-foreground sm:text-4xl mb-4">
+          {headline}
         </h2>
-        <p className="text-lg text-muted-foreground mb-10">
-          Join thousands of candidates who passed their exam with audio-first learning.
+        <p className="text-lg text-muted-foreground mb-2">
+          {subheadline}
+        </p>
+        <p className="text-sm text-muted-foreground/70 mb-10">
+          Free to start. No credit card required.
         </p>
         <Link
           href="/sign-up"
-          className="btn-gradient inline-block px-12 py-4 text-base font-medium"
+          className="btn-gradient glow-pulse inline-block px-12 py-4 text-base font-medium"
         >
           {ctaText}
         </Link>

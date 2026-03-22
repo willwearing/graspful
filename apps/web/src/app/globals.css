@@ -209,3 +209,44 @@
     min-width: 44px;
   }
 }
+
+/* ── 4th gradient orb ──────────────────────────────────────────────── */
+.gradient-mesh .orb-4 {
+  @apply absolute -bottom-1/4 -right-1/4 h-[350px] w-[350px] rounded-full opacity-25 blur-3xl;
+  background: radial-gradient(circle, color-mix(in hsl, var(--primary), transparent 50%) 0%, transparent 60%);
+  animation: float 14s ease-in-out infinite reverse;
+}
+
+/* ── Glow pulse for CTA buttons ──────────────────────────────────── */
+.glow-pulse {
+  box-shadow: 0 0 20px color-mix(in hsl, var(--primary), transparent 50%),
+              0 0 60px color-mix(in hsl, var(--primary), transparent 70%);
+  animation: glow 3s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px color-mix(in hsl, var(--primary), transparent 50%), 0 0 60px color-mix(in hsl, var(--primary), transparent 70%); }
+  50% { box-shadow: 0 0 30px color-mix(in hsl, var(--primary), transparent 30%), 0 0 80px color-mix(in hsl, var(--primary), transparent 50%); }
+}
+
+/* ── Connecting line animation for How It Works ──────────────────── */
+@keyframes line-grow {
+  from { height: 0; }
+  to { height: 100%; }
+}
+
+.animate-line-grow {
+  animation: line-grow 1.5s ease-out forwards;
+}
+
+/* ── Scroll-triggered fade-in sections ───────────────────────────── */
+.fade-in-section {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.fade-in-section.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}

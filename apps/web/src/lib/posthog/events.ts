@@ -277,3 +277,38 @@ export function trackStudyTaskDispatched(
     task_type: taskType,
   });
 }
+
+// ── Landing Page ─────────────────────────────────────────────────────
+
+export function trackLandingCtaClick(
+  location: "hero" | "bottom",
+  brandId: string,
+) {
+  if (!isLoaded()) return;
+  posthog.capture("landing_cta_clicked", {
+    location,
+    brand_id: brandId,
+  });
+}
+
+export function trackLandingPricingToggle(
+  interval: "month" | "year",
+  brandId: string,
+) {
+  if (!isLoaded()) return;
+  posthog.capture("landing_pricing_toggle", {
+    interval,
+    brand_id: brandId,
+  });
+}
+
+export function trackLandingScrollDepth(
+  depth: 25 | 50 | 75 | 100,
+  brandId: string,
+) {
+  if (!isLoaded()) return;
+  posthog.capture("landing_scroll_depth", {
+    depth_percent: depth,
+    brand_id: brandId,
+  });
+}

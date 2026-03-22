@@ -34,6 +34,32 @@ model Organization {
 }
 
 // =============================================================================
+// BRANDS (white-label brand configuration)
+// =============================================================================
+
+model Brand {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique
+  name        String
+  domain      String   @unique
+  tagline     String
+  logoUrl     String   @map("logo_url")
+  faviconUrl  String   @default("/favicon.ico") @map("favicon_url")
+  ogImageUrl  String?  @map("og_image_url")
+  orgSlug     String   @map("org_slug")
+  theme       Json     @default("{}")
+  landing     Json     @default("{}")
+  seo         Json     @default("{}")
+  pricing     Json     @default("{}")
+  contentScope Json    @default("{}") @map("content_scope")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("brands")
+}
+
+// =============================================================================
 // USERS (extends Supabase auth.users)
 // =============================================================================
 

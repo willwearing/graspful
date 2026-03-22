@@ -14,6 +14,7 @@ import { AudioModule } from './audio/audio.module';
 import { AudioGenerationModule } from './audio-generation/audio-generation.module';
 import { BillingModule } from './billing/billing.module';
 import { GamificationModule } from './gamification/gamification.module';
+import { BrandsModule } from './brands/brands.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { GamificationModule } from './gamification/gamification.module';
     AudioGenerationModule,
     BillingModule,
     GamificationModule,
+    BrandsModule,
   ],
 })
 export class AppModule {}

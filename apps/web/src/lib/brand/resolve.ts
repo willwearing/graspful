@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import type { BrandConfig } from "./config";
 import { defaultBrand, firefighterBrand, electricianBrand, javascriptBrand, posthogBrand } from "./defaults";
+import { fetchBrandByDomain } from "./resolve-db";
 
 /** In-memory brand registry. Phase 7 uses hardcoded brands; future phases fetch from DB. */
 const brandsByDomain = new Map<string, BrandConfig>([
@@ -49,7 +50,9 @@ export async function resolveBrand(
     return brandsById.get(devBrandId) ?? defaultBrand;
   }
 
-  // Production: resolve by domain
+  // Production: try database first, fall back to hardcoded map
+  const dbBrand = await fetchBrandByDomain(host);
+  if (dbBrand) return dbBrand;
   return brandsByDomain.get(host) ?? defaultBrand;
 }
 

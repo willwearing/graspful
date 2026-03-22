@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-import { CourseJsonLd, OrganizationJsonLd } from "../json-ld";
+import { CourseJsonLd, CredentialJsonLd, OrganizationJsonLd } from "../json-ld";
 
 describe("CourseJsonLd", () => {
   it("should render valid JSON-LD script tag", () => {
@@ -55,5 +55,26 @@ describe("OrganizationJsonLd", () => {
     );
     const data = JSON.parse(script!.textContent!);
     expect(data.logo).toBe("/images/logo.svg");
+  });
+});
+
+describe("CredentialJsonLd", () => {
+  it("renders EducationalOccupationalCredential schema", () => {
+    const { container } = render(
+      <CredentialJsonLd
+        name="NFPA 1001 Firefighter Certification"
+        description="Professional certification for firefighters"
+        url="https://firefighterprep.audio"
+        educationalLevel="Professional"
+        credentialCategory="Professional Certification"
+      />,
+    );
+    const scripts = container.querySelectorAll(
+      'script[type="application/ld+json"]',
+    );
+    const data = JSON.parse(scripts[0].textContent!);
+    expect(data["@type"]).toBe("EducationalOccupationalCredential");
+    expect(data.name).toBe("NFPA 1001 Firefighter Certification");
+    expect(data.credentialCategory).toBe("Professional Certification");
   });
 });

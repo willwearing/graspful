@@ -28,9 +28,22 @@ export async function generateMetadata(): Promise<Metadata> {
     keywords: brand.seo.keywords,
     openGraph: {
       type: "website",
+      locale: "en_US",
+      siteName: brand.name,
       title: brand.seo.title,
       description: brand.seo.description,
-      ...(brand.ogImageUrl ? { images: [{ url: brand.ogImageUrl }] } : {}),
+      ...(brand.ogImageUrl
+        ? { images: [{ url: brand.ogImageUrl, width: 1200, height: 630 }] }
+        : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: brand.seo.title,
+      description: brand.seo.description,
+      ...(brand.ogImageUrl ? { images: [brand.ogImageUrl] } : {}),
+    },
+    alternates: {
+      canonical: `https://${brand.domain}`,
     },
   };
 }
