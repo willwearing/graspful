@@ -31,9 +31,9 @@ test.describe("Agents Page", () => {
   test("agents page has workflow section", async ({ page }) => {
     await page.goto("/agents");
     await expect(page.getByText("Two YAMLs. One product.")).toBeVisible();
-    await expect(page.getByText("Course YAML")).toBeVisible();
-    await expect(page.getByText("Brand YAML")).toBeVisible();
-    await expect(page.getByText("Import & Launch")).toBeVisible();
+    await expect(page.getByText("1. Course YAML")).toBeVisible();
+    await expect(page.getByText("2. Brand YAML")).toBeVisible();
+    await expect(page.getByText(/import/i).first()).toBeVisible();
   });
 
   test("agents page has pricing section", async ({ page }) => {

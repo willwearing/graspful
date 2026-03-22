@@ -15,18 +15,30 @@ interface VercelDomainResponse {
 @Injectable()
 export class VercelDomainsService {
   private readonly logger = new Logger(VercelDomainsService.name);
-  private readonly projectId: string;
-  private readonly teamId: string;
-  private readonly apiToken: string;
+  private readonly projectId: string | undefined;
+  private readonly teamId: string | undefined;
+  private readonly apiToken: string | undefined;
   private readonly baseUrl = "https://api.vercel.com";
+  private readonly configured: boolean;
 
   constructor(private readonly config: ConfigService) {
-    this.projectId = this.config.getOrThrow("VERCEL_PROJECT_ID");
-    this.teamId = this.config.getOrThrow("VERCEL_TEAM_ID");
-    this.apiToken = this.config.getOrThrow("VERCEL_API_TOKEN");
+    this.projectId = this.config.get("VERCEL_PROJECT_ID");
+    this.teamId = this.config.get("VERCEL_TEAM_ID");
+    this.apiToken = this.config.get("VERCEL_API_TOKEN");
+    this.configured = !!(this.projectId && this.teamId && this.apiToken);
+    if (!this.configured) {
+      this.logger.warn("Vercel domain management disabled — VERCEL_PROJECT_ID, VERCEL_TEAM_ID, or VERCEL_API_TOKEN not set");
+    }
+  }
+
+  private ensureConfigured(): void {
+    if (!this.configured) {
+      throw new Error("Vercel domain management is not configured");
+    }
   }
 
   async addDomain(domain: string): Promise<VercelDomainResponse> {
+    this.ensureConfigured();
     const url = `${this.baseUrl}/v10/projects/${this.projectId}/domains?teamId=${this.teamId}`;
     const res = await fetch(url, {
       method: "POST",
@@ -47,6 +59,7 @@ export class VercelDomainsService {
   }
 
   async removeDomain(domain: string): Promise<void> {
+    this.ensureConfigured();
     const url = `${this.baseUrl}/v9/projects/${this.projectId}/domains/${domain}?teamId=${this.teamId}`;
     const res = await fetch(url, {
       method: "DELETE",
@@ -61,6 +74,7 @@ export class VercelDomainsService {
   }
 
   async getDomainStatus(domain: string): Promise<VercelDomainResponse> {
+    this.ensureConfigured();
     const url = `${this.baseUrl}/v9/projects/${this.projectId}/domains/${domain}?teamId=${this.teamId}`;
     const res = await fetch(url, {
       method: "GET",
