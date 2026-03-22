@@ -2,11 +2,11 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import { PricingSection } from "@/components/marketing/pricing";
 import { BrandProvider } from "@/lib/brand/context";
-import { defaultBrand } from "@/lib/brand/defaults";
+import { firefighterBrand } from "@/lib/brand/defaults";
 
 function renderPricing() {
   return render(
-    <BrandProvider brand={defaultBrand}>
+    <BrandProvider brand={firefighterBrand}>
       <PricingSection />
     </BrandProvider>,
   );
