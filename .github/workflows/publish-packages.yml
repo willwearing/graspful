@@ -1,17 +1,15 @@
-name: Publish Packages to npm
+name: Publish packages to npm
 
 on:
-  # Manual trigger with package selection
   workflow_dispatch:
     inputs:
       package:
-        description: 'Package to publish (all, shared, cli, mcp)'
+        description: 'Package to publish'
         required: true
         default: 'all'
         type: choice
         options:
           - all
-          - shared
           - cli
           - mcp
       dry_run:
@@ -19,14 +17,11 @@ on:
         required: false
         default: false
         type: boolean
-
-  # Auto-publish on version tags
   push:
     tags:
-      - 'v*'           # Publish all packages on v* tags
-      - 'cli@*'        # Publish CLI only
-      - 'mcp@*'        # Publish MCP only
-      - 'shared@*'     # Publish shared only
+      - 'v*'
+      - 'cli@*'
+      - 'mcp@*'
 
 jobs:
   publish:
@@ -36,78 +31,53 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup bun
-        uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - name: Install dependencies
-        run: bun install
+      - run: bun install
 
-      - name: Determine which packages to publish
-        id: packages
+      - name: Determine target
+        id: target
         run: |
           TAG="${GITHUB_REF_NAME:-}"
           INPUT="${{ github.event.inputs.package }}"
-
-          # Default to input if workflow_dispatch, otherwise parse tag
           if [ -n "$INPUT" ]; then
             echo "target=$INPUT" >> "$GITHUB_OUTPUT"
-          elif [[ "$TAG" == v* ]]; then
-            echo "target=all" >> "$GITHUB_OUTPUT"
           elif [[ "$TAG" == cli@* ]]; then
             echo "target=cli" >> "$GITHUB_OUTPUT"
           elif [[ "$TAG" == mcp@* ]]; then
             echo "target=mcp" >> "$GITHUB_OUTPUT"
-          elif [[ "$TAG" == shared@* ]]; then
-            echo "target=shared" >> "$GITHUB_OUTPUT"
           else
             echo "target=all" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build shared package
-        if: steps.packages.outputs.target == 'all' || steps.packages.outputs.target == 'shared' || steps.packages.outputs.target == 'cli' || steps.packages.outputs.target == 'mcp'
-        run: cd packages/shared && bun run build
-
-      - name: Build CLI package
-        if: steps.packages.outputs.target == 'all' || steps.packages.outputs.target == 'cli'
+      - name: Build CLI
+        if: steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli'
         run: cd packages/cli && bun run build
 
-      - name: Build MCP package
-        if: steps.packages.outputs.target == 'all' || steps.packages.outputs.target == 'mcp'
+      - name: Build MCP
+        if: steps.target.outputs.target == 'all' || steps.target.outputs.target == 'mcp'
         run: cd packages/mcp && bun run build
 
-      # Publish shared first (cli and mcp depend on it)
-      - name: Publish @graspful/shared
-        if: (steps.packages.outputs.target == 'all' || steps.packages.outputs.target == 'shared') && github.event.inputs.dry_run != 'true'
-        run: cd packages/shared && bun publish --access public
-        env:
-          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Publish @graspful/cli
-        if: (steps.packages.outputs.target == 'all' || steps.packages.outputs.target == 'cli') && github.event.inputs.dry_run != 'true'
+        if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli') && github.event.inputs.dry_run != 'true'
         run: cd packages/cli && bun publish --access public
         env:
           NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @graspful/mcp
-        if: (steps.packages.outputs.target == 'all' || steps.packages.outputs.target == 'mcp') && github.event.inputs.dry_run != 'true'
+        if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'mcp') && github.event.inputs.dry_run != 'true'
         run: cd packages/mcp && bun publish --access public
         env:
           NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # Dry run mode — show what would be published
-      - name: Dry run — @graspful/shared
-        if: (steps.packages.outputs.target == 'all' || steps.packages.outputs.target == 'shared') && github.event.inputs.dry_run == 'true'
-        run: cd packages/shared && bun publish --access public --dry-run
-
-      - name: Dry run — @graspful/cli
-        if: (steps.packages.outputs.target == 'all' || steps.packages.outputs.target == 'cli') && github.event.inputs.dry_run == 'true'
+      - name: Dry run — CLI
+        if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli') && github.event.inputs.dry_run == 'true'
         run: cd packages/cli && bun publish --access public --dry-run
 
-      - name: Dry run — @graspful/mcp
-        if: (steps.packages.outputs.target == 'all' || steps.packages.outputs.target == 'mcp') && github.event.inputs.dry_run == 'true'
+      - name: Dry run — MCP
+        if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'mcp') && github.event.inputs.dry_run == 'true'
         run: cd packages/mcp && bun publish --access public --dry-run

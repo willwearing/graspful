@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
-import { CourseYamlSchema } from '@graspful/shared';
+import { CourseYamlSchema } from '../schemas';
 import { output, outputError } from '../lib/output';
 
 export function registerFillConceptCommand(program: Command) {
