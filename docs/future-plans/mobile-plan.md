@@ -253,7 +253,7 @@ At 5 brands: ~$520/year Apple + $125 Google = $645/year total. Manageable.
 The mobile app lives alongside the web app in a monorepo. Shared code is extracted into packages.
 
 ```
-niche-audio-prep/
+graspful/
 ├── apps/
 │   ├── web/                          # Next.js web app (existing)
 │   │   ├── src/
@@ -521,7 +521,7 @@ import TrackPlayer, {
   useActiveTrack,
 } from 'react-native-track-player';
 import { usePlayerStore } from '../stores/player-store';
-import type { StudyItem } from '@niche-audio-prep/shared';
+import type { StudyItem } from '@graspful/shared';
 
 export function useTrackPlayer() {
   const playbackState = usePlaybackState();
@@ -862,7 +862,7 @@ WatermelonDB's sync protocol is a clean two-phase operation:
 // apps/mobile/db/sync.ts
 import { synchronize } from '@nozbe/watermelondb/sync';
 import { database } from './index';
-import { apiClient } from '@niche-audio-prep/shared';
+import { apiClient } from '@graspful/shared';
 
 export async function syncDatabase() {
   await synchronize({
@@ -1379,7 +1379,7 @@ Feature branch
 
 **Step 3:** Extract shared constants from the web app (speed values, skip duration) into `packages/shared/src/constants.ts`.
 
-**Step 4:** Add `@niche-audio-prep/shared` as a dependency in `apps/web/package.json`. Verify web app still builds.
+**Step 4:** Add `@graspful/shared` as a dependency in `apps/web/package.json`. Verify web app still builds.
 
 **Step 5:** Commit.
 
@@ -1436,7 +1436,7 @@ Feature branch
 
 **Step 2:** Configure `metro.config.js` to resolve packages from the monorepo root (required for monorepo + Expo).
 
-**Step 3:** Add `@niche-audio-prep/shared` as a dependency. Verify you can import types from it.
+**Step 3:** Add `@graspful/shared` as a dependency. Verify you can import types from it.
 
 **Step 4:** Configure `app.config.ts` with dynamic brand loading (reads `BRAND` env var, defaults to `firefighter`).
 

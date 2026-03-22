@@ -1,5 +1,5 @@
 {
-  "name": "@niche-audio-prep/backend",
+  "name": "@graspful/backend",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -16,7 +16,7 @@
     "@nestjs/config": "^3.3.0",
     "@nestjs/core": "^10.4.0",
     "@nestjs/platform-express": "^11.1.16",
-    "@niche-audio-prep/shared": "workspace:*",
+    "@graspful/shared": "workspace:*",
     "@opentelemetry/api-logs": "^0.213.0",
     "@opentelemetry/exporter-logs-otlp-http": "^0.213.0",
     "@opentelemetry/resources": "^2.6.0",

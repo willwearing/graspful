@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import type { HealthResponse } from '@niche-audio-prep/shared';
+import type { HealthResponse } from '@graspful/shared';
 
 @Controller('health')
 export class HealthController {

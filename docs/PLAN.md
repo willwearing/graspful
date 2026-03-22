@@ -128,7 +128,7 @@ These carry over from try-listening and are used everywhere:
 ## Monorepo Structure
 
 ```
-niche-audio-prep/
+graspful/
 ├── docs/                    # You are here
 │   ├── PLAN.md             # This file
 │   ├── plans/              # Per-phase implementation plans

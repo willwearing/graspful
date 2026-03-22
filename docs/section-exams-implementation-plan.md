@@ -16,7 +16,7 @@ The target behavior is:
 3. The learner must pass the section exam to certify readiness for downstream sections.
 4. If they fail, the system assigns targeted remediation or section review before retry.
 
-This matches the Math Academy model in [`math-academy-way.pdf`](/Users/will/github/niche-audio-prep/math-academy-way.pdf):
+This matches the Math Academy model in [`math-academy-way.pdf`](/Users/will/github/graspful/math-academy-way.pdf):
 
 - lessons are heavily scaffolded at the knowledge-point level
 - scaffolding is gradually removed as competence grows
@@ -26,14 +26,14 @@ Our current platform implements the first and last bullets, but not the middle c
 
 ## Why This Needs a New Primitive
 
-The current architecture in [`docs/adaptive-learning-architecture.md`](/Users/will/github/niche-audio-prep/docs/adaptive-learning-architecture.md) supports:
+The current architecture in [`docs/adaptive-learning-architecture.md`](/Users/will/github/graspful/docs/adaptive-learning-architecture.md) supports:
 
 - `lesson`
 - `review`
 - `quiz`
 - `remediation`
 
-The current quiz service in [`backend/src/assessment/quiz.service.ts`](/Users/will/github/niche-audio-prep/backend/src/assessment/quiz.service.ts) is **course-scoped**, in-memory, and keyed off recent/in-progress concepts. That is the wrong abstraction for section readiness.
+The current quiz service in [`backend/src/assessment/quiz.service.ts`](/Users/will/github/graspful/backend/src/assessment/quiz.service.ts) is **course-scoped**, in-memory, and keyed off recent/in-progress concepts. That is the wrong abstraction for section readiness.
 
 Section exams should be modeled as a new assessment primitive, not as a cosmetic rename of quizzes.
 
@@ -103,21 +103,21 @@ Applied here:
 
 ### Backend
 
-- No section-level assessment entity in [`backend/prisma/schema.prisma`](/Users/will/github/niche-audio-prep/backend/prisma/schema.prisma)
+- No section-level assessment entity in [`backend/prisma/schema.prisma`](/Users/will/github/graspful/backend/prisma/schema.prisma)
 - No `section_exam` task type in the learning engine
 - No persistent section exam session state
 - No section pass/fail progression logic
 
 ### Frontend
 
-- Browse page in [`apps/web/src/app/(app)/browse/[courseId]/page.tsx`](/Users/will/github/niche-audio-prep/apps/web/src/app/(app)/browse/[courseId]/page.tsx) only understands course progress and concept mastery
-- Study router in [`apps/web/src/app/(app)/study/[courseId]/page.tsx`](/Users/will/github/niche-audio-prep/apps/web/src/app/(app)/study/[courseId]/page.tsx) only routes from `next-task`
-- Only course quiz UI exists today in [`apps/web/src/app/(app)/study/[courseId]/quiz/page.tsx`](/Users/will/github/niche-audio-prep/apps/web/src/app/(app)/study/[courseId]/quiz/page.tsx)
+- Browse page in [`apps/web/src/app/(app)/browse/[courseId]/page.tsx`](/Users/will/github/graspful/apps/web/src/app/(app)/browse/[courseId]/page.tsx) only understands course progress and concept mastery
+- Study router in [`apps/web/src/app/(app)/study/[courseId]/page.tsx`](/Users/will/github/graspful/apps/web/src/app/(app)/study/[courseId]/page.tsx) only routes from `next-task`
+- Only course quiz UI exists today in [`apps/web/src/app/(app)/study/[courseId]/quiz/page.tsx`](/Users/will/github/graspful/apps/web/src/app/(app)/study/[courseId]/quiz/page.tsx)
 
 ### Authoring
 
-- [`docs/adding-a-course.md`](/Users/will/github/niche-audio-prep/docs/adding-a-course.md) requires lesson-level content quality, but does not require section exam blueprints
-- [`content/README.md`](/Users/will/github/niche-audio-prep/content/README.md) defines KP practice but not section-level assessment coverage
+- [`docs/adding-a-course.md`](/Users/will/github/graspful/docs/adding-a-course.md) requires lesson-level content quality, but does not require section exam blueprints
+- [`content/README.md`](/Users/will/github/graspful/content/README.md) defines KP practice but not section-level assessment coverage
 
 ### TAM course
 
@@ -144,7 +144,7 @@ We can still reuse pieces of quiz infrastructure:
 
 ## Data Model Changes
 
-Update [`backend/prisma/schema.prisma`](/Users/will/github/niche-audio-prep/backend/prisma/schema.prisma).
+Update [`backend/prisma/schema.prisma`](/Users/will/github/graspful/backend/prisma/schema.prisma).
 
 ### Add section-level learner state
 
@@ -229,7 +229,7 @@ Recommendation:
 
 ### YAML/schema updates
 
-Extend the course schema in [`backend/src/knowledge-graph/schemas/course-yaml.schema.ts`](/Users/will/github/niche-audio-prep/backend/src/knowledge-graph/schemas/course-yaml.schema.ts) to support section exam config.
+Extend the course schema in [`backend/src/knowledge-graph/schemas/course-yaml.schema.ts`](/Users/will/github/graspful/backend/src/knowledge-graph/schemas/course-yaml.schema.ts) to support section exam config.
 
 Recommended section-level shape:
 
@@ -256,7 +256,7 @@ sections:
 
 ### Authoring rules
 
-Update [`docs/adding-a-course.md`](/Users/will/github/niche-audio-prep/docs/adding-a-course.md) and [`content/README.md`](/Users/will/github/niche-audio-prep/content/README.md) so every section must specify:
+Update [`docs/adding-a-course.md`](/Users/will/github/graspful/docs/adding-a-course.md) and [`content/README.md`](/Users/will/github/graspful/content/README.md) so every section must specify:
 
 - section objective
 - what unaided performance looks like
@@ -278,8 +278,8 @@ A section exam should:
 
 Update:
 
-- [`backend/src/knowledge-graph/course-importer.service.ts`](/Users/will/github/niche-audio-prep/backend/src/knowledge-graph/course-importer.service.ts)
-- [`backend/src/knowledge-graph/schemas/course-yaml.schema.ts`](/Users/will/github/niche-audio-prep/backend/src/knowledge-graph/schemas/course-yaml.schema.ts)
+- [`backend/src/knowledge-graph/course-importer.service.ts`](/Users/will/github/graspful/backend/src/knowledge-graph/course-importer.service.ts)
+- [`backend/src/knowledge-graph/schemas/course-yaml.schema.ts`](/Users/will/github/graspful/backend/src/knowledge-graph/schemas/course-yaml.schema.ts)
 
 Validation rules:
 
@@ -318,7 +318,7 @@ Recommendation:
 
 Add a dedicated service, likely:
 
-- [`backend/src/assessment/section-exam.service.ts`](/Users/will/github/niche-audio-prep/backend/src/assessment/section-exam.service.ts)
+- [`backend/src/assessment/section-exam.service.ts`](/Users/will/github/graspful/backend/src/assessment/section-exam.service.ts)
 
 Responsibilities:
 
@@ -341,7 +341,7 @@ Extend assessment or learning routes with:
 
 ### Reuse from quiz service
 
-Extract reusable helpers from [`backend/src/assessment/quiz.service.ts`](/Users/will/github/niche-audio-prep/backend/src/assessment/quiz.service.ts):
+Extract reusable helpers from [`backend/src/assessment/quiz.service.ts`](/Users/will/github/graspful/backend/src/assessment/quiz.service.ts):
 
 - answer evaluation
 - result summarization
@@ -352,7 +352,7 @@ Extract reusable helpers from [`backend/src/assessment/quiz.service.ts`](/Users/
 
 Update:
 
-- [`backend/src/learning-engine/learning-engine.service.ts`](/Users/will/github/niche-audio-prep/backend/src/learning-engine/learning-engine.service.ts)
+- [`backend/src/learning-engine/learning-engine.service.ts`](/Users/will/github/graspful/backend/src/learning-engine/learning-engine.service.ts)
 - task selection pure functions under `backend/src/learning-engine/`
 
 ### New task type
@@ -398,7 +398,7 @@ based on `next-task`
 
 ### Browse page
 
-Update [`apps/web/src/app/(app)/browse/[courseId]/page.tsx`](/Users/will/github/niche-audio-prep/apps/web/src/app/(app)/browse/[courseId]/page.tsx) and supporting components.
+Update [`apps/web/src/app/(app)/browse/[courseId]/page.tsx`](/Users/will/github/graspful/apps/web/src/app/(app)/browse/[courseId]/page.tsx) and supporting components.
 
 Add section-level display:
 
@@ -414,13 +414,13 @@ Add a clearer CTA than the current generic "Continue Studying" when the next tas
 
 ### Study router
 
-Update [`apps/web/src/app/(app)/study/[courseId]/page.tsx`](/Users/will/github/niche-audio-prep/apps/web/src/app/(app)/study/[courseId]/page.tsx) and the study router component to handle `section_exam`.
+Update [`apps/web/src/app/(app)/study/[courseId]/page.tsx`](/Users/will/github/graspful/apps/web/src/app/(app)/study/[courseId]/page.tsx) and the study router component to handle `section_exam`.
 
 ### New route/UI
 
 Add:
 
-- [`apps/web/src/app/(app)/study/[courseId]/sections/[sectionId]/exam/page.tsx`](/Users/will/github/niche-audio-prep/apps/web/src/app/(app)/study/[courseId]/sections/[sectionId]/exam/page.tsx)
+- [`apps/web/src/app/(app)/study/[courseId]/sections/[sectionId]/exam/page.tsx`](/Users/will/github/graspful/apps/web/src/app/(app)/study/[courseId]/sections/[sectionId]/exam/page.tsx)
 - a `SectionExamFlow` component alongside the existing quiz flow
 
 Behavior:
@@ -432,7 +432,7 @@ Behavior:
 
 ### Type updates
 
-Extend shared app types in [`apps/web/src/lib/types.ts`](/Users/will/github/niche-audio-prep/apps/web/src/lib/types.ts) with:
+Extend shared app types in [`apps/web/src/lib/types.ts`](/Users/will/github/graspful/apps/web/src/lib/types.ts) with:
 
 - section exam state
 - section exam task payload
@@ -494,7 +494,7 @@ Likely files:
 
 ## TAM Course Update Plan
 
-After the product primitives exist, update [`content/courses/posthog-tam-onboarding.yaml`](/Users/will/github/niche-audio-prep/content/courses/posthog-tam-onboarding.yaml).
+After the product primitives exist, update [`content/courses/posthog-tam-onboarding.yaml`](/Users/will/github/graspful/content/courses/posthog-tam-onboarding.yaml).
 
 ### Required section exam blueprints
 
@@ -598,7 +598,7 @@ Add an end-to-end regression covering the full expectation:
 
 Recommended new spec:
 
-- [`apps/web/e2e/section-exams.spec.ts`](/Users/will/github/niche-audio-prep/apps/web/e2e/section-exams.spec.ts)
+- [`apps/web/e2e/section-exams.spec.ts`](/Users/will/github/graspful/apps/web/e2e/section-exams.spec.ts)
 
 ### Seed/test fixture recommendation
 

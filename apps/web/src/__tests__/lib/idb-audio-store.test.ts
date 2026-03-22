@@ -41,7 +41,7 @@ describe("idb-audio-store", () => {
   afterEach(() => {
     db.close();
     // Delete the database to ensure clean state between tests
-    indexedDB.deleteDatabase("niche-audio-prep-audio");
+    indexedDB.deleteDatabase("graspful-audio");
   });
 
   describe("openAudioDB", () => {
