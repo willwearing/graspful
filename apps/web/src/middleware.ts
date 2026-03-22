@@ -11,27 +11,33 @@ function isPublicRoute(pathname: string): boolean {
 }
 
 export async function middleware(request: NextRequest) {
-  const hostname = request.headers.get("host") || "localhost";
-  const cookieHeader = request.headers.get("cookie");
+  try {
+    const hostname = request.headers.get("host") || "localhost";
+    const cookieHeader = request.headers.get("cookie");
 
-  // 1. Resolve brand (passes cookies for dev-brand-override support)
-  const brand = await resolveBrand(hostname, cookieHeader);
+    // 1. Resolve brand (passes cookies for dev-brand-override support)
+    const brand = await resolveBrand(hostname, cookieHeader);
 
-  // 2. Create response with brand headers
-  let response = NextResponse.next({ request });
-  response.headers.set("x-brand-id", brand.id);
-  response.cookies.set("brand-id", brand.id, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-  });
+    // 2. Create response with brand headers
+    let response = NextResponse.next({ request });
+    response.headers.set("x-brand-id", brand.id);
+    response.cookies.set("brand-id", brand.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
 
-  // 3. Supabase auth session refresh
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+    // 3. Supabase auth session refresh
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      // Supabase not configured — skip auth, serve public
+      return response;
+    }
+
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -53,32 +59,36 @@ export async function middleware(request: NextRequest) {
           );
         },
       },
+    });
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const pathname = request.nextUrl.pathname;
+
+    // 4. Redirect unauthenticated users away from protected routes
+    if (!user && !isPublicRoute(pathname)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/sign-in";
+      url.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(url);
     }
-  );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    // 5. Redirect authenticated users from landing and auth pages to dashboard
+    const AUTH_PAGES = ["/", "/sign-in", "/sign-up"];
+    if (user && AUTH_PAGES.includes(pathname)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
 
-  const pathname = request.nextUrl.pathname;
-
-  // 4. Redirect unauthenticated users away from protected routes
-  if (!user && !isPublicRoute(pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/sign-in";
-    url.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(url);
+    return response;
+  } catch (error) {
+    console.error("[middleware] Error:", error);
+    // Don't crash — serve the page without auth/brand
+    return NextResponse.next();
   }
-
-  // 5. Redirect authenticated users from landing and auth pages to dashboard
-  const AUTH_PAGES = ["/", "/sign-in", "/sign-up"];
-  if (user && AUTH_PAGES.includes(pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
-  }
-
-  return response;
 }
 
 export const config = {
