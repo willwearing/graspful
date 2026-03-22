@@ -1,4 +1,4 @@
-# Niche Audio Prep
+# Graspful
 
 Adaptive learning platform. Multi-tenant white-label SaaS.
 

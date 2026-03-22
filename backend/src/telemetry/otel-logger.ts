@@ -16,7 +16,7 @@ export function initOtel() {
   }
 
   const resource = resourceFromAttributes({
-    'service.name': 'niche-audio-prep-backend',
+    'service.name': 'graspful-backend',
   });
 
   const exporter = new OTLPLogExporter({

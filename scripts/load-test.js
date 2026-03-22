@@ -1,5 +1,5 @@
 /**
- * k6 load test for niche-audio-prep API.
+ * k6 load test for graspful API.
  *
  * Usage:
  *   k6 run scripts/load-test.js --env API_URL=http://localhost:3000

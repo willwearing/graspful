@@ -1494,11 +1494,11 @@ Regulations update on known cycles (NEC every 3 years, FAR/AIM annually, etc.):
 
 ### Architecture: Batch Pre-generation
 
-try-listening generates audio on-demand when users press play. niche-audio-prep pre-generates ALL audio at content upload time. Users never wait for TTS.
+try-listening generates audio on-demand when users press play. graspful pre-generates ALL audio at content upload time. Users never wait for TTS.
 
 ```
 try-listening:       User presses play -> API -> Modal Kokoro -> return audio -> cache
-niche-audio-prep:    Admin uploads content -> trigger batch -> Modal Kokoro -> Supabase Storage
+graspful:    Admin uploads content -> trigger batch -> Modal Kokoro -> Supabase Storage
                      User presses play -> GET signed URL -> stream from Supabase Storage
 ```
 
@@ -2468,7 +2468,7 @@ CMD ["node", "dist/main.js"]
 ```json
 // package.json (relevant deps)
 {
-  "name": "niche-audio-prep-backend",
+  "name": "graspful-backend",
   "version": "0.1.0",
   "dependencies": {
     "@nestjs/common": "^11",
@@ -2505,7 +2505,7 @@ CMD ["node", "dist/main.js"]
 
 ### What We Port (keep in TypeScript)
 
-| try-listening (TypeScript) | niche-audio-prep (TypeScript/NestJS) | Notes |
+| try-listening (TypeScript) | graspful (TypeScript/NestJS) | Notes |
 |---------------------------|--------------------------------------|-------|
 | `src/lib/chunker.ts` | `src/shared/utils/chunker.ts` | Same algorithm, same language |
 | `src/lib/tts.ts` (`synthesize()`) | `src/tts/tts.service.ts` | Same Modal API, NestJS service |
@@ -2516,7 +2516,7 @@ CMD ["node", "dist/main.js"]
 
 ### What Changes Fundamentally
 
-| try-listening | niche-audio-prep | Why |
+| try-listening | graspful | Why |
 |---------------|------------------|-----|
 | Next.js API routes | NestJS standalone service | TypeScript end-to-end, proper module system |
 | Cookie-based auth (`@supabase/ssr`) | JWT Bearer auth (Guard) | Standalone API, not SSR |

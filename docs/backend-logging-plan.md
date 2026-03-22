@@ -16,42 +16,42 @@ The target state is:
 
 ### What exists now
 
-- Global request logging via [`backend/src/telemetry/logging.interceptor.ts`](/Users/will/github/niche-audio-prep/backend/src/telemetry/logging.interceptor.ts#L11)
-- Global 5xx exception logging via [`backend/src/telemetry/exception.filter.ts`](/Users/will/github/niche-audio-prep/backend/src/telemetry/exception.filter.ts#L11)
-- OpenTelemetry export to PostHog via [`backend/src/telemetry/otel-logger.ts`](/Users/will/github/niche-audio-prep/backend/src/telemetry/otel-logger.ts#L9)
+- Global request logging via [`backend/src/telemetry/logging.interceptor.ts`](/Users/will/github/graspful/backend/src/telemetry/logging.interceptor.ts#L11)
+- Global 5xx exception logging via [`backend/src/telemetry/exception.filter.ts`](/Users/will/github/graspful/backend/src/telemetry/exception.filter.ts#L11)
+- OpenTelemetry export to PostHog via [`backend/src/telemetry/otel-logger.ts`](/Users/will/github/graspful/backend/src/telemetry/otel-logger.ts#L9)
 - A few domain logs in assessment, diagnostic, learning-engine, student-model, Stripe webhook, TTS, and audio generation
 
 ### Main gaps
 
 1. Request logs are too thin.
-Current request logs only capture method, URL, status, duration, and optional user ID in [`backend/src/telemetry/logging.interceptor.ts`](/Users/will/github/niche-audio-prep/backend/src/telemetry/logging.interceptor.ts#L14). They do not include request ID, route template, org ID, course ID, body size, client address, user agent, or a body policy.
+Current request logs only capture method, URL, status, duration, and optional user ID in [`backend/src/telemetry/logging.interceptor.ts`](/Users/will/github/graspful/backend/src/telemetry/logging.interceptor.ts#L14). They do not include request ID, route template, org ID, course ID, body size, client address, user agent, or a body policy.
 
 2. Logging is inconsistent across the codebase.
-You currently mix `console.log`, Nest `Logger`, and OTel `logger.emit()` in different places, for example [`backend/src/main.ts`](/Users/will/github/niche-audio-prep/backend/src/main.ts#L44), [`backend/src/audio-generation/audio-generation.service.ts`](/Users/will/github/niche-audio-prep/backend/src/audio-generation/audio-generation.service.ts#L18), and [`backend/src/assessment/problem-submission.service.ts`](/Users/will/github/niche-audio-prep/backend/src/assessment/problem-submission.service.ts#L150). That makes querying and filtering harder.
+You currently mix `console.log`, Nest `Logger`, and OTel `logger.emit()` in different places, for example [`backend/src/main.ts`](/Users/will/github/graspful/backend/src/main.ts#L44), [`backend/src/audio-generation/audio-generation.service.ts`](/Users/will/github/graspful/backend/src/audio-generation/audio-generation.service.ts#L18), and [`backend/src/assessment/problem-submission.service.ts`](/Users/will/github/graspful/backend/src/assessment/problem-submission.service.ts#L150). That makes querying and filtering harder.
 
 3. Exception logs lack request context.
-The exception filter logs 5xx errors, but it does not attach route, request ID, org ID, user ID, or sanitized request metadata in [`backend/src/telemetry/exception.filter.ts`](/Users/will/github/niche-audio-prep/backend/src/telemetry/exception.filter.ts#L14).
+The exception filter logs 5xx errors, but it does not attach route, request ID, org ID, user ID, or sanitized request metadata in [`backend/src/telemetry/exception.filter.ts`](/Users/will/github/graspful/backend/src/telemetry/exception.filter.ts#L14).
 
 4. There is no explicit policy for bodies.
 Bodies are not logged now, which is safer, but there is no mechanism to capture them selectively on routes where they would materially help debugging.
 
 5. Important workflows are under-instrumented.
 Several high-value flows do real work with little or no structured logging:
-- billing lifecycle in [`backend/src/billing/billing.service.ts`](/Users/will/github/niche-audio-prep/backend/src/billing/billing.service.ts#L28)
-- org join in [`backend/src/auth/org-join.controller.ts`](/Users/will/github/niche-audio-prep/backend/src/auth/org-join.controller.ts#L22)
-- course import in [`backend/src/knowledge-graph/course-importer.service.ts`](/Users/will/github/niche-audio-prep/backend/src/knowledge-graph/course-importer.service.ts#L30)
-- audio batch lifecycle in [`backend/src/audio-generation/audio-generation.service.ts`](/Users/will/github/niche-audio-prep/backend/src/audio-generation/audio-generation.service.ts#L147)
-- diagnostic resume/abandon/finish branches in [`backend/src/diagnostic/diagnostic-session.service.ts`](/Users/will/github/niche-audio-prep/backend/src/diagnostic/diagnostic-session.service.ts#L57)
-- study-session generation path in [`backend/src/learning-engine/learning-engine.service.ts`](/Users/will/github/niche-audio-prep/backend/src/learning-engine/learning-engine.service.ts#L66)
+- billing lifecycle in [`backend/src/billing/billing.service.ts`](/Users/will/github/graspful/backend/src/billing/billing.service.ts#L28)
+- org join in [`backend/src/auth/org-join.controller.ts`](/Users/will/github/graspful/backend/src/auth/org-join.controller.ts#L22)
+- course import in [`backend/src/knowledge-graph/course-importer.service.ts`](/Users/will/github/graspful/backend/src/knowledge-graph/course-importer.service.ts#L30)
+- audio batch lifecycle in [`backend/src/audio-generation/audio-generation.service.ts`](/Users/will/github/graspful/backend/src/audio-generation/audio-generation.service.ts#L147)
+- diagnostic resume/abandon/finish branches in [`backend/src/diagnostic/diagnostic-session.service.ts`](/Users/will/github/graspful/backend/src/diagnostic/diagnostic-session.service.ts#L57)
+- study-session generation path in [`backend/src/learning-engine/learning-engine.service.ts`](/Users/will/github/graspful/backend/src/learning-engine/learning-engine.service.ts#L66)
 
 ### Specific review notes
 
-- [`backend/src/telemetry/logging.interceptor.ts`](/Users/will/github/niche-audio-prep/backend/src/telemetry/logging.interceptor.ts#L17) logs `url` instead of low-cardinality route templates, which will fragment queries.
-- [`backend/src/telemetry/logging.interceptor.ts`](/Users/will/github/niche-audio-prep/backend/src/telemetry/logging.interceptor.ts#L29) writes directly to console in addition to emitting OTel records, which creates duplicated pathways and inconsistent formatting.
-- [`backend/src/telemetry/exception.filter.ts`](/Users/will/github/niche-audio-prep/backend/src/telemetry/exception.filter.ts#L26) intentionally ignores 4xx. That is reasonable for noisy generic 4xx, but you still want selected 4xx events logged when they indicate business or integration issues.
-- [`backend/src/billing/stripe-webhook.controller.ts`](/Users/will/github/niche-audio-prep/backend/src/billing/stripe-webhook.controller.ts#L23) logs event type, but not event ID, org ID, request ID, signature verification result, or processing outcome.
-- [`backend/src/assessment/assessment.controller.ts`](/Users/will/github/niche-audio-prep/backend/src/assessment/assessment.controller.ts#L25) and [`backend/src/diagnostic/diagnostic.controller.ts`](/Users/will/github/niche-audio-prep/backend/src/diagnostic/diagnostic.controller.ts#L26) are good candidates for selective body summaries because answer payloads sometimes matter during evaluator debugging, but full bodies should not be globally logged.
-- [`backend/src/knowledge-graph/knowledge-graph.controller.ts`](/Users/will/github/niche-audio-prep/backend/src/knowledge-graph/knowledge-graph.controller.ts#L110) accepts large YAML bodies with no request-level import logging. This is exactly the kind of route where body size, hash, and top-level summary are useful, while the full payload should stay out of normal logs.
+- [`backend/src/telemetry/logging.interceptor.ts`](/Users/will/github/graspful/backend/src/telemetry/logging.interceptor.ts#L17) logs `url` instead of low-cardinality route templates, which will fragment queries.
+- [`backend/src/telemetry/logging.interceptor.ts`](/Users/will/github/graspful/backend/src/telemetry/logging.interceptor.ts#L29) writes directly to console in addition to emitting OTel records, which creates duplicated pathways and inconsistent formatting.
+- [`backend/src/telemetry/exception.filter.ts`](/Users/will/github/graspful/backend/src/telemetry/exception.filter.ts#L26) intentionally ignores 4xx. That is reasonable for noisy generic 4xx, but you still want selected 4xx events logged when they indicate business or integration issues.
+- [`backend/src/billing/stripe-webhook.controller.ts`](/Users/will/github/graspful/backend/src/billing/stripe-webhook.controller.ts#L23) logs event type, but not event ID, org ID, request ID, signature verification result, or processing outcome.
+- [`backend/src/assessment/assessment.controller.ts`](/Users/will/github/graspful/backend/src/assessment/assessment.controller.ts#L25) and [`backend/src/diagnostic/diagnostic.controller.ts`](/Users/will/github/graspful/backend/src/diagnostic/diagnostic.controller.ts#L26) are good candidates for selective body summaries because answer payloads sometimes matter during evaluator debugging, but full bodies should not be globally logged.
+- [`backend/src/knowledge-graph/knowledge-graph.controller.ts`](/Users/will/github/graspful/backend/src/knowledge-graph/knowledge-graph.controller.ts#L110) accepts large YAML bodies with no request-level import logging. This is exactly the kind of route where body size, hash, and top-level summary are useful, while the full payload should stay out of normal logs.
 
 ## Research Summary
 
@@ -189,8 +189,8 @@ Always log instead:
 
 1. Assessment answer submission
 Files:
-- [`backend/src/assessment/assessment.controller.ts`](/Users/will/github/niche-audio-prep/backend/src/assessment/assessment.controller.ts#L25)
-- [`backend/src/assessment/problem-submission.service.ts`](/Users/will/github/niche-audio-prep/backend/src/assessment/problem-submission.service.ts#L42)
+- [`backend/src/assessment/assessment.controller.ts`](/Users/will/github/graspful/backend/src/assessment/assessment.controller.ts#L25)
+- [`backend/src/assessment/problem-submission.service.ts`](/Users/will/github/graspful/backend/src/assessment/problem-submission.service.ts#L42)
 
 Recommended logged summary:
 
@@ -207,8 +207,8 @@ Do not log:
 
 2. Diagnostic answer submission
 Files:
-- [`backend/src/diagnostic/diagnostic.controller.ts`](/Users/will/github/niche-audio-prep/backend/src/diagnostic/diagnostic.controller.ts#L26)
-- [`backend/src/diagnostic/diagnostic-session.service.ts`](/Users/will/github/niche-audio-prep/backend/src/diagnostic/diagnostic-session.service.ts#L190)
+- [`backend/src/diagnostic/diagnostic.controller.ts`](/Users/will/github/graspful/backend/src/diagnostic/diagnostic.controller.ts#L26)
+- [`backend/src/diagnostic/diagnostic-session.service.ts`](/Users/will/github/graspful/backend/src/diagnostic/diagnostic-session.service.ts#L190)
 
 Recommended logged summary:
 
@@ -219,8 +219,8 @@ Recommended logged summary:
 
 3. Course import
 Files:
-- [`backend/src/knowledge-graph/knowledge-graph.controller.ts`](/Users/will/github/niche-audio-prep/backend/src/knowledge-graph/knowledge-graph.controller.ts#L110)
-- [`backend/src/knowledge-graph/course-importer.service.ts`](/Users/will/github/niche-audio-prep/backend/src/knowledge-graph/course-importer.service.ts#L30)
+- [`backend/src/knowledge-graph/knowledge-graph.controller.ts`](/Users/will/github/graspful/backend/src/knowledge-graph/knowledge-graph.controller.ts#L110)
+- [`backend/src/knowledge-graph/course-importer.service.ts`](/Users/will/github/graspful/backend/src/knowledge-graph/course-importer.service.ts#L30)
 
 Recommended logged summary:
 
@@ -235,8 +235,8 @@ Do not log:
 
 4. Audio generation kickoff
 Files:
-- [`backend/src/audio-generation/audio-generation.controller.ts`](/Users/will/github/niche-audio-prep/backend/src/audio-generation/audio-generation.controller.ts#L17)
-- [`backend/src/audio-generation/audio-generation.service.ts`](/Users/will/github/niche-audio-prep/backend/src/audio-generation/audio-generation.service.ts#L147)
+- [`backend/src/audio-generation/audio-generation.controller.ts`](/Users/will/github/graspful/backend/src/audio-generation/audio-generation.controller.ts#L17)
+- [`backend/src/audio-generation/audio-generation.service.ts`](/Users/will/github/graspful/backend/src/audio-generation/audio-generation.service.ts#L147)
 
 Recommended logged summary:
 
@@ -247,7 +247,7 @@ Recommended logged summary:
 
 5. Stripe webhook
 File:
-- [`backend/src/billing/stripe-webhook.controller.ts`](/Users/will/github/niche-audio-prep/backend/src/billing/stripe-webhook.controller.ts#L11)
+- [`backend/src/billing/stripe-webhook.controller.ts`](/Users/will/github/graspful/backend/src/billing/stripe-webhook.controller.ts#L11)
 
 Recommended policy:
 
@@ -258,62 +258,62 @@ Recommended policy:
 
 ### Telemetry foundation
 
-- [`backend/src/main.ts`](/Users/will/github/niche-audio-prep/backend/src/main.ts#L15)
+- [`backend/src/main.ts`](/Users/will/github/graspful/backend/src/main.ts#L15)
   Add buffered custom logger bootstrap, request ID middleware, and shutdown logging.
 
-- [`backend/src/telemetry/logging.interceptor.ts`](/Users/will/github/niche-audio-prep/backend/src/telemetry/logging.interceptor.ts#L14)
+- [`backend/src/telemetry/logging.interceptor.ts`](/Users/will/github/graspful/backend/src/telemetry/logging.interceptor.ts#L14)
   Expand request context, body policy support, route template capture, body size, user agent, org ID, and request ID.
 
-- [`backend/src/telemetry/exception.filter.ts`](/Users/will/github/niche-audio-prep/backend/src/telemetry/exception.filter.ts#L14)
+- [`backend/src/telemetry/exception.filter.ts`](/Users/will/github/graspful/backend/src/telemetry/exception.filter.ts#L14)
   Attach request context and selected request metadata to 5xx logs. Add optional logging for selected 4xx categories.
 
-- [`backend/src/telemetry/otel-logger.ts`](/Users/will/github/niche-audio-prep/backend/src/telemetry/otel-logger.ts#L9)
+- [`backend/src/telemetry/otel-logger.ts`](/Users/will/github/graspful/backend/src/telemetry/otel-logger.ts#L9)
   Add environment/service metadata, log level control, and a stable attribute schema.
 
 ### Assessment
 
-- [`backend/src/assessment/assessment.controller.ts`](/Users/will/github/niche-audio-prep/backend/src/assessment/assessment.controller.ts#L25)
+- [`backend/src/assessment/assessment.controller.ts`](/Users/will/github/graspful/backend/src/assessment/assessment.controller.ts#L25)
   Mark answer endpoints with route-level body summary metadata.
 
-- [`backend/src/assessment/problem-submission.service.ts`](/Users/will/github/niche-audio-prep/backend/src/assessment/problem-submission.service.ts#L42)
+- [`backend/src/assessment/problem-submission.service.ts`](/Users/will/github/graspful/backend/src/assessment/problem-submission.service.ts#L42)
   Add logs for invalid response times, missing problems, anti-gaming triggers, XP clamp behavior, and mastery transitions.
 
 ### Diagnostic
 
-- [`backend/src/diagnostic/diagnostic-session.service.ts`](/Users/will/github/niche-audio-prep/backend/src/diagnostic/diagnostic-session.service.ts#L63)
+- [`backend/src/diagnostic/diagnostic-session.service.ts`](/Users/will/github/graspful/backend/src/diagnostic/diagnostic-session.service.ts#L63)
   Log session resume, stale-abandon, first concept selected, and no-problem edge cases.
 
-- [`backend/src/diagnostic/diagnostic-session.service.ts`](/Users/will/github/niche-audio-prep/backend/src/diagnostic/diagnostic-session.service.ts#L190)
+- [`backend/src/diagnostic/diagnostic-session.service.ts`](/Users/will/github/graspful/backend/src/diagnostic/diagnostic-session.service.ts#L190)
   Add logs for answer processed, pL delta, propagated concept count, stop-decision reason, completion, and rejected session states.
 
 ### Learning engine and student model
 
-- [`backend/src/learning-engine/learning-engine.service.ts`](/Users/will/github/niche-audio-prep/backend/src/learning-engine/learning-engine.service.ts#L30)
+- [`backend/src/learning-engine/learning-engine.service.ts`](/Users/will/github/graspful/backend/src/learning-engine/learning-engine.service.ts#L30)
   Log context sizes, blocked frontier count, remediation count, and why a specific task type was chosen.
 
-- [`backend/src/learning-engine/learning-engine.service.ts`](/Users/will/github/niche-audio-prep/backend/src/learning-engine/learning-engine.service.ts#L66)
+- [`backend/src/learning-engine/learning-engine.service.ts`](/Users/will/github/graspful/backend/src/learning-engine/learning-engine.service.ts#L66)
   Add a corresponding study-session generation log; it is currently silent.
 
-- [`backend/src/student-model/student-state.service.ts`](/Users/will/github/niche-audio-prep/backend/src/student-model/student-state.service.ts#L70)
+- [`backend/src/student-model/student-state.service.ts`](/Users/will/github/graspful/backend/src/student-model/student-state.service.ts#L70)
   Log bulk mastery and speed updates with counts and summary statistics instead of one record per concept.
 
 ### Billing
 
-- [`backend/src/billing/stripe-webhook.controller.ts`](/Users/will/github/niche-audio-prep/backend/src/billing/stripe-webhook.controller.ts#L23)
+- [`backend/src/billing/stripe-webhook.controller.ts`](/Users/will/github/graspful/backend/src/billing/stripe-webhook.controller.ts#L23)
   Log webhook reception with request ID, Stripe event ID, type, and outcome.
 
-- [`backend/src/billing/billing.service.ts`](/Users/will/github/niche-audio-prep/backend/src/billing/billing.service.ts#L28)
+- [`backend/src/billing/billing.service.ts`](/Users/will/github/graspful/backend/src/billing/billing.service.ts#L28)
   Add logs for customer creation, checkout creation, portal session creation, ignored webhook events, and subscription status transitions.
 
 ### Content and admin flows
 
-- [`backend/src/knowledge-graph/course-importer.service.ts`](/Users/will/github/niche-audio-prep/backend/src/knowledge-graph/course-importer.service.ts#L30)
+- [`backend/src/knowledge-graph/course-importer.service.ts`](/Users/will/github/graspful/backend/src/knowledge-graph/course-importer.service.ts#L30)
   Log import validation summary, import start, replace delete, created counts, warnings, and import completion/failure.
 
-- [`backend/src/audio-generation/audio-generation.service.ts`](/Users/will/github/niche-audio-prep/backend/src/audio-generation/audio-generation.service.ts#L147)
+- [`backend/src/audio-generation/audio-generation.service.ts`](/Users/will/github/graspful/backend/src/audio-generation/audio-generation.service.ts#L147)
   Add job queued, job start, pending count, periodic progress, completion summary, and failure classification logs.
 
-- [`backend/src/auth/org-join.controller.ts`](/Users/will/github/niche-audio-prep/backend/src/auth/org-join.controller.ts#L22)
+- [`backend/src/auth/org-join.controller.ts`](/Users/will/github/graspful/backend/src/auth/org-join.controller.ts#L22)
   Log org join success, org-not-found attempts, and idempotent rejoin cases.
 
 ## Proposed Implementation Plan

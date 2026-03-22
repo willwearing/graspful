@@ -106,7 +106,7 @@ src/
 
 ### Key Differences from try-listening
 
-| Aspect | try-listening | niche-audio-prep |
+| Aspect | try-listening | graspful |
 |---|---|---|
 | **Routing** | Single `/app` page | Multi-page: dashboard, browse, study, settings |
 | **Content model** | User-submitted URLs/files | Pre-authored exam content (exams > topics > sections > items) |
@@ -1033,7 +1033,7 @@ The audio player hook (`useAudioPlayer`) is the core of try-listening and it wor
 
 ### What We Change
 
-| Aspect | try-listening | niche-audio-prep |
+| Aspect | try-listening | graspful |
 |---|---|---|
 | **Content source** | User-submitted text (TTS on demand) | Pre-generated audio files (stored in R2/S3) |
 | **Player scope** | Page-level state | App-wide context (persists across page navigations) |
@@ -1132,11 +1132,11 @@ export function useAudioPlayer(): AudioPlayerContextValue {
 
 ### Key Difference: Pre-Generated Audio
 
-try-listening generates audio on-the-fly via TTS. niche-audio-prep uses pre-generated audio files stored in R2/S3. This changes the `fetchChunk` function:
+try-listening generates audio on-the-fly via TTS. graspful uses pre-generated audio files stored in R2/S3. This changes the `fetchChunk` function:
 
 ```typescript
 // try-listening's fetchChunk: POST to /api/tts, get audio blob
-// niche-audio-prep's fetchChunk: GET pre-signed URL, get audio blob
+// graspful's fetchChunk: GET pre-signed URL, get audio blob
 
 const fetchChunk = useCallback(async (index: number) => {
   const existing = audioChunksRef.current[index];
@@ -1556,9 +1556,9 @@ We keep this pattern exactly and adapt the naming:
 ```typescript
 // src/lib/audio/idb-store.ts
 // Same implementation as try-listening's idb-audio-store.ts
-// Only change: DB_NAME from "try-listening-audio" to "niche-audio-prep"
+// Only change: DB_NAME from "try-listening-audio" to "graspful"
 
-const DB_NAME = "niche-audio-prep-audio";
+const DB_NAME = "graspful-audio";
 const DB_VERSION = 1;
 const CHUNKS_STORE = "audio_chunks";
 const META_STORE = "entry_meta";
@@ -1649,7 +1649,7 @@ Offline support is progressive:
 
 Run:
 ```bash
-cd /Users/will/github/niche-audio-prep
+cd /Users/will/github/graspful
 bunx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --no-turbopack
 ```
 
@@ -2396,7 +2396,7 @@ A change is not complete until both applicable gates pass.
 
 These files can be copied with minimal or no changes:
 
-| try-listening File | niche-audio-prep Destination | Changes Needed |
+| try-listening File | graspful Destination | Changes Needed |
 |---|---|---|
 | `src/hooks/use-media-session.ts` | `src/hooks/use-media-session.ts` | None |
 | `src/hooks/use-playback-persistence.ts` | `src/hooks/use-playback-persistence.ts` | None |

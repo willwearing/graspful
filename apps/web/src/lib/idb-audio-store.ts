@@ -1,14 +1,14 @@
 /**
  * IndexedDB storage layer for offline audio playback.
  *
- * Two object stores in a single DB ("niche-audio-prep-audio", version 1):
+ * Two object stores in a single DB ("graspful-audio", version 1):
  * - audio_chunks: compound key [entryId, chunkIndex], index on entryId
  * - entry_meta: keyPath entryId
  *
  * One entry = one voice/model at a time. Compound key is [entryId, chunkIndex] only.
  */
 
-const DB_NAME = "niche-audio-prep-audio";
+const DB_NAME = "graspful-audio";
 const DB_VERSION = 1;
 const CHUNKS_STORE = "audio_chunks";
 const META_STORE = "entry_meta";
