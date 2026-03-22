@@ -112,7 +112,7 @@ export class ReviewService {
     for (const concept of courseYaml.concepts) {
       adjList.set(
         concept.id,
-        concept.prerequisites.filter((p) => conceptIds.has(p)),
+        concept.prerequisites.filter((p: string) => conceptIds.has(p)),
       );
     }
 
@@ -141,7 +141,7 @@ export class ReviewService {
       inStack.delete(node);
     }
 
-    for (const id of conceptIds) {
+    for (const id of conceptIds as Set<string>) {
       if (!visited.has(id)) dfs(id);
       if (hasCycle) break;
     }
