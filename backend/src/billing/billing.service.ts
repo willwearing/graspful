@@ -121,6 +121,34 @@ export class BillingService {
     };
   }
 
+  async createLearnerCheckoutSession(
+    orgId: string,
+    priceId: string,
+    successUrl: string,
+    cancelUrl: string,
+  ): Promise<string> {
+    const org = await this.prisma.organization.findUniqueOrThrow({ where: { id: orgId } });
+    if (!org.stripeConnectAccountId) {
+      throw new Error('Organization does not have Stripe Connect configured');
+    }
+
+    const session = await this.getStripe().checkout.sessions.create(
+      {
+        mode: 'subscription',
+        line_items: [{ price: priceId, quantity: 1 }],
+        subscription_data: { application_fee_percent: 30 },
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata: { orgId },
+      },
+      {
+        stripeAccount: org.stripeConnectAccountId,
+      },
+    );
+
+    return session.url!;
+  }
+
   async handleWebhookEvent(event: Stripe.Event): Promise<void> {
     const obj = event.data.object as any;
     switch (event.type) {

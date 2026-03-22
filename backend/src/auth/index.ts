@@ -7,3 +7,6 @@ export { CurrentUser } from './decorators/current-user.decorator';
 export { CurrentOrg } from './decorators/current-org.decorator';
 export { AuthModule } from './auth.module';
 export { OrgMembershipService } from './org-membership.service';
+export { ApiKeyModule } from './api-key/api-key.module';
+export { ApiKeyService } from './api-key/api-key.service';
+export { ApiKeyGuard } from './api-key/api-key.guard';
