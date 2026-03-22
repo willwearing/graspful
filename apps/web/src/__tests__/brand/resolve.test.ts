@@ -19,8 +19,8 @@ describe("resolveBrand", () => {
     expect(brand.id).toBe("firefighter");
   });
 
-  it("resolves known domain firefighterprep.audio", async () => {
-    const brand = await resolveBrand("firefighterprep.audio");
+  it("resolves known domain firefighterprep.vercel.app", async () => {
+    const brand = await resolveBrand("firefighterprep.vercel.app");
     expect(brand.id).toBe("firefighter");
     expect(brand.name).toBe("FirefighterPrep");
   });

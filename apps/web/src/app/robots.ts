@@ -14,7 +14,7 @@ async function getBaseUrl(): Promise<string> {
   } catch {
     // static export or build time
   }
-  return process.env.NEXT_PUBLIC_SITE_URL || "https://firefighterprep.audio";
+  return process.env.NEXT_PUBLIC_SITE_URL || "https://firefighterprep.vercel.app";
 }
 
 export default async function robots(): Promise<MetadataRoute.Robots> {

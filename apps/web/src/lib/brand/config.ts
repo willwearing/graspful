@@ -24,7 +24,7 @@ export interface BrandConfig {
   id: string;
   /** Display name: "FirefighterPrep" */
   name: string;
-  /** Custom domain: "firefighterprep.audio" */
+  /** Custom domain: "firefighterprep.vercel.app" */
   domain: string;
   /** Tagline for header/meta */
   tagline: string;

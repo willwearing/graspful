@@ -2,15 +2,15 @@ import { describe, it, expect } from "vitest";
 import { resolveBrand } from "../resolve";
 
 describe("resolveBrand", () => {
-  it("should resolve electricianprep.audio to electrician brand", async () => {
-    const brand = await resolveBrand("electricianprep.audio");
+  it("should resolve electricianprep.vercel.app to electrician brand", async () => {
+    const brand = await resolveBrand("electricianprep.vercel.app");
     expect(brand.id).toBe("electrician");
     expect(brand.name).toBe("ElectricianPrep");
-    expect(brand.domain).toBe("electricianprep.audio");
+    expect(brand.domain).toBe("electricianprep.vercel.app");
   });
 
-  it("should resolve firefighterprep.audio to firefighter brand", async () => {
-    const brand = await resolveBrand("firefighterprep.audio");
+  it("should resolve firefighterprep.vercel.app to firefighter brand", async () => {
+    const brand = await resolveBrand("firefighterprep.vercel.app");
     expect(brand.id).toBe("firefighter");
   });
 

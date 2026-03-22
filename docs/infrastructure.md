@@ -4,9 +4,20 @@
 
 | Service  | URL                                                | Status                     |
 |----------|----------------------------------------------------|----------------------------|
-| Frontend | https://web-seven-nu-27.vercel.app                 | Live                       |
+| Frontend | https://web-seven-nu-27.vercel.app                 | Live (default)             |
 | Backend  | https://graspful-backend-production.up.railway.app | Live, health check passing |
 | Database | Supabase `tzftjqpnisalltnkrykg`                    | Migrations applied         |
+
+### Brand URLs (Vercel aliases)
+
+| Brand            | URL                                      |
+|------------------|------------------------------------------|
+| FirefighterPrep  | https://firefighterprep.vercel.app       |
+| ElectricianPrep  | https://electricianprep.vercel.app       |
+| JavaScriptPrep   | https://javascriptprep.vercel.app        |
+| PostHog TAM      | https://posthog-tam.vercel.app           |
+
+All brands are served from the same Vercel deployment. The middleware resolves the brand from the `Host` header and injects the correct theme, copy, and content scope. Custom domains can be added later when purchased — just update the brand config and add the domain in Vercel.
 
 ## CI/CD Flow
 

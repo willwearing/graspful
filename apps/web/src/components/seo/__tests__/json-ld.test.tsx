@@ -9,7 +9,7 @@ describe("CourseJsonLd", () => {
         name="NEC Electrical Exam Prep"
         description="Audio-first adaptive learning for the NEC"
         provider="ElectricianPrep"
-        url="https://electricianprep.audio"
+        url="https://electricianprep.vercel.app"
       />,
     );
     const script = container.querySelector(
@@ -28,7 +28,7 @@ describe("OrganizationJsonLd", () => {
     const { container } = render(
       <OrganizationJsonLd
         name="ElectricianPrep"
-        url="https://electricianprep.audio"
+        url="https://electricianprep.vercel.app"
         description="Audio exam prep for electricians"
       />,
     );
@@ -45,7 +45,7 @@ describe("OrganizationJsonLd", () => {
     const { container } = render(
       <OrganizationJsonLd
         name="ElectricianPrep"
-        url="https://electricianprep.audio"
+        url="https://electricianprep.vercel.app"
         description="Audio exam prep"
         logoUrl="/images/logo.svg"
       />,
@@ -64,7 +64,7 @@ describe("CredentialJsonLd", () => {
       <CredentialJsonLd
         name="NFPA 1001 Firefighter Certification"
         description="Professional certification for firefighters"
-        url="https://firefighterprep.audio"
+        url="https://firefighterprep.vercel.app"
         educationalLevel="Professional"
         credentialCategory="Professional Certification"
       />,
