@@ -13,7 +13,6 @@
     "dev": "bun x tsc --watch"
   },
   "dependencies": {
-    "@graspful/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "js-yaml": "^4.1.0",
     "zod": "^3.24.0"

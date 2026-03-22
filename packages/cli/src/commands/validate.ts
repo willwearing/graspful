@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
-import { CourseYamlSchema, BrandYamlSchema, AcademyManifestSchema } from '@graspful/shared';
+import { CourseYamlSchema, BrandYamlSchema, AcademyManifestSchema } from '../schemas';
 import { output, outputError } from '../lib/output';
 
 type FileType = 'course' | 'brand' | 'academy';

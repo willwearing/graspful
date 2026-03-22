@@ -97,7 +97,6 @@
         "graspful": "./dist/index.js",
       },
       "dependencies": {
-        "@graspful/shared": "workspace:*",
         "chalk": "^5.4.0",
         "commander": "^13.0.0",
         "js-yaml": "^4.1.0",
@@ -116,7 +115,6 @@
         "graspful-mcp": "./dist/index.js",
       },
       "dependencies": {
-        "@graspful/shared": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.27.1",
         "js-yaml": "^4.1.0",
         "zod": "^3.24.0",

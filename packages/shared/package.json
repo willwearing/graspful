@@ -1,12 +1,10 @@
 {
   "name": "@graspful/shared",
+  "private": true,
   "version": "0.0.1",
   "main": "./dist/index.js",
   "devDependencies": {
     "typescript": "^5.7.0"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "scripts": {
     "build": "bun x tsc",

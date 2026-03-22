@@ -12,8 +12,9 @@ import {
   CourseYamlSchema,
   BrandYamlSchema,
   AcademyManifestSchema,
-} from '@graspful/shared';
-import type { CourseYaml, QualityCheckResult, QualityGateResult } from '@graspful/shared';
+} from './schemas';
+import type { CourseYaml } from './schemas';
+import type { QualityCheckResult, QualityGateResult } from './quality-gate';
 
 // ─── API Client (mirrors packages/cli/src/lib/api-client.ts) ──────────────
 
