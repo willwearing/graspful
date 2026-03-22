@@ -4,7 +4,7 @@ import { fetchBrandByDomain, clearBrandCache } from "../resolve-db";
 const makeMockApiResponse = (overrides: Record<string, unknown> = {}) => ({
   slug: "firefighter",
   name: "FirefighterPrep",
-  domain: "firefighterprep.audio",
+  domain: "firefighterprep.vercel.app",
   tagline: "Pass Your Exam",
   logoUrl: "/logo.svg",
   faviconUrl: "/favicon.ico",
@@ -42,7 +42,7 @@ describe("fetchBrandByDomain", () => {
       json: () => Promise.resolve(mockBrand),
     });
 
-    const result = await fetchBrandByDomain("firefighterprep.audio");
+    const result = await fetchBrandByDomain("firefighterprep.vercel.app");
     expect(result).not.toBeNull();
     expect(result!.id).toBe("firefighter");
     expect(result!.name).toBe("FirefighterPrep");
@@ -61,7 +61,7 @@ describe("fetchBrandByDomain", () => {
     (fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
       new Error("ECONNREFUSED"),
     );
-    const result = await fetchBrandByDomain("firefighterprep.audio");
+    const result = await fetchBrandByDomain("firefighterprep.vercel.app");
     expect(result).toBeNull();
   });
 
@@ -73,8 +73,8 @@ describe("fetchBrandByDomain", () => {
       json: () => Promise.resolve(mockBrand),
     });
 
-    await fetchBrandByDomain("firefighterprep.audio");
-    await fetchBrandByDomain("firefighterprep.audio");
+    await fetchBrandByDomain("firefighterprep.vercel.app");
+    await fetchBrandByDomain("firefighterprep.vercel.app");
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -86,7 +86,7 @@ describe("fetchBrandByDomain", () => {
       json: () => Promise.resolve(mockBrand),
     });
 
-    const result = await fetchBrandByDomain("firefighterprep.audio");
+    const result = await fetchBrandByDomain("firefighterprep.vercel.app");
     expect(result!.id).toBe("firefighter");
     expect(result!.ogImageUrl).toBe("");
   });

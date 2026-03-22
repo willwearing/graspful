@@ -7,11 +7,11 @@ describe("generateLlmsTxt", () => {
       name: "FirefighterPrep",
       tagline: "Pass Your Firefighter Exam. Eyes-Free.",
       description: "Audio-first adaptive learning for NFPA 1001.",
-      domain: "firefighterprep.audio",
+      domain: "firefighterprep.vercel.app",
       features: ["Audio-First Learning", "Adaptive Engine"],
     });
     expect(result).toContain("FirefighterPrep");
-    expect(result).toContain("firefighterprep.audio");
+    expect(result).toContain("firefighterprep.vercel.app");
     expect(result).toContain("Audio-First Learning");
   });
 

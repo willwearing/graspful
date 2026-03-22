@@ -7,7 +7,7 @@ describe("sitemap", () => {
     const entries = await sitemap();
     const urls = entries.map((e) => e.url);
     expect(urls.some((u) => u.endsWith("/"))).toBe(false); // base URL has no trailing slash
-    expect(urls.some((u) => u.includes("electricianprep.audio"))).toBe(true);
+    expect(urls.some((u) => u.includes("electricianprep.vercel.app"))).toBe(true);
     expect(urls.some((u) => u.includes("/pricing"))).toBe(true);
     expect(urls.some((u) => u.includes("/sign-up"))).toBe(true);
   });

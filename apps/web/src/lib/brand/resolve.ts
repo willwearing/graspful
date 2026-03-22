@@ -5,10 +5,10 @@ import { fetchBrandByDomain } from "./resolve-db";
 
 /** In-memory brand registry. Phase 7 uses hardcoded brands; future phases fetch from DB. */
 const brandsByDomain = new Map<string, BrandConfig>([
-  ["firefighterprep.audio", firefighterBrand],
-  ["electricianprep.audio", electricianBrand],
-  ["jsprep.audio", javascriptBrand],
-  ["posthog-tam.audio", posthogBrand],
+  ["firefighterprep.vercel.app", firefighterBrand],
+  ["electricianprep.vercel.app", electricianBrand],
+  ["javascriptprep.vercel.app", javascriptBrand],
+  ["posthog-tam.vercel.app", posthogBrand],
 ]);
 
 export const brandsById = new Map<string, BrandConfig>([

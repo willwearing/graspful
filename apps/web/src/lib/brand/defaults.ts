@@ -3,7 +3,7 @@ import type { BrandConfig } from "./config";
 export const firefighterBrand: BrandConfig = {
   id: "firefighter",
   name: "FirefighterPrep",
-  domain: "firefighterprep.audio",
+  domain: "firefighterprep.vercel.app",
   tagline: "Pass Your Firefighter Exam. Eyes-Free.",
   logoUrl: "/images/logo-firefighter.svg",
   faviconUrl: "/favicon.ico",
@@ -166,7 +166,7 @@ export const firefighterBrand: BrandConfig = {
 export const electricianBrand: BrandConfig = {
   id: "electrician",
   name: "ElectricianPrep",
-  domain: "electricianprep.audio",
+  domain: "electricianprep.vercel.app",
   tagline: "Pass Your Electrician Exam. Listen. Learn. Pass.",
   logoUrl: "/images/logo-electrician.svg",
   faviconUrl: "/favicon.ico",
@@ -340,7 +340,7 @@ export const electricianBrand: BrandConfig = {
 export const javascriptBrand: BrandConfig = {
   id: "javascript",
   name: "JSPrep",
-  domain: "jsprep.audio",
+  domain: "javascriptprep.vercel.app",
   tagline: "Master JavaScript. Listen. Code. Ship.",
   logoUrl: "/images/logo-javascript.svg",
   faviconUrl: "/favicon.ico",
@@ -509,7 +509,7 @@ export const javascriptBrand: BrandConfig = {
 export const posthogBrand: BrandConfig = {
   id: "posthog",
   name: "PostHog TAM",
-  domain: "posthog-tam.audio",
+  domain: "posthog-tam.vercel.app",
   tagline: "Master PostHog. Technically.",
   logoUrl: "/images/logo-firefighter.svg",
   faviconUrl: "/favicon.ico",

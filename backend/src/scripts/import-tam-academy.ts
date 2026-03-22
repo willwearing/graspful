@@ -28,7 +28,7 @@ async function main() {
       name: 'PostHog TAM',
       niche: 'posthog',
       settings: {
-        domain: 'posthog-tam.audio',
+        domain: 'posthog-tam.vercel.app',
         brandId: 'posthog',
       },
     },

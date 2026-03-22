@@ -41,16 +41,16 @@ describe('BrandsService', () => {
         id: 'uuid',
         slug: 'firefighter',
         name: 'FirefighterPrep',
-        domain: 'firefighterprep.audio',
+        domain: 'firefighterprep.vercel.app',
         isActive: true,
       };
       prisma.brand.findFirst.mockResolvedValue(mockBrand);
 
-      const result = await service.findByDomain('firefighterprep.audio');
+      const result = await service.findByDomain('firefighterprep.vercel.app');
 
       expect(result).toEqual(mockBrand);
       expect(prisma.brand.findFirst).toHaveBeenCalledWith({
-        where: { domain: 'firefighterprep.audio', isActive: true },
+        where: { domain: 'firefighterprep.vercel.app', isActive: true },
       });
     });
 
