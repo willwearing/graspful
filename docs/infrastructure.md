@@ -4,7 +4,7 @@
 
 | Service  | URL                                                | Status                     |
 |----------|----------------------------------------------------|----------------------------|
-| Frontend | https://web-seven-nu-27.vercel.app                 | Live (default)             |
+| Frontend | https://graspful.vercel.app                        | Live (platform landing)    |
 | Backend  | https://graspful-backend-production.up.railway.app | Live, health check passing |
 | Database | Supabase `tzftjqpnisalltnkrykg`                    | Migrations applied         |
 
@@ -12,6 +12,7 @@
 
 | Brand            | URL                                      |
 |------------------|------------------------------------------|
+| Graspful         | https://graspful.vercel.app              |
 | FirefighterPrep  | https://firefighterprep.vercel.app       |
 | ElectricianPrep  | https://electricianprep.vercel.app       |
 | JavaScriptPrep   | https://javascriptprep.vercel.app        |
@@ -23,14 +24,14 @@ All brands are served from the same Vercel deployment. The middleware resolves t
 
 ```
 PR → GitHub Actions (type check + tests) → must pass
-Merge to main → GitHub Actions (type check + tests) → Deploy job:
-  ├── railway up → backend deploys
-  └── curl deploy hook → Vercel rebuilds frontend
+Merge to main → GitHub Actions (type check + tests) → Deploy:
+  ├── railway up → backend deploys (via GitHub Actions)
+  └── Vercel git integration → frontend auto-deploys (no webhook needed)
 ```
 
 ## Files
 
-- `.github/workflows/ci-deploy.yml` — CI + deploy pipeline
+- `.github/workflows/ci-deploy.yml` — CI + backend deploy pipeline
 - `railway.json` — Railway build/deploy config (Nixpacks)
 - `.node-version` — pins Node 22 for Railway
 
@@ -39,7 +40,6 @@ Merge to main → GitHub Actions (type check + tests) → Deploy job:
 | Secret / Variable      | Purpose                                  |
 |------------------------|------------------------------------------|
 | `RAILWAY_TOKEN`        | Project-scoped deploy token              |
-| `VERCEL_DEPLOY_HOOK`   | Webhook URL to trigger Vercel deploys    |
 | `RAILWAY_SERVICE_NAME` | Variable, set to `graspful-backend`      |
 
 ## Note on Vercel API Token
