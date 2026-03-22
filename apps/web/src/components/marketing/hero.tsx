@@ -19,14 +19,14 @@ export function Hero({ headline, subheadline, ctaText }: HeroProps) {
       </div>
 
       <div className="relative z-10 mx-auto max-w-5xl px-6 py-32 text-center md:py-44">
-        <h1 className="text-5xl font-bold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl xl:text-9xl">
+        <h1 className="text-7xl font-bold tracking-[-0.045em] leading-[1.08] sm:text-8xl lg:text-9xl">
           {words.map((word, i) => (
             <span
               key={`${word}-${i}`}
               className={`inline-block animate-word-enter ${
                 i >= words.length - 1 ? "text-gradient" : "text-foreground"
               }`}
-              style={{ animationDelay: `${0.15 + i * 0.12}s` }}
+              style={{ animationDelay: `${0.15 + i * 0.14}s` }}
             >
               {word}
               {i < words.length - 1 ? <span>&nbsp;</span> : null}
@@ -34,7 +34,7 @@ export function Hero({ headline, subheadline, ctaText }: HeroProps) {
           ))}
         </h1>
         <p
-          className="animate-fade-up mx-auto mt-8 max-w-xl text-lg leading-relaxed text-muted-foreground md:text-xl"
+          className="animate-fade-up mx-auto mt-8 max-w-xl text-xl leading-relaxed text-muted-foreground md:text-2xl"
           style={{ animationDelay: "0.6s" }}
         >
           {subheadline}

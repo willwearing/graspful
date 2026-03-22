@@ -20,9 +20,9 @@ interface FeaturesProps {
 
 export function Features({ heading, subheading, features }: FeaturesProps) {
   return (
-    <section className="bg-[#F8FAFC] py-24 dark:bg-card/50">
+    <section className="bg-[#F8FAFC] py-32 md:py-40 dark:bg-card/50">
       <div className="mx-auto max-w-6xl px-6">
-        <h2 className="text-center text-3xl font-bold text-foreground sm:text-4xl mb-4">
+        <h2 className="text-center text-4xl font-bold tracking-[-0.04em] text-foreground sm:text-5xl lg:text-6xl mb-4">
           {heading}
         </h2>
         <p className="text-center text-muted-foreground mb-16 max-w-2xl mx-auto text-lg">
@@ -35,12 +35,12 @@ export function Features({ heading, subheading, features }: FeaturesProps) {
               <div
                 key={`${feature.icon}-${feature.title}`}
                 data-wide={feature.wide ? "true" : undefined}
-                className={`group rounded-2xl border border-border/50 bg-white p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:bg-card ${
+                className={`group rounded-2xl border border-border/50 bg-white p-10 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:bg-card ${
                   feature.wide ? "sm:col-span-2 lg:col-span-2" : ""
                 }`}
               >
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-accent/20">
-                  <Icon className="h-6 w-6 text-primary" />
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-accent/20">
+                  <Icon className="h-7 w-7 text-primary" />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">
                   {feature.title}

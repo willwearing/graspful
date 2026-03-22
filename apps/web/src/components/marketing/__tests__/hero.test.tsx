@@ -29,9 +29,9 @@ describe("Hero", () => {
     expect(orbs.length).toBe(4);
   });
 
-  it("uses 9xl font size on xl screens", () => {
+  it("uses 9xl font size on lg screens", () => {
     const { container } = render(<Hero {...props} />);
     const h1 = container.querySelector("h1");
-    expect(h1?.className).toContain("xl:text-9xl");
+    expect(h1?.className).toContain("lg:text-9xl");
   });
 });
