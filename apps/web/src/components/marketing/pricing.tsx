@@ -119,14 +119,13 @@ function CreatorPricing() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/sign-up">
-                  <Button
-                    className="w-full"
-                    variant={plan.popular ? "default" : "outline"}
-                  >
-                    {plan.cta}
-                  </Button>
-                </Link>
+                <Button
+                  className="w-full"
+                  variant={plan.popular ? "default" : "outline"}
+                  render={<Link href="/sign-up" />}
+                >
+                  {plan.cta}
+                </Button>
               </CardContent>
             </Card>
           ))}
@@ -219,20 +218,21 @@ function LearnerPricing() {
                     ))}
                   </ul>
                   {plan.id === "free" ? (
-                    <Link href="/sign-up">
-                      <Button variant="outline" className="w-full">
-                        Get Started
-                      </Button>
-                    </Link>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      render={<Link href="/sign-up" />}
+                    >
+                      Get Started
+                    </Button>
                   ) : (
-                    <Link href="/sign-up">
-                      <Button
-                        className="w-full"
-                        variant={isPopular ? "default" : "outline"}
-                      >
-                        Start {brand.pricing.trialDays}-Day Free Trial
-                      </Button>
-                    </Link>
+                    <Button
+                      className="w-full"
+                      variant={isPopular ? "default" : "outline"}
+                      render={<Link href="/sign-up" />}
+                    >
+                      Start {brand.pricing.trialDays}-Day Free Trial
+                    </Button>
                   )}
                 </CardContent>
               </Card>
