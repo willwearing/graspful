@@ -21,13 +21,11 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   const BASE_URL = await getBaseUrl();
   return {
     rules: [
-      { userAgent: "*", allow: "/", disallow: ["/dashboard", "/study", "/browse", "/settings", "/diagnostic", "/auth"] },
-      { userAgent: "ChatGPT-User", allow: "/" },
-      { userAgent: "Applebot", allow: "/" },
-      { userAgent: "GPTBot", disallow: "/" },
-      { userAgent: "Google-Extended", disallow: "/" },
-      { userAgent: "CCBot", disallow: "/" },
-      { userAgent: "anthropic-ai", disallow: "/" },
+      {
+        userAgent: "*",
+        allow: ["/", "/docs/", "/pricing", "/agents"],
+        disallow: ["/dashboard", "/study", "/browse", "/settings", "/diagnostic", "/auth"],
+      },
     ],
     sitemap: `${BASE_URL}/sitemap.xml`,
   };
