@@ -1,10 +1,11 @@
 import { headers } from "next/headers";
 import type { BrandConfig } from "./config";
-import { defaultBrand, firefighterBrand, electricianBrand, javascriptBrand, posthogBrand } from "./defaults";
+import { defaultBrand, firefighterBrand, electricianBrand, javascriptBrand, posthogBrand, graspfulBrand } from "./defaults";
 import { fetchBrandByDomain } from "./resolve-db";
 
 /** In-memory brand registry. Phase 7 uses hardcoded brands; future phases fetch from DB. */
 const brandsByDomain = new Map<string, BrandConfig>([
+  ["graspful.vercel.app", graspfulBrand],
   ["firefighterprep.vercel.app", firefighterBrand],
   ["electricianprep.vercel.app", electricianBrand],
   ["javascriptprep.vercel.app", javascriptBrand],
@@ -12,6 +13,7 @@ const brandsByDomain = new Map<string, BrandConfig>([
 ]);
 
 export const brandsById = new Map<string, BrandConfig>([
+  ["graspful", graspfulBrand],
   ["firefighter", firefighterBrand],
   ["electrician", electricianBrand],
   ["javascript", javascriptBrand],
