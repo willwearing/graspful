@@ -212,7 +212,7 @@ describe('KnowledgeGraphController', () => {
       });
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
-      const result = await controller.getKnowledgeFrontier('c1', 'u1', orgCtx as any);
+      const result = await controller.getKnowledgeFrontier('c1', orgCtx as any);
 
       expect(result.frontier).toEqual(['con1']);
     });

@@ -46,7 +46,7 @@ export function activePrerequisiteEdgeWhere(
 ): Prisma.PrerequisiteEdgeWhereInput {
   return {
     sourceConcept: activeConceptWhere({ courseId }),
-    targetConcept: activeConceptWhere(),
+    targetConcept: activeConceptWhere({ courseId }),
   };
 }
 
@@ -55,7 +55,7 @@ export function activeEncompassingEdgeWhere(
 ): Prisma.EncompassingEdgeWhereInput {
   return {
     sourceConcept: activeConceptWhere({ courseId }),
-    targetConcept: activeConceptWhere(),
+    targetConcept: activeConceptWhere({ courseId }),
   };
 }
 

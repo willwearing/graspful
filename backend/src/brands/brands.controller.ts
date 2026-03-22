@@ -8,7 +8,9 @@ import {
   Body,
   NotFoundException,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
+import { SupabaseAuthGuard } from '@/auth';
 import { BrandsService } from './brands.service';
 import { VercelDomainsService } from './vercel-domains.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
@@ -44,6 +46,7 @@ export class BrandsController {
   }
 
   @Post()
+  @UseGuards(SupabaseAuthGuard)
   async create(@Body() dto: CreateBrandDto) {
     const brand = await this.brandsService.create(dto);
 
@@ -77,11 +80,13 @@ export class BrandsController {
   }
 
   @Patch(':slug')
+  @UseGuards(SupabaseAuthGuard)
   async update(@Param('slug') slug: string, @Body() dto: UpdateBrandDto) {
     return this.brandsService.update(slug, dto);
   }
 
   @Delete(':slug')
+  @UseGuards(SupabaseAuthGuard)
   async delete(@Param('slug') slug: string) {
     return this.brandsService.delete(slug);
   }

@@ -505,9 +505,9 @@ const brands = [
     name: "PostHog TAM",
     domain: "posthog-tam.vercel.app",
     tagline: "Master PostHog. Technically.",
-    logoUrl: "/images/logo-firefighter.svg",
+    logoUrl: "/images/logo-posthog.svg",
     faviconUrl: "/favicon.ico",
-    ogImageUrl: "/images/og-firefighter.png",
+    ogImageUrl: "/images/og-posthog.png",
     orgSlug: "posthog-tam",
     theme: {
       light: {

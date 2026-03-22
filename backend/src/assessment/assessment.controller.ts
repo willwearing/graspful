@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -31,6 +32,9 @@ export class AssessmentController {
     @Body() body: { problemId: string; answer: unknown; responseTimeMs: number },
     @CurrentOrg() org: OrgContext,
   ) {
+    if (!body.problemId || body.answer === undefined || body.responseTimeMs === undefined) {
+      throw new BadRequestException('problemId, answer, and responseTimeMs are required');
+    }
     return this.problemSubmission.submitAnswer({
       userId: org.userId,
       problemId: body.problemId,
@@ -62,6 +66,9 @@ export class AssessmentController {
     },
     @CurrentOrg() org: OrgContext,
   ) {
+    if (!body.sessionId || !body.problemId || body.answer === undefined || body.responseTimeMs === undefined) {
+      throw new BadRequestException('sessionId, problemId, answer, and responseTimeMs are required');
+    }
     return this.reviewService.submitReviewAnswer(
       body.sessionId,
       body.problemId,
@@ -76,6 +83,9 @@ export class AssessmentController {
     @Body() body: { sessionId: string },
     @CurrentOrg() org: OrgContext,
   ) {
+    if (!body.sessionId) {
+      throw new BadRequestException('sessionId is required');
+    }
     return this.reviewService.completeReview(body.sessionId);
   }
 
@@ -96,6 +106,9 @@ export class AssessmentController {
     body: { problemId: string; answer: unknown; responseTimeMs: number },
     @CurrentOrg() org: OrgContext,
   ) {
+    if (!body.problemId || body.answer === undefined || body.responseTimeMs === undefined) {
+      throw new BadRequestException('problemId, answer, and responseTimeMs are required');
+    }
     return this.quizService.submitQuizAnswer(
       quizId,
       body.problemId,
@@ -128,6 +141,9 @@ export class AssessmentController {
     body: { problemId: string; answer: unknown; responseTimeMs: number },
     @CurrentOrg() org: OrgContext,
   ) {
+    if (!body.problemId || body.answer === undefined || body.responseTimeMs === undefined) {
+      throw new BadRequestException('problemId, answer, and responseTimeMs are required');
+    }
     return this.sectionExamService.submitAnswer(
       org.userId,
       sessionId,

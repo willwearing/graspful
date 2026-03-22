@@ -6,8 +6,8 @@
  */
 
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../src/app.module';
-import { AudioGenerationService } from '../src/audio-generation/audio-generation.service';
+import { AppModule } from '../backend/src/app.module';
+import { AudioGenerationService } from '../backend/src/audio-generation/audio-generation.service';
 
 function parseArgs() {
   const args = process.argv.slice(2);

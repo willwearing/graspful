@@ -15,7 +15,7 @@ export class BillingController {
     @CurrentOrg() org: OrgContext,
     @Body() body: { plan: 'individual' | 'team'; interval?: 'month' | 'year'; returnUrl?: string },
   ) {
-    const baseUrl = body.returnUrl || 'http://localhost:3001';
+    const baseUrl = this.sanitizeReturnUrl(body.returnUrl) || 'http://localhost:3001';
     const url = await this.billing.createCheckoutSession(
       org.orgId,
       body.plan,
@@ -32,9 +32,16 @@ export class BillingController {
     @CurrentOrg() org: OrgContext,
     @Body() body: { returnUrl?: string },
   ) {
-    const returnUrl = body.returnUrl || 'http://localhost:3001/settings';
+    const returnUrl = this.sanitizeReturnUrl(body.returnUrl) || 'http://localhost:3001/settings';
     const url = await this.billing.createPortalSession(org.orgId, returnUrl);
     return { url };
+  }
+
+  /** Validate returnUrl to prevent open redirect. Must start with / and not //. */
+  private sanitizeReturnUrl(url?: string): string | undefined {
+    if (!url) return undefined;
+    if (url.startsWith('/') && !url.startsWith('//')) return url;
+    return '/dashboard';
   }
 
   @Get('subscription')

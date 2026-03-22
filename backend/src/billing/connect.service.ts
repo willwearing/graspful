@@ -31,8 +31,8 @@ export class ConnectService {
     if (org.stripeConnectAccountId) {
       const accountLink = await this.getStripe().accountLinks.create({
         account: org.stripeConnectAccountId,
-        refresh_url: `${this.config.get('APP_URL')}/settings/billing/connect?refresh=true`,
-        return_url: `${this.config.get('APP_URL')}/settings/billing/connect?success=true`,
+        refresh_url: `${this.config.getOrThrow('APP_URL')}/settings/billing/connect?refresh=true`,
+        return_url: `${this.config.getOrThrow('APP_URL')}/settings/billing/connect?success=true`,
         type: 'account_onboarding',
       });
       return { url: accountLink.url };
@@ -50,8 +50,8 @@ export class ConnectService {
 
     const accountLink = await this.getStripe().accountLinks.create({
       account: account.id,
-      refresh_url: `${this.config.get('APP_URL')}/settings/billing/connect?refresh=true`,
-      return_url: `${this.config.get('APP_URL')}/settings/billing/connect?success=true`,
+      refresh_url: `${this.config.getOrThrow('APP_URL')}/settings/billing/connect?refresh=true`,
+      return_url: `${this.config.getOrThrow('APP_URL')}/settings/billing/connect?success=true`,
       type: 'account_onboarding',
     });
 

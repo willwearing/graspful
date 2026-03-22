@@ -31,6 +31,7 @@ const studySessionDuration = new Trend("study_session_duration");
 // ── Config ──────────────────────────────────────────────────────────────────
 
 const BASE_URL = __ENV.API_URL || "http://localhost:3000";
+const API = `${BASE_URL}/api/v1`;
 const AUTH_TOKEN = __ENV.AUTH_TOKEN || "";
 const ORG_ID = __ENV.ORG_ID || "";
 const COURSE_ID = __ENV.COURSE_ID || "";
@@ -91,7 +92,7 @@ function authHeaders() {
 }
 
 function courseBase() {
-  return `${BASE_URL}/orgs/${ORG_ID}/courses/${COURSE_ID}`;
+  return `${API}/orgs/${ORG_ID}/courses/${COURSE_ID}`;
 }
 
 // ── Scenario: Smoke (health + read-only endpoints) ──────────────────────────
@@ -99,7 +100,7 @@ function courseBase() {
 export function smokeTest() {
   // 1. Health check (always)
   group("health", () => {
-    const res = http.get(`${BASE_URL}/health`);
+    const res = http.get(`${API}/health`);
     healthDuration.add(res.timings.duration);
     check(res, { "health: status 200": (r) => r.status === 200 }) ||
       errorRate.add(1);
@@ -111,7 +112,7 @@ export function smokeTest() {
 
   // 2. List courses
   group("list courses", () => {
-    const res = http.get(`${BASE_URL}/orgs/${ORG_ID}/courses`, {
+    const res = http.get(`${API}/orgs/${ORG_ID}/courses`, {
       headers: authHeaders(),
     });
     courseListDuration.add(res.timings.duration);
@@ -154,7 +155,7 @@ export function smokeTest() {
   // 5. Gamification XP
   if (ORG_ID) {
     group("gamification xp", () => {
-      const res = http.get(`${BASE_URL}/orgs/${ORG_ID}/gamification/xp`, {
+      const res = http.get(`${API}/orgs/${ORG_ID}/gamification/xp`, {
         headers: authHeaders(),
       });
       check(res, {

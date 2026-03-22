@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Post, UseGuards } from '@nestjs/common';
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, MinRole } from '@/auth';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { AudioGenerationService } from './audio-generation.service';
@@ -12,6 +12,8 @@ interface GenerateBody {
 @Controller('orgs/:orgId/content')
 @UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
 export class AudioGenerationController {
+  private readonly logger = new Logger(AudioGenerationController.name);
+
   constructor(private generationService: AudioGenerationService) {}
 
   @Post('generate')
@@ -28,8 +30,8 @@ export class AudioGenerationController {
     // Kick off generation in background (don't await)
     this.generationService
       .runBatchGeneration(org.orgId, voices, concurrency, job.id, body.examId)
-      .catch(() => {
-        // Error handling is inside runBatchGeneration
+      .catch((err) => {
+        this.logger.error('Background audio generation failed', err);
       });
 
     return {

@@ -15,7 +15,7 @@ import { DiagnosticSessionService } from './diagnostic-session.service';
 export class AcademyDiagnosticController {
   constructor(private diagnosticSession: DiagnosticSessionService) {}
 
-  @Get('start')
+  @Post('start')
   async startDiagnostic(
     @Param('academyId') academyId: string,
     @CurrentOrg() org: OrgContext,

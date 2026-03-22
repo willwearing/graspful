@@ -14,11 +14,11 @@ describe("VercelDomainsService", () => {
         {
           provide: ConfigService,
           useValue: {
-            getOrThrow: jest.fn((key: string) => {
+            get: jest.fn((key: string) => {
               if (key === "VERCEL_PROJECT_ID") return "prj_123";
               if (key === "VERCEL_TEAM_ID") return "team_123";
               if (key === "VERCEL_API_TOKEN") return "token_123";
-              throw new Error(`Unknown key: ${key}`);
+              return undefined;
             }),
           },
         },

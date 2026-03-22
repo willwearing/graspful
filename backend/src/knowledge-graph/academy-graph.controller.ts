@@ -85,16 +85,15 @@ export class AcademyGraphController {
     return this.courseReads.listAcademyCourses(org.orgId, academyId);
   }
 
-  @Get(':academyId/graph/frontier/:userId')
+  @Get(':academyId/graph/frontier')
   async getAcademyKnowledgeFrontier(
     @Param('academyId') academyId: string,
-    @Param('userId') userId: string,
     @CurrentOrg() org: OrgContext,
   ) {
     return this.courseReads.getAcademyKnowledgeFrontier(
       org.orgId,
       academyId,
-      userId,
+      org.userId,
     );
   }
 }

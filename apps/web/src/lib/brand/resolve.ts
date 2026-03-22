@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import type { BrandConfig } from "./config";
 import { defaultBrand, firefighterBrand, electricianBrand, javascriptBrand, posthogBrand, graspfulBrand } from "./defaults";
 import { fetchBrandByDomain } from "./resolve-db";
@@ -63,6 +62,7 @@ export async function resolveBrand(
  * Use this in page components instead of manually plumbing headers.
  */
 export async function resolvePageBrand(): Promise<BrandConfig> {
+  const { headers } = await import("next/headers");
   const headersList = await headers();
   const hostname = headersList.get("host") || "localhost";
   const cookieHeader = headersList.get("cookie");

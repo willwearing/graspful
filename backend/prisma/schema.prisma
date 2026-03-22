@@ -70,7 +70,7 @@ model Brand {
 
 model User {
   id            String   @id @db.Uuid
-  email         String
+  email         String   @unique
   displayName   String?  @map("display_name")
   avatarUrl     String?  @map("avatar_url")
   isGlobalAdmin Boolean  @default(false) @map("is_global_admin")
@@ -401,7 +401,6 @@ model InviteToken {
   org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   inviter User         @relation("InviteSender", fields: [invitedBy], references: [id])
 
-  @@index([token])
   @@index([email])
   @@map("invite_tokens")
 }

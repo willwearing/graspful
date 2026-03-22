@@ -146,13 +146,12 @@ export class KnowledgeGraphController {
     return this.courseReads.validateCourseGraph(org.orgId, courseId);
   }
 
-  @Get(':courseId/graph/frontier/:userId')
+  @Get(':courseId/graph/frontier')
   async getKnowledgeFrontier(
     @Param('courseId') courseId: string,
-    @Param('userId') userId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.courseReads.getKnowledgeFrontier(org.orgId, courseId, userId);
+    return this.courseReads.getKnowledgeFrontier(org.orgId, courseId, org.userId);
   }
 
   /**
