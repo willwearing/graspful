@@ -5,7 +5,9 @@
   "devDependencies": {
     "typescript": "^5.7.0"
   },
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "bun x tsc",
     "dev": "bun x tsc --watch"

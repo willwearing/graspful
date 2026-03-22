@@ -1,0 +1,29 @@
+{
+  "name": "@graspful/mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Graspful — create adaptive learning courses from AI agents",
+  "keywords": ["mcp", "graspful", "course", "adaptive-learning", "ai-agent"],
+  "bin": {
+    "graspful-mcp": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": ["dist"],
+  "scripts": {
+    "build": "bun x tsc",
+    "dev": "bun x tsc --watch"
+  },
+  "dependencies": {
+    "@graspful/shared": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^25.5.0",
+    "typescript": "^5.7.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

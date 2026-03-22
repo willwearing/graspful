@@ -1,0 +1,73 @@
+brand:
+  id: graspful
+  name: Graspful
+  domain: graspful.vercel.app
+  tagline: "Launch your own certification prep site."
+  logoUrl: /images/logo-graspful.svg
+  faviconUrl: /favicon.ico
+  ogImageUrl: /images/og-graspful.png
+  orgSlug: graspful
+
+theme:
+  preset: purple
+  radius: "0.625rem"
+
+landing:
+  hero:
+    headline: "Your Brand. Your Courses. One Platform."
+    subheadline: "Launch a white-label certification prep site in minutes. Adaptive learning, audio lessons, and spaced repetition -- all under your brand."
+    ctaText: "Get Started Free"
+  features:
+    heading: "Everything You Need to Launch"
+    subheading: "One platform powers every certification niche. Add a new brand with config, not code."
+    items:
+      - title: "White-Label in Minutes"
+        description: "Your brand, your domain, your colors. Learners never see Graspful -- they see you."
+        icon: Zap
+        wide: true
+      - title: "Adaptive Learning Engine"
+        description: "AI-driven diagnostics and mastery tracking. Learners study only what they don't know yet."
+        icon: Brain
+      - title: "Audio-First Content"
+        description: "Kokoro TTS turns your curriculum into natural-sounding audio. Study hands-free."
+        icon: Headphones
+      - title: "Works for Any Certification"
+        description: "Firefighters, electricians, pilots, real estate agents -- define your content in YAML, we handle the rest."
+        icon: Shield
+        wide: true
+  howItWorks:
+    heading: "How It Works"
+    items:
+      - title: "Define Your Content"
+        description: "Write courses in YAML -- concepts, knowledge points, and practice problems."
+      - title: "Configure Your Brand"
+        description: "Set your domain, colors, logo, and pricing. Deploy to your own URL instantly."
+      - title: "Launch & Grow"
+        description: "Learners sign up, take diagnostics, and study adaptively. You track progress and revenue."
+  faq:
+    - question: "What certifications can I build prep for?"
+      answer: "Anything with a defined body of knowledge -- trade certifications, professional licenses, compliance training, internal onboarding. If it has content to memorize, Graspful can teach it."
+    - question: "Do learners know they're using Graspful?"
+      answer: "No. Your site runs on your domain with your brand. Graspful is invisible to your users."
+    - question: "How does pricing work?"
+      answer: "You set your own pricing for learners. Graspful charges a flat platform fee. You keep the rest."
+    - question: "Can I customize the learning experience?"
+      answer: "Yes -- course structure, difficulty curves, mastery thresholds, and content scope are all configurable per brand."
+  bottomCta:
+    headline: "Ready to Launch Your Prep Site?"
+    subheadline: "Join the platform powering the next generation of certification prep."
+
+seo:
+  title: "Graspful -- White-Label Certification Prep Platform"
+  description: "Launch your own branded certification prep site with adaptive learning, audio lessons, and spaced repetition. One platform, any certification niche."
+  keywords:
+    - white label learning platform
+    - certification prep platform
+    - adaptive learning SaaS
+    - audio learning platform
+    - exam prep white label
+
+pricing:
+  monthly: 0
+  currency: usd
+  trialDays: 0

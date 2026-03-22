@@ -22,6 +22,9 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
+  stripeConnectAccountId    String?  @unique @map("stripe_connect_account_id")
+  connectOnboardingComplete Boolean  @default(false) @map("connect_onboarding_complete")
+
   memberships    OrgMembership[]
   exams          Exam[]
   subscription   Subscription?
@@ -29,6 +32,8 @@ model Organization {
   generationJobs AudioGenerationJob[]
   academies      Academy[]
   courses        Course[]
+  apiKeys        ApiKey[]
+  revenueEvents  RevenueEvent[]
 
   @@map("organizations")
 }
@@ -89,6 +94,7 @@ model User {
   sectionExamSessions  SectionExamSession[]
   xpEvents             XPEvent[]
   diagnosticSessions   DiagnosticSession[]
+  apiKeys              ApiKey[]
 
   @@map("users")
 }
@@ -357,6 +363,27 @@ model Subscription {
 }
 
 // =============================================================================
+// REVENUE EVENTS (marketplace revenue tracking)
+// =============================================================================
+
+model RevenueEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  orgId           String   @map("org_id") @db.Uuid
+  stripeInvoiceId String   @unique @map("stripe_invoice_id")
+  grossAmount     Int      @map("gross_amount")
+  platformFee     Int      @map("platform_fee")
+  creatorPayout   Int      @map("creator_payout")
+  currency        String   @default("usd")
+  learnerId       String?  @map("learner_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@map("revenue_events")
+}
+
+// =============================================================================
 // INVITE TOKENS
 // =============================================================================
 
@@ -377,6 +404,28 @@ model InviteToken {
   @@index([token])
   @@index([email])
   @@map("invite_tokens")
+}
+
+// =============================================================================
+// API KEYS (CLI/agent authentication)
+// =============================================================================
+
+model ApiKey {
+  id          String   @id @default(uuid()) @db.Uuid
+  orgId       String   @map("org_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  name        String
+  keyHash     String   @unique @map("key_hash")
+  keyPrefix   String   @map("key_prefix")
+  lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz
+  expiresAt   DateTime? @map("expires_at") @db.Timestamptz
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@map("api_keys")
 }
 
 // =============================================================================

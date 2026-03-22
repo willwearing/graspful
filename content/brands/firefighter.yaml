@@ -1,0 +1,74 @@
+brand:
+  id: firefighter
+  name: FirefighterPrep
+  domain: firefighterprep.vercel.app
+  tagline: "Pass Your Firefighter Exam. Eyes-Free."
+  logoUrl: /images/logo-firefighter.svg
+  faviconUrl: /favicon.ico
+  ogImageUrl: /images/og-firefighter.png
+  orgSlug: firefighter-prep
+
+theme:
+  preset: orange
+  radius: "0.5rem"
+
+landing:
+  hero:
+    headline: "Pass Your Firefighter Exam. Eyes-Free."
+    subheadline: "Audio-first adaptive learning for NFPA 1001. Study while you work out, commute, or do chores."
+    ctaText: "Start Studying Free"
+  features:
+    heading: "Why Audio Learning Works"
+    subheading: "Turn dead time into study time. Learn while your hands and eyes are busy."
+    items:
+      - title: "Audio-First Learning"
+        description: "Listen to exam content anywhere -- at the gym, in the car, on a run. No screen required."
+        icon: Headphones
+        wide: true
+      - title: "Adaptive Engine"
+        description: "Our AI focuses on what you don't know yet. No wasted time re-studying mastered material."
+        icon: Brain
+      - title: "Spaced Repetition"
+        description: "Scientifically-timed reviews lock knowledge into long-term memory."
+        icon: Timer
+      - title: "NFPA 1001 Coverage"
+        description: "Complete coverage of Firefighter I & II certification requirements."
+        icon: Shield
+        wide: true
+  howItWorks:
+    heading: "How It Works"
+    items:
+      - title: "Take a Diagnostic"
+        description: "5-minute quiz identifies what you already know and where to focus."
+      - title: "Study Adaptively"
+        description: "Listen to personalized lessons that target your weak areas first."
+      - title: "Pass Your Exam"
+        description: "Spaced repetition ensures you retain everything on test day."
+  faq:
+    - question: "What exam does this cover?"
+      answer: "We cover NFPA 1001 Standard for Firefighter Professional Qualifications, including both Firefighter I and Firefighter II levels."
+    - question: "Can I study without headphones?"
+      answer: "Yes! Audio plays through your device speakers too. But headphones give the best experience for hands-free studying."
+    - question: "How long until I'm ready for the exam?"
+      answer: "Most students feel exam-ready after 4-6 weeks of daily 30-minute sessions. The adaptive engine adjusts to your pace."
+    - question: "Is there a free trial?"
+      answer: "Yes -- 7-day free trial with full access to all content. No credit card required to start."
+  bottomCta:
+    headline: "Ready to Start Studying?"
+    subheadline: "Join thousands of candidates who passed their exam with audio-first learning."
+
+seo:
+  title: "FirefighterPrep -- Audio Exam Prep for NFPA 1001"
+  description: "Pass your firefighter certification exam with audio-first adaptive learning. Study NFPA 1001 hands-free."
+  keywords:
+    - firefighter exam prep
+    - NFPA 1001
+    - firefighter certification
+    - audio learning
+    - adaptive learning
+
+pricing:
+  monthly: 14.99
+  yearly: 149
+  currency: usd
+  trialDays: 7

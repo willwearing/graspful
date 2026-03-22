@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { KnowledgeGraphController } from './knowledge-graph.controller';
 import { CourseImporterService } from './course-importer.service';
 import { CourseReadService } from './course-read.service';
+import { ReviewService } from './review.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
 
 const mockGuard = { canActivate: () => true };
@@ -10,6 +12,8 @@ describe('KnowledgeGraphController', () => {
   let controller: KnowledgeGraphController;
   let mockCourseReads: any;
   let mockImporter: any;
+  let mockReviewService: any;
+  let mockPrisma: any;
 
   beforeEach(async () => {
     mockCourseReads = {
@@ -23,6 +27,18 @@ describe('KnowledgeGraphController', () => {
 
     mockImporter = {
       importFromYaml: jest.fn(),
+      parseCourseYaml: jest.fn(),
+    };
+
+    mockReviewService = {
+      review: jest.fn(),
+    };
+
+    mockPrisma = {
+      course: {
+        findFirst: jest.fn(),
+        update: jest.fn(),
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -30,6 +46,8 @@ describe('KnowledgeGraphController', () => {
       providers: [
         { provide: CourseReadService, useValue: mockCourseReads },
         { provide: CourseImporterService, useValue: mockImporter },
+        { provide: ReviewService, useValue: mockReviewService },
+        { provide: PrismaService, useValue: mockPrisma },
       ],
     })
       .overrideGuard(SupabaseAuthGuard)
@@ -111,18 +129,65 @@ describe('KnowledgeGraphController', () => {
         archiveMissing: true,
       });
     });
+
+    it('should run review gate when publish=true', async () => {
+      const parsedYaml = { concepts: [], sections: [], course: { id: 'test' } };
+      const reviewResult = {
+        passed: true,
+        score: '10/10',
+        failures: [],
+        warnings: [],
+        stats: { concepts: 0, kps: 0, problems: 0 },
+      };
+      const importResult = {
+        courseId: 'c1',
+        conceptCount: 0,
+        knowledgePointCount: 0,
+        problemCount: 0,
+        prerequisiteEdgeCount: 0,
+        encompassingEdgeCount: 0,
+        warnings: [],
+      };
+
+      mockImporter.parseCourseYaml.mockReturnValue(parsedYaml);
+      mockReviewService.review.mockReturnValue(reviewResult);
+      mockImporter.importFromYaml.mockResolvedValue(importResult);
+
+      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
+      const body = { yaml: 'course:\n  id: test', publish: true };
+      const result = await controller.importCourse(body, orgCtx as any);
+
+      expect(result.review).toEqual(reviewResult);
+      expect(mockImporter.importFromYaml).toHaveBeenCalledWith(
+        body.yaml,
+        'org-1',
+        { replace: undefined, archiveMissing: undefined, isPublished: true },
+      );
+    });
+  });
+
+  describe('reviewCourse', () => {
+    it('should return review result for yaml', async () => {
+      const parsedYaml = { concepts: [], sections: [], course: { id: 'test' } };
+      const reviewResult = {
+        passed: true,
+        score: '10/10',
+        failures: [],
+        warnings: [],
+        stats: { concepts: 0, kps: 0, problems: 0 },
+      };
+
+      mockImporter.parseCourseYaml.mockReturnValue(parsedYaml);
+      mockReviewService.review.mockReturnValue(reviewResult);
+
+      const result = await controller.reviewCourse({ yaml: 'course:\n  id: test' });
+
+      expect(result).toEqual(reviewResult);
+    });
   });
 
   describe('validateCourseGraph', () => {
     it('should return validation results for a course', async () => {
-      const course = { id: 'c1' };
-      const concepts = [
-        { id: 'con1', slug: 'a' },
-        { id: 'con2', slug: 'b' },
-      ];
-      const prereqs = [{ sourceConceptId: 'con1', targetConceptId: 'con2' }];
-      const encompassing: any[] = [];
-
       mockCourseReads.validateCourseGraph.mockResolvedValue({
         isValid: true,
         errors: [],

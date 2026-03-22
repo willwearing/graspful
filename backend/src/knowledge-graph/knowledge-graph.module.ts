@@ -7,6 +7,7 @@ import { AcademyImporterService } from './academy-importer.service';
 import { GraphValidationService } from './graph-validation.service';
 import { GraphQueryService } from './graph-query.service';
 import { CourseReadService } from './course-read.service';
+import { ReviewService } from './review.service';
 
 @Module({
   imports: [StudentModelModule],
@@ -17,7 +18,8 @@ import { CourseReadService } from './course-read.service';
     GraphValidationService,
     GraphQueryService,
     CourseReadService,
+    ReviewService,
   ],
-  exports: [GraphQueryService, GraphValidationService, CourseReadService],
+  exports: [GraphQueryService, GraphValidationService, CourseReadService, ReviewService],
 })
 export class KnowledgeGraphModule {}

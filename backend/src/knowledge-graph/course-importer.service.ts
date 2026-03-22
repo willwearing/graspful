@@ -20,6 +20,7 @@ export interface ImportResult {
 export interface ImportOptions {
   replace?: boolean;
   archiveMissing?: boolean;
+  isPublished?: boolean;
 }
 
 export interface CourseImportScope {
@@ -231,6 +232,7 @@ export class CourseImporterService {
             version: data.course.version,
             estimatedHours: data.course.estimatedHours,
             sortOrder: scope?.sortOrder ?? existingCourse.sortOrder ?? 0,
+            ...(options.isPublished !== undefined && { isPublished: options.isPublished }),
           },
         })
       : await tx.course.create({
@@ -244,6 +246,7 @@ export class CourseImporterService {
             version: data.course.version,
             estimatedHours: data.course.estimatedHours,
             sortOrder: scope?.sortOrder ?? 0,
+            ...(options.isPublished !== undefined && { isPublished: options.isPublished }),
           },
         });
 

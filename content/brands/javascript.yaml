@@ -1,0 +1,77 @@
+brand:
+  id: javascript
+  name: JSPrep
+  domain: javascriptprep.vercel.app
+  tagline: "Master JavaScript. Listen. Code. Ship."
+  logoUrl: /images/logo-javascript.svg
+  faviconUrl: /favicon.ico
+  ogImageUrl: /images/og-javascript.png
+  orgSlug: javascript-prep
+
+theme:
+  preset: amber
+  radius: "0.5rem"
+
+landing:
+  hero:
+    headline: "Master JavaScript. Listen. Code. Ship."
+    subheadline: "Audio-first adaptive learning for JavaScript fundamentals. Study closures, async, and the event loop while you commute."
+    ctaText: "Start Learning Free"
+  features:
+    heading: "Why Audio Learning Works"
+    subheading: "Turn dead time into study time. Learn while your hands and eyes are busy."
+    items:
+      - title: "Audio-First JS Concepts"
+        description: "Listen to clear explanations of closures, prototypes, async/await, and more. Study on the go."
+        icon: Headphones
+        wide: true
+      - title: "Adaptive Learning Engine"
+        description: "AI identifies gaps in your JavaScript knowledge and focuses your study time there."
+        icon: Brain
+      - title: "Spaced Repetition"
+        description: "Scientifically-timed reviews lock tricky concepts like `this` binding and the event loop into long-term memory."
+        icon: Timer
+      - title: "ES2024 Coverage"
+        description: "From var vs let to generators and modules. 14 core concepts with 40+ practice problems."
+        icon: Code
+        wide: true
+  howItWorks:
+    heading: "How It Works"
+    items:
+      - title: "Take a Diagnostic"
+        description: "Quick quiz identifies what JS concepts you already know and where to focus."
+      - title: "Study Adaptively"
+        description: "Listen to lessons on closures, promises, prototypes -- whatever you need most."
+      - title: "Build Confidence"
+        description: "Spaced repetition ensures you deeply understand JS, not just recognize syntax."
+  faq:
+    - question: "What level is this for?"
+      answer: "Beginner to intermediate. We cover fundamentals through advanced concepts like closures, the event loop, and generators. Great for junior devs, bootcamp grads, or anyone filling JS knowledge gaps."
+    - question: "Is this for a specific certification?"
+      answer: "No specific cert -- this builds deep JavaScript fluency that applies to interviews, day-to-day coding, and frameworks like React or Node.js."
+    - question: "Can I listen while coding?"
+      answer: "Absolutely. Audio explanations work great as background learning while you practice. Many users listen during commutes and code in the evening."
+    - question: "Is there a free trial?"
+      answer: "Yes -- 7-day free trial with full access. No credit card required to start."
+  bottomCta:
+    headline: "Ready to Start Learning?"
+    subheadline: "Join thousands of developers who leveled up their JavaScript with audio-first learning."
+
+seo:
+  title: "JSPrep -- Audio-First JavaScript Learning"
+  description: "Master JavaScript fundamentals with audio-first adaptive learning. Closures, async/await, prototypes, and more -- study hands-free."
+  keywords:
+    - javascript learning
+    - learn javascript
+    - javascript fundamentals
+    - javascript audio course
+    - closures
+    - async await
+    - event loop
+    - audio learning
+
+pricing:
+  monthly: 14.99
+  yearly: 149
+  currency: usd
+  trialDays: 7

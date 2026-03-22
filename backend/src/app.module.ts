@@ -15,6 +15,7 @@ import { AudioGenerationModule } from './audio-generation/audio-generation.modul
 import { BillingModule } from './billing/billing.module';
 import { GamificationModule } from './gamification/gamification.module';
 import { BrandsModule } from './brands/brands.module';
+import { ApiKeyModule } from './auth/api-key/api-key.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { BrandsModule } from './brands/brands.module';
     }),
     PrismaModule,
     AuthModule,
+    ApiKeyModule,
     HealthModule,
     KnowledgeGraphModule,
     StudentModelModule,
