@@ -1,45 +1,32 @@
 interface HowItWorksProps {
   heading: string;
-  steps: Array<{
-    title: string;
-    description: string;
-  }>;
+  steps: Array<{ title: string; description: string }>;
 }
 
 export function HowItWorks({ heading, steps }: HowItWorksProps) {
   return (
-    <section className="relative bg-[#0A1628] py-24 overflow-hidden">
+    <section className="relative bg-[#0A1628] py-32 md:py-40 overflow-hidden">
       <div className="gradient-mesh opacity-30">
         <div className="orb-1" />
         <div className="orb-2" />
       </div>
-
-      <div className="relative z-10 mx-auto max-w-4xl px-6">
-        <h2 className="text-center text-3xl font-bold text-white sm:text-4xl mb-16">
+      <div className="relative z-10 mx-auto max-w-5xl px-6">
+        <h2 className="text-center text-4xl font-bold tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl mb-20">
           {heading}
         </h2>
         <div className="relative">
-          <div className="absolute left-8 top-0 bottom-0 w-px hidden md:block overflow-hidden">
-            <div className="w-full bg-gradient-to-b from-primary via-secondary to-primary animate-line-grow" />
+          {/* Horizontal connecting line */}
+          <div className="absolute top-10 left-[10%] right-[10%] h-px hidden sm:block overflow-hidden">
+            <div className="w-full h-full bg-gradient-to-r from-primary via-secondary to-primary animate-line-grow" style={{ animationDuration: '1.5s' }} />
           </div>
-
-          <div className="space-y-12">
+          <div className="grid gap-16 sm:grid-cols-3 sm:gap-8">
             {steps.map((step, i) => (
-              <div
-                key={`${step.title}-${step.description}`}
-                className="flex gap-6 items-start"
-              >
-                <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-white text-xl font-bold shadow-lg shadow-primary/20">
+              <div key={step.title} className="flex flex-col items-center text-center">
+                <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-white text-2xl font-bold shadow-[0_0_40px_rgba(99,102,241,0.3),0_0_80px_rgba(99,102,241,0.15)] mb-8">
                   {i + 1}
                 </div>
-                <div className="pt-2">
-                  <h3 className="text-xl font-semibold text-white mb-2">
-                    {step.title}
-                  </h3>
-                  <p className="text-slate-400 leading-relaxed">
-                    {step.description}
-                  </p>
-                </div>
+                <h3 className="text-xl font-semibold text-white mb-3">{step.title}</h3>
+                <p className="text-slate-400 leading-relaxed">{step.description}</p>
               </div>
             ))}
           </div>

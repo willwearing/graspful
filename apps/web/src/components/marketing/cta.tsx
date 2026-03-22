@@ -8,9 +8,13 @@ interface CTAProps {
 
 export function CTA({ ctaText, headline, subheadline }: CTAProps) {
   return (
-    <section className="relative overflow-hidden py-24 bg-white dark:bg-background">
-      <div className="relative z-10 mx-auto max-w-2xl px-6 text-center">
-        <h2 className="text-3xl font-bold text-foreground sm:text-4xl mb-4">
+    <section className="relative overflow-hidden py-32 md:py-44 bg-white dark:bg-background">
+      <div className="gradient-mesh opacity-20">
+        <div className="orb-1" />
+        <div className="orb-2" />
+      </div>
+      <div className="relative z-10 mx-auto max-w-4xl px-6 text-center">
+        <h2 className="text-4xl font-bold tracking-[-0.04em] text-foreground sm:text-5xl lg:text-7xl mb-4">
           {headline}
         </h2>
         <p className="text-lg text-muted-foreground mb-2">
