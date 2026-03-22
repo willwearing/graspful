@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
 import type { NextTask } from "@/lib/types";
+import { trackStudyTaskDispatched } from "@/lib/posthog/events";
 import { getCourseTaskHref } from "@/lib/academy-routes";
 
 interface StudyRouterProps {
@@ -24,6 +25,7 @@ export function StudyRouter({ academyId, courseId, task }: StudyRouterProps) {
 
     const href = getCourseTaskHref(resolvedCourseId, task);
     if (href) {
+      trackStudyTaskDispatched(resolvedCourseId, task.taskType);
       router.push(href);
     }
   }, [task, courseId, router]);

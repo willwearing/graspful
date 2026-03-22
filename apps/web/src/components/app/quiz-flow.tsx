@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import type { Problem, ProblemAnswer } from "@/lib/types";
 import Link from "next/link";
 import { Clock } from "lucide-react";
-import { trackQuizComplete } from "@/lib/posthog/events";
+import { trackQuizComplete, trackQuizStarted, trackQuizQuestionAnswered } from "@/lib/posthog/events";
 
 interface QuizData {
   quizId: string;
@@ -49,6 +49,12 @@ export function QuizFlow({ orgSlug, courseId, token, quizData }: QuizFlowProps) 
   const finishCalledRef = useRef(false);
 
   const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
+
+  // Track quiz start
+  useEffect(() => {
+    trackQuizStarted(quizData.quizId, quizData.totalProblems, quizData.timeLimitMs);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Timer
   useEffect(() => {
@@ -94,6 +100,11 @@ export function QuizFlow({ orgSlug, courseId, token, quizData }: QuizFlowProps) 
         }
       );
 
+      trackQuizQuestionAnswered(
+        quizData.quizId,
+        currentIndex,
+        Date.now() - questionStartRef.current,
+      );
       setAnsweredCount(response.answeredCount);
 
       // Move to next or stay on last

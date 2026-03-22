@@ -1,0 +1,128 @@
+[
+  {
+    "event": "sign_up",
+    "description": "User created a new account",
+    "file": "src/components/auth/auth-form.tsx",
+    "properties": ["method"]
+  },
+  {
+    "event": "sign_in",
+    "description": "User signed in successfully",
+    "file": "src/components/auth/auth-form.tsx",
+    "properties": ["method"]
+  },
+  {
+    "event": "course_enrolled",
+    "description": "User enrolled in a course",
+    "file": "various",
+    "properties": ["course_id", "course_name"]
+  },
+  {
+    "event": "subscription_started",
+    "description": "User started a paid subscription",
+    "file": "various",
+    "properties": ["plan", "billing_period"]
+  },
+  {
+    "event": "diagnostic_started",
+    "description": "User began a diagnostic assessment",
+    "file": "src/components/app/diagnostic-flow.tsx",
+    "properties": ["course_id", "total_estimated"]
+  },
+  {
+    "event": "diagnostic_question_answered",
+    "description": "User answered a diagnostic question (or skipped with 'I don't know')",
+    "file": "src/components/app/diagnostic-flow.tsx",
+    "properties": ["course_id", "question_number", "was_correct", "was_skipped", "response_time_ms"]
+  },
+  {
+    "event": "diagnostic_completed",
+    "description": "Diagnostic assessment finished with results",
+    "file": "src/components/app/diagnostic-flow.tsx",
+    "properties": ["course_id", "concepts_known", "total_concepts"]
+  },
+  {
+    "event": "lesson_started",
+    "description": "User started a lesson for a concept",
+    "file": "src/components/app/lesson-flow.tsx",
+    "properties": ["course_id", "concept_id", "concept_name", "total_knowledge_points"]
+  },
+  {
+    "event": "lesson_practice_answered",
+    "description": "User answered a practice problem within a lesson",
+    "file": "src/components/app/lesson-flow.tsx",
+    "properties": ["concept_id", "problem_id", "was_correct", "response_time_ms"]
+  },
+  {
+    "event": "lesson_audio_played",
+    "description": "User played audio for a lesson knowledge point",
+    "file": "src/components/app/lesson-flow.tsx",
+    "properties": ["concept_id", "kp_slug"]
+  },
+  {
+    "event": "lesson_completed",
+    "description": "User completed all knowledge points in a lesson",
+    "file": "src/components/app/lesson-flow.tsx",
+    "properties": ["concept_id", "concept_name", "duration_seconds"]
+  },
+  {
+    "event": "quiz_started",
+    "description": "User started a timed quiz",
+    "file": "src/components/app/quiz-flow.tsx",
+    "properties": ["quiz_id", "total_problems", "time_limit_ms"]
+  },
+  {
+    "event": "quiz_question_answered",
+    "description": "User answered a quiz question",
+    "file": "src/components/app/quiz-flow.tsx",
+    "properties": ["quiz_id", "question_index", "response_time_ms"]
+  },
+  {
+    "event": "quiz_completed",
+    "description": "Quiz finished with pass/fail result",
+    "file": "src/components/app/quiz-flow.tsx",
+    "properties": ["concept_id", "passed", "score"]
+  },
+  {
+    "event": "review_started",
+    "description": "User started a spaced repetition review session",
+    "file": "src/components/app/review-flow.tsx",
+    "properties": ["concept_id", "total_problems"]
+  },
+  {
+    "event": "review_problem_answered",
+    "description": "User answered a review problem",
+    "file": "src/components/app/review-flow.tsx",
+    "properties": ["concept_id", "problem_id", "was_correct", "response_time_ms"]
+  },
+  {
+    "event": "review_completed",
+    "description": "Review session finished with pass/fail result",
+    "file": "src/components/app/review-flow.tsx",
+    "properties": ["concept_id", "passed", "score"]
+  },
+  {
+    "event": "section_exam_started",
+    "description": "User started a timed section exam",
+    "file": "src/components/app/section-exam-flow.tsx",
+    "properties": ["section_id", "total_problems", "time_limit_ms"]
+  },
+  {
+    "event": "section_exam_question_answered",
+    "description": "User answered a section exam question",
+    "file": "src/components/app/section-exam-flow.tsx",
+    "properties": ["section_id", "question_index", "response_time_ms"]
+  },
+  {
+    "event": "section_exam_completed",
+    "description": "Section exam finished with pass/fail and score",
+    "file": "src/components/app/section-exam-flow.tsx",
+    "properties": ["section_id", "passed", "score"]
+  },
+  {
+    "event": "study_task_dispatched",
+    "description": "Study router redirected user to their next task",
+    "file": "src/components/app/study-router.tsx",
+    "properties": ["course_id", "task_type"]
+  }
+]

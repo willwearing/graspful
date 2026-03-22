@@ -419,6 +419,111 @@ How to fix duplicates:
 - Callout blocks should highlight key rules, common mistakes, or memory aids — not repeat the instruction.
 - Link blocks should point to authoritative external resources that the learner can use for deeper exploration.
 
+## Self-Improvement Loop (Autoresearch Pattern)
+
+After every authoring or review pass, the agent should run an autonomous self-improvement loop inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch). The core principle: **modify one thing, verify mechanically, keep or revert, repeat.**
+
+This is not optional polish. It is the mechanism that prevents quality from decaying over time and ensures every iteration of a course is better than the last.
+
+### The loop
+
+```
+1. MODIFY  — Make one targeted change to the course YAML
+2. VERIFY  — Run the mechanical quality gate (see checks below)
+3. MEASURE — Compare the result against the baseline score
+4. DECIDE  — Keep the change if quality improved or held; revert if it degraded
+5. REPEAT  — Loop until all gate checks pass or no further improvements are found
+```
+
+### What makes this work
+
+Three design choices from autoresearch translate directly:
+
+1. **Single file, single change.** Each iteration touches one concept, one KP, or one problem cluster — not the whole course at once. This makes the keep/revert decision unambiguous. If you change five things and quality drops, you don't know which change caused it.
+
+2. **Fixed verification budget.** Don't spend unlimited time on review. Run the mechanical checks (below), score the results, decide in under 60 seconds. The quality gate is cheap to run; the improvement comes from running it many times, not from running it once very carefully.
+
+3. **Mechanical verification, not vibes.** Every check must produce a pass/fail or a number. "Does it feel better?" is not a check. "Are there 0 duplicate-fact question pairs at the same cognitive level?" is a check.
+
+### Mechanical quality gate checks
+
+These are the specific checks the agent runs after each modification. Each produces a pass/fail result.
+
+| # | Check | Pass condition | How to verify | Status |
+|---|-------|---------------|---------------|--------|
+| 1 | YAML parses | No parse errors | `yaml.load()` succeeds | Automated (importer) |
+| 2 | Unique problem IDs | 0 duplicates | Count problem IDs, compare to set size | Automated (importer) |
+| 3 | Prerequisites valid | All referenced concept IDs exist | Cross-reference `prerequisites` against `concepts[].id` | Automated (importer) |
+| 4 | Question deduplication | 0 same-fact-same-level pairs | For each problem, summarize the atomic fact + cognitive level; flag duplicates | Manual (review agent) |
+| 5 | Difficulty staircase | Every concept has problems at 2+ cognitive levels | For each concept, classify problems as recognition/application/judgment; fail if all same | Manual (review agent) |
+| 6 | Cross-concept fact coverage | No fact tested >3 times across concepts | Count fact occurrences across all problems | Manual (review agent) |
+| 7 | Problem variant depth | Every KP with problems has ≥3 variants | Count problems per KP | Manual (review agent) |
+| 8 | Instruction formatting | No wall-of-text KPs | Flag any `instruction` field >100 words without a visual break | Manual (review agent) |
+| 9 | Worked example coverage | ≥50% of concepts have a worked example | Count concepts with `workedExample` fields | Manual (review agent) |
+| 10 | Import succeeds | Course loads into the database | Run `load-course.ts` and check for errors | Automated (script) |
+
+**Current state:** Checks 1-3 and 10 are automated by the importer and load script. Checks 4-9 are run manually by the review agent (Steps 8 and 11). If the manual checks repeatedly catch the same failures, or if agent-authored courses keep shipping with the same quality issues, consider building a `scripts/quality-gate.sh` that automates checks 4-9 as a single mechanical pass. The decision point: if the review agent has to flag the same class of issue (e.g., duplicate questions) on 3+ courses, automate that check into a script so it can't be missed.
+
+### How the agent should use this
+
+**After authoring (Steps 6-10):**
+
+1. Run the quality gate.
+2. If any check fails, pick the highest-severity failure.
+3. Make one targeted fix for that failure.
+4. Re-run the quality gate.
+5. If the fix resolved the failure without introducing new ones, keep it. If it introduced a new failure, revert and try a different approach.
+6. Repeat until all checks pass.
+
+**After review (Steps 8, 11):**
+
+The review agent's findings become the modification queue for the improvement loop. Each finding is one iteration:
+
+1. Pick the highest-severity finding.
+2. Make the fix.
+3. Run the quality gate.
+4. Keep or revert.
+5. Move to the next finding.
+
+**After any course content change (ongoing):**
+
+Any agent that edits a course YAML — whether adding concepts, rewriting problems, or adjusting prerequisites — must run the quality gate before marking the work complete. The gate is the gatekeeper, not the agent's self-assessment.
+
+### What the agent must NOT do
+
+- Do not skip the gate because "the change was small."
+- Do not batch multiple fixes into one iteration. One change, one verify, one decision.
+- Do not override a gate failure with a justification. If the gate says fail, either fix the issue or revert the change.
+- Do not treat the gate as a final step. It is a loop — the agent should expect to run it multiple times per authoring session.
+
+### Logging
+
+Each iteration should be logged so quality trends are visible:
+
+```
+[iteration 1] MODIFY: rewrote ph-sessions-p4 as scenario problem
+[iteration 1] VERIFY: gate passed (10/10 checks)
+[iteration 1] DECIDE: keep
+
+[iteration 2] MODIFY: deleted duplicate gotcha-p5
+[iteration 2] VERIFY: gate passed (10/10 checks)
+[iteration 2] DECIDE: keep
+
+[iteration 3] MODIFY: split oversized KP in ph-actions
+[iteration 3] VERIFY: gate failed (check 2: duplicate problem ID ph-actions-p3)
+[iteration 3] DECIDE: revert, fix ID collision, retry
+```
+
+### Connection to Playwright tests
+
+The quality gate for course content is necessary but not sufficient. After the YAML quality gate passes, the agent must also verify that the course loads and works in the app:
+
+1. Import the course with `load-course.ts`
+2. Run the relevant Playwright E2E tests (`courses.spec.ts`, `diagnostic.spec.ts`, etc.)
+3. If any test fails, the change is not complete — treat the test failure as a gate failure and fix it before moving on.
+
+This is the same principle as autoresearch: the training run (Playwright tests) is the final arbiter, not the agent's confidence that the change is correct.
+
 ## 1. Create the Organization & Brand
 
 Every course belongs to an organization, and every org needs a brand to be visible in the app.

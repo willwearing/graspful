@@ -8,7 +8,7 @@ import { ProblemRenderer, type ProblemFeedback } from "@/components/app/problems
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { Problem, ProblemAnswer } from "@/lib/types";
-import { trackDiagnosticComplete } from "@/lib/posthog/events";
+import { trackDiagnosticComplete, trackDiagnosticStarted, trackDiagnosticQuestionAnswered } from "@/lib/posthog/events";
 
 interface DiagnosticState {
   sessionId: string;
@@ -66,6 +66,12 @@ export function DiagnosticFlow({ orgSlug, courseId, academyId, token, initialDat
     );
   }, [diagnosticBasePath, token]);
 
+  // Track diagnostic start
+  useEffect(() => {
+    trackDiagnosticStarted(courseId, initialData.totalEstimated);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // If initially complete, fetch result
   useEffect(() => {
     if (state.isComplete && !result && !fetchingRef.current) {
@@ -96,6 +102,13 @@ export function DiagnosticFlow({ orgSlug, courseId, academyId, token, initialDat
       );
 
       const skipped = answer === "__I_DONT_KNOW__";
+      trackDiagnosticQuestionAnswered(
+        courseId,
+        state.questionNumber,
+        response.wasCorrect,
+        skipped,
+        Date.now() - startTimeRef.current,
+      );
       setFeedback({ wasCorrect: response.wasCorrect, skipped });
 
       // After brief delay, show next question or complete

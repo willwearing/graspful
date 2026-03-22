@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiClientFetch } from "@/lib/api-client";
 import { ProblemRenderer, type ProblemFeedback } from "@/components/app/problems/problem-renderer";
@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import type { Problem, ProblemAnswer } from "@/lib/types";
 import Link from "next/link";
 import { CheckCircle, XCircle } from "lucide-react";
+import { trackReviewStarted, trackReviewProblemAnswered, trackReviewCompleted } from "@/lib/posthog/events";
 
 interface ReviewData {
   sessionId: string;
@@ -49,6 +50,12 @@ export function ReviewFlow({ orgSlug, courseId, conceptId, token, initialData }:
 
   const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
 
+  // Track review start on mount
+  useEffect(() => {
+    trackReviewStarted(conceptId, initialData.totalProblems);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function handleSubmit(answer: ProblemAnswer) {
     if (submitting) return;
     setSubmitting(true);
@@ -69,6 +76,12 @@ export function ReviewFlow({ orgSlug, courseId, conceptId, token, initialData }:
       );
 
       const wasCorrect = response.correct;
+      trackReviewProblemAnswered(
+        conceptId,
+        problem.id,
+        wasCorrect,
+        Date.now() - startTimeRef.current,
+      );
       if (wasCorrect) setCorrectCount((prev) => prev + 1);
       setFeedback({ wasCorrect, explanation: response.feedback });
 
@@ -91,6 +104,7 @@ export function ReviewFlow({ orgSlug, courseId, conceptId, token, initialData }:
                 body: JSON.stringify({ sessionId }),
               }
             );
+            trackReviewCompleted(conceptId, completeResult.passed, completeResult.score);
             setResult(completeResult);
           } catch {
             // Still show what we have

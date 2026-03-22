@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "cd ../.. && bun install && bun run build --filter=@niche-audio-prep/web",
+  "installCommand": "echo 'skipping install - handled in buildCommand'",
+  "outputDirectory": ".next"
+}

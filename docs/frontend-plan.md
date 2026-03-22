@@ -28,6 +28,7 @@
 10. [SEO Implementation](#10-seo-implementation)
 11. [Offline Support](#11-offline-support)
 12. [Task Breakdown](#12-task-breakdown)
+13. [Self-Improvement Loop (Autoresearch Pattern)](#13-self-improvement-loop-autoresearch-pattern)
 
 ---
 
@@ -2312,6 +2313,82 @@ git commit -m "feat: wire root layout with runtime brand theme injection"
 | 8 | 23-25 | SEO, analytics, settings | Phase 2 + Phase 4 |
 
 Total: ~25 tasks. At 2-5 minutes per step, ~6 steps per task, roughly 12-15 hours of focused implementation.
+
+---
+
+## 13. Self-Improvement Loop (Autoresearch Pattern)
+
+Every frontend change — new component, page, route, or UI fix — should follow an autonomous self-improvement loop inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch). The core principle: **modify one thing, verify mechanically, keep or revert, repeat.**
+
+### The loop
+
+```
+1. MODIFY  — Make one targeted change (one component, one route, one fix)
+2. VERIFY  — Run the mechanical quality gate
+3. MEASURE — Compare against the baseline (tests pass, types check, no regressions)
+4. DECIDE  — Keep if all checks pass; revert if any check fails
+5. REPEAT  — Loop until the feature is complete and all gates pass
+```
+
+### Why this matters for frontend
+
+Frontend changes have high blast radius. A CSS variable rename can break every brand. A route change can break E2E tests across multiple specs. A component refactor can introduce regressions in pages that weren't the target. The self-improvement loop catches these before they compound.
+
+### Mechanical quality gate checks
+
+Run these after every meaningful change. Each produces a pass/fail.
+
+| # | Check | Pass condition | How to verify |
+|---|-------|---------------|---------------|
+| 1 | TypeScript compiles | 0 type errors | `npx next build` or `tsc --noEmit` |
+| 2 | Unit tests pass | 0 failures | `bun run test` |
+| 3 | E2E tests pass | 0 failures | `bun x playwright test` |
+| 4 | No console errors | No runtime errors on key pages | Playwright console message check |
+| 5 | Brand theming intact | CSS variables resolve correctly for all brands | `white-label.spec.ts` passes |
+| 6 | Responsive layout | No horizontal overflow on mobile/tablet | `responsive.spec.ts` passes |
+| 7 | SEO meta tags | Correct title, description, OG tags | `seo.spec.ts` passes |
+| 8 | Auth flows | Sign-up, sign-in, sign-out, route protection | `auth.spec.ts` passes |
+| 9 | Learning flows | Diagnostic, study, lesson completion | `diagnostic.spec.ts`, `courses.spec.ts` pass |
+| 10 | No unused imports | Linter passes | `bun run lint` (if configured) |
+
+### How to apply it
+
+**When adding a new page or component:**
+
+1. Write the component.
+2. Run the gate (TypeScript + E2E tests).
+3. If any check fails, fix the issue before adding the next component.
+4. Do not accumulate multiple new components before verifying.
+
+**When refactoring routes or layouts:**
+
+1. Make the route change.
+2. Run the full E2E suite — route changes break selectors in unexpected places.
+3. Fix any broken tests by updating selectors to match the new UI, not by deleting tests.
+4. Keep or revert based on the gate result.
+
+**When updating shared components (brand config, navigation, player):**
+
+1. Make the change in the shared component.
+2. Run ALL E2E specs — shared components affect every page.
+3. If a test breaks, the fix goes in the test OR the component — decide which is wrong.
+4. Never skip the gate because "it's just a style change."
+
+### Single change, single verify
+
+The most common mistake is batching: "I'll make all five changes, then run the tests." This makes debugging failures exponentially harder. The autoresearch loop works because each iteration is atomic — one change, one verify, one decision.
+
+If a change takes more than one file, that's fine — but the _conceptual_ change should still be singular. "Add academy page" is one change (even if it touches 3 files). "Add academy page AND refactor navigation AND update brand config" is three changes and should be three iterations.
+
+### Connection to course content
+
+The frontend quality gate and the course content quality gate (see `adding-a-course.md`) are complementary:
+
+- Course YAML changes → run the content quality gate (deduplication, staircase, import)
+- Frontend changes → run the frontend quality gate (TypeScript, E2E, responsive)
+- Changes that touch both (e.g., adding a new course section UI) → run both gates
+
+A change is not complete until both applicable gates pass.
 
 ---
 
