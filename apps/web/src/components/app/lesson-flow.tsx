@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { BookOpen, CheckCircle2, ClipboardList, Play, Pause, Volume2 } from "lucide-react";
 import { useAudioPlayer } from "@/lib/hooks/use-audio-player";
 import { useLessonAudio } from "@/lib/hooks/use-lesson-audio";
-import { trackLessonComplete } from "@/lib/posthog/events";
+import { trackLessonComplete, trackLessonStarted, trackLessonPracticeAnswered, trackLessonAudioPlayed } from "@/lib/posthog/events";
 import { LessonRichContent } from "@/components/app/lesson-rich-content";
 import type { Problem, ProblemAnswer, RichContentBlock } from "@/lib/types";
 
@@ -68,6 +68,8 @@ export function LessonFlow({ orgSlug, courseId, token, lesson }: LessonFlowProps
     const startedAt = Date.now();
     lessonStartRef.current = startedAt;
     practiceStartRef.current = startedAt;
+    trackLessonStarted(courseId, lesson.conceptId, lesson.conceptName, lesson.knowledgePoints.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function resetPractice() {
@@ -149,6 +151,12 @@ export function LessonFlow({ orgSlug, courseId, token, lesson }: LessonFlowProps
         }
       );
 
+      trackLessonPracticeAnswered(
+        lesson.conceptId,
+        currentProblem.id,
+        response.correct,
+        Date.now() - practiceStartRef.current,
+      );
       setPracticeFeedback({
         wasCorrect: response.correct,
         explanation: response.feedback,
@@ -207,7 +215,8 @@ export function LessonFlow({ orgSlug, courseId, token, lesson }: LessonFlowProps
 
             return (
               <button
-                onClick={() =>
+                onClick={() => {
+                  trackLessonAudioPlayed(lesson.conceptId, kp.slug);
                   loadQueue([
                     {
                       id: kp.id,
@@ -215,8 +224,8 @@ export function LessonFlow({ orgSlug, courseId, token, lesson }: LessonFlowProps
                       audioUrl: kpAudio.instructionUrl!,
                       durationSeconds: kpAudio.instructionDuration,
                     },
-                  ])
-                }
+                  ]);
+                }}
                 className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary hover:bg-primary/20 transition-colors w-full"
               >
                 {isCurrentlyPlaying ? (

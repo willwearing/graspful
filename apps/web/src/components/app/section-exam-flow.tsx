@@ -9,6 +9,7 @@ import { ProblemRenderer } from "@/components/app/problems/problem-renderer";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { Problem, ProblemAnswer } from "@/lib/types";
+import { trackSectionExamStarted, trackSectionExamQuestionAnswered, trackSectionExamCompleted } from "@/lib/posthog/events";
 
 interface SectionExamData {
   sessionId: string;
@@ -64,6 +65,12 @@ export function SectionExamFlow({
 
   const basePath = `/orgs/${orgSlug}/courses/${courseId}/sections/${sectionId}/exam`;
 
+  // Track exam start
+  useEffect(() => {
+    trackSectionExamStarted(sectionId, examData.totalProblems, examData.timeLimitMs);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (result) return;
 
@@ -107,6 +114,11 @@ export function SectionExamFlow({
         }
       );
 
+      trackSectionExamQuestionAnswered(
+        sectionId,
+        currentIndex,
+        Date.now() - questionStartRef.current,
+      );
       setAnsweredCount(response.answeredCount);
       if (currentIndex < examData.problems.length - 1) {
         setCurrentIndex((prev) => prev + 1);
@@ -129,6 +141,7 @@ export function SectionExamFlow({
         token,
         { method: "POST" }
       );
+      trackSectionExamCompleted(sectionId, response.passed, response.score);
       setResult(response);
     } catch {
       setError("Could not complete the section exam.");

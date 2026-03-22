@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useBrand } from "@/lib/brand/context";
-import { trackSignUp } from "@/lib/posthog/events";
+import { trackSignUp, trackSignIn } from "@/lib/posthog/events";
 import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,6 +68,9 @@ export function AuthForm({ mode }: AuthFormProps) {
           password,
         });
         if (error) throw error;
+        if (data.session) {
+          trackSignIn(data.session.user.id);
+        }
         // Auto-join the brand's org on sign-in (idempotent)
         if (data.session) {
           try {
