@@ -25,16 +25,24 @@ export class StripeWebhookController {
       return res.status(400).json({ error: 'Missing raw body' });
     }
 
+    let event: Stripe.Event;
     try {
-      const event = this.billing.constructWebhookEvent(rawBody, signature);
+      event = this.billing.constructWebhookEvent(rawBody, signature);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Webhook signature verification failed: ${message}`);
+      return res.status(400).json({ error: 'Webhook signature verification failed' });
+    }
+
+    try {
       this.logger.log(`Received Stripe event: ${event.type}`);
       await this.billing.handleWebhookEvent(event);
       await this.handleConnectEvents(event);
       return res.json({ received: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Webhook error: ${message}`);
-      return res.status(400).json({ error: 'Webhook processing failed' });
+      this.logger.error(`Webhook processing error: ${message}`);
+      return res.status(500).json({ error: 'Webhook processing failed' });
     }
   }
 

@@ -270,26 +270,33 @@ export class LearningEngineService {
       return 0;
     }
 
-    const lastQuizAttempt = await this.prisma.problemAttempt.findFirst({
+    // Find the most recent quiz XP event
+    const lastQuizXP = await this.prisma.xPEvent.findFirst({
       where: {
         userId,
-        problem: {
-          knowledgePoint: {
-            concept: {
-              course: { academyId },
-            },
-          },
-        },
+        academyId,
+        source: 'quiz',
       },
       orderBy: { createdAt: 'desc' },
       select: { createdAt: true },
     });
 
-    if (!lastQuizAttempt) {
+    if (!lastQuizXP) {
+      // No quiz taken yet — all XP counts
       return enrollment.totalXPEarned;
     }
 
-    return enrollment.totalXPEarned;
+    // Sum XP earned after the last quiz
+    const result = await this.prisma.xPEvent.aggregate({
+      where: {
+        userId,
+        academyId,
+        createdAt: { gt: lastQuizXP.createdAt },
+      },
+      _sum: { amount: true },
+    });
+
+    return result._sum.amount ?? 0;
   }
 
   /**

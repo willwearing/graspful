@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class ApiKeyService {
+  private readonly logger = new Logger(ApiKeyService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async createKey(
@@ -37,7 +39,7 @@ export class ApiKeyService {
     this.prisma.apiKey.update({
       where: { id: apiKey.id },
       data: { lastUsedAt: new Date() },
-    }).catch(() => {});
+    }).catch((err) => this.logger.warn('Failed to update lastUsedAt', err));
 
     return apiKey;
   }

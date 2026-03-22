@@ -37,7 +37,7 @@ describe('BillingController', () => {
 
       const result = await controller.createCheckout(org, {
         plan: 'individual',
-        returnUrl: 'https://app.com',
+        returnUrl: '/app',
       });
 
       expect(result).toEqual({ url: 'https://checkout.stripe.com/xxx' });
@@ -45,8 +45,8 @@ describe('BillingController', () => {
         'org-1',
         'individual',
         'month',
-        'https://app.com/settings?billing=success',
-        'https://app.com/settings?billing=canceled',
+        '/app/settings?billing=success',
+        '/app/settings?billing=canceled',
       );
     });
 
@@ -56,15 +56,15 @@ describe('BillingController', () => {
       await controller.createCheckout(org, {
         plan: 'team',
         interval: 'year',
-        returnUrl: 'https://app.com',
+        returnUrl: '/app',
       });
 
       expect(mockBillingService.createCheckoutSession).toHaveBeenCalledWith(
         'org-1',
         'team',
         'year',
-        'https://app.com/settings?billing=success',
-        'https://app.com/settings?billing=canceled',
+        '/app/settings?billing=success',
+        '/app/settings?billing=canceled',
       );
     });
   });

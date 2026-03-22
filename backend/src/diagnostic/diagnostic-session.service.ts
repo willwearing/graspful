@@ -40,7 +40,7 @@ export class DiagnosticSessionService {
     private studentState: StudentStateService,
   ) {}
 
-  async startDiagnostic(orgId: string, userId: string, academyId: string): Promise<{
+  async startDiagnostic(orgId: string, userId: string, academyId: string, retryCount = 0): Promise<{
     sessionId: string;
     questionNumber: number;
     totalEstimated: number;
@@ -174,7 +174,10 @@ export class DiagnosticSessionService {
     });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        return this.startDiagnostic(orgId, userId, academyId);
+        if (retryCount >= 3) {
+          throw new BadRequestException('Failed to create diagnostic session after retries');
+        }
+        return this.startDiagnostic(orgId, userId, academyId, retryCount + 1);
       }
       throw err;
     }

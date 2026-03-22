@@ -66,6 +66,10 @@ describe('LearningEngineService', () => {
       problemAttempt: {
         findFirst: jest.fn().mockResolvedValue(null),
       },
+      xPEvent: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        aggregate: jest.fn().mockResolvedValue({ _sum: { amount: 0 } }),
+      },
     };
 
     mockStudentState = {
