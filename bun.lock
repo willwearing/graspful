@@ -95,6 +95,7 @@
         "graspful": "./dist/index.js",
       },
       "dependencies": {
+        "@graspful/shared": "workspace:*",
         "chalk": "^5.4.0",
         "commander": "^13.0.0",
         "js-yaml": "^4.1.0",
