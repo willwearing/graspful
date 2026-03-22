@@ -36,6 +36,39 @@ export function CourseJsonLd({
   );
 }
 
+interface CredentialJsonLdProps {
+  name: string;
+  description: string;
+  url: string;
+  educationalLevel: string;
+  credentialCategory: string;
+}
+
+export function CredentialJsonLd({
+  name,
+  description,
+  url,
+  educationalLevel,
+  credentialCategory,
+}: CredentialJsonLdProps) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "EducationalOccupationalCredential",
+    name,
+    description,
+    url,
+    educationalLevel,
+    credentialCategory,
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  );
+}
+
 interface OrganizationJsonLdProps {
   name: string;
   url: string;

@@ -61,46 +61,55 @@ export const firefighterBrand: BrandConfig = {
         "Audio-first adaptive learning for NFPA 1001. Study while you work out, commute, or do chores.",
       ctaText: "Start Studying Free",
     },
-    features: [
-      {
-        title: "Audio-First Learning",
-        description:
-          "Listen to exam content anywhere -- at the gym, in the car, on a run. No screen required.",
-        icon: "Headphones",
-      },
-      {
-        title: "Adaptive Engine",
-        description:
-          "Our AI focuses on what you don't know yet. No wasted time re-studying mastered material.",
-        icon: "Brain",
-      },
-      {
-        title: "Spaced Repetition",
-        description:
-          "Scientifically-timed reviews lock knowledge into long-term memory.",
-        icon: "Timer",
-      },
-      {
-        title: "NFPA 1001 Coverage",
-        description:
-          "Complete coverage of Firefighter I & II certification requirements.",
-        icon: "Shield",
-      },
-    ],
-    howItWorks: [
-      {
-        title: "Take a Diagnostic",
-        description: "5-minute quiz identifies what you already know and where to focus.",
-      },
-      {
-        title: "Study Adaptively",
-        description: "Listen to personalized lessons that target your weak areas first.",
-      },
-      {
-        title: "Pass Your Exam",
-        description: "Spaced repetition ensures you retain everything on test day.",
-      },
-    ],
+    features: {
+      heading: "Why Audio Learning Works",
+      subheading: "Turn dead time into study time. Learn while your hands and eyes are busy.",
+      items: [
+        {
+          title: "Audio-First Learning",
+          description:
+            "Listen to exam content anywhere -- at the gym, in the car, on a run. No screen required.",
+          icon: "Headphones",
+          wide: true,
+        },
+        {
+          title: "Adaptive Engine",
+          description:
+            "Our AI focuses on what you don't know yet. No wasted time re-studying mastered material.",
+          icon: "Brain",
+        },
+        {
+          title: "Spaced Repetition",
+          description:
+            "Scientifically-timed reviews lock knowledge into long-term memory.",
+          icon: "Timer",
+        },
+        {
+          title: "NFPA 1001 Coverage",
+          description:
+            "Complete coverage of Firefighter I & II certification requirements.",
+          icon: "Shield",
+          wide: true,
+        },
+      ],
+    },
+    howItWorks: {
+      heading: "How It Works",
+      items: [
+        {
+          title: "Take a Diagnostic",
+          description: "5-minute quiz identifies what you already know and where to focus.",
+        },
+        {
+          title: "Study Adaptively",
+          description: "Listen to personalized lessons that target your weak areas first.",
+        },
+        {
+          title: "Pass Your Exam",
+          description: "Spaced repetition ensures you retain everything on test day.",
+        },
+      ],
+    },
     faq: [
       {
         question: "What exam does this cover?",
@@ -123,6 +132,10 @@ export const firefighterBrand: BrandConfig = {
           "Yes -- 7-day free trial with full access to all content. No credit card required to start.",
       },
     ],
+    bottomCta: {
+      headline: "Ready to Start Studying?",
+      subheadline: "Join thousands of candidates who passed their exam with audio-first learning.",
+    },
   },
 
   seo: {
@@ -211,49 +224,58 @@ export const electricianBrand: BrandConfig = {
         "Audio-first adaptive learning for the NEC. Study while you work, drive, or wire.",
       ctaText: "Start Studying Free",
     },
-    features: [
-      {
-        title: "Audio-First NEC Review",
-        description:
-          "Listen to NEC code sections, article numbers, and key thresholds on repeat. Study hands-free on the jobsite.",
-        icon: "Headphones",
-      },
-      {
-        title: "Adaptive Learning Engine",
-        description:
-          "AI identifies your weak areas and focuses your study time there. No wasted time on what you already know.",
-        icon: "Brain",
-      },
-      {
-        title: "Spaced Repetition",
-        description:
-          "Scientifically-timed reviews lock wire gauges, ampacity ratings, and code sections into long-term memory.",
-        icon: "Timer",
-      },
-      {
-        title: "Complete NEC 2023 Coverage",
-        description:
-          "50+ topics covering wiring methods, grounding, overcurrent protection, load calculations, and special occupancies.",
-        icon: "Zap",
-      },
-    ],
-    howItWorks: [
-      {
-        title: "Take a Diagnostic",
-        description:
-          "Quick assessment identifies what NEC topics you already know and where to focus.",
-      },
-      {
-        title: "Study Adaptively",
-        description:
-          "Listen to personalized lessons on grounding, conduit fill, load calcs -- whatever you need most.",
-      },
-      {
-        title: "Pass Your Exam",
-        description:
-          "Spaced repetition ensures you retain article numbers and code requirements on test day.",
-      },
-    ],
+    features: {
+      heading: "Why Audio Learning Works",
+      subheading: "Turn dead time into study time. Learn while your hands and eyes are busy.",
+      items: [
+        {
+          title: "Audio-First NEC Review",
+          description:
+            "Listen to NEC code sections, article numbers, and key thresholds on repeat. Study hands-free on the jobsite.",
+          icon: "Headphones",
+          wide: true,
+        },
+        {
+          title: "Adaptive Learning Engine",
+          description:
+            "AI identifies your weak areas and focuses your study time there. No wasted time on what you already know.",
+          icon: "Brain",
+        },
+        {
+          title: "Spaced Repetition",
+          description:
+            "Scientifically-timed reviews lock wire gauges, ampacity ratings, and code sections into long-term memory.",
+          icon: "Timer",
+        },
+        {
+          title: "Complete NEC 2023 Coverage",
+          description:
+            "50+ topics covering wiring methods, grounding, overcurrent protection, load calculations, and special occupancies.",
+          icon: "Zap",
+          wide: true,
+        },
+      ],
+    },
+    howItWorks: {
+      heading: "How It Works",
+      items: [
+        {
+          title: "Take a Diagnostic",
+          description:
+            "Quick assessment identifies what NEC topics you already know and where to focus.",
+        },
+        {
+          title: "Study Adaptively",
+          description:
+            "Listen to personalized lessons on grounding, conduit fill, load calcs -- whatever you need most.",
+        },
+        {
+          title: "Pass Your Exam",
+          description:
+            "Spaced repetition ensures you retain article numbers and code requirements on test day.",
+        },
+      ],
+    },
     faq: [
       {
         question: "What exam does this cover?",
@@ -281,6 +303,10 @@ export const electricianBrand: BrandConfig = {
           "Yes -- 7-day free trial with full access. No credit card required to start.",
       },
     ],
+    bottomCta: {
+      headline: "Ready to Start Studying?",
+      subheadline: "Join thousands of electricians who passed their exam with audio-first learning.",
+    },
   },
 
   seo: {
@@ -372,49 +398,58 @@ export const javascriptBrand: BrandConfig = {
         "Audio-first adaptive learning for JavaScript fundamentals. Study closures, async, and the event loop while you commute.",
       ctaText: "Start Learning Free",
     },
-    features: [
-      {
-        title: "Audio-First JS Concepts",
-        description:
-          "Listen to clear explanations of closures, prototypes, async/await, and more. Study on the go.",
-        icon: "Headphones",
-      },
-      {
-        title: "Adaptive Learning Engine",
-        description:
-          "AI identifies gaps in your JavaScript knowledge and focuses your study time there.",
-        icon: "Brain",
-      },
-      {
-        title: "Spaced Repetition",
-        description:
-          "Scientifically-timed reviews lock tricky concepts like `this` binding and the event loop into long-term memory.",
-        icon: "Timer",
-      },
-      {
-        title: "ES2024 Coverage",
-        description:
-          "From var vs let to generators and modules. 14 core concepts with 40+ practice problems.",
-        icon: "Code",
-      },
-    ],
-    howItWorks: [
-      {
-        title: "Take a Diagnostic",
-        description:
-          "Quick quiz identifies what JS concepts you already know and where to focus.",
-      },
-      {
-        title: "Study Adaptively",
-        description:
-          "Listen to lessons on closures, promises, prototypes -- whatever you need most.",
-      },
-      {
-        title: "Build Confidence",
-        description:
-          "Spaced repetition ensures you deeply understand JS, not just recognize syntax.",
-      },
-    ],
+    features: {
+      heading: "Why Audio Learning Works",
+      subheading: "Turn dead time into study time. Learn while your hands and eyes are busy.",
+      items: [
+        {
+          title: "Audio-First JS Concepts",
+          description:
+            "Listen to clear explanations of closures, prototypes, async/await, and more. Study on the go.",
+          icon: "Headphones",
+          wide: true,
+        },
+        {
+          title: "Adaptive Learning Engine",
+          description:
+            "AI identifies gaps in your JavaScript knowledge and focuses your study time there.",
+          icon: "Brain",
+        },
+        {
+          title: "Spaced Repetition",
+          description:
+            "Scientifically-timed reviews lock tricky concepts like `this` binding and the event loop into long-term memory.",
+          icon: "Timer",
+        },
+        {
+          title: "ES2024 Coverage",
+          description:
+            "From var vs let to generators and modules. 14 core concepts with 40+ practice problems.",
+          icon: "Code",
+          wide: true,
+        },
+      ],
+    },
+    howItWorks: {
+      heading: "How It Works",
+      items: [
+        {
+          title: "Take a Diagnostic",
+          description:
+            "Quick quiz identifies what JS concepts you already know and where to focus.",
+        },
+        {
+          title: "Study Adaptively",
+          description:
+            "Listen to lessons on closures, promises, prototypes -- whatever you need most.",
+        },
+        {
+          title: "Build Confidence",
+          description:
+            "Spaced repetition ensures you deeply understand JS, not just recognize syntax.",
+        },
+      ],
+    },
     faq: [
       {
         question: "What level is this for?",
@@ -437,6 +472,10 @@ export const javascriptBrand: BrandConfig = {
           "Yes -- 7-day free trial with full access. No credit card required to start.",
       },
     ],
+    bottomCta: {
+      headline: "Ready to Start Learning?",
+      subheadline: "Join thousands of developers who leveled up their JavaScript with audio-first learning.",
+    },
   },
 
   seo: {
@@ -528,46 +567,55 @@ export const posthogBrand: BrandConfig = {
         "Technical onboarding for PostHog TAMs — data models, ingestion pipelines, identification, group analytics, and more.",
       ctaText: "Start Learning",
     },
-    features: [
-      {
-        title: "Data Model Foundations",
-        description:
-          "Learn entities, attributes, keys, and relationships before diving into PostHog specifics.",
-        icon: "Database",
-      },
-      {
-        title: "Ingestion Pipeline Deep-Dive",
-        description:
-          "Understand how events flow from SDKs through Kafka to ClickHouse — with architecture diagrams.",
-        icon: "Workflow",
-      },
-      {
-        title: "Identification Mastery",
-        description:
-          "Anonymous vs identified events, person merging, distinct_id — the concepts customers struggle with most.",
-        icon: "UserCheck",
-      },
-      {
-        title: "Adaptive Learning",
-        description:
-          "AI-driven spaced repetition focuses on your weak areas. 37 concepts, 149 practice problems.",
-        icon: "Brain",
-      },
-    ],
-    howItWorks: [
-      {
-        title: "Take a Diagnostic",
-        description: "Quick assessment identifies what PostHog concepts you already know.",
-      },
-      {
-        title: "Study Adaptively",
-        description: "Lessons build from data modeling fundamentals to PostHog-specific architecture.",
-      },
-      {
-        title: "Help Customers",
-        description: "Deep technical understanding means faster, better customer conversations.",
-      },
-    ],
+    features: {
+      heading: "Why Audio Learning Works",
+      subheading: "Turn dead time into study time. Learn while your hands and eyes are busy.",
+      items: [
+        {
+          title: "Data Model Foundations",
+          description:
+            "Learn entities, attributes, keys, and relationships before diving into PostHog specifics.",
+          icon: "Database",
+          wide: true,
+        },
+        {
+          title: "Ingestion Pipeline Deep-Dive",
+          description:
+            "Understand how events flow from SDKs through Kafka to ClickHouse -- with architecture diagrams.",
+          icon: "Workflow",
+        },
+        {
+          title: "Identification Mastery",
+          description:
+            "Anonymous vs identified events, person merging, distinct_id -- the concepts customers struggle with most.",
+          icon: "UserCheck",
+        },
+        {
+          title: "Adaptive Learning",
+          description:
+            "AI-driven spaced repetition focuses on your weak areas. 37 concepts, 149 practice problems.",
+          icon: "Brain",
+          wide: true,
+        },
+      ],
+    },
+    howItWorks: {
+      heading: "How It Works",
+      items: [
+        {
+          title: "Take a Diagnostic",
+          description: "Quick assessment identifies what PostHog concepts you already know.",
+        },
+        {
+          title: "Study Adaptively",
+          description: "Lessons build from data modeling fundamentals to PostHog-specific architecture.",
+        },
+        {
+          title: "Help Customers",
+          description: "Deep technical understanding means faster, better customer conversations.",
+        },
+      ],
+    },
     faq: [
       {
         question: "Who is this for?",
@@ -582,9 +630,13 @@ export const posthogBrand: BrandConfig = {
       {
         question: "How long does it take?",
         answer:
-          "Estimated 12 hours total. Study at your own pace — the adaptive engine adjusts to what you already know.",
+          "Estimated 12 hours total. Study at your own pace -- the adaptive engine adjusts to what you already know.",
       },
     ],
+    bottomCta: {
+      headline: "Ready to Start Learning?",
+      subheadline: "Deep technical understanding means faster, better customer conversations.",
+    },
   },
 
   seo: {

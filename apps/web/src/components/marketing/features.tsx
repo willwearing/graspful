@@ -1,55 +1,57 @@
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
-  Headphones,
-  Brain,
-  Timer,
-  Shield,
-  BookOpen,
-  Zap,
+  Headphones, Brain, Timer, Shield, BookOpen, Zap, Code, Database, Workflow, UserCheck,
   type LucideIcon,
 } from "lucide-react";
 
 const iconMap: Record<string, LucideIcon> = {
-  Headphones,
-  Brain,
-  Timer,
-  Shield,
-  BookOpen,
-  Zap,
+  Headphones, Brain, Timer, Shield, BookOpen, Zap, Code, Database, Workflow, UserCheck,
 };
 
 interface FeaturesProps {
+  heading: string;
+  subheading: string;
   features: Array<{
     title: string;
     description: string;
     icon: string;
+    wide?: boolean;
   }>;
 }
 
-export function Features({ features }: FeaturesProps) {
+export function Features({ heading, subheading, features }: FeaturesProps) {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-24">
-      <h2 className="text-center text-3xl font-bold text-foreground mb-4">
-        Why Audio Learning Works
-      </h2>
-      <p className="text-center text-muted-foreground mb-16 max-w-2xl mx-auto">
-        Turn dead time into study time. Learn while your hands and eyes are busy.
-      </p>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {features.map((feature) => {
-          const Icon = iconMap[feature.icon] || Zap;
-          return (
-            <Card key={`${feature.icon}-${feature.title}`} className="border-border bg-card">
-              <CardHeader>
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+    <section className="bg-[#F8FAFC] py-24 dark:bg-card/50">
+      <div className="mx-auto max-w-6xl px-6">
+        <h2 className="text-center text-3xl font-bold text-foreground sm:text-4xl mb-4">
+          {heading}
+        </h2>
+        <p className="text-center text-muted-foreground mb-16 max-w-2xl mx-auto text-lg">
+          {subheading}
+        </p>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {features.map((feature) => {
+            const Icon = iconMap[feature.icon] || Zap;
+            return (
+              <div
+                key={`${feature.icon}-${feature.title}`}
+                data-wide={feature.wide ? "true" : undefined}
+                className={`group rounded-2xl border border-border/50 bg-white p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:bg-card ${
+                  feature.wide ? "sm:col-span-2 lg:col-span-2" : ""
+                }`}
+              >
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-accent/20">
                   <Icon className="h-6 w-6 text-primary" />
                 </div>
-                <CardTitle className="text-foreground">{feature.title}</CardTitle>
-                <CardDescription>{feature.description}</CardDescription>
-              </CardHeader>
-            </Card>
-          );
-        })}
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  {feature.description}
+                </p>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
