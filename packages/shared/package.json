@@ -1,14 +1,17 @@
 {
   "name": "@graspful/shared",
   "version": "0.0.1",
-  "private": true,
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "private": true,
   "scripts": {
     "build": "bun x tsc",
     "dev": "bun x tsc --watch"
   },
-  "devDependencies": {
-    "typescript": "^5.7.0"
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "zod": "^3.24.0"
   }
 }

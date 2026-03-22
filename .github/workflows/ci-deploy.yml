@@ -42,8 +42,8 @@ jobs:
       - name: Run frontend tests
         run: cd apps/web && bun run test
 
-  deploy:
-    name: Deploy
+  deploy-backend:
+    name: Deploy Backend
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -58,5 +58,4 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
-      - name: Deploy frontend to Vercel
-        run: curl -s -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"
+      # Frontend deploys automatically via Vercel git integration
