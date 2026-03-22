@@ -64,7 +64,7 @@ export function DiagnosticFlow({ orgSlug, courseId, academyId, token, initialDat
       res.breakdown.mastered + res.breakdown.conditionally_mastered,
       res.totalConcepts,
     );
-  }, [diagnosticBasePath, token]);
+  }, [diagnosticBasePath, token, courseId]);
 
   // Track diagnostic start
   useEffect(() => {

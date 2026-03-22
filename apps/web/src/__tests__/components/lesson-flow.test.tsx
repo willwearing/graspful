@@ -135,7 +135,7 @@ describe("LessonFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Heat" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Heat" }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
     await waitFor(() => {
       expect(screen.getByText("Practice complete")).toBeTruthy();
@@ -154,7 +154,7 @@ describe("LessonFlow", () => {
     // KP1: instruction -> worked example -> practice -> answer -> continue
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Heat" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Heat" }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
     await waitFor(() => {
       expect(screen.getByText("Practice complete")).toBeTruthy();
@@ -164,7 +164,7 @@ describe("LessonFlow", () => {
     // KP2: instruction -> worked example -> practice -> answer
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /all surfaces igniting in a room/i }));
+    fireEvent.click(screen.getByRole("radio", { name: /all surfaces igniting in a room/i }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /complete lesson/i })).toBeTruthy();
@@ -182,7 +182,7 @@ describe("LessonFlow", () => {
     // KP1: instruction -> worked example -> practice -> answer -> continue
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Heat" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Heat" }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
     await waitFor(() => {
       expect(screen.getByText("Practice complete")).toBeTruthy();
@@ -192,7 +192,7 @@ describe("LessonFlow", () => {
     // KP2: instruction -> worked example -> practice -> answer -> complete
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /all surfaces igniting in a room/i }));
+    fireEvent.click(screen.getByRole("radio", { name: /all surfaces igniting in a room/i }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /complete lesson/i })).toBeTruthy();

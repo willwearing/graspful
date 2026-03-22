@@ -262,7 +262,6 @@ export default async function DashboardPage() {
                 courseId={course.id}
                 name={course.name}
                 description={course.description}
-                orgId={course.orgId}
                 completionPercent={profile?.completionPercent ?? 0}
                 totalConcepts={profile?.totalConcepts ?? 0}
                 mastered={profile?.mastered ?? 0}

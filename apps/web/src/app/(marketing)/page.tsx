@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { resolvePageBrand } from "@/lib/brand/resolve";
 import { Hero } from "@/components/marketing/hero";
 import { Features } from "@/components/marketing/features";
@@ -5,10 +6,56 @@ import { HowItWorks } from "@/components/marketing/how-it-works";
 import { FAQ } from "@/components/marketing/faq";
 import { PricingSection } from "@/components/marketing/pricing";
 import { CTA } from "@/components/marketing/cta";
-import { CourseJsonLd, OrganizationJsonLd, CredentialJsonLd } from "@/components/seo/json-ld";
+import {
+  CourseJsonLd,
+  OrganizationJsonLd,
+  CredentialJsonLd,
+  WebSiteJsonLd,
+  SoftwareApplicationJsonLd,
+  FAQPageJsonLd,
+} from "@/components/seo/json-ld";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await resolvePageBrand();
+  const url = `https://${brand.domain}`;
+
+  return {
+    title: brand.seo.title,
+    description: brand.seo.description,
+    keywords: brand.seo.keywords,
+    openGraph: {
+      type: "website",
+      locale: "en_US",
+      url,
+      siteName: brand.name,
+      title: brand.seo.title,
+      description: brand.seo.description,
+      images: brand.ogImageUrl
+        ? [
+            {
+              url: brand.ogImageUrl,
+              width: 1200,
+              height: 630,
+              alt: brand.seo.title,
+            },
+          ]
+        : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: brand.seo.title,
+      description: brand.seo.description,
+      images: brand.ogImageUrl ? [brand.ogImageUrl] : [],
+    },
+    alternates: {
+      canonical: url,
+    },
+  };
+}
 
 export default async function LandingPage() {
   const brand = await resolvePageBrand();
+  const url = `https://${brand.domain}`;
 
   return (
     <div className="bg-background text-foreground">
@@ -33,22 +80,36 @@ export default async function LandingPage() {
         headline={brand.landing.bottomCta.headline}
         subheadline={brand.landing.bottomCta.subheadline}
       />
+      <WebSiteJsonLd
+        name={brand.name}
+        url={url}
+        description={brand.seo.description}
+      />
+      <SoftwareApplicationJsonLd
+        name={brand.name}
+        description={brand.seo.description}
+        url={url}
+        applicationCategory="EducationalApplication"
+        operatingSystem="Web"
+        offers={{ price: 0, priceCurrency: "USD" }}
+      />
+      <FAQPageJsonLd items={brand.landing.faq} />
       <CourseJsonLd
         name={`${brand.name} -- Audio Exam Prep`}
         description={brand.seo.description}
         provider={brand.name}
-        url={`https://${brand.domain}`}
+        url={url}
       />
       <OrganizationJsonLd
         name={brand.name}
-        url={`https://${brand.domain}`}
+        url={url}
         description={brand.seo.description}
-        logoUrl={`https://${brand.domain}${brand.logoUrl}`}
+        logoUrl={`${url}${brand.logoUrl}`}
       />
       <CredentialJsonLd
         name={`${brand.name} Certification Prep`}
         description={brand.seo.description}
-        url={`https://${brand.domain}`}
+        url={url}
         educationalLevel="Professional"
         credentialCategory="Professional Certification"
       />

@@ -153,13 +153,15 @@ export default async function AcademyPage({
       ) : null}
 
       {/* Knowledge graph */}
-      <div className="mb-8">
-        <KnowledgeGraphSection
-          orgSlug={brand.orgSlug}
-          courseId={courses[0]?.id ?? ""}
-          academyId={academyId}
-        />
-      </div>
+      {courses[0]?.id && (
+        <div className="mb-8">
+          <KnowledgeGraphSection
+            orgSlug={brand.orgSlug}
+            courseId={courses[0].id}
+            academyId={academyId}
+          />
+        </div>
+      )}
 
       <h2 className="mb-4 text-xl font-semibold text-foreground">Courses</h2>
 
@@ -179,7 +181,6 @@ export default async function AcademyPage({
                 href={getCourseBrowseHref(course.id)}
                 name={course.name}
                 description={course.description}
-                orgId={course.orgId}
                 completionPercent={courseProfile?.completionPercent ?? 0}
                 totalConcepts={courseProfile?.totalConcepts ?? 0}
                 mastered={courseProfile?.mastered ?? 0}

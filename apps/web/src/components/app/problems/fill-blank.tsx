@@ -32,6 +32,7 @@ export function FillBlank({ problem, onSubmit, disabled, loading, feedback }: Fi
         value={value}
         onChange={(e) => setValue(e.target.value)}
         disabled={disabled}
+        aria-label="Your answer"
         placeholder="Type your answer..."
         className="w-full rounded-lg border-2 border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50"
         onKeyDown={(e) => {

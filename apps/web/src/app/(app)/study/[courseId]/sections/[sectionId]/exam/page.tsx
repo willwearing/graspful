@@ -26,10 +26,15 @@ export default async function SectionExamPage({
   const brand = await resolvePageBrand();
   const orgSlug = brand.orgSlug;
 
-  const examData = await apiFetch<any>(
-    `/orgs/${orgSlug}/courses/${courseId}/sections/${sectionId}/exam/start`,
-    { method: "POST" }
-  );
+  let examData: any;
+  try {
+    examData = await apiFetch<any>(
+      `/orgs/${orgSlug}/courses/${courseId}/sections/${sectionId}/exam/start`,
+      { method: "POST" }
+    );
+  } catch {
+    redirect(`/study/${courseId}`);
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 md:px-8">

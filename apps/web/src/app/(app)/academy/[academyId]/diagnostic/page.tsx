@@ -37,7 +37,7 @@ export default async function AcademyDiagnosticPage({
   let startData: any = null;
   let errorMessage: string | null = null;
   try {
-    startData = await apiFetch<any>(`${basePath}/diagnostic/start`);
+    startData = await apiFetch<any>(`${basePath}/diagnostic/start`, { method: 'POST' });
   } catch (err) {
     if (err instanceof ApiError && err.statusCode === 400) {
       errorMessage = "This academy doesn't have diagnostic content yet. Check back soon.";

@@ -2,12 +2,21 @@
 
 > Graspful is the fastest way to create adaptive learning courses. Define a course as YAML, import it via CLI or MCP, and get a live product with a landing page, knowledge graph, spaced repetition, and billing — in minutes.
 
+## Links
+
+- Website: https://graspful.com
+- AI Agents: https://graspful.com/agents
+- Documentation: https://graspful.com/docs
+- Quickstart: https://graspful.com/docs/quickstart
+- Pricing: https://graspful.com/pricing
+- Sign Up: https://graspful.com/sign-up
+
 ## Getting Started
 
-- [CLI Quickstart](https://graspful.com/docs/cli-quickstart): Install and create your first course
-- [Course YAML Schema](https://graspful.com/docs/course-yaml-schema): Full reference for course YAML format
-- [Brand YAML Schema](https://graspful.com/docs/brand-yaml-schema): Landing page, theme, pricing, SEO
-- [Content Authoring Guide](https://graspful.com/docs/adding-a-course): Step-by-step course creation workflow
+- [Quickstart](https://graspful.com/docs/quickstart): Install and create your first course
+- [Course YAML Schema](https://graspful.com/docs/course-schema): Full reference for course YAML format
+- [Brand YAML Schema](https://graspful.com/docs/brand-schema): Landing page, theme, pricing, SEO
+- [MCP Server](https://graspful.com/docs/mcp): Set up MCP for Claude Code, Cursor, Codex
 
 ## Agent Instructions
 

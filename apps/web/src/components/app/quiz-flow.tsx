@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiClientFetch } from "@/lib/api-client";
 import { ProblemRenderer } from "@/components/app/problems/problem-renderer";
@@ -56,6 +56,37 @@ export function QuizFlow({ orgSlug, courseId, token, quizData }: QuizFlowProps) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleFinish = useCallback(async () => {
+    if (finishCalledRef.current) return;
+    finishCalledRef.current = true;
+    try {
+      const res = await apiClientFetch<QuizResult>(
+        `${basePath}/quizzes/${quizData.quizId}/complete`,
+        token,
+        { method: "POST" }
+      );
+      setResult(res);
+      trackQuizComplete(
+        quizData.quizId,
+        res.score >= 0.7,
+        res.score,
+      );
+    } catch {
+      setError("Something went wrong. Please try again.");
+      // Show minimal result
+      setResult({
+        quizId: quizData.quizId,
+        score: 0,
+        correctCount: 0,
+        totalCount: quizData.totalProblems,
+        xpAwarded: 0,
+        failedConcepts: [],
+        conceptBreakdown: [],
+        results: [],
+      });
+    }
+  }, [basePath, quizData.quizId, quizData.totalProblems, token]);
+
   // Timer
   useEffect(() => {
     if (result) return;
@@ -72,8 +103,7 @@ export function QuizFlow({ orgSlug, courseId, token, quizData }: QuizFlowProps) 
       }
     }, 1000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result]);
+  }, [result, quizData.timeLimitMs, handleFinish]);
 
   function formatTime(ms: number): string {
     const totalSec = Math.ceil(ms / 1000);
@@ -116,37 +146,6 @@ export function QuizFlow({ orgSlug, courseId, token, quizData }: QuizFlowProps) 
       setError("Something went wrong. Please try again.");
     }
     setSubmitting(false);
-  }
-
-  async function handleFinish() {
-    if (finishCalledRef.current) return;
-    finishCalledRef.current = true;
-    try {
-      const res = await apiClientFetch<QuizResult>(
-        `${basePath}/quizzes/${quizData.quizId}/complete`,
-        token,
-        { method: "POST" }
-      );
-      setResult(res);
-      trackQuizComplete(
-        quizData.quizId,
-        res.score >= 0.7,
-        res.score,
-      );
-    } catch {
-      setError("Something went wrong. Please try again.");
-      // Show minimal result
-      setResult({
-        quizId: quizData.quizId,
-        score: 0,
-        correctCount: 0,
-        totalCount: quizData.totalProblems,
-        xpAwarded: 0,
-        failedConcepts: [],
-        conceptBreakdown: [],
-        results: [],
-      });
-    }
   }
 
   // Results screen

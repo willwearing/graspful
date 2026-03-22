@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@graspful/shared"],
+  transpilePackages: ["@niche-audio-prep/shared"],
 };
 
 export default nextConfig;
