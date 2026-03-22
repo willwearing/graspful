@@ -1,0 +1,72 @@
+brand:
+  id: posthog
+  name: PostHog TAM
+  domain: posthog-tam.vercel.app
+  tagline: "Master PostHog. Technically."
+  logoUrl: /images/logo-firefighter.svg
+  faviconUrl: /favicon.ico
+  ogImageUrl: /images/og-firefighter.png
+  orgSlug: posthog-tam
+
+theme:
+  preset: orange
+  radius: "0.5rem"
+
+landing:
+  hero:
+    headline: "Master PostHog. Technically."
+    subheadline: "Technical onboarding for PostHog TAMs -- data models, ingestion pipelines, identification, group analytics, and more."
+    ctaText: "Start Learning"
+  features:
+    heading: "Why Audio Learning Works"
+    subheading: "Turn dead time into study time. Learn while your hands and eyes are busy."
+    items:
+      - title: "Data Model Foundations"
+        description: "Learn entities, attributes, keys, and relationships before diving into PostHog specifics."
+        icon: Database
+        wide: true
+      - title: "Ingestion Pipeline Deep-Dive"
+        description: "Understand how events flow from SDKs through Kafka to ClickHouse -- with architecture diagrams."
+        icon: Workflow
+      - title: "Identification Mastery"
+        description: "Anonymous vs identified events, person merging, distinct_id -- the concepts customers struggle with most."
+        icon: UserCheck
+      - title: "Adaptive Learning"
+        description: "AI-driven spaced repetition focuses on your weak areas. 37 concepts, 149 practice problems."
+        icon: Brain
+        wide: true
+  howItWorks:
+    heading: "How It Works"
+    items:
+      - title: "Take a Diagnostic"
+        description: "Quick assessment identifies what PostHog concepts you already know."
+      - title: "Study Adaptively"
+        description: "Lessons build from data modeling fundamentals to PostHog-specific architecture."
+      - title: "Help Customers"
+        description: "Deep technical understanding means faster, better customer conversations."
+  faq:
+    - question: "Who is this for?"
+      answer: "PostHog Technical Account Managers who want deep technical fluency with the product's data model, ingestion pipeline, and identification system."
+    - question: "What does it cover?"
+      answer: "8 sections: Data Modeling, Pipelines, PostHog Data Model, Ingestion Pipeline, Identification, Group Analytics, CDP, and Querying."
+    - question: "How long does it take?"
+      answer: "Estimated 12 hours total. Study at your own pace -- the adaptive engine adjusts to what you already know."
+  bottomCta:
+    headline: "Ready to Start Learning?"
+    subheadline: "Deep technical understanding means faster, better customer conversations."
+
+seo:
+  title: "PostHog TAM Technical Onboarding"
+  description: "Master PostHog's data model, ingestion pipeline, and identification system with adaptive learning."
+  keywords:
+    - posthog
+    - technical account manager
+    - onboarding
+    - data model
+    - ingestion pipeline
+    - analytics
+
+pricing:
+  monthly: 0
+  currency: usd
+  trialDays: 0
