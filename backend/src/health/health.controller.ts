@@ -1,5 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
-import type { HealthResponse } from '@graspful/shared';
+
+interface HealthResponse {
+  status: string;
+  timestamp: string;
+}
 
 @Controller('health')
 export class HealthController {
