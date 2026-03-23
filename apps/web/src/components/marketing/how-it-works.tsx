@@ -22,7 +22,7 @@ export function HowItWorks({ heading, steps }: HowItWorksProps) {
           <div className="grid gap-16 sm:grid-cols-3 sm:gap-8">
             {steps.map((step, i) => (
               <div key={step.title} className="flex flex-col items-center text-center">
-                <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-white text-2xl font-bold shadow-[0_0_40px_rgba(99,102,241,0.3),0_0_80px_rgba(99,102,241,0.15)] mb-8">
+                <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-white text-2xl font-bold shadow-[0_0_40px_var(--gradient-start,#6366F1)/30] mb-8">
                   {i + 1}
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-3">{step.title}</h3>

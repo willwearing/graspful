@@ -52,6 +52,12 @@ export const firefighterBrand: BrandConfig = {
       ring: "16 100% 55%",
     },
     radius: "0.5rem",
+    gradient: {
+      start: "#DC2626",
+      mid: "#EF4444",
+      end: "#F97316",
+      accent: "#FBBF24",
+    },
   },
 
   landing: {
@@ -215,6 +221,12 @@ export const electricianBrand: BrandConfig = {
       ring: "217 91% 65%",
     },
     radius: "0.5rem",
+    gradient: {
+      start: "#2563EB",
+      mid: "#3B82F6",
+      end: "#06B6D4",
+      accent: "#34D399",
+    },
   },
 
   landing: {
@@ -389,6 +401,12 @@ export const javascriptBrand: BrandConfig = {
       ring: "50 100% 55%",
     },
     radius: "0.5rem",
+    gradient: {
+      start: "#D97706",
+      mid: "#EAB308",
+      end: "#FACC15",
+      accent: "#34D399",
+    },
   },
 
   landing: {
@@ -558,6 +576,12 @@ export const posthogBrand: BrandConfig = {
       ring: "12 100% 60%",
     },
     radius: "0.5rem",
+    gradient: {
+      start: "#E11D48",
+      mid: "#F43F5E",
+      end: "#FB7185",
+      accent: "#FBBF24",
+    },
   },
 
   landing: {
@@ -717,6 +741,12 @@ export const graspfulBrand: BrandConfig = {
       ring: "250 75% 65%",
     },
     radius: "0.625rem",
+    gradient: {
+      start: "#6366F1",
+      mid: "#8B5CF6",
+      end: "#A855F7",
+      accent: "#22D3EE",
+    },
   },
 
   landing: {

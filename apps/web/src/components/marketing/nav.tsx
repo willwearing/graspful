@@ -3,14 +3,19 @@
 import Link from "next/link";
 import { useBrand } from "@/lib/brand/context";
 
-const navLinks = [
+const platformLinks = [
   { href: "/agents", label: "Agents" },
   { href: "/pricing", label: "Pricing" },
   { href: "/docs", label: "Docs" },
 ];
 
+const learnerLinks = [
+  { href: "/pricing", label: "Pricing" },
+];
+
 export function MarketingNav() {
   const brand = useBrand();
+  const navLinks = brand.id === "graspful" ? platformLinks : learnerLinks;
 
   return (
     <nav className="absolute top-0 left-0 right-0 z-20 border-b border-[#0F172A]/[0.06] bg-transparent">

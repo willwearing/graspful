@@ -80,6 +80,17 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Brand gradient defaults (overridden per-brand by BrandThemeStyle) */
+  --gradient-start: #6366F1;
+  --gradient-mid: #8B5CF6;
+  --gradient-end: #A855F7;
+  --gradient-accent: #22D3EE;
+
+  /* Easing curves */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dark {
@@ -122,8 +133,282 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
   }
   html {
     @apply font-sans;
   }
-}/* Production deploy trigger 20260322231707 */
+}
+
+/* ============================================
+   TYPOGRAPHY — tight tracking, feature settings
+   ============================================ */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 650;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  font-feature-settings: "ss01", "cv01";
+}
+
+h1 {
+  letter-spacing: -0.045em;
+  font-weight: 700;
+}
+
+h2 {
+  letter-spacing: -0.04em;
+  font-weight: 650;
+}
+
+/* ============================================
+   GRADIENT TEXT — animated shimmer on hero
+   ============================================ */
+.text-gradient {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-mid) 30%, var(--gradient-end) 60%, var(--gradient-start) 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 6s ease-in-out infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ============================================
+   ANIMATED GRADIENT MESH — Stripe-style hero bg
+   ============================================ */
+@keyframes mesh-shift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -20px) scale(1.05); }
+  50% { transform: translate(-20px, 15px) scale(0.95); }
+  75% { transform: translate(10px, 25px) scale(1.02); }
+}
+
+@keyframes mesh-shift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-25px, 18px) scale(1.03); }
+  66% { transform: translate(18px, -12px) scale(0.97); }
+}
+
+@keyframes mesh-shift-3 {
+  0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  25% { transform: translate(-15px, -25px) scale(1.06) rotate(2deg); }
+  50% { transform: translate(25px, 10px) scale(0.94) rotate(-1deg); }
+  75% { transform: translate(-10px, 20px) scale(1.03) rotate(1deg); }
+}
+
+.gradient-mesh {
+  position: absolute;
+  inset: -200px;
+  z-index: 0;
+  opacity: 0.6;
+  filter: blur(80px);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.gradient-mesh .orb-1 {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--gradient-mid) 0%, transparent 70%);
+  top: -10%;
+  left: 10%;
+  animation: mesh-shift 16s ease-in-out infinite;
+}
+
+.gradient-mesh .orb-2 {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--gradient-accent) 0%, transparent 70%);
+  top: -5%;
+  right: 10%;
+  animation: mesh-shift-2 20s ease-in-out infinite;
+}
+
+.gradient-mesh .orb-3 {
+  position: absolute;
+  width: 550px;
+  height: 550px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--gradient-end) 0%, transparent 65%);
+  bottom: -15%;
+  left: 35%;
+  animation: mesh-shift-3 18s ease-in-out infinite;
+}
+
+.gradient-mesh .orb-4 {
+  position: absolute;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #34D399 0%, transparent 70%);
+  bottom: 0%;
+  right: 15%;
+  animation: mesh-shift 22s ease-in-out infinite reverse;
+}
+
+/* ============================================
+   LIGHT CARDS — landing page feature cards
+   ============================================ */
+.card-light {
+  background: #FFFFFF;
+  border-radius: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.4s var(--ease-out-expo);
+}
+
+.card-light:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+/* ============================================
+   GRADIENT BUTTON — CTA
+   ============================================ */
+.btn-gradient {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-mid) 50%, var(--gradient-end) 100%);
+  color: white;
+  border: none;
+  border-radius: 9999px;
+  font-weight: 500;
+  transition: all 0.3s var(--ease-out-expo);
+  box-shadow:
+    0 4px 20px color-mix(in srgb, var(--gradient-start) 25%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-gradient:hover {
+  transform: scale(1.03);
+  box-shadow:
+    0 8px 40px color-mix(in srgb, var(--gradient-start) 35%, transparent),
+    0 0 80px color-mix(in srgb, var(--gradient-mid) 15%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-gradient:active {
+  transform: scale(0.98);
+}
+
+/* ============================================
+   HERO WORD ENTRANCE
+   ============================================ */
+@keyframes word-enter {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.88);
+    filter: blur(20px);
+  }
+  60% {
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.animate-word-enter {
+  animation: word-enter 1s var(--ease-out-expo) both;
+}
+
+/* ============================================
+   FADE UP ENTRANCE
+   ============================================ */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.8s var(--ease-out-expo) both;
+}
+
+/* ============================================
+   CTA GLOW PULSE
+   ============================================ */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 20px color-mix(in srgb, var(--gradient-start) 15%, transparent),
+      0 0 40px color-mix(in srgb, var(--gradient-mid) 5%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 40px color-mix(in srgb, var(--gradient-start) 30%, transparent),
+      0 0 80px color-mix(in srgb, var(--gradient-mid) 12%, transparent),
+      0 0 120px color-mix(in srgb, var(--gradient-start) 5%, transparent);
+  }
+}
+
+.glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* ============================================
+   CONNECTING LINE — how it works section
+   ============================================ */
+@keyframes line-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.animate-line-grow {
+  animation: line-grow 1.5s var(--ease-out-expo) both;
+  transform-origin: left;
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

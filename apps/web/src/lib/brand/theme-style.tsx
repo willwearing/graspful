@@ -13,10 +13,15 @@ export function BrandThemeStyle({ brand }: { brand: BrandConfig }) {
     .map(([key, value]) => `--${camelToKebab(key)}: hsl(${value});`)
     .join("\n    ");
 
+  const { gradient } = brand.theme;
   const css = `
     :root {
       ${lightVars}
       --radius: ${brand.theme.radius};
+      --gradient-start: ${gradient.start};
+      --gradient-mid: ${gradient.mid};
+      --gradient-end: ${gradient.end};
+      --gradient-accent: ${gradient.accent};
     }
     .dark {
       ${darkVars}

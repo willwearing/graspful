@@ -41,6 +41,13 @@ export interface BrandConfig {
     light: BrandThemeColors;
     dark: BrandThemeColors;
     radius: string;
+    /** Gradient hex colors for marketing CTA buttons, text, and mesh orbs */
+    gradient: {
+      start: string;
+      mid: string;
+      end: string;
+      accent: string;
+    };
   };
 
   landing: {
