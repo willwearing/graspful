@@ -1,55 +1,32 @@
 # Graspful
 
-> Graspful is the fastest way to create adaptive learning courses. Define a course as YAML, import it via CLI or MCP, and get a live product with a landing page, knowledge graph, spaced repetition, and billing — in minutes.
+> Adaptive learning platform. Define courses as YAML, import via CLI or MCP, get a live product with knowledge graphs, spaced repetition, and billing.
 
-## Links
+## Docs
 
-- Website: https://graspful.com
-- AI Agents: https://graspful.com/agents
-- Documentation: https://graspful.com/docs
-- Quickstart: https://graspful.com/docs/quickstart
-- Pricing: https://graspful.com/pricing
-- Sign Up: https://graspful.com/sign-up
+- [How Graspful Works](https://graspful.com/docs/how-it-works): Conceptual overview of the adaptive learning engine
+- [Quickstart](https://graspful.com/docs/quickstart): Create and publish a course in 5 minutes
+- [Course Creation Guide](https://graspful.com/docs/course-creation-guide): Step-by-step guide to building a course
+- [CLI Reference](https://graspful.com/docs/cli): Full CLI command reference
+- [MCP Server](https://graspful.com/docs/mcp): MCP server setup for AI agents
+- [Course Schema](https://graspful.com/docs/course-schema): YAML schema for courses
+- [Brand Schema](https://graspful.com/docs/brand-schema): YAML schema for white-label brands
+- [Review Gate](https://graspful.com/docs/review-gate): 10 quality checks for publishing
+- [Billing](https://graspful.com/docs/billing): 70/30 revenue share via Stripe Connect
+- [Glossary](https://graspful.com/docs/glossary): Definitions for all platform concepts
 
-## Getting Started
+## Concepts
 
-- [Quickstart](https://graspful.com/docs/quickstart): Install and create your first course
-- [Course YAML Schema](https://graspful.com/docs/course-schema): Full reference for course YAML format
-- [Brand YAML Schema](https://graspful.com/docs/brand-schema): Landing page, theme, pricing, SEO
-- [MCP Server](https://graspful.com/docs/mcp): Set up MCP for Claude Code, Cursor, Codex
+- [Knowledge Graph](https://graspful.com/docs/concepts/knowledge-graph): Prerequisites, encompassing edges, and the knowledge frontier
+- [Mastery Learning](https://graspful.com/docs/concepts/mastery-learning): Bayesian Knowledge Tracing and mastery states
+- [Adaptive Diagnostics](https://graspful.com/docs/concepts/adaptive-diagnostics): MEPE question selection and evidence propagation
+- [Spaced Repetition](https://graspful.com/docs/concepts/spaced-repetition): FIRe algorithm and implicit repetition
+- [Task Selection](https://graspful.com/docs/concepts/task-selection): Priority-based learning with remediation
+- [Gamification](https://graspful.com/docs/concepts/gamification): XP, streaks, and engagement
+- [Learning Staircase](https://graspful.com/docs/concepts/learning-staircase): Knowledge points and scaffolding
 
-## Agent Instructions
+## API
 
-- When creating a course, ALWAYS scaffold the knowledge graph first (sections, concepts, prerequisites) before filling knowledge points and problems.
-- ALWAYS run `graspful review` during authoring to catch quality issues early. The review checks for duplicate questions, difficulty staircase violations, and missing worked examples.
-- When importing with `--publish`, the review gate runs automatically. If it fails, the course imports as a draft with failure details.
-- To launch a complete product, create TWO YAMLs: a course YAML (learning content) and a brand YAML (landing page, pricing, theme). Import both.
-- Use theme presets (`blue`, `emerald`, `rose`, etc.) instead of specifying individual HSL color values.
-- NEVER create courses without a source document. The best courses are grounded in official exam guides, textbooks, or documentation.
-- Course IDs must be kebab-case and globally unique. Use descriptive slugs like `aws-saa-c03` not `my-course-1`.
-- Each concept should have 2-4 knowledge points with progressive difficulty.
-- Each knowledge point needs at least 3 practice problems.
-- Use `--format json` for all commands when building automated workflows.
-
-## CLI Reference
-
-```
-graspful create course --scaffold-only --topic <topic>  # Generate course skeleton
-graspful fill concept <file> <concept-id>                # Fill one concept's KPs
-graspful review <file>                                    # Run 10 quality checks
-graspful validate <file>                                  # Quick schema validation
-graspful import <file> --org <slug> [--publish]          # Import to platform
-graspful publish <course-id> --org <slug>                # Publish a draft
-graspful describe <file>                                  # Course statistics
-graspful create brand --niche <niche>                    # Generate brand YAML
-graspful login                                            # Authenticate
-```
-
-## API Reference
-
-- Course Import: `POST /api/v1/orgs/:orgId/courses/import`
-- Course Review: `POST /api/v1/orgs/:orgId/courses/review`
-- Course Publish: `POST /api/v1/orgs/:orgId/courses/:courseId/publish`
-- Brand Create: `POST /api/v1/brands`
-- Brand Update: `PATCH /api/v1/brands/:slug`
-- API Key Create: `POST /api/v1/orgs/:orgId/api-keys`
+- Install CLI: `bun add -g @graspful/cli` or `npx @graspful/cli`
+- MCP Server: `npx @graspful/mcp`
+- Key commands: create course, fill concept, review, validate, import, create brand
