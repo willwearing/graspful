@@ -18,6 +18,7 @@ import {
   Gamepad2,
   TrendingUp,
   GraduationCap,
+  Paintbrush,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -118,6 +119,13 @@ const sectionGroups = [
         title: "Review Gate",
         description:
           "The 10 mechanical quality checks that every course must pass before publishing.",
+      },
+      {
+        href: "/docs/design-guide",
+        icon: Paintbrush,
+        title: "Design Guide",
+        description:
+          "Brand colors, typography, spacing, and component patterns. The visual system behind every Graspful brand.",
       },
     ],
   },

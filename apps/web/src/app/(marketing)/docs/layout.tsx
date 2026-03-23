@@ -21,6 +21,7 @@ import {
   TrendingUp,
   GraduationCap,
   ArrowRight,
+  Paintbrush,
 } from "lucide-react";
 
 const sidebarGroups = [
@@ -40,6 +41,7 @@ const sidebarGroups = [
       { href: "/docs/course-schema", label: "Course Schema", icon: FileCode },
       { href: "/docs/brand-schema", label: "Brand Schema", icon: Palette },
       { href: "/docs/review-gate", label: "Review Gate", icon: ShieldCheck },
+      { href: "/docs/design-guide", label: "Design Guide", icon: Paintbrush },
     ],
   },
   {
