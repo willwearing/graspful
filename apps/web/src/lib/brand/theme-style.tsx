@@ -26,6 +26,10 @@ export function BrandThemeStyle({ brand }: { brand: BrandConfig }) {
     .dark {
       ${darkVars}
     }
+    [data-force-light] {
+      ${lightVars}
+      color-scheme: light;
+    }
   `;
 
   return <style dangerouslySetInnerHTML={{ __html: css }} />;
