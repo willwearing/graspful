@@ -1,9 +1,10 @@
 import type { BrandConfig } from "./config";
 
-const BACKEND_URL =
+const BACKEND_URL = (
   process.env.BACKEND_INTERNAL_URL ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
-  "http://localhost:3000";
+  "http://localhost:3000"
+).trim();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 interface CacheEntry {
@@ -27,12 +28,16 @@ export async function fetchBrandByDomain(
   }
 
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
     const res = await fetch(
       `${BACKEND_URL}/brands/by-domain/${encodeURIComponent(domain)}`,
       {
         next: { revalidate: 300 },
+        signal: controller.signal,
       },
     );
+    clearTimeout(timeout);
 
     if (!res.ok) {
       cache.set(domain, { brand: null, expiresAt: now + CACHE_TTL_MS });
