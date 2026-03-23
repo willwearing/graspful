@@ -299,6 +299,71 @@ export default function AgentsPage() {
         </div>
       </section>
 
+      {/* What agents build on */}
+      <section className="py-24 md:py-32 bg-background">
+        <div className="mx-auto max-w-5xl px-6">
+          <h2 className="text-center text-3xl font-bold tracking-[-0.03em] text-foreground sm:text-4xl mb-4">
+            What your courses are built on
+          </h2>
+          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+            You bring the content expertise. The platform brings the learning science.
+            Every course you create automatically gets these research-backed systems.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                title: "Knowledge Graph",
+                description: "Every concept connected by prerequisites and encompassing edges. Students can't advance without mastering foundations.",
+                href: "/docs/concepts/knowledge-graph",
+              },
+              {
+                title: "Adaptive Diagnostics",
+                description: "20-60 questions map what a student already knows. No wasted time on material they've mastered.",
+                href: "/docs/concepts/adaptive-diagnostics",
+              },
+              {
+                title: "Mastery-Based Progression",
+                description: "Bayesian Knowledge Tracing ensures students truly understand before moving forward.",
+                href: "/docs/concepts/mastery-learning",
+              },
+              {
+                title: "Spaced Repetition",
+                description: "The FIRe algorithm schedules reviews at the optimal time. Students never forget what they've learned.",
+                href: "/docs/concepts/spaced-repetition",
+              },
+              {
+                title: "Intelligent Task Selection",
+                description: "Priority-based system chooses lessons, reviews, or remediation — whatever the student needs most right now.",
+                href: "/docs/concepts/task-selection",
+              },
+              {
+                title: "XP and Gamification",
+                description: "Streaks, leaderboards, and XP calibrated to ~1 point per minute drive daily engagement.",
+                href: "/docs/concepts/gamification",
+              },
+            ].map((item) => (
+              <Link
+                key={item.title}
+                href={item.href}
+                className="group rounded-xl border border-border/50 bg-card p-6 transition-all duration-200 hover:shadow-md hover:border-primary/20"
+              >
+                <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors mb-2">
+                  {item.title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {item.description}
+                </p>
+              </Link>
+            ))}
+          </div>
+          <p className="text-center mt-8">
+            <Link href="/docs/how-it-works" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+              How the learning engine works <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </p>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section className="py-24 md:py-32 bg-background">
         <div className="mx-auto max-w-3xl px-6 text-center">
