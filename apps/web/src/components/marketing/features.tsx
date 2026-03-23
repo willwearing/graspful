@@ -22,7 +22,7 @@ interface FeaturesProps {
 
 export function Features({ heading, subheading, features }: FeaturesProps) {
   return (
-    <section className="bg-[#F8FAFC] py-32 md:py-40 dark:bg-card/50">
+    <section className="bg-[#F8FAFC] py-20 md:py-28 dark:bg-card/50">
       <div className="mx-auto max-w-6xl px-6">
         <h2 className="text-center text-4xl font-bold tracking-[-0.04em] text-foreground sm:text-5xl lg:text-6xl mb-4">
           {heading}

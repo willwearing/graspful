@@ -85,14 +85,14 @@ function CreatorPricing() {
           No monthly fees. No upfront cost. Like the App Store — we take a cut when you make money.
         </p>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-6 pt-4">
           {creatorPlans.map((plan) => (
             <Card
               key={plan.id}
-              className={`relative ${plan.popular ? "border-primary shadow-lg" : ""}`}
+              className={`relative flex flex-col overflow-visible ${plan.popular ? "border-primary shadow-lg" : ""}`}
             >
               {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-medium px-3 py-1 rounded-full">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-medium px-3 py-1 rounded-full z-10">
                   Recommended
                 </div>
               )}
@@ -110,8 +110,8 @@ function CreatorPricing() {
                   {plan.description}
                 </p>
               </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 mb-6">
+              <CardContent className="flex flex-col flex-1">
+                <ul className="space-y-2 mb-6 flex-1">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-center gap-2 text-sm">
                       <Check className="h-4 w-4 text-primary shrink-0" />
@@ -175,7 +175,7 @@ function LearnerPricing() {
           </button>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-6 pt-4">
           {learnerPlans.map((plan) => {
             const isPopular = plan.id === "individual";
             const planPrice =
@@ -184,10 +184,10 @@ function LearnerPricing() {
             return (
               <Card
                 key={plan.id}
-                className={`relative ${isPopular ? "border-primary shadow-lg" : ""}`}
+                className={`relative flex flex-col overflow-visible ${isPopular ? "border-primary shadow-lg" : ""}`}
               >
                 {isPopular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-medium px-3 py-1 rounded-full">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-medium px-3 py-1 rounded-full z-10">
                     Most Popular
                   </div>
                 )}
@@ -208,8 +208,8 @@ function LearnerPricing() {
                     )}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 mb-6">
+                <CardContent className="flex flex-col flex-1">
+                  <ul className="space-y-2 mb-6 flex-1">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-center gap-2 text-sm">
                         <Check className="h-4 w-4 text-primary shrink-0" />

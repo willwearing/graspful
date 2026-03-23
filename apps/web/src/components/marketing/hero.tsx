@@ -10,7 +10,7 @@ export function Hero({ headline, subheadline, ctaText }: HeroProps) {
   const words = headline.split(" ");
 
   return (
-    <section className="relative min-h-[85vh] flex items-center">
+    <section className="relative min-h-[70vh] flex items-center">
       <div className="gradient-mesh overflow-hidden">
         <div className="orb-1" />
         <div className="orb-2" />
@@ -18,7 +18,7 @@ export function Hero({ headline, subheadline, ctaText }: HeroProps) {
         <div className="orb-4" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-5xl px-6 py-32 text-center md:py-44">
+      <div className="relative z-10 mx-auto max-w-5xl px-6 py-20 text-center md:py-32">
         <h1 className="text-7xl font-bold tracking-[-0.045em] leading-[1.08] sm:text-8xl lg:text-9xl">
           {words.map((word, i) => (
             <span
@@ -42,7 +42,7 @@ export function Hero({ headline, subheadline, ctaText }: HeroProps) {
         <div className="animate-fade-up" style={{ animationDelay: "0.8s" }}>
           <Link
             href="/sign-up"
-            className="btn-gradient glow-pulse mt-14 inline-block px-12 py-4 text-base font-medium"
+            className="btn-gradient glow-pulse mt-10 inline-block px-12 py-4 text-base font-medium"
           >
             {ctaText}
           </Link>

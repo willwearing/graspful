@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { Sun, Moon } from "lucide-react";
 import { useBrand } from "@/lib/brand/context";
+import { useTheme } from "@/lib/theme/theme-provider";
 
 const platformLinks = [
   { href: "/agents", label: "Agents" },
@@ -15,10 +17,11 @@ const learnerLinks = [
 
 export function MarketingNav() {
   const brand = useBrand();
+  const { theme, toggleTheme } = useTheme();
   const navLinks = brand.id === "graspful" ? platformLinks : learnerLinks;
 
   return (
-    <nav className="absolute top-0 left-0 right-0 z-20 border-b border-[#0F172A]/[0.06] bg-transparent">
+    <nav className="absolute top-0 left-0 right-0 z-20 border-b border-[#0F172A]/[0.06] dark:border-white/[0.06] bg-transparent">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 md:px-12">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
@@ -38,7 +41,14 @@ export function MarketingNav() {
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          >
+            {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          </button>
           <Link
             href="/sign-in"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"

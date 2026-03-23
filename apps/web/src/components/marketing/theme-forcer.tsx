@@ -1,32 +1,26 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useTheme } from "@/lib/theme/theme-provider";
+
+const STORAGE_KEY = "theme-preference";
 
 /**
- * Forces light mode on marketing pages.
- * Removes dark class from html, sets body bg to white.
- * Restores on unmount when navigating to app pages.
+ * Defaults marketing pages to light mode unless the user
+ * has explicitly chosen a theme via the toggle.
  */
 export function MarketingThemeForcer() {
+  const { setTheme } = useTheme();
+  const ran = useRef(false);
+
   useEffect(() => {
-    const root = document.documentElement;
-    const wasDark = root.classList.contains("dark");
-    const prevScheme = root.style.colorScheme;
-
-    root.classList.remove("dark");
-    root.style.colorScheme = "light";
-    document.body.style.background = "#FFFFFF";
-    document.body.style.color = "#0F172A";
-
-    return () => {
-      if (wasDark) {
-        root.classList.add("dark");
-        root.style.colorScheme = prevScheme;
-        document.body.style.background = "";
-        document.body.style.color = "";
-      }
-    };
-  }, []);
+    if (ran.current) return;
+    ran.current = true;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      setTheme("light");
+    }
+  }, [setTheme]);
 
   return null;
 }
