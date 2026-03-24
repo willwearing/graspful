@@ -2,7 +2,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { Sidebar } from "@/components/app/sidebar";
 import { BrandProvider } from "@/lib/brand/context";
-import { defaultBrand } from "@/lib/brand/defaults";
+import { ThemeProvider } from "@/lib/theme/theme-provider";
+import { firefighterBrand } from "@/lib/brand/defaults";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/dashboard",
@@ -23,9 +24,11 @@ describe("Sidebar", () => {
 
   it("renders course navigation without account controls in the footer", () => {
     render(
-      <BrandProvider brand={defaultBrand}>
-        <Sidebar isOpen={false} onClose={() => {}} />
-      </BrandProvider>,
+      <ThemeProvider>
+        <BrandProvider brand={firefighterBrand}>
+          <Sidebar isOpen={false} onClose={() => {}} />
+        </BrandProvider>
+      </ThemeProvider>,
     );
 
     expect(screen.getByRole("link", { name: /dashboard/i })).toBeTruthy();
@@ -36,9 +39,11 @@ describe("Sidebar", () => {
 
   it("updates the active nav item immediately when a new route is clicked", () => {
     render(
-      <BrandProvider brand={defaultBrand}>
-        <Sidebar isOpen={false} onClose={() => {}} />
-      </BrandProvider>,
+      <ThemeProvider>
+        <BrandProvider brand={firefighterBrand}>
+          <Sidebar isOpen={false} onClose={() => {}} />
+        </BrandProvider>
+      </ThemeProvider>,
     );
 
     const browseLink = screen.getByRole("link", { name: /browse/i });
