@@ -29,6 +29,25 @@ export default function HowItWorksPage() {
         selection, and gamification. This page is the one-page overview of the
         entire system.
       </p>
+      <div className="mt-6 max-w-2xl rounded-lg border border-border/50 bg-muted/30 px-5 py-4">
+        <p className="text-sm text-muted-foreground">
+          Graspful&apos;s approach to adaptive learning is heavily inspired by{" "}
+          <a
+            href="https://www.justinmath.com/the-math-academy-way/"
+            className="text-primary hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <em>The Math Academy Way</em>
+          </a>{" "}
+          by Justin Skycak — a free, open book that lays out the principles
+          behind knowledge graphs, mastery-based progression, Bayesian
+          diagnostics, and spaced repetition in rigorous detail. We&apos;re trying
+          to take those ideas and build an engine that anyone can use, for any
+          subject, with AI agents doing the heavy lifting. If you want to understand{" "}
+          <em>why</em> Graspful works the way it does, start there.
+        </p>
+      </div>
 
       {/* 1. Knowledge Graph */}
       <section className="mt-12">

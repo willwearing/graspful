@@ -4,6 +4,8 @@ Graspful is the first course creation platform built for AI agents. While platfo
 
 But Graspful isn't just faster to build on. The courses themselves are fundamentally different. Every Graspful course is a validated knowledge graph (DAG) with BKT mastery tracking, adaptive diagnostics, and FIRe-based spaced repetition. Students get personalized learning paths. Traditional platforms deliver the same linear content to every student.
 
+> **On the shoulders of giants.** Graspful's adaptive learning model is heavily inspired by [*The Math Academy Way*](https://www.justinmath.com/the-math-academy-way/) by Justin Skycak — a free, open book that lays out the principles behind knowledge graphs, mastery-based progression, and spaced repetition. We're trying to take those ideas, generalize them beyond math, and make them accessible to anyone with an AI agent and a topic to teach.
+
 ---
 
 ## Feature Comparison
