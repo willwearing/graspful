@@ -24,6 +24,8 @@ Graspful works in four steps: scaffold, fill, review, publish. An AI agent (or h
 
 The platform's adaptive engine then takes over for learners: it runs a diagnostic assessment to map what they already know, teaches at their knowledge frontier (only topics where all prerequisites are mastered), enforces mastery before progression, and schedules spaced repetition using the FIRe (Fractional Implicit Repetition) algorithm.
 
+The learning science behind Graspful is heavily inspired by [*The Math Academy Way*](https://www.justinmath.com/the-math-academy-way/) by Justin Skycak — a free, open book that makes the case for knowledge graphs, mastery-based progression, and spaced repetition. We're trying to generalize those principles beyond math and make them work for any subject.
+
 ### Is Graspful free?
 
 Yes, creating and publishing courses on Graspful is completely free. There are no monthly fees, no upfront costs, and no feature gates on the CLI or MCP server. Graspful uses a 70/30 revenue share model: when learners subscribe to your course, Graspful collects the payment via Stripe and sends you 70%. Graspful keeps 30% to cover the platform (adaptive engine, hosting, billing, auth, infrastructure). If nobody subscribes, you pay nothing. The incentives are aligned -- Graspful only earns when your course earns.
