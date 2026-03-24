@@ -1,0 +1,172 @@
+course:
+  id: python-basics
+  name: "Python Basics"
+  description: "Core Python concepts for beginners. Covers variables, control flow, functions, and basic data structures."
+  estimatedHours: 10
+  version: "2026.1"
+  sourceDocument: "The Python Tutorial (docs.python.org/3/tutorial)"
+
+concepts:
+
+  # ============================================================
+  # 1. Variables and Types
+  # ============================================================
+
+  - id: variables-and-types
+    name: "Variables and Types"
+    difficulty: 1
+    estimatedMinutes: 15
+    tags: [foundational, variables]
+    knowledgePoints:
+      - id: dynamic-typing
+        instruction: "Python is dynamically typed -- you don't declare a variable's type. The type is determined at runtime by the value assigned. `x = 5` makes x an int, `x = 'hello'` makes it a str. Use `type()` to check a value's type at runtime."
+        problems:
+          - id: py-var-p1
+            type: multiple_choice
+            question: "What does `type(3.14)` return in Python?"
+            options:
+              - "<class 'int'>"
+              - "<class 'float'>"
+              - "<class 'str'>"
+              - "<class 'number'>"
+            correct: 1
+            explanation: "3.14 is a floating-point literal, so Python assigns it the `float` type. Python distinguishes between `int` (whole numbers) and `float` (decimal numbers)."
+          - id: py-var-p2
+            type: true_false
+            question: "In Python, you must declare a variable's type before assigning a value to it."
+            correct: "false"
+            explanation: "Python is dynamically typed. You simply assign a value and the type is inferred: `x = 42` creates an int, no type declaration needed. This is different from statically typed languages like Java or C."
+      - id: strings-basics
+        instruction: "Strings in Python are immutable sequences of characters. You can use single quotes ('hello'), double quotes (\"hello\"), or triple quotes for multiline strings. f-strings (f\"Hello {name}\") allow inline expression evaluation and are the preferred way to format strings in modern Python."
+        problems:
+          - id: py-var-p3
+            type: fill_blank
+            question: "To embed a variable `name` inside a string, you write f\"Hello ___\"."
+            correct: "{name}"
+            explanation: "f-strings use curly braces to embed expressions. f\"Hello {name}\" evaluates the variable `name` and inserts its string representation."
+          - id: py-var-p4
+            type: multiple_choice
+            question: "What happens when you try to modify a character in a string with `s[0] = 'X'`?"
+            options:
+              - "It changes the first character"
+              - "It raises a TypeError"
+              - "It creates a new string"
+              - "It returns None"
+            correct: 1
+            explanation: "Strings in Python are immutable. You cannot change individual characters. Attempting `s[0] = 'X'` raises a TypeError. To modify a string, create a new one: `s = 'X' + s[1:]`."
+
+  # ============================================================
+  # 2. Control Flow
+  # ============================================================
+
+  - id: control-flow
+    name: "Control Flow"
+    difficulty: 2
+    estimatedMinutes: 20
+    tags: [foundational, control-flow]
+    prerequisites: [variables-and-types]
+    knowledgePoints:
+      - id: if-elif-else
+        instruction: "Python uses `if`, `elif`, and `else` for conditional branching. Blocks are defined by indentation (no braces). Python has no switch/case statement (prior to 3.10's match/case). Truthy/falsy: 0, empty string, empty list, None are all falsy. Everything else is truthy."
+        problems:
+          - id: py-cf-p1
+            type: multiple_choice
+            question: "Which of the following values is truthy in Python?"
+            options:
+              - "0"
+              - "''"
+              - "None"
+              - "[0]"
+            correct: 3
+            explanation: "A list containing an element -- even if that element is 0 -- is truthy. Only empty containers ([], {}, '', set()) are falsy. [0] has length 1, so it's truthy."
+          - id: py-cf-p2
+            type: true_false
+            question: "Python uses curly braces `{}` to define code blocks in if statements."
+            correct: "false"
+            explanation: "Python uses indentation (typically 4 spaces) to define code blocks. This is not just a style convention -- it's part of the syntax. Incorrect indentation causes IndentationError."
+      - id: for-and-while
+        instruction: "Python's `for` loop iterates over any iterable (list, string, range, etc.), not a counter. `for x in range(5)` loops 0-4. `while` loops repeat as long as a condition is true. `break` exits the loop, `continue` skips to the next iteration. Python also supports `for/else` -- the else block runs if the loop completes without hitting `break`."
+        problems:
+          - id: py-cf-p3
+            type: fill_blank
+            question: "`range(3)` produces the values ___, 1, and 2."
+            correct: "0"
+            explanation: "range() starts at 0 by default. range(3) produces 0, 1, 2 -- three values starting from 0, stopping before 3."
+
+  # ============================================================
+  # 3. Functions
+  # ============================================================
+
+  - id: functions
+    name: "Functions"
+    difficulty: 2
+    estimatedMinutes: 20
+    tags: [foundational, functions]
+    prerequisites: [control-flow]
+    knowledgePoints:
+      - id: defining-functions
+        instruction: "Functions are defined with the `def` keyword. Python supports default arguments (`def greet(name='World')`), keyword arguments (`greet(name='Alice')`), and *args/**kwargs for variable arguments. Functions are first-class objects -- you can assign them to variables, pass them as arguments, and return them from other functions."
+        problems:
+          - id: py-fn-p1
+            type: multiple_choice
+            question: "What does a Python function return if there is no `return` statement?"
+            options:
+              - "0"
+              - "An empty string"
+              - "None"
+              - "It raises an error"
+            correct: 2
+            explanation: "If a function doesn't explicitly return a value, it implicitly returns None. This is Python's equivalent of null/undefined in other languages."
+          - id: py-fn-p2
+            type: true_false
+            question: "In Python, functions can be assigned to variables and passed as arguments to other functions."
+            correct: "true"
+            explanation: "Functions are first-class objects in Python. You can do `my_func = len` and then call `my_func([1,2,3])`. This enables patterns like map(), filter(), and decorators."
+          - id: py-fn-p3
+            type: fill_blank
+            question: "To accept any number of positional arguments, a function parameter is prefixed with ___."
+            correct: "*"
+            explanation: "The *args syntax collects extra positional arguments into a tuple. `def f(*args)` means f(1, 2, 3) sets args to (1, 2, 3). Similarly, **kwargs collects keyword arguments into a dict."
+
+  # ============================================================
+  # 4. Lists and Dicts
+  # ============================================================
+
+  - id: lists-and-dicts
+    name: "Lists and Dictionaries"
+    difficulty: 2
+    estimatedMinutes: 20
+    tags: [foundational, data-structures]
+    prerequisites: [variables-and-types]
+    knowledgePoints:
+      - id: lists
+        instruction: "Lists are ordered, mutable sequences. Create with `[]` or `list()`. Access by index (0-based), slice with `[start:stop:step]`. Key methods: `append()`, `extend()`, `pop()`, `sort()`, `reverse()`. List comprehensions (`[x*2 for x in range(5)]`) are idiomatic Python for transforming sequences."
+        problems:
+          - id: py-ld-p1
+            type: multiple_choice
+            question: "What does `[1, 2, 3][1:]` return?"
+            options:
+              - "[1]"
+              - "[2, 3]"
+              - "[1, 2]"
+              - "[3]"
+            correct: 1
+            explanation: "Slicing with [1:] starts at index 1 and goes to the end. So [1, 2, 3][1:] returns [2, 3]. The element at index 0 (which is 1) is excluded."
+          - id: py-ld-p2
+            type: fill_blank
+            question: "A list comprehension that squares each number: [x**2 for x in ___]"
+            correct: "range(5)"
+            explanation: "range(5) produces 0, 1, 2, 3, 4. The comprehension [x**2 for x in range(5)] produces [0, 1, 4, 9, 16]. Any iterable works here, but range() is the most common for generating number sequences."
+      - id: dicts
+        instruction: "Dictionaries are key-value mappings. Create with `{}` or `dict()`. Keys must be hashable (strings, numbers, tuples). Access with `d[key]` (raises KeyError if missing) or `d.get(key, default)` (returns default if missing). Key methods: `keys()`, `values()`, `items()`. Dict comprehensions: `{k: v for k, v in pairs}`."
+        problems:
+          - id: py-ld-p3
+            type: multiple_choice
+            question: "What does `{'a': 1, 'b': 2}.get('c', 0)` return?"
+            options:
+              - "None"
+              - "KeyError"
+              - "0"
+              - "'c'"
+            correct: 2
+            explanation: "The .get() method returns the default value (second argument) when the key is not found. Since 'c' is not in the dict, it returns 0. Without the default, .get() returns None instead of raising KeyError."

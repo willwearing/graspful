@@ -91,6 +91,40 @@ export default async function RootLayout({
         <BrandThemeStyle brand={brand} />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link rel="icon" href={brand.faviconUrl} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: brand.name,
+              applicationCategory: "EducationalApplication",
+              operatingSystem: "Web",
+              description: brand.seo.description,
+              url: `https://${brand.domain}`,
+              offers: {
+                "@type": "Offer",
+                price: "0",
+                priceCurrency: "USD",
+                description:
+                  "Free to create and publish. 70/30 revenue share when learners subscribe.",
+              },
+              creator: {
+                "@type": "Organization",
+                name: "Graspful",
+                url: "https://graspful.com",
+              },
+              featureList: [
+                "Adaptive Learning",
+                "Spaced Repetition",
+                "Knowledge Graphs",
+                "AI Agent Integration",
+                "White-Label Sites",
+                "MCP Server",
+              ],
+            }),
+          }}
+        />
       </head>
       <body className="min-h-screen bg-background text-foreground">
         <ThemeProvider>

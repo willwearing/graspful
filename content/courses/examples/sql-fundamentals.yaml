@@ -1,0 +1,151 @@
+course:
+  id: sql-fundamentals
+  name: "SQL Fundamentals"
+  description: "Core SQL concepts for querying relational databases. Covers SELECT, filtering, joins, and aggregations."
+  estimatedHours: 10
+  version: "2026.1"
+  sourceDocument: "SQL:2023 Standard (ISO/IEC 9075)"
+
+concepts:
+
+  # ============================================================
+  # 1. SELECT Queries
+  # ============================================================
+
+  - id: select-queries
+    name: "SELECT Queries"
+    difficulty: 1
+    estimatedMinutes: 15
+    tags: [foundational, queries]
+    knowledgePoints:
+      - id: basic-select
+        instruction: "SELECT retrieves data from one or more tables. `SELECT *` returns all columns; `SELECT col1, col2` returns specific columns. Use `DISTINCT` to remove duplicates. Use `AS` to alias column names in results. Execution order: FROM -> WHERE -> SELECT -> ORDER BY -> LIMIT."
+        problems:
+          - id: sql-sel-p1
+            type: multiple_choice
+            question: "Which clause limits the columns returned by a query?"
+            options:
+              - "WHERE"
+              - "SELECT"
+              - "FROM"
+              - "LIMIT"
+            correct: 1
+            explanation: "SELECT determines which columns appear in the result. WHERE filters rows, FROM specifies the table, and LIMIT restricts the number of rows returned."
+          - id: sql-sel-p2
+            type: true_false
+            question: "`SELECT DISTINCT city FROM users` can return duplicate city values."
+            correct: "false"
+            explanation: "DISTINCT eliminates duplicate rows from the result set. If multiple users share the same city, that city appears only once in the output."
+          - id: sql-sel-p3
+            type: fill_blank
+            question: "To rename a column in the output, use the ___ keyword: `SELECT name AS full_name`."
+            correct: "AS"
+            explanation: "AS creates a column alias. `SELECT name AS full_name` returns the name column with the header 'full_name'. The alias only affects the result set, not the underlying table."
+
+  # ============================================================
+  # 2. Filtering and Sorting
+  # ============================================================
+
+  - id: filtering-and-sorting
+    name: "Filtering and Sorting"
+    difficulty: 2
+    estimatedMinutes: 20
+    tags: [foundational, filtering]
+    prerequisites: [select-queries]
+    knowledgePoints:
+      - id: where-clause
+        instruction: "WHERE filters rows before they're returned. Supports comparison operators (=, <>, <, >, <=, >=), logical operators (AND, OR, NOT), pattern matching (LIKE with % and _ wildcards), range checks (BETWEEN), set membership (IN), and NULL checks (IS NULL, IS NOT NULL). Note: you cannot use = to check for NULL -- only IS NULL works."
+        problems:
+          - id: sql-filt-p1
+            type: multiple_choice
+            question: "Which operator checks for NULL values in SQL?"
+            options:
+              - "= NULL"
+              - "== NULL"
+              - "IS NULL"
+              - "EQUALS NULL"
+            correct: 2
+            explanation: "NULL represents an unknown value, so equality comparisons don't work with it. `WHERE col = NULL` always evaluates to unknown (not true). You must use `IS NULL` or `IS NOT NULL`."
+          - id: sql-filt-p2
+            type: true_false
+            question: "`WHERE name LIKE 'A%'` matches any name that contains the letter A."
+            correct: "false"
+            explanation: "The pattern 'A%' matches names that START with A. The % wildcard matches zero or more characters. To match names containing A anywhere, use '%A%'."
+      - id: order-by-limit
+        instruction: "ORDER BY sorts results. Default is ASC (ascending); add DESC for descending. You can sort by multiple columns: `ORDER BY country ASC, name DESC`. LIMIT restricts the number of rows returned. OFFSET skips rows before returning results. Combined: `ORDER BY created_at DESC LIMIT 10 OFFSET 20` gets the third page of 10 results."
+        problems:
+          - id: sql-filt-p3
+            type: fill_blank
+            question: "To get the 5 most recent orders: `SELECT * FROM orders ORDER BY created_at ___ LIMIT 5`."
+            correct: "DESC"
+            explanation: "DESC sorts in descending order (newest first). Without DESC, ORDER BY defaults to ASC (oldest first), which would give you the 5 oldest orders instead."
+
+  # ============================================================
+  # 3. Joins
+  # ============================================================
+
+  - id: joins
+    name: "Joins"
+    difficulty: 3
+    estimatedMinutes: 25
+    tags: [core-concept, joins]
+    prerequisites: [filtering-and-sorting]
+    knowledgePoints:
+      - id: inner-and-outer-joins
+        instruction: "Joins combine rows from two or more tables based on a related column. INNER JOIN returns only rows with matches in both tables. LEFT JOIN returns all rows from the left table plus matching rows from the right (NULLs where no match). RIGHT JOIN is the opposite. FULL OUTER JOIN returns all rows from both tables. The join condition is specified with ON."
+        problems:
+          - id: sql-join-p1
+            type: multiple_choice
+            question: "Which join type returns all rows from the left table, even if there is no match in the right table?"
+            options:
+              - "INNER JOIN"
+              - "LEFT JOIN"
+              - "CROSS JOIN"
+              - "SELF JOIN"
+            correct: 1
+            explanation: "LEFT JOIN (or LEFT OUTER JOIN) returns every row from the left table. If a left row has no matching right row, the right columns are filled with NULL. INNER JOIN would exclude those unmatched rows entirely."
+          - id: sql-join-p2
+            type: true_false
+            question: "An INNER JOIN can return more rows than either input table if there are multiple matches."
+            correct: "true"
+            explanation: "If a row in table A matches multiple rows in table B, the join produces one output row per match. A one-to-many relationship can produce more rows than either original table contains."
+          - id: sql-join-p3
+            type: fill_blank
+            question: "SELECT * FROM users ___ orders ON users.id = orders.user_id"
+            correct: "JOIN"
+            explanation: "JOIN (or INNER JOIN) combines rows where the condition matches. Here it links each user to their orders via the user_id foreign key. JOIN and INNER JOIN are synonymous."
+
+  # ============================================================
+  # 4. Aggregations
+  # ============================================================
+
+  - id: aggregations
+    name: "Aggregations"
+    difficulty: 3
+    estimatedMinutes: 25
+    tags: [core-concept, aggregations]
+    prerequisites: [filtering-and-sorting]
+    knowledgePoints:
+      - id: aggregate-functions
+        instruction: "Aggregate functions compute a single value from a set of rows: COUNT(), SUM(), AVG(), MIN(), MAX(). COUNT(*) counts all rows; COUNT(col) counts non-NULL values. GROUP BY splits rows into groups, and the aggregate function runs per group. HAVING filters groups after aggregation (WHERE filters rows before aggregation)."
+        problems:
+          - id: sql-agg-p1
+            type: multiple_choice
+            question: "What is the difference between WHERE and HAVING?"
+            options:
+              - "They are interchangeable"
+              - "WHERE filters rows before grouping; HAVING filters groups after aggregation"
+              - "HAVING filters rows; WHERE filters groups"
+              - "WHERE works with JOINs; HAVING does not"
+            correct: 1
+            explanation: "WHERE runs before GROUP BY and filters individual rows. HAVING runs after GROUP BY and filters aggregated groups. For example: WHERE status = 'active' filters rows first, then HAVING COUNT(*) > 5 filters groups with more than 5 rows."
+          - id: sql-agg-p2
+            type: true_false
+            question: "`COUNT(column_name)` includes NULL values in its count."
+            correct: "false"
+            explanation: "COUNT(column_name) counts only non-NULL values in that column. To count all rows including NULLs, use COUNT(*). This distinction matters when columns have missing data."
+          - id: sql-agg-p3
+            type: fill_blank
+            question: "To find the average order total per customer: `SELECT customer_id, AVG(total) FROM orders ___ customer_id`."
+            correct: "GROUP BY"
+            explanation: "GROUP BY partitions rows into groups by the specified column(s). The AVG() function then computes the average within each group. Every non-aggregated column in SELECT must appear in GROUP BY."

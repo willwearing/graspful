@@ -2,7 +2,13 @@
   "name": "@graspful/mcp",
   "version": "0.2.0",
   "description": "MCP server for Graspful — create adaptive learning courses from AI agents",
-  "keywords": ["mcp", "graspful", "course", "adaptive-learning", "ai-agent"],
+  "keywords": ["mcp", "mcp-server", "graspful", "course", "course-creation", "adaptive-learning", "ai-agent", "knowledge-graph", "spaced-repetition", "edtech", "education", "yaml", "lms", "model-context-protocol"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/willwearing/graspful.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://graspful.com",
   "bin": {
     "graspful-mcp": "./dist/index.js"
   },

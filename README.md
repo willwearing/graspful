@@ -135,4 +135,8 @@ cd apps/web && npx playwright test
 
 ## License
 
-Private
+[O'Saasy License](LICENSE.md) -- MIT with one restriction: you can't offer this as a competing SaaS.
+
+**Why this license?** The adaptive learning science behind Graspful (BKT, spaced repetition, knowledge graphs) is built on open academic work. It should stay open. You can view the code, self-host it, learn from it, contribute to it. The one thing you can't do is take it and run a competing hosted service. That feels fair -- I'm trying to bring all these ideas together into something useful, and I'd like to get rewarded for that work.
+
+If you think there's a better way to do this, [open an issue](https://github.com/willwearing/graspful/issues). I'm genuinely interested in getting the balance right.
