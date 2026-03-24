@@ -75,11 +75,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // 5. Redirect authenticated users from landing and auth pages to dashboard
+    // 5. Redirect authenticated users from landing and auth pages.
+    //    Only the "graspful" brand (graspful.com) gets the creator dashboard.
+    //    Auto-created brands are student-facing and go to /dashboard.
     const AUTH_PAGES = ["/", "/sign-in", "/sign-up"];
     if (user && AUTH_PAGES.includes(pathname)) {
       const url = request.nextUrl.clone();
-      url.pathname = "/dashboard";
+      url.pathname = brand.id === "graspful" ? "/creator" : "/dashboard";
       return NextResponse.redirect(url);
     }
 

@@ -3,8 +3,11 @@ import { KnowledgeGraphController } from './knowledge-graph.controller';
 import { CourseImporterService } from './course-importer.service';
 import { CourseReadService } from './course-read.service';
 import { ReviewService } from './review.service';
+import { CourseYamlExportService } from './course-yaml-export.service';
 import { PrismaService } from '@/prisma/prisma.service';
-import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
+import { BrandsService } from '@/brands/brands.service';
+import { VercelDomainsService } from '@/brands/vercel-domains.service';
+import { OrgMembershipGuard, JwtOrApiKeyGuard } from '@/auth';
 
 const mockGuard = { canActivate: () => true };
 
@@ -13,7 +16,10 @@ describe('KnowledgeGraphController', () => {
   let mockCourseReads: any;
   let mockImporter: any;
   let mockReviewService: any;
+  let mockCourseYamlExport: any;
   let mockPrisma: any;
+  let mockBrandsService: any;
+  let mockVercelDomainsService: any;
 
   beforeEach(async () => {
     mockCourseReads = {
@@ -34,11 +40,30 @@ describe('KnowledgeGraphController', () => {
       review: jest.fn(),
     };
 
+    mockCourseYamlExport = {
+      exportCourse: jest.fn(),
+    };
+
     mockPrisma = {
       course: {
         findFirst: jest.fn(),
         update: jest.fn(),
       },
+      organization: {
+        findUnique: jest.fn(),
+      },
+      brand: {
+        findFirst: jest.fn(),
+      },
+    };
+
+    mockBrandsService = {
+      findBySlug: jest.fn(),
+      create: jest.fn(),
+    };
+
+    mockVercelDomainsService = {
+      addDomain: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -47,12 +72,15 @@ describe('KnowledgeGraphController', () => {
         { provide: CourseReadService, useValue: mockCourseReads },
         { provide: CourseImporterService, useValue: mockImporter },
         { provide: ReviewService, useValue: mockReviewService },
+        { provide: CourseYamlExportService, useValue: mockCourseYamlExport },
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: BrandsService, useValue: mockBrandsService },
+        { provide: VercelDomainsService, useValue: mockVercelDomainsService },
       ],
     })
-      .overrideGuard(SupabaseAuthGuard)
-      .useValue(mockGuard)
       .overrideGuard(OrgMembershipGuard)
+      .useValue(mockGuard)
+      .overrideGuard(JwtOrApiKeyGuard)
       .useValue(mockGuard)
       .compile();
 
@@ -103,6 +131,15 @@ describe('KnowledgeGraphController', () => {
   });
 
   describe('importCourse', () => {
+    beforeEach(() => {
+      // Default: no brand exists for org
+      mockPrisma.organization.findUnique.mockResolvedValue({ slug: 'test-org' });
+      mockPrisma.brand.findFirst.mockResolvedValue(null);
+      mockBrandsService.findBySlug.mockResolvedValue(null);
+      mockBrandsService.create.mockResolvedValue({ id: 'brand-1' });
+      mockVercelDomainsService.addDomain.mockResolvedValue({});
+    });
+
     it('should call the importer with yaml content', async () => {
       const importResult = {
         courseId: 'c1',
@@ -114,6 +151,7 @@ describe('KnowledgeGraphController', () => {
         warnings: [],
       };
       mockImporter.importFromYaml.mockResolvedValue(importResult);
+      mockImporter.parseCourseYaml.mockReturnValue({ course: { id: 'test', name: 'Test' } });
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
       const body = {
@@ -215,6 +253,35 @@ describe('KnowledgeGraphController', () => {
       const result = await controller.getKnowledgeFrontier('c1', orgCtx as any);
 
       expect(result.frontier).toEqual(['con1']);
+    });
+  });
+
+  describe('archiveCourse', () => {
+    it('should soft-delete a course by setting archivedAt', async () => {
+      const now = new Date();
+      mockPrisma.course.findFirst.mockResolvedValue({ id: 'c1', archivedAt: null });
+      mockPrisma.course.update.mockResolvedValue({ id: 'c1', archivedAt: now });
+
+      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
+      const result = await controller.archiveCourse('c1', orgCtx as any);
+
+      expect(result.archivedAt).toEqual(now);
+      expect(mockPrisma.course.update).toHaveBeenCalledWith({
+        where: { id: 'c1' },
+        data: { archivedAt: expect.any(Date) },
+      });
+    });
+  });
+
+  describe('exportCourseYaml', () => {
+    it('should return YAML string from export service', async () => {
+      mockCourseYamlExport.exportCourse.mockResolvedValue('course:\n  id: test');
+
+      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
+      const result = await controller.exportCourseYaml('c1', orgCtx as any);
+
+      expect(result).toEqual({ yaml: 'course:\n  id: test' });
+      expect(mockCourseYamlExport.exportCourse).toHaveBeenCalledWith('org-1', 'c1');
     });
   });
 });

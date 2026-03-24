@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, Settings } from "lucide-react";
+import { Home, BookOpen, Settings, LayoutDashboard, FolderCog, KeyRound } from "lucide-react";
 import { useBrand } from "@/lib/brand/context";
 
-const navItems = [
+const learnerNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
   { href: "/browse", label: "Browse", icon: BookOpen },
+  { href: "/settings", label: "Settings", icon: Settings },
+];
+
+const creatorNavItems = [
+  { href: "/creator", label: "Courses", icon: LayoutDashboard },
+  { href: "/creator/manage", label: "Course Management", icon: FolderCog },
+  { href: "/creator/api-keys", label: "API Keys", icon: KeyRound },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -21,6 +28,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const brand = useBrand();
   const pathname = usePathname();
   const [pendingPath, setPendingPath] = useState<string | null>(null);
+
+  const navItems = useMemo(
+    () => (brand.id === "graspful" ? creatorNavItems : learnerNavItems),
+    [brand.id]
+  );
 
   useEffect(() => {
     setPendingPath(null);

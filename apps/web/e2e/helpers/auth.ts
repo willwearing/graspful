@@ -43,8 +43,8 @@ export async function signUpBrandedTestUser(
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Create Account" }).click();
 
-  // Wait for redirect to dashboard (auto-confirm in dev)
-  await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
+  // Wait for redirect — /dashboard for most brands, /creator for graspful brand
+  await page.waitForURL(/\/(dashboard|creator)/, { timeout: 15_000 });
 
   return email;
 }
@@ -64,5 +64,5 @@ export async function signInTestUser(
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign In" }).click();
-  await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
+  await page.waitForURL(/\/(dashboard|creator)/, { timeout: 15_000 });
 }

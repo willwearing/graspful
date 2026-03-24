@@ -10,6 +10,7 @@ import { registerCreateBrandCommand } from './commands/create-brand';
 import { registerFillConceptCommand } from './commands/fill-concept';
 import { registerDescribeCommand } from './commands/describe';
 import { registerLoginCommand } from './commands/login';
+import { registerRegisterCommand } from './commands/register';
 
 const program = new Command();
 
@@ -34,5 +35,6 @@ registerCreateBrandCommand(createCmd);
 const fillCmd = registerFillConceptCommand(program);
 registerDescribeCommand(program);
 registerLoginCommand(program);
+registerRegisterCommand(program);
 
 program.parse();

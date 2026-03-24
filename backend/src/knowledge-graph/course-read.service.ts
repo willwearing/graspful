@@ -22,7 +22,7 @@ export class CourseReadService {
 
   async listCourses(orgId: string) {
     return this.prisma.course.findMany({
-      where: { orgId },
+      where: { orgId, archivedAt: null },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -55,7 +55,7 @@ export class CourseReadService {
     await this.findAcademyOrThrow(orgId, academyId);
 
     return this.prisma.course.findMany({
-      where: { orgId, academyId },
+      where: { orgId, academyId, archivedAt: null },
       orderBy: { sortOrder: 'asc' },
     });
   }
@@ -380,7 +380,7 @@ export class CourseReadService {
 
   private async findCourseOrThrow(orgId: string, courseId: string) {
     const course = await this.prisma.course.findFirst({
-      where: { id: courseId, orgId },
+      where: { id: courseId, orgId, archivedAt: null },
     });
 
     if (!course) {
