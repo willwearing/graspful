@@ -107,7 +107,7 @@ test.describe("Agent Full Flow (API → Browser)", () => {
     await page.context().addCookies([
       {
         name: "dev-brand-override",
-        value: orgSlug,
+        value: GRASPFUL_BRAND,
         domain: "localhost",
         path: "/",
       },
@@ -129,8 +129,8 @@ test.describe("Agent Full Flow (API → Browser)", () => {
       page.getByText(`Full Flow Test ${courseSlug}`)
     ).toBeVisible({ timeout: 15_000 });
 
-    // 6. Click Edit to verify navigation to edit page
-    const editBtn = page.getByRole("link", { name: /Edit/i }).first();
+    // 6. Click Edit to verify navigation to edit page (button with link behavior)
+    const editBtn = page.getByRole("button", { name: /Edit/i }).first();
     await expect(editBtn).toBeVisible();
     await editBtn.click();
 

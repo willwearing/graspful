@@ -107,7 +107,7 @@ test.describe("Creator Archive Course", () => {
     await archiveBtn.click();
 
     // Verify confirmation dialog appears
-    await expect(page.getByText("Archive Course")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Archive Course" })).toBeVisible();
     await expect(
       page.getByText(/Type .* to confirm/i)
     ).toBeVisible();

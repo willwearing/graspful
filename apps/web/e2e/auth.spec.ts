@@ -67,7 +67,9 @@ test.describe("Auth pages", () => {
     await expect(page).toHaveURL(/\/sign-up/);
     await expect(page.getByText("Create your account")).toBeVisible();
 
+    // Use the form's "Sign in" link (inside main), not the nav's
     await page
+      .getByRole("main")
       .getByRole("link", { name: "Sign in", exact: true })
       .click();
     await expect(page).toHaveURL(/\/sign-in/);

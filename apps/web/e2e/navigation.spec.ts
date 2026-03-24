@@ -26,7 +26,11 @@ test.describe("Navigation and routing", () => {
 
   test("sign-up → sign-in link navigation", async ({ page }) => {
     await page.goto("/sign-up");
-    await page.getByRole("link", { name: "Sign in", exact: true }).click();
+    // Use the form's "Sign in" link (inside main), not the nav's
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: "Sign in", exact: true })
+      .click();
     await expect(page).toHaveURL(/\/sign-in/);
   });
 

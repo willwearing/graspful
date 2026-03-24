@@ -102,8 +102,8 @@ test.describe("Creator Manage — Edit Course", () => {
       page.getByText(`Edit Test Course ${courseSlug}`)
     ).toBeVisible({ timeout: 10_000 });
 
-    // Click Edit button
-    const editBtn = page.getByRole("link", { name: /Edit/i }).first();
+    // Click Edit button (rendered as a button with link behavior)
+    const editBtn = page.getByRole("button", { name: /Edit/i }).first();
     await expect(editBtn).toBeVisible();
     await editBtn.click();
 

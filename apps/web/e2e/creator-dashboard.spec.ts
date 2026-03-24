@@ -18,8 +18,12 @@ async function signUpAsCreator(page: import("@playwright/test").Page) {
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Create Account" }).click();
 
-  // Graspful brand redirects authenticated users to /creator
-  await page.waitForURL(/\/creator/, { timeout: 15_000 });
+  // Wait for auth redirect — may land on /dashboard first, then middleware redirects to /creator
+  await page.waitForURL(/\/(creator|dashboard)/, { timeout: 15_000 });
+  // Ensure we end up on /creator (middleware redirect may be async)
+  if (page.url().includes("/dashboard")) {
+    await page.waitForURL(/\/creator/, { timeout: 10_000 });
+  }
   return email;
 }
 

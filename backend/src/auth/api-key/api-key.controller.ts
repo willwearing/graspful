@@ -9,13 +9,13 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, MinRole } from '@/auth';
+import { JwtOrApiKeyGuard, OrgMembershipGuard, CurrentOrg, MinRole } from '@/auth';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { ApiKeyService } from './api-key.service';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
 
 @Controller('orgs/:orgId/api-keys')
-@UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
+@UseGuards(JwtOrApiKeyGuard, OrgMembershipGuard)
 export class ApiKeyController {
   constructor(private apiKeyService: ApiKeyService) {}
 

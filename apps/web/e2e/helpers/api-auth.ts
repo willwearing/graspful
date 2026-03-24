@@ -1,7 +1,8 @@
 import { type Page, type APIRequestContext } from "@playwright/test";
-import { signUpBrandedTestUser, TEST_BRAND_ID } from "./auth";
+import { signUpBrandedTestUser, signInTestUser, TEST_BRAND_ID } from "./auth";
 
 const BACKEND_URL = "http://localhost:3000/api/v1";
+const PASSWORD = "TestPassword123!";
 
 export interface ApiTestContext {
   token: string;
@@ -10,77 +11,63 @@ export interface ApiTestContext {
 }
 
 /**
- * Sign up a user via the UI, extract the Supabase JWT and orgId,
- * then return an object for making authenticated API calls.
+ * Register a user via the backend API (creates user + org + apiKey),
+ * then sign in via the browser so the page session is also authenticated.
+ * Use for tests that need both browser sessions AND API access.
  */
 export async function signUpAndGetApiContext(
   page: Page,
   request: APIRequestContext,
   brandId: string = TEST_BRAND_ID
 ): Promise<ApiTestContext> {
-  await signUpBrandedTestUser(page, brandId);
+  const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.example.com`;
 
-  // Extract Supabase access token from the browser
-  const token = await page.evaluate(async () => {
-    // Supabase SSR stores the session in cookies, but the browser client can retrieve it
-    const { createBrowserClient } = await import("@supabase/ssr");
-    const supabase = createBrowserClient(
-      (window as any).__NEXT_DATA__?.props?.pageProps?.env?.SUPABASE_URL ||
-        process.env.NEXT_PUBLIC_SUPABASE_URL ||
-        "",
-      (window as any).__NEXT_DATA__?.props?.pageProps?.env?.SUPABASE_ANON_KEY ||
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-        ""
-    );
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    return session?.access_token ?? "";
+  // Register via API — creates Supabase user + org + apiKey
+  const res = await request.post(`${BACKEND_URL}/auth/register`, {
+    data: { email, password: PASSWORD },
+    headers: { "Content-Type": "application/json" },
   });
 
-  // If the import approach doesn't work, fallback: extract from cookies
-  let accessToken = token;
-  if (!accessToken) {
-    const cookies = await page.context().cookies();
-    // Supabase SSR stores tokens in cookies with pattern: sb-<project-ref>-auth-token
-    const authCookie = cookies.find(
-      (c) => c.name.includes("auth-token") || c.name.includes("supabase")
-    );
-    if (authCookie) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(authCookie.value));
-        accessToken = parsed.access_token || parsed[0]?.access_token || "";
-      } catch {
-        accessToken = authCookie.value;
-      }
-    }
+  if (!res.ok()) {
+    const text = await res.text();
+    throw new Error(`Registration failed (${res.status()}): ${text}`);
   }
 
-  // Resolve orgId from the brand slug
-  const orgId = await resolveOrgId(request, brandId);
+  const body = await res.json();
 
-  return { token: accessToken, orgId, request };
+  // Sign in via browser so page-based tests have a session.
+  // Use the "graspful" brand for browser — the creator dashboard is org-aware
+  // and will show the user's own org's courses regardless of active brand.
+  await signInTestUser(page, email, PASSWORD, "graspful");
+
+  return { token: body.apiKey, orgId: body.orgSlug, request };
 }
 
 /**
- * Resolve an orgId from a brand slug by calling the brands API (unauthenticated).
+ * Register via API only — no browser session.
+ * Use for pure API tests that don't need a signed-in browser.
  */
-async function resolveOrgId(
-  request: APIRequestContext,
-  brandSlug: string
-): Promise<string> {
-  const res = await request.get(`${BACKEND_URL}/brands/${brandSlug}`);
-  if (res.ok()) {
-    const brand = await res.json();
-    return brand.orgId;
+export async function registerAndGetApiContext(
+  request: APIRequestContext
+): Promise<ApiTestContext> {
+  const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.example.com`;
+
+  const res = await request.post(`${BACKEND_URL}/auth/register`, {
+    data: { email, password: PASSWORD },
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (!res.ok()) {
+    const text = await res.text();
+    throw new Error(`Registration failed (${res.status()}): ${text}`);
   }
-  // Fallback: use the slug as the orgId (backend supports slug-based routing)
-  return brandSlug;
+
+  const body = await res.json();
+  return { token: body.apiKey, orgId: body.orgSlug, request };
 }
 
-/**
- * Make an authenticated GET request to the backend API.
- */
+// ─── Helpers for making authenticated requests ──────────────────────────────
+
 export async function apiGet(
   ctx: ApiTestContext,
   path: string
@@ -92,17 +79,10 @@ export async function apiGet(
     },
   });
   let body: any;
-  try {
-    body = await res.json();
-  } catch {
-    body = await res.text();
-  }
+  try { body = await res.json(); } catch { body = await res.text(); }
   return { status: res.status(), body };
 }
 
-/**
- * Make an authenticated POST request to the backend API.
- */
 export async function apiPost(
   ctx: ApiTestContext,
   path: string,
@@ -116,17 +96,10 @@ export async function apiPost(
     data: data ?? {},
   });
   let body: any;
-  try {
-    body = await res.json();
-  } catch {
-    body = await res.text();
-  }
+  try { body = await res.json(); } catch { body = await res.text(); }
   return { status: res.status(), body };
 }
 
-/**
- * Make an authenticated DELETE request to the backend API.
- */
 export async function apiDelete(
   ctx: ApiTestContext,
   path: string
@@ -138,17 +111,10 @@ export async function apiDelete(
     },
   });
   let body: any;
-  try {
-    body = await res.json();
-  } catch {
-    body = await res.text();
-  }
+  try { body = await res.json(); } catch { body = await res.text(); }
   return { status: res.status(), body };
 }
 
-/**
- * Make an authenticated PATCH request to the backend API.
- */
 export async function apiPatch(
   ctx: ApiTestContext,
   path: string,
@@ -162,17 +128,10 @@ export async function apiPatch(
     data: data ?? {},
   });
   let body: any;
-  try {
-    body = await res.json();
-  } catch {
-    body = await res.text();
-  }
+  try { body = await res.json(); } catch { body = await res.text(); }
   return { status: res.status(), body };
 }
 
-/**
- * Make an unauthenticated GET request to the backend API.
- */
 export async function apiGetPublic(
   request: APIRequestContext,
   path: string
@@ -181,17 +140,10 @@ export async function apiGetPublic(
     headers: { "Content-Type": "application/json" },
   });
   let body: any;
-  try {
-    body = await res.json();
-  } catch {
-    body = await res.text();
-  }
+  try { body = await res.json(); } catch { body = await res.text(); }
   return { status: res.status(), body };
 }
 
-/**
- * Make a request with a custom Authorization header (for API key testing).
- */
 export async function apiGetWithKey(
   request: APIRequestContext,
   path: string,
@@ -204,10 +156,6 @@ export async function apiGetWithKey(
     },
   });
   let body: any;
-  try {
-    body = await res.json();
-  } catch {
-    body = await res.text();
-  }
+  try { body = await res.json(); } catch { body = await res.text(); }
   return { status: res.status(), body };
 }

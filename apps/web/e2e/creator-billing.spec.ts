@@ -14,7 +14,10 @@ async function signUpAsCreator(page: import("@playwright/test").Page) {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Create Account" }).click();
-  await page.waitForURL(/\/creator/, { timeout: 15_000 });
+  await page.waitForURL(/\/(creator|dashboard)/, { timeout: 15_000 });
+  if (page.url().includes("/dashboard")) {
+    await page.waitForURL(/\/creator/, { timeout: 10_000 });
+  }
   return email;
 }
 
