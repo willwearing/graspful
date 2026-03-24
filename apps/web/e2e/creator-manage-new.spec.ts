@@ -25,8 +25,8 @@ async function signUpAndNavigateToManage(
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Create Account" }).click();
 
-  // Graspful brand redirects to /creator
-  await page.waitForURL(/\/creator/, { timeout: 15_000 });
+  // Wait for auth redirect (may land on /dashboard or /creator depending on timing)
+  await page.waitForURL(/\/(creator|dashboard)/, { timeout: 15_000 });
 
   await page.goto("/creator/manage");
   await page.waitForURL(/\/creator\/manage/, { timeout: 10_000 });

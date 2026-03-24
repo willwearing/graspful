@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ApiKeyService } from './api-key/api-key.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class RegistrationService {
@@ -30,7 +31,12 @@ export class RegistrationService {
       });
 
     if (authError || !authData.user) {
-      this.logger.error('Supabase user creation failed', authError);
+      this.logger.error('Supabase user creation failed', {
+        message: authError?.message,
+        status: authError?.status,
+        name: authError?.name,
+        code: (authError as any)?.code,
+      });
       if (authError?.message?.includes('User already registered')) {
         throw new ConflictException('An account with this email already exists');
       }
@@ -46,15 +52,54 @@ export class RegistrationService {
     const orgName = orgSlug.replace(/-/g, ' ');
 
     // 3. Create DB records
+    // Note: Supabase has an AFTER INSERT trigger on auth.users that auto-creates
+    // a public.users row. We use upsert to handle the race gracefully.
     try {
       return await this.prisma.$transaction(async (tx) => {
-        const user = await tx.user.create({ data: { id: supabaseUserId, email } });
+        const user = await tx.user.upsert({
+          where: { id: supabaseUserId },
+          update: { email },
+          create: { id: supabaseUserId, email },
+        });
         const org = await tx.organization.create({ data: { slug: orgSlug, name: orgName, niche: 'general' } });
         await tx.orgMembership.create({ data: { orgId: org.id, userId: user.id, role: 'owner' } });
-        const { key: rawApiKey } = await this.apiKeyService.createKey(org.id, user.id, 'default');
+
+        // Create a default brand so the org is accessible via the web UI
+        const domain = `${orgSlug}.graspful.com`;
+        await tx.brand.create({
+          data: {
+            slug: orgSlug,
+            name: orgName,
+            domain,
+            tagline: 'Learn adaptively',
+            logoUrl: '/icon.svg',
+            orgSlug,
+            theme: {},
+            landing: {
+              hero: { headline: orgName, subheadline: 'Adaptive learning', ctaText: 'Start Learning' },
+              features: { heading: 'Features', items: [] },
+              howItWorks: { heading: 'How it works', items: [] },
+              faq: [],
+            },
+            seo: { title: orgName, description: `Adaptive learning at ${orgName}`, keywords: [] },
+          },
+        });
+
+        // Create API key inside the transaction so it can see the uncommitted org
+        const rawApiKey = `gsk_${crypto.randomBytes(32).toString('hex')}`;
+        const keyHash = crypto.createHash('sha256').update(rawApiKey).digest('hex');
+        const keyPrefix = rawApiKey.slice(0, 12);
+        await tx.apiKey.create({
+          data: { orgId: org.id, userId: user.id, name: 'default', keyHash, keyPrefix },
+        });
+
         return { userId: user.id, orgSlug: org.slug, apiKey: rawApiKey };
       });
     } catch (error) {
+      this.logger.error('Prisma transaction failed during registration', {
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+      });
       await this.supabase.auth.admin.deleteUser(supabaseUserId).catch((err) => {
         this.logger.error('Failed to clean up Supabase user after transaction failure', err);
       });

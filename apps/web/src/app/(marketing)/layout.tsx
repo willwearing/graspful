@@ -10,7 +10,7 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <script dangerouslySetInnerHTML={{ __html: forceLight }} />
       <MarketingThemeForcer />
       <MarketingNav />

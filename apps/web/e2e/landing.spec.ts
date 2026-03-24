@@ -49,10 +49,11 @@ test.describe("Landing page", () => {
 
   test("renders CTA section at bottom", async ({ page }) => {
     await expect(page.getByText("Ready to Start Studying?")).toBeVisible();
-    const trialLink = page
-      .getByRole("link", { name: /free trial/i })
-      .first();
-    await expect(trialLink).toBeVisible();
+    // CTA button text is brand-specific (e.g. "Start Studying Free")
+    const ctaLink = page
+      .getByRole("link", { name: /start studying/i })
+      .last();
+    await expect(ctaLink).toBeVisible();
   });
 
   test("navigation has brand name and auth links", async ({ page }) => {

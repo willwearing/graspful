@@ -1,11 +1,11 @@
 import { Controller, Get, Post, UseGuards } from '@nestjs/common';
-import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
+import { JwtOrApiKeyGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { MinRole } from '@/auth/decorators/min-role.decorator';
 import { ConnectService } from './connect.service';
 
 @Controller('orgs/:orgId/billing')
-@UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
+@UseGuards(JwtOrApiKeyGuard, OrgMembershipGuard)
 export class ConnectController {
   constructor(private connect: ConnectService) {}
 

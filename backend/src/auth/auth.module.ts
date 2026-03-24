@@ -10,13 +10,14 @@ import { UsersMeController } from './users-me.controller';
 import { OrgMembershipService } from './org-membership.service';
 import { RegistrationService } from './registration.service';
 import { ApiKeyModule } from './api-key/api-key.module';
+import { ApiKeyController } from './api-key/api-key.controller';
 
 @Module({
   imports: [
     ApiKeyModule,
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
   ],
-  controllers: [OrgJoinController, AuthRegisterController, UsersMeController],
+  controllers: [OrgJoinController, AuthRegisterController, UsersMeController, ApiKeyController],
   providers: [
     SupabaseAuthGuard,
     OrgMembershipGuard,

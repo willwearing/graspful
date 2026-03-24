@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Copy, Plus, Key, Trash2, Check } from "lucide-react";
-import { useBrand } from "@/lib/brand/context";
+import { useCreatorOrg } from "@/lib/contexts/creator-org-context";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ interface ApiKey {
 }
 
 export default function ApiKeysPage() {
-  const brand = useBrand();
+  const { orgSlug } = useCreatorOrg();
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState("");
@@ -46,7 +46,7 @@ export default function ApiKeysPage() {
   const fetchKeys = useCallback(async (accessToken: string) => {
     try {
       const data = await apiClientFetch<ApiKey[]>(
-        `/orgs/${brand.orgSlug}/api-keys`,
+        `/orgs/${orgSlug}/api-keys`,
         accessToken
       );
       setKeys(data);
@@ -55,7 +55,7 @@ export default function ApiKeysPage() {
     } finally {
       setLoading(false);
     }
-  }, [brand.orgSlug]);
+  }, [orgSlug]);
 
   useEffect(() => {
     async function init() {
@@ -73,7 +73,7 @@ export default function ApiKeysPage() {
     setCreating(true);
     try {
       const result = await apiClientFetch<{ key: string; id: string }>(
-        `/orgs/${brand.orgSlug}/api-keys`,
+        `/orgs/${orgSlug}/api-keys`,
         token,
         {
           method: "POST",
@@ -95,7 +95,7 @@ export default function ApiKeysPage() {
   async function handleRevoke(keyId: string) {
     try {
       await apiClientFetch(
-        `/orgs/${brand.orgSlug}/api-keys/${keyId}`,
+        `/orgs/${orgSlug}/api-keys/${keyId}`,
         token,
         { method: "DELETE" }
       );

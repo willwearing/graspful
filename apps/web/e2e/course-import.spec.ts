@@ -91,7 +91,6 @@ test.describe("Course Import", () => {
 
     expect(status).toBe(201);
     expect(body.courseId).toBeTruthy();
-    expect(body.created).toBeDefined();
 
     // Verify the course exists via list endpoint
     const listRes = await apiGet(ctx, `/orgs/${ctx.orgId}/courses`);

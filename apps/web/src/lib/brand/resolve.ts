@@ -1,6 +1,6 @@
 import type { BrandConfig } from "./config";
 import { defaultBrand, firefighterBrand, electricianBrand, javascriptBrand, posthogBrand, graspfulBrand } from "./defaults";
-import { fetchBrandByDomain } from "./resolve-db";
+import { fetchBrandByDomain, fetchBrandBySlug } from "./resolve-db";
 
 /** In-memory brand registry. Phase 7 uses hardcoded brands; future phases fetch from DB. */
 const brandsByDomain = new Map<string, BrandConfig>([
@@ -39,8 +39,12 @@ export async function resolveBrand(
     if (cookieHeader) {
       const match = cookieHeader.match(/dev-brand-override=([^;]+)/);
       if (match) {
-        const overrideBrand = brandsById.get(match[1]);
+        const slug = match[1];
+        const overrideBrand = brandsById.get(slug);
         if (overrideBrand) return overrideBrand;
+        // Not in hardcoded map — try database (for dynamically created brands)
+        const dbBrand = await fetchBrandBySlug(slug);
+        if (dbBrand) return dbBrand;
       }
     }
 

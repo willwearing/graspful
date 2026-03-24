@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Download, Save, Bot, Loader2 } from "lucide-react";
-import { useBrand } from "@/lib/brand/context";
+import { useCreatorOrg } from "@/lib/contexts/creator-org-context";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { apiClientFetch } from "@/lib/api-client";
 import { YamlEditor } from "@/components/creator/yaml-editor";
@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function EditCoursePage() {
-  const brand = useBrand();
+  const { orgSlug } = useCreatorOrg();
   const params = useParams<{ courseId: string }>();
   const courseId = params.courseId;
 
@@ -33,7 +33,7 @@ export default function EditCoursePage() {
 
       try {
         const yaml = await apiClientFetch<{ yaml: string }>(
-          `/orgs/${brand.orgSlug}/courses/${courseId}/yaml`,
+          `/orgs/${orgSlug}/courses/${courseId}/yaml`,
           accessToken
         );
         setCourseContent(yaml.yaml);
@@ -45,7 +45,7 @@ export default function EditCoursePage() {
       }
     }
     loadCourse();
-  }, [brand.orgSlug, courseId]);
+  }, [orgSlug, courseId]);
 
   async function handleSave() {
     setSaving(true);
@@ -53,7 +53,7 @@ export default function EditCoursePage() {
     setSuccess(false);
     try {
       await apiClientFetch(
-        `/orgs/${brand.orgSlug}/courses/import`,
+        `/orgs/${orgSlug}/courses/import`,
         token,
         {
           method: "POST",

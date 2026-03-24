@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Upload, Bot } from "lucide-react";
-import { useBrand } from "@/lib/brand/context";
+import { useCreatorOrg } from "@/lib/contexts/creator-org-context";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { apiClientFetch } from "@/lib/api-client";
 import { YamlEditor } from "@/components/creator/yaml-editor";
@@ -87,7 +87,7 @@ sections:
 `;
 
 export default function NewCoursePage() {
-  const brand = useBrand();
+  const { orgSlug } = useCreatorOrg();
   const router = useRouter();
   const [brandConfig, setBrandConfig] = useState(BRAND_CONFIG_TEMPLATE);
   const [courseContent, setCourseContent] = useState(COURSE_CONTENT_TEMPLATE);
@@ -109,7 +109,7 @@ export default function NewCoursePage() {
     setError(null);
     try {
       const result = await apiClientFetch<{ courseId: string }>(
-        `/orgs/${brand.orgSlug}/courses/import`,
+        `/orgs/${orgSlug}/courses/import`,
         token,
         {
           method: "POST",
