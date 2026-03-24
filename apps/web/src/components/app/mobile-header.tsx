@@ -14,9 +14,9 @@ interface MobileHeaderProps {
 export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
   const brand = useBrand();
   const router = useRouter();
-  const supabase = createSupabaseBrowserClient();
 
   async function handleSignOut() {
+    const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
     router.push("/");
     router.refresh();

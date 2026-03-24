@@ -8,6 +8,7 @@ import { OrgJoinController } from './org-join.controller';
 import { AuthRegisterController } from './auth-register.controller';
 import { UsersMeController } from './users-me.controller';
 import { OrgMembershipService } from './org-membership.service';
+import { RegistrationService } from './registration.service';
 import { ApiKeyModule } from './api-key/api-key.module';
 
 @Module({
@@ -22,8 +23,10 @@ import { ApiKeyModule } from './api-key/api-key.module';
     GlobalAdminGuard,
     JwtOrApiKeyGuard,
     OrgMembershipService,
+    RegistrationService,
   ],
   exports: [
+    ApiKeyModule,
     SupabaseAuthGuard,
     OrgMembershipGuard,
     GlobalAdminGuard,

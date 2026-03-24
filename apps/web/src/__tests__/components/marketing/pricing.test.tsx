@@ -2,13 +2,16 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import { PricingSection } from "@/components/marketing/pricing";
 import { BrandProvider } from "@/lib/brand/context";
+import { ThemeProvider } from "@/lib/theme/theme-provider";
 import { firefighterBrand } from "@/lib/brand/defaults";
 
 function renderPricing() {
   return render(
-    <BrandProvider brand={firefighterBrand}>
-      <PricingSection />
-    </BrandProvider>,
+    <ThemeProvider>
+      <BrandProvider brand={firefighterBrand}>
+        <PricingSection />
+      </BrandProvider>
+    </ThemeProvider>,
   );
 }
 
@@ -61,6 +64,6 @@ describe("PricingSection", () => {
 
     const ctaLink = screen.getByText("Get Started").closest("a");
     expect(ctaLink?.tagName).toBe("A");
-    expect(ctaLink.querySelector("button")).toBeNull();
+    expect(ctaLink?.querySelector("button")).toBeNull();
   });
 });

@@ -8,6 +8,7 @@ import {
 describe('CourseProgressReadService', () => {
   let service: CourseProgressReadService;
   let mockPrisma: any;
+  let mockStudentState: any;
 
   beforeEach(() => {
     mockPrisma = {
@@ -22,14 +23,15 @@ describe('CourseProgressReadService', () => {
           { sourceConceptId: 'concept-1', targetConceptId: 'concept-2' },
         ]),
       },
-      studentConceptState: {
-        findMany: jest.fn().mockResolvedValue([
-          { conceptId: 'concept-1', masteryState: 'mastered' },
-        ]),
-      },
     };
 
-    service = new CourseProgressReadService(mockPrisma);
+    mockStudentState = {
+      getConceptMasteryForIds: jest.fn().mockResolvedValue(
+        new Map([['concept-1', 'mastered']]),
+      ),
+    };
+
+    service = new CourseProgressReadService(mockPrisma, mockStudentState);
   });
 
   it('returns graph data with learner mastery overlay', async () => {
@@ -63,9 +65,9 @@ describe('CourseProgressReadService', () => {
     mockPrisma.prerequisiteEdge.findMany.mockResolvedValue([
       { sourceConceptId: 'concept-1', targetConceptId: 'concept-3' },
     ]);
-    mockPrisma.studentConceptState.findMany.mockResolvedValue([
-      { conceptId: 'concept-1', masteryState: 'mastered' },
-    ]);
+    mockStudentState.getConceptMasteryForIds.mockResolvedValue(
+      new Map([['concept-1', 'mastered']]),
+    );
 
     const result = await service.getAcademyGraph('user-1', 'academy-1');
 

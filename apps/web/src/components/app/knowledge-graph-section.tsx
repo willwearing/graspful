@@ -13,8 +13,15 @@ interface KnowledgeGraphSectionProps {
 
 type MasteryState = "unstarted" | "in_progress" | "mastered" | "needs_review";
 
+interface RawConcept {
+  id: string;
+  name: string;
+  courseId?: string;
+  masteryState?: MasteryState;
+}
+
 interface RawGraphData {
-  concepts: Array<{ id: string; name: string; courseId?: string }>;
+  concepts: RawConcept[];
   edges?: Array<{ sourceConceptId: string; targetConceptId: string }>;
   prerequisiteEdges?: Array<{ sourceConceptId: string; targetConceptId: string }>;
 }
@@ -59,7 +66,7 @@ export function KnowledgeGraphSection({
             name: c.name,
             courseId: c.courseId,
             // Academy graph includes masteryState inline; course graph needs overlay
-            masteryState: (c as any).masteryState ?? masteryMap.get(c.id) ?? "unstarted",
+            masteryState: c.masteryState ?? masteryMap.get(c.id) ?? "unstarted",
           }))
         );
         setEdges(graphData.edges ?? graphData.prerequisiteEdges ?? []);

@@ -1,8 +1,8 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
-import { CourseYamlSchema } from '../schemas';
-import type { CourseYaml } from '../schemas';
+import { CourseYamlSchema } from '@graspful/shared';
+import type { CourseYaml } from '@graspful/shared';
 import { output, outputError } from '../lib/output';
 
 function computeGraphDepth(concepts: CourseYaml['concepts']): number {

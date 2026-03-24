@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import { activeConceptWhere } from './active-course-content';
+import { StudentStateService } from '@/student-model/student-state.service';
 
 export interface CreatorStats {
   students: number;
@@ -10,7 +10,10 @@ export interface CreatorStats {
 
 @Injectable()
 export class CreatorStatsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private studentState: StudentStateService,
+  ) {}
 
   async getStats(orgId: string): Promise<CreatorStats> {
     const [students, avgCompletion, totalRevenue] = await Promise.all([
@@ -40,18 +43,7 @@ export class CreatorStatsService {
    * then averages across all enrollment-level ratios.
    */
   private async calcAvgCompletion(orgId: string): Promise<number> {
-    const states = await this.prisma.studentConceptState.findMany({
-      where: {
-        concept: activeConceptWhere({ course: { orgId } }),
-      },
-      select: {
-        userId: true,
-        masteryState: true,
-        concept: {
-          select: { courseId: true },
-        },
-      },
-    });
+    const states = await this.studentState.getConceptStatesForOrg(orgId);
 
     if (states.length === 0) return 0;
 

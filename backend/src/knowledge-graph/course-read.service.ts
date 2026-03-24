@@ -378,6 +378,43 @@ export class CourseReadService {
     };
   }
 
+  async getConceptsForAcademy(academyId: string) {
+    return this.prisma.concept.findMany({
+      where: activeConceptWhere({
+        course: { academyId },
+      }),
+      select: {
+        id: true,
+        courseId: true,
+        sectionId: true,
+        difficulty: true,
+      },
+    });
+  }
+
+  async getPrereqEdgesForAcademy(academyId: string) {
+    return this.prisma.prerequisiteEdge.findMany({
+      where: {
+        sourceConcept: activeConceptWhere({
+          course: { academyId },
+        }),
+        targetConcept: activeConceptWhere({
+          course: { academyId },
+        }),
+      },
+      select: { sourceConceptId: true, targetConceptId: true },
+    });
+  }
+
+  async getCourseIdsForAcademy(academyId: string) {
+    const courses = await this.prisma.course.findMany({
+      where: { academyId },
+      select: { id: true },
+      orderBy: { sortOrder: 'asc' },
+    });
+    return courses.map((c) => c.id);
+  }
+
   private async findCourseOrThrow(orgId: string, courseId: string) {
     const course = await this.prisma.course.findFirst({
       where: { id: courseId, orgId, archivedAt: null },

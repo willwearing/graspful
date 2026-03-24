@@ -8,7 +8,7 @@ import { ProblemRenderer, type ProblemFeedback } from "@/components/app/problems
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { Problem, ProblemAnswer } from "@/lib/types";
-import { trackDiagnosticComplete, trackDiagnosticStarted, trackDiagnosticQuestionAnswered } from "@/lib/posthog/events";
+import { trackDiagnosticComplete, trackDiagnosticStarted, trackDiagnosticQuestionAnswered, trackDiagnosticAbandoned } from "@/lib/posthog/events";
 
 interface DiagnosticState {
   sessionId: string;
@@ -47,6 +47,8 @@ export function DiagnosticFlow({ orgSlug, courseId, academyId, token, initialDat
   const [error, setError] = useState<string | null>(null);
   const startTimeRef = useRef(Date.now());
   const fetchingRef = useRef(false);
+  const stateRef = useRef(state);
+  const resultRef = useRef(result);
 
   const diagnosticBasePath = academyId
     ? `/orgs/${orgSlug}/academies/${academyId}/diagnostic`
@@ -65,6 +67,19 @@ export function DiagnosticFlow({ orgSlug, courseId, academyId, token, initialDat
       res.totalConcepts,
     );
   }, [diagnosticBasePath, token, courseId]);
+
+  useEffect(() => { stateRef.current = state; }, [state]);
+  useEffect(() => { resultRef.current = result; }, [result]);
+
+  // Track abandonment on unmount if not complete
+  useEffect(() => {
+    return () => {
+      if (!stateRef.current.isComplete && !resultRef.current) {
+        trackDiagnosticAbandoned(courseId, stateRef.current.questionNumber, stateRef.current.totalEstimated);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Track diagnostic start
   useEffect(() => {

@@ -3,13 +3,11 @@ import { CreatorStatsService } from './creator-stats.service';
 describe('CreatorStatsService', () => {
   let service: CreatorStatsService;
   let mockPrisma: any;
+  let mockStudentState: any;
 
   beforeEach(() => {
     mockPrisma = {
       courseEnrollment: {
-        findMany: jest.fn(),
-      },
-      studentConceptState: {
         findMany: jest.fn(),
       },
       revenueEvent: {
@@ -17,7 +15,11 @@ describe('CreatorStatsService', () => {
       },
     };
 
-    service = new CreatorStatsService(mockPrisma);
+    mockStudentState = {
+      getConceptStatesForOrg: jest.fn(),
+    };
+
+    service = new CreatorStatsService(mockPrisma, mockStudentState);
   });
 
   describe('getStats', () => {
@@ -26,7 +28,7 @@ describe('CreatorStatsService', () => {
         { userId: 'u1' },
         { userId: 'u2' },
       ]);
-      mockPrisma.studentConceptState.findMany.mockResolvedValue([
+      mockStudentState.getConceptStatesForOrg.mockResolvedValue([
         { userId: 'u1', masteryState: 'mastered', concept: { courseId: 'c1' } },
         { userId: 'u1', masteryState: 'in_progress', concept: { courseId: 'c1' } },
         { userId: 'u2', masteryState: 'mastered', concept: { courseId: 'c1' } },
@@ -46,7 +48,7 @@ describe('CreatorStatsService', () => {
 
     it('returns zeros when no data exists', async () => {
       mockPrisma.courseEnrollment.findMany.mockResolvedValue([]);
-      mockPrisma.studentConceptState.findMany.mockResolvedValue([]);
+      mockStudentState.getConceptStatesForOrg.mockResolvedValue([]);
       mockPrisma.revenueEvent.aggregate.mockResolvedValue({
         _sum: { creatorPayout: null },
       });
@@ -62,7 +64,7 @@ describe('CreatorStatsService', () => {
       mockPrisma.courseEnrollment.findMany.mockResolvedValue([
         { userId: 'u1' },
       ]);
-      mockPrisma.studentConceptState.findMany.mockResolvedValue([
+      mockStudentState.getConceptStatesForOrg.mockResolvedValue([
         // Course 1: 2/2 mastered
         { userId: 'u1', masteryState: 'mastered', concept: { courseId: 'c1' } },
         { userId: 'u1', masteryState: 'mastered', concept: { courseId: 'c1' } },

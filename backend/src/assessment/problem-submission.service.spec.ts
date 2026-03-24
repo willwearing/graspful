@@ -7,6 +7,7 @@ describe('ProblemSubmissionService', () => {
   let mockFireUpdate: any;
   let mockXPService: any;
   let mockSectionExamService: any;
+  let mockStudentState: any;
 
   const mockProblem = {
     id: 'prob-1',
@@ -87,11 +88,31 @@ describe('ProblemSubmissionService', () => {
       syncSectionStates: jest.fn().mockResolvedValue(undefined),
     };
 
+    mockStudentState = {
+      getKPState: jest.fn().mockImplementation((_userId: string, kpId: string) =>
+        mockPrisma.studentKPState.findUnique({ where: { userId_knowledgePointId: { userId: _userId, knowledgePointId: kpId } } }),
+      ),
+      upsertKPState: jest.fn().mockResolvedValue({
+        passed: false,
+        attempts: 1,
+        consecutiveCorrect: 1,
+      }),
+      getConceptState: jest.fn().mockImplementation((_userId: string, cId: string) =>
+        mockPrisma.studentConceptState.findUnique({ where: { userId_conceptId: { userId: _userId, conceptId: cId } } }),
+      ),
+      getConceptMemory: jest.fn().mockResolvedValue(1),
+      updateConceptAfterPractice: jest.fn().mockResolvedValue({ masteryState: 'in_progress' }),
+      getKPStatesForIds: jest.fn().mockImplementation((_userId: string, kpIds: string[]) =>
+        mockPrisma.studentKPState.findMany({ where: { userId: _userId, knowledgePointId: { in: kpIds } } }),
+      ),
+    };
+
     service = new ProblemSubmissionService(
       mockPrisma,
       mockFireUpdate,
       mockXPService,
       mockSectionExamService,
+      mockStudentState as any,
     );
   });
 
@@ -147,7 +168,7 @@ describe('ProblemSubmissionService', () => {
   });
 
   it('should throw when student concept state not found', async () => {
-    mockPrisma.studentConceptState.findUnique.mockResolvedValue(null);
+    mockStudentState.getConceptState.mockResolvedValue(null);
 
     await expect(
       service.submitAnswer({
@@ -169,9 +190,13 @@ describe('ProblemSubmissionService', () => {
       activityType: 'lesson',
     });
 
-    expect(mockPrisma.studentKPState.upsert).toHaveBeenCalled();
-    const upsertCall = mockPrisma.studentKPState.upsert.mock.calls[0][0];
-    expect(upsertCall.update.consecutiveCorrect).toBe(1);
+    // updateKPState calls getKPState then upsertKPState via studentState
+    expect(mockStudentState.upsertKPState).toHaveBeenCalledWith(
+      'user-1',
+      'kp-1',
+      true,
+      undefined, // no existing state
+    );
   });
 
   it('should reset consecutiveCorrect on incorrect answer', async () => {
@@ -189,8 +214,12 @@ describe('ProblemSubmissionService', () => {
       activityType: 'lesson',
     });
 
-    const upsertCall = mockPrisma.studentKPState.upsert.mock.calls[0][0];
-    expect(upsertCall.update.consecutiveCorrect).toBe(0);
+    expect(mockStudentState.upsertKPState).toHaveBeenCalledWith(
+      'user-1',
+      'kp-1',
+      false,
+      { consecutiveCorrect: 1, passed: false },
+    );
   });
 
   it('should mark KP as passed after 2 consecutive correct', async () => {
@@ -208,8 +237,12 @@ describe('ProblemSubmissionService', () => {
       activityType: 'lesson',
     });
 
-    const upsertCall = mockPrisma.studentKPState.upsert.mock.calls[0][0];
-    expect(upsertCall.update.passed).toBe(true);
+    expect(mockStudentState.upsertKPState).toHaveBeenCalledWith(
+      'user-1',
+      'kp-1',
+      true,
+      { consecutiveCorrect: 1, passed: false },
+    );
   });
 
   it('should update speed parameters on concept state', async () => {
@@ -221,16 +254,15 @@ describe('ProblemSubmissionService', () => {
       activityType: 'lesson',
     });
 
-    expect(mockPrisma.studentConceptState.update).toHaveBeenCalled();
-    const updateData =
-      mockPrisma.studentConceptState.update.mock.calls[0][0].data;
+    expect(mockStudentState.updateConceptAfterPractice).toHaveBeenCalled();
+    const updateData = mockStudentState.updateConceptAfterPractice.mock.calls[0][2];
     expect(updateData.observationCount).toBe(6);
     expect(typeof updateData.abilityTheta).toBe('number');
     expect(typeof updateData.speedRD).toBe('number');
   });
 
   it('should transition unstarted to in_progress', async () => {
-    mockPrisma.studentConceptState.findUnique.mockResolvedValue({
+    mockStudentState.getConceptState.mockResolvedValue({
       ...mockConceptState,
       masteryState: 'unstarted',
     });
@@ -247,7 +279,7 @@ describe('ProblemSubmissionService', () => {
   });
 
   it('should transition mastered to needs_review on incorrect', async () => {
-    mockPrisma.studentConceptState.findUnique.mockResolvedValue({
+    mockStudentState.getConceptState.mockResolvedValue({
       ...mockConceptState,
       masteryState: 'mastered',
     });
@@ -270,7 +302,7 @@ describe('ProblemSubmissionService', () => {
       consecutiveCorrect: 1,
       passed: false,
     });
-    mockPrisma.studentKPState.upsert.mockResolvedValue({
+    mockStudentState.upsertKPState.mockResolvedValue({
       passed: true,
       attempts: 2,
       consecutiveCorrect: 2,
@@ -278,9 +310,7 @@ describe('ProblemSubmissionService', () => {
 
     // All KPs are passed
     mockPrisma.knowledgePoint.findMany.mockResolvedValue([{ id: 'kp-1' }]);
-    mockPrisma.studentKPState.findMany = jest
-      .fn()
-      .mockResolvedValue([{ passed: true }]);
+    mockStudentState.getKPStatesForIds.mockResolvedValue([{ passed: true }]);
 
     const result = await service.submitAnswer({
       userId: 'user-1',
@@ -365,8 +395,11 @@ describe('ProblemSubmissionService', () => {
       activityType: 'lesson',
     });
 
-    const upsertCall = mockPrisma.studentKPState.upsert.mock.calls[0][0];
-    expect(upsertCall.update.consecutiveCorrect).toBe(0);
-    expect(upsertCall.update.passed).toBe(false);
+    expect(mockStudentState.upsertKPState).toHaveBeenCalledWith(
+      'user-1',
+      'kp-1',
+      false,
+      { consecutiveCorrect: 1, passed: false },
+    );
   });
 });

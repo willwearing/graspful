@@ -6,6 +6,7 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useBrand } from "@/lib/brand/context";
+import { trackLandingPricingToggle } from "@/lib/posthog/events";
 
 const learnerPlans = [
   {
@@ -154,7 +155,10 @@ function LearnerPricing() {
 
         <div className="flex justify-center gap-2 mb-10">
           <button
-            onClick={() => setBillingInterval("month")}
+            onClick={() => {
+              setBillingInterval("month");
+              trackLandingPricingToggle("month", brand.id);
+            }}
             className={`px-4 py-2 rounded-l-lg text-sm font-medium transition-colors ${
               billingInterval === "month"
                 ? "bg-primary text-primary-foreground"
@@ -164,7 +168,10 @@ function LearnerPricing() {
             Monthly
           </button>
           <button
-            onClick={() => setBillingInterval("year")}
+            onClick={() => {
+              setBillingInterval("year");
+              trackLandingPricingToggle("year", brand.id);
+            }}
             className={`px-4 py-2 rounded-r-lg text-sm font-medium transition-colors ${
               billingInterval === "year"
                 ? "bg-primary text-primary-foreground"

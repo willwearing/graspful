@@ -1,11 +1,12 @@
+import { RegistrationService } from './registration.service';
 import { AuthRegisterController, RegisterDto } from './auth-register.controller';
 import {
   ConflictException,
   InternalServerErrorException,
 } from '@nestjs/common';
 
-describe('AuthRegisterController', () => {
-  let controller: AuthRegisterController;
+describe('RegistrationService', () => {
+  let service: RegistrationService;
   let mockPrisma: any;
   let mockApiKeyService: any;
   let mockConfig: any;
@@ -49,14 +50,14 @@ describe('AuthRegisterController', () => {
       }),
     };
 
-    controller = new AuthRegisterController(
+    service = new RegistrationService(
       mockPrisma,
       mockApiKeyService,
       mockConfig,
     );
 
     // Override the supabase client's admin API
-    (controller as any).supabase = {
+    (service as any).supabase = {
       auth: { admin: mockSupabaseAdmin },
     };
   });
@@ -87,12 +88,7 @@ describe('AuthRegisterController', () => {
       id: 'key-1',
     });
 
-    const body: RegisterDto = {
-      email: 'will@example.com',
-      password: 'securepassword',
-    };
-
-    const result = await controller.register(body);
+    const result = await service.register('will@example.com', 'securepassword');
 
     expect(result.userId).toBe('sup-user-1');
     expect(result.orgSlug).toBe('will-example');
@@ -140,10 +136,7 @@ describe('AuthRegisterController', () => {
     });
 
     await expect(
-      controller.register({
-        email: 'existing@example.com',
-        password: 'password123',
-      }),
+      service.register('existing@example.com', 'password123'),
     ).rejects.toThrow(ConflictException);
   });
 
@@ -154,10 +147,7 @@ describe('AuthRegisterController', () => {
     });
 
     await expect(
-      controller.register({
-        email: 'test@example.com',
-        password: 'password123',
-      }),
+      service.register('test@example.com', 'password123'),
     ).rejects.toThrow(InternalServerErrorException);
   });
 
@@ -183,10 +173,7 @@ describe('AuthRegisterController', () => {
     mockTx.orgMembership.create.mockResolvedValue({ id: 'mem-2' });
     mockApiKeyService.createKey.mockResolvedValue({ key: 'gsk_def456', id: 'key-2' });
 
-    const result = await controller.register({
-      email: 'will@example.com',
-      password: 'securepassword',
-    });
+    const result = await service.register('will@example.com', 'securepassword');
 
     // The slug passed to organization.create should have a suffix
     const createCall = mockTx.organization.create.mock.calls[0][0];
@@ -203,20 +190,41 @@ describe('AuthRegisterController', () => {
     mockPrisma.$transaction.mockRejectedValue(new Error('DB error'));
 
     await expect(
-      controller.register({
-        email: 'fail@example.com',
-        password: 'password123',
-      }),
+      service.register('fail@example.com', 'password123'),
     ).rejects.toThrow(InternalServerErrorException);
 
     expect(mockSupabaseAdmin.deleteUser).toHaveBeenCalledWith('sup-user-3');
   });
 
   it('generates correct org slug from email', () => {
-    const emailToSlug = (controller as any).emailToOrgSlug.bind(controller);
+    const emailToSlug = (service as any).emailToOrgSlug.bind(service);
 
     expect(emailToSlug('will@example.com')).toBe('will-example');
     expect(emailToSlug('john.doe@my-company.io')).toBe('john-doe-my-company');
     expect(emailToSlug('ADMIN@Test.org')).toBe('admin-test');
+  });
+});
+
+describe('AuthRegisterController', () => {
+  it('delegates to RegistrationService', async () => {
+    const mockRegistration = {
+      register: jest.fn().mockResolvedValue({
+        userId: 'u1',
+        orgSlug: 'test-org',
+        apiKey: 'gsk_123',
+      }),
+    };
+
+    const controller = new AuthRegisterController(mockRegistration as any);
+
+    const body: RegisterDto = {
+      email: 'test@example.com',
+      password: 'password123',
+    };
+
+    const result = await controller.register(body);
+
+    expect(mockRegistration.register).toHaveBeenCalledWith('test@example.com', 'password123');
+    expect(result).toEqual({ userId: 'u1', orgSlug: 'test-org', apiKey: 'gsk_123' });
   });
 });

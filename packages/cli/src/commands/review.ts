@@ -2,9 +2,8 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import * as crypto from 'crypto';
-import { CourseYamlSchema } from '../schemas';
-import type { CourseYaml } from '../schemas';
-import type { QualityCheckResult, QualityGateResult } from '../quality-gate';
+import { CourseYamlSchema } from '@graspful/shared';
+import type { CourseYaml, QualityCheckResult, QualityGateResult } from '@graspful/shared';
 import { output, outputError } from '../lib/output';
 
 // ─── Check 1: yaml_parses ───────────────────────────────────────────────────

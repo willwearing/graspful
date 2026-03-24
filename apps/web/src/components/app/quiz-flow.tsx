@@ -9,7 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import type { Problem, ProblemAnswer } from "@/lib/types";
 import Link from "next/link";
 import { Clock } from "lucide-react";
-import { trackQuizComplete, trackQuizStarted, trackQuizQuestionAnswered } from "@/lib/posthog/events";
+import { useTimer } from "@/lib/hooks/use-timer";
+import { trackQuizComplete, trackQuizStarted, trackQuizQuestionAnswered, trackQuizTimedOut } from "@/lib/posthog/events";
 
 interface QuizData {
   quizId: string;
@@ -42,13 +43,14 @@ export function QuizFlow({ orgSlug, courseId, token, quizData }: QuizFlowProps) 
   const [answeredCount, setAnsweredCount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<QuizResult | null>(null);
-  const [timeLeftMs, setTimeLeftMs] = useState(quizData.timeLimitMs);
   const [error, setError] = useState<string | null>(null);
-  const timerStartRef = useRef(Date.now());
   const questionStartRef = useRef(Date.now());
   const finishCalledRef = useRef(false);
+  const answeredCountRef = useRef(0);
 
   const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
+
+  useEffect(() => { answeredCountRef.current = answeredCount; }, [answeredCount]);
 
   // Track quiz start
   useEffect(() => {
@@ -87,23 +89,13 @@ export function QuizFlow({ orgSlug, courseId, token, quizData }: QuizFlowProps) 
     }
   }, [basePath, quizData.quizId, quizData.totalProblems, token]);
 
-  // Timer
-  useEffect(() => {
-    if (result) return;
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - timerStartRef.current;
-      const remaining = Math.max(0, quizData.timeLimitMs - elapsed);
-      setTimeLeftMs(remaining);
-      if (remaining <= 0) {
-        clearInterval(interval);
-        if (!finishCalledRef.current) {
-          finishCalledRef.current = true;
-          handleFinish();
-        }
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [result, quizData.timeLimitMs, handleFinish]);
+  const { remainingMs: timeLeftMs } = useTimer({
+    timeLimitMs: quizData.timeLimitMs,
+    onExpire: () => {
+      trackQuizTimedOut(quizData.quizId, answeredCountRef.current, quizData.totalProblems);
+      handleFinish();
+    },
+  });
 
   function formatTime(ms: number): string {
     const totalSec = Math.ceil(ms / 1000);

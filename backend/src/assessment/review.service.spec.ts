@@ -57,11 +57,32 @@ describe('ReviewService', () => {
       syncSectionStates: jest.fn().mockResolvedValue(undefined),
     };
 
+    const mockStudentState = {
+      getConceptStateWithConcept: jest.fn().mockImplementation((...args: any[]) =>
+        mockPrisma.studentConceptState.findUnique({
+          where: { userId_conceptId: { userId: args[0], conceptId: args[1] } },
+          include: { concept: { include: { section: true } } },
+        }),
+      ),
+      getConceptState: jest.fn().mockImplementation((...args: any[]) =>
+        mockPrisma.studentConceptState.findUnique({
+          where: { userId_conceptId: { userId: args[0], conceptId: args[1] } },
+        }),
+      ),
+      updateConceptAfterPractice: jest.fn().mockImplementation((...args: any[]) =>
+        mockPrisma.studentConceptState.update({
+          where: { userId_conceptId: { userId: args[0], conceptId: args[1] } },
+          data: args[2],
+        }),
+      ),
+    };
+
     service = new ReviewService(
       mockPrisma,
       mockProblemSubmission,
       mockFireUpdate,
       mockSectionExamService,
+      mockStudentState as any,
     );
   });
 

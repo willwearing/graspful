@@ -2,13 +2,16 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MarketingNav } from "../nav";
 import { BrandProvider } from "@/lib/brand/context";
+import { ThemeProvider } from "@/lib/theme/theme-provider";
 import { firefighterBrand } from "@/lib/brand/defaults";
 
 function renderNav() {
   return render(
-    <BrandProvider brand={firefighterBrand}>
-      <MarketingNav />
-    </BrandProvider>,
+    <ThemeProvider>
+      <BrandProvider brand={firefighterBrand}>
+        <MarketingNav />
+      </BrandProvider>
+    </ThemeProvider>,
   );
 }
 

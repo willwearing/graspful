@@ -1,12 +1,10 @@
 import { Test } from '@nestjs/testing';
 import { CompletionEstimateService } from './completion-estimate.service';
 import { PrismaService } from '@/prisma/prisma.service';
+import { StudentStateService } from '@/student-model/student-state.service';
 
 const mockPrisma = {
   concept: {
-    count: jest.fn(),
-  },
-  studentConceptState: {
     count: jest.fn(),
   },
   courseEnrollment: {
@@ -20,6 +18,10 @@ const mockPrisma = {
   },
 };
 
+const mockStudentState = {
+  countMasteredConcepts: jest.fn(),
+};
+
 describe('CompletionEstimateService', () => {
   let service: CompletionEstimateService;
 
@@ -29,6 +31,7 @@ describe('CompletionEstimateService', () => {
       providers: [
         CompletionEstimateService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: StudentStateService, useValue: mockStudentState },
       ],
     }).compile();
     service = module.get(CompletionEstimateService);
@@ -37,7 +40,7 @@ describe('CompletionEstimateService', () => {
   describe('getEstimate', () => {
     it('should estimate weeks remaining based on average daily XP', async () => {
       mockPrisma.concept.count.mockResolvedValue(100);
-      mockPrisma.studentConceptState.count.mockResolvedValue(25); // 25% mastered
+      mockStudentState.countMasteredConcepts.mockResolvedValue(25); // 25% mastered
       mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
         totalXPEarned: 500,
         dailyXPTarget: 40,
@@ -53,7 +56,7 @@ describe('CompletionEstimateService', () => {
 
     it('should return null weeks when no XP history', async () => {
       mockPrisma.concept.count.mockResolvedValue(100);
-      mockPrisma.studentConceptState.count.mockResolvedValue(0);
+      mockStudentState.countMasteredConcepts.mockResolvedValue(0);
       mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
         totalXPEarned: 0,
         dailyXPTarget: 40,
@@ -68,7 +71,7 @@ describe('CompletionEstimateService', () => {
 
     it('should estimate for academy across multiple courses', async () => {
       mockPrisma.concept.count.mockResolvedValue(200);
-      mockPrisma.studentConceptState.count.mockResolvedValue(80);
+      mockStudentState.countMasteredConcepts.mockResolvedValue(80);
       mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         totalXPEarned: 1500,
         dailyXPTarget: 40,
@@ -85,7 +88,7 @@ describe('CompletionEstimateService', () => {
 
     it('should return 0 weeks when already complete', async () => {
       mockPrisma.concept.count.mockResolvedValue(50);
-      mockPrisma.studentConceptState.count.mockResolvedValue(50);
+      mockStudentState.countMasteredConcepts.mockResolvedValue(50);
       mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
         totalXPEarned: 1000,
         dailyXPTarget: 40,

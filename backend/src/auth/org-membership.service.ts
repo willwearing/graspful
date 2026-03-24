@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 
+/** The platform org slug — creators signing up here own their account */
+const PLATFORM_ORG_SLUG = 'graspful';
+
 @Injectable()
 export class OrgMembershipService {
   constructor(private prisma: PrismaService) {}
@@ -15,13 +18,15 @@ export class OrgMembershipService {
       throw new NotFoundException('Organization not found');
     }
 
+    const role = orgSlug === PLATFORM_ORG_SLUG ? 'owner' : 'member';
+
     const membership = await this.prisma.orgMembership.upsert({
       where: { orgId_userId: { orgId: org.id, userId } },
       update: {},
       create: {
         orgId: org.id,
         userId,
-        role: 'member',
+        role,
       },
     });
 

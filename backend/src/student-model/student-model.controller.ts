@@ -50,38 +50,15 @@ export class StudentModelController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    const academyId = await this.studentState.getAcademyIdForCourse(courseId);
-    const [states, sectionStates, diagnosticCompleted] = await Promise.all([
-      this.studentState.getConceptStates(org.userId, courseId),
+    const [profile, sectionStates] = await Promise.all([
+      this.studentState.getProfileSummary(org.userId, courseId),
       this.sectionExamService.getSectionStates(org.userId, courseId),
-      this.studentState.isDiagnosticCompleted(org.userId, academyId),
     ]);
 
-    const counts = {
-      mastered: 0,
-      in_progress: 0,
-      needs_review: 0,
-      unstarted: 0,
-    };
-
-    for (const state of states) {
-      const key = state.masteryState as keyof typeof counts;
-      if (key in counts) counts[key]++;
-    }
-
-    const total = states.length;
     return {
-      totalConcepts: total,
-      mastered: counts.mastered,
-      inProgress: counts.in_progress,
-      needsReview: counts.needs_review,
-      unstarted: counts.unstarted,
-      completionPercent: total > 0 ? (counts.mastered / total) * 100 : 0,
-      diagnosticCompleted,
-      certifiedSections: sectionStates.filter((state) => state.status === 'certified')
-        .length,
-      examReadySections: sectionStates.filter((state) => state.status === 'exam_ready')
-        .length,
+      ...profile,
+      certifiedSections: sectionStates.filter((s) => s.status === 'certified').length,
+      examReadySections: sectionStates.filter((s) => s.status === 'exam_ready').length,
     };
   }
 }

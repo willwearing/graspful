@@ -265,6 +265,126 @@ export function trackSectionExamCompleted(
   });
 }
 
+// ── Enrollment & Discovery ───────────────────────────────────────────
+
+export function trackAcademyEnrolled(academyId: string, academyName: string) {
+  if (!isLoaded()) return;
+  posthog.capture("academy_enrolled", {
+    academy_id: academyId,
+    academy_name: academyName,
+  });
+}
+
+export function trackAcademyViewed(academyId: string, academyName: string) {
+  if (!isLoaded()) return;
+  posthog.capture("academy_viewed", {
+    academy_id: academyId,
+    academy_name: academyName,
+  });
+}
+
+export function trackCourseBrowsed(courseId: string, courseName: string) {
+  if (!isLoaded()) return;
+  posthog.capture("course_browsed", {
+    course_id: courseId,
+    course_name: courseName,
+  });
+}
+
+// ── Abandonment ──────────────────────────────────────────────────────
+
+export function trackDiagnosticAbandoned(
+  courseId: string,
+  questionNumber: number,
+  totalEstimated: number,
+) {
+  if (!isLoaded()) return;
+  posthog.capture("diagnostic_abandoned", {
+    course_id: courseId,
+    question_number: questionNumber,
+    total_estimated: totalEstimated,
+  });
+}
+
+export function trackLessonAbandoned(
+  courseId: string,
+  conceptId: string,
+  conceptName: string,
+  currentKP: number,
+  totalKPs: number,
+  phase: string,
+  durationSeconds: number,
+) {
+  if (!isLoaded()) return;
+  posthog.capture("lesson_abandoned", {
+    course_id: courseId,
+    concept_id: conceptId,
+    concept_name: conceptName,
+    current_kp: currentKP,
+    total_kps: totalKPs,
+    phase,
+    duration_seconds: durationSeconds,
+  });
+}
+
+export function trackQuizTimedOut(
+  quizId: string,
+  answeredCount: number,
+  totalProblems: number,
+) {
+  if (!isLoaded()) return;
+  posthog.capture("quiz_timed_out", {
+    quiz_id: quizId,
+    answered_count: answeredCount,
+    total_problems: totalProblems,
+  });
+}
+
+// ── Engagement Milestones ────────────────────────────────────────────
+
+export function trackFirstLessonCompleted(courseId: string, conceptId: string) {
+  if (!isLoaded()) return;
+  posthog.capture("first_lesson_completed", {
+    course_id: courseId,
+    concept_id: conceptId,
+  });
+}
+
+export function trackMasteryAchieved(courseId: string, conceptId: string, conceptName: string) {
+  if (!isLoaded()) return;
+  posthog.capture("mastery_achieved", {
+    course_id: courseId,
+    concept_id: conceptId,
+    concept_name: conceptName,
+  });
+}
+
+export function trackStreakMilestone(streakDays: number) {
+  if (!isLoaded()) return;
+  posthog.capture("streak_milestone", {
+    streak_days: streakDays,
+  });
+}
+
+export function trackDailyXPCapReached(totalXP: number) {
+  if (!isLoaded()) return;
+  posthog.capture("daily_xp_cap_reached", {
+    total_xp: totalXP,
+  });
+}
+
+// ── Billing ──────────────────────────────────────────────────────────
+
+export function trackCheckoutInitiated(plan: string) {
+  if (!isLoaded()) return;
+  posthog.capture("checkout_initiated", { plan });
+}
+
+export function trackBillingPortalOpened() {
+  if (!isLoaded()) return;
+  posthog.capture("billing_portal_opened");
+}
+
 // ── Navigation ────────────────────────────────────────────────────────
 
 export function trackStudyTaskDispatched(

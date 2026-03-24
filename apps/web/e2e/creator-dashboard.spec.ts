@@ -54,9 +54,11 @@ test.describe("Creator Dashboard", () => {
   });
 
   test("New Course button links to /creator/manage", async ({ page }) => {
-    const newCourseBtn = page.getByRole("link", { name: /New Course/i });
+    // Base UI Button with render={<Link>} exposes button role, not link
+    const newCourseBtn = page.getByRole("button", { name: /New Course/i });
     await expect(newCourseBtn).toBeVisible();
-    await expect(newCourseBtn).toHaveAttribute("href", "/creator/manage");
+    await newCourseBtn.click();
+    await expect(page).toHaveURL(/\/creator\/manage/);
   });
 
   test("empty state shows when no courses exist", async ({ page }) => {
@@ -65,7 +67,7 @@ test.describe("Creator Dashboard", () => {
       page.getByText("No courses yet. Create your first course to get started.")
     ).toBeVisible({ timeout: 10_000 });
     await expect(
-      page.getByRole("link", { name: "Create Course" })
+      page.getByRole("button", { name: "Create Course" })
     ).toBeVisible();
   });
 });

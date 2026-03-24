@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import { StudentStateService } from '@/student-model/student-state.service';
 import {
   activeConceptWhere,
   activePrerequisiteEdgeWhere,
@@ -8,7 +9,10 @@ import {
 
 @Injectable()
 export class CourseProgressReadService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private studentState: StudentStateService,
+  ) {}
 
   async getAcademyGraph(userId: string, academyId: string) {
     const [concepts, edges] = await Promise.all([
@@ -23,13 +27,9 @@ export class CourseProgressReadService {
       }),
     ]);
 
-    const states = await this.prisma.studentConceptState.findMany({
-      where: { userId, conceptId: { in: concepts.map((concept) => concept.id) } },
-      select: { conceptId: true, masteryState: true },
-    });
-
-    const stateMap = new Map(
-      states.map((state) => [state.conceptId, state.masteryState]),
+    const stateMap = await this.studentState.getConceptMasteryForIds(
+      userId,
+      concepts.map((concept) => concept.id),
     );
 
     return {
@@ -59,13 +59,9 @@ export class CourseProgressReadService {
       }),
     ]);
 
-    const states = await this.prisma.studentConceptState.findMany({
-      where: { userId, conceptId: { in: concepts.map((concept) => concept.id) } },
-      select: { conceptId: true, masteryState: true },
-    });
-
-    const stateMap = new Map(
-      states.map((state) => [state.conceptId, state.masteryState]),
+    const stateMap = await this.studentState.getConceptMasteryForIds(
+      userId,
+      concepts.map((concept) => concept.id),
     );
 
     return {

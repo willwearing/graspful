@@ -23,6 +23,7 @@ describe('StudentModelController', () => {
       getConceptStates: jest.fn(),
       getMasteryMap: jest.fn(),
       isDiagnosticCompleted: jest.fn(),
+      getProfileSummary: jest.fn(),
     };
 
     mockSectionExam = {
@@ -82,9 +83,15 @@ describe('StudentModelController', () => {
         { conceptId: 'c3', masteryState: 'unstarted' },
         { conceptId: 'c4', masteryState: 'in_progress' },
       ];
-      mockStudentState.getAcademyIdForCourse.mockResolvedValue('academy-1');
-      mockStudentState.getConceptStates.mockResolvedValue(states);
-      mockStudentState.isDiagnosticCompleted.mockResolvedValue(true);
+      mockStudentState.getProfileSummary.mockResolvedValue({
+        totalConcepts: 4,
+        mastered: 2,
+        inProgress: 1,
+        needsReview: 0,
+        unstarted: 1,
+        completionPercent: 50,
+        diagnosticCompleted: true,
+      });
       mockSectionExam.getSectionStates.mockResolvedValue([
         { status: 'certified' },
         { status: 'exam_ready' },
@@ -101,7 +108,7 @@ describe('StudentModelController', () => {
       expect(result.diagnosticCompleted).toBe(true);
       expect(result.certifiedSections).toBe(1);
       expect(result.examReadySections).toBe(1);
-      expect(mockStudentState.isDiagnosticCompleted).toHaveBeenCalledWith('u1', 'academy-1');
+      expect(mockStudentState.getProfileSummary).toHaveBeenCalledWith('u1', 'course-1');
     });
   });
 });

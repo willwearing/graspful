@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
+import { StudentStateService } from '@/student-model/student-state.service';
 import { RemediationService } from './remediation.service';
 import {
   activeConceptWhere,
@@ -17,6 +18,7 @@ export class LessonService {
   constructor(
     private prisma: PrismaService,
     private remediationService: RemediationService,
+    private studentState: StudentStateService,
   ) {}
 
   async startLesson(
@@ -34,10 +36,7 @@ export class LessonService {
     }
 
     if (concept.sectionId) {
-      const sectionState = await this.prisma.studentSectionState.findUnique({
-        where: { userId_sectionId: { userId, sectionId: concept.sectionId } },
-        select: { status: true },
-      });
+      const sectionState = await this.studentState.getSectionState(userId, concept.sectionId);
 
       if (sectionState?.status === 'locked') {
         throw new BadRequestException(
@@ -58,9 +57,7 @@ export class LessonService {
     }
 
     // Check student's concept state
-    const conceptState = await this.prisma.studentConceptState.findUnique({
-      where: { userId_conceptId: { userId, conceptId } },
-    });
+    const conceptState = await this.studentState.getConceptState(userId, conceptId);
     if (!conceptState) {
       throw new NotFoundException(
         `No enrollment state for concept ${conceptId}`,
@@ -73,9 +70,8 @@ export class LessonService {
     }
 
     // Mark as in_progress
-    await this.prisma.studentConceptState.update({
-      where: { userId_conceptId: { userId, conceptId } },
-      data: { masteryState: 'in_progress' },
+    await this.studentState.updateConceptAfterPractice(userId, conceptId, {
+      masteryState: 'in_progress',
     });
 
     // Fetch knowledge points with instruction content
@@ -118,9 +114,7 @@ export class LessonService {
   }
 
   async completeLesson(userId: string, courseId: string, conceptId: string) {
-    const conceptState = await this.prisma.studentConceptState.findUnique({
-      where: { userId_conceptId: { userId, conceptId } },
-    });
+    const conceptState = await this.studentState.getConceptState(userId, conceptId);
     if (!conceptState) {
       throw new NotFoundException(
         `No enrollment state for concept ${conceptId}`,
@@ -139,11 +133,8 @@ export class LessonService {
     // Mastery promotion to 'mastered' happens via problem practice in
     // the Assessment module, so completion must also accept a concept
     // that was mastered during the lesson session.
-    await this.prisma.studentConceptState.update({
-      where: { userId_conceptId: { userId, conceptId } },
-      data: {
-        lastPracticedAt: new Date(),
-      },
+    await this.studentState.updateConceptAfterPractice(userId, conceptId, {
+      lastPracticedAt: new Date(),
     });
 
     return { conceptId, status: 'lesson_complete' };

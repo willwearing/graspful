@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { useBrand } from "@/lib/brand/context";
+import { trackLandingCtaClick } from "@/lib/posthog/events";
 
 interface HeroProps {
   headline: string;
@@ -7,6 +10,7 @@ interface HeroProps {
 }
 
 export function Hero({ headline, subheadline, ctaText }: HeroProps) {
+  const brand = useBrand();
   const words = headline.split(" ");
 
   return (
@@ -40,12 +44,15 @@ export function Hero({ headline, subheadline, ctaText }: HeroProps) {
           {subheadline}
         </p>
         <div className="animate-fade-up" style={{ animationDelay: "0.8s" }}>
-          <Link
+          <a
             href="/sign-up"
+            onClick={(e) => {
+              trackLandingCtaClick("hero", brand.id);
+            }}
             className="btn-gradient glow-pulse mt-10 inline-block px-12 py-4 text-base font-medium"
           >
             {ctaText}
-          </Link>
+          </a>
         </div>
       </div>
     </section>

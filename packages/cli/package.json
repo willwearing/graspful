@@ -1,6 +1,6 @@
 {
   "name": "@graspful/cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Create adaptive learning courses from YAML. CLI and MCP server for AI agents.",
   "keywords": ["course", "learning", "adaptive", "mcp", "ai", "agent", "cli", "education", "knowledge-graph", "spaced-repetition"],
   "bin": {
@@ -15,6 +15,7 @@
     "lint": "echo 'no lint configured yet'"
   },
   "dependencies": {
+    "@graspful/shared": "workspace:*",
     "chalk": "^5.4.0",
     "commander": "^13.0.0",
     "js-yaml": "^4.1.0",

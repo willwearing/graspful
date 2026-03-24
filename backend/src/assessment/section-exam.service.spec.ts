@@ -123,7 +123,11 @@ describe('SectionExamService', () => {
       recordXPEvent: jest.fn(),
     };
 
-    const service = new SectionExamService(prisma as any, xpService as any);
+    const mockStudentState = {
+      getConceptMasteryForIds: jest.fn().mockResolvedValue(new Map()),
+      markConceptsNeedsReview: jest.fn().mockResolvedValue(undefined),
+    };
+    const service = new SectionExamService(prisma as any, xpService as any, mockStudentState as any);
     jest.spyOn(service, 'syncSectionStates').mockResolvedValue([] as any);
 
     const result = await service.startExam('user-1', 'course-1', 'section-1');

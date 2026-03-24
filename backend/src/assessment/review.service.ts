@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { FireUpdateService } from '@/spaced-repetition/fire-update.service';
+import { StudentStateService } from '@/student-model/student-state.service';
 import { ProblemSubmissionService } from './problem-submission.service';
 import { SectionExamService } from './section-exam.service';
 import { activeKnowledgePointWhere } from '@/knowledge-graph/active-course-content';
@@ -29,18 +30,12 @@ export class ReviewService {
     private problemSubmission: ProblemSubmissionService,
     private fireUpdate: FireUpdateService,
     private sectionExamService: SectionExamService,
+    private studentState: StudentStateService,
   ) {}
 
   async startReview(userId: string, conceptId: string) {
     // Verify concept exists and student has a concept state
-    const conceptState = await this.prisma.studentConceptState.findUnique({
-      where: { userId_conceptId: { userId, conceptId } },
-      include: {
-        concept: {
-          include: { section: true },
-        },
-      },
-    });
+    const conceptState = await this.studentState.getConceptStateWithConcept(userId, conceptId);
 
     if (
       !conceptState ||
@@ -162,28 +157,20 @@ export class ReviewService {
     });
 
     // Update mastery state
-    const conceptState = await this.prisma.studentConceptState.findUnique({
-      where: {
-        userId_conceptId: {
-          userId: session.userId,
-          conceptId: session.conceptId,
-        },
-      },
-    });
+    const conceptState = await this.studentState.getConceptState(
+      session.userId,
+      session.conceptId,
+    );
 
     if (conceptState) {
-      await this.prisma.studentConceptState.update({
-        where: {
-          userId_conceptId: {
-            userId: session.userId,
-            conceptId: session.conceptId,
-          },
-        },
-        data: {
+      await this.studentState.updateConceptAfterPractice(
+        session.userId,
+        session.conceptId,
+        {
           masteryState: passed ? 'mastered' : 'needs_review',
-          failCount: passed ? 0 : { increment: 1 },
+          failCount: passed ? 0 : conceptState.failCount + 1,
         },
-      });
+      );
     }
 
     // FIRe update: update repNum, memory, interval + implicit propagation

@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { useBrand } from "@/lib/brand/context";
+import { trackLandingCtaClick } from "@/lib/posthog/events";
 
 interface CTAProps {
   ctaText: string;
@@ -7,6 +10,8 @@ interface CTAProps {
 }
 
 export function CTA({ ctaText, headline, subheadline }: CTAProps) {
+  const brand = useBrand();
+
   return (
     <section className="relative overflow-hidden py-32 md:py-44 bg-white dark:bg-background">
       <div className="gradient-mesh opacity-20">
@@ -23,12 +28,15 @@ export function CTA({ ctaText, headline, subheadline }: CTAProps) {
         <p className="text-sm text-muted-foreground/70 mb-10">
           Free to start. No credit card required.
         </p>
-        <Link
+        <a
           href="/sign-up"
+          onClick={(e) => {
+            trackLandingCtaClick("bottom", brand.id);
+          }}
           className="btn-gradient glow-pulse inline-block px-12 py-4 text-base font-medium"
         >
           {ctaText}
-        </Link>
+        </a>
       </div>
     </section>
   );

@@ -5,9 +5,11 @@ describe('LearningEngineService', () => {
   let mockPrisma: any;
   let mockStudentState: any;
   let mockGraphQuery: any;
+  let mockCourseRead: any;
   let mockRemediationService: any;
   let mockMemoryDecay: any;
   let mockSectionExamService: any;
+  let mockXPService: any;
 
   const conceptStates = [
     {
@@ -75,6 +77,27 @@ describe('LearningEngineService', () => {
     mockStudentState = {
       getConceptStatesForAcademy: jest.fn().mockResolvedValue(conceptStates),
       getAcademyIdForCourse: jest.fn().mockResolvedValue('academy-1'),
+      getSectionStatesForAcademy: jest.fn().mockResolvedValue([
+        {
+          courseId: 'course-1',
+          sectionId: 'section-1',
+          status: 'lesson_in_progress',
+          section: { sortOrder: 0 },
+        },
+      ]),
+    };
+
+    mockCourseRead = {
+      getCourseIdsForAcademy: jest.fn().mockResolvedValue(['course-1']),
+      getConceptsForAcademy: jest.fn().mockResolvedValue([
+        { id: 'c1', courseId: 'course-1', sectionId: 'section-1', difficulty: 2 },
+        { id: 'c2', courseId: 'course-1', sectionId: 'section-1', difficulty: 3 },
+      ]),
+      getPrereqEdgesForAcademy: jest.fn().mockResolvedValue(edges),
+    };
+
+    mockXPService = {
+      getXPSinceLastQuiz: jest.fn().mockResolvedValue(50),
     };
 
     mockGraphQuery = {
@@ -99,9 +122,11 @@ describe('LearningEngineService', () => {
       mockPrisma,
       mockStudentState,
       mockGraphQuery,
+      mockCourseRead,
       mockRemediationService,
       mockMemoryDecay,
       mockSectionExamService,
+      mockXPService,
     );
   });
 

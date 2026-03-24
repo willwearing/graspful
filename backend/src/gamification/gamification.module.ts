@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
+import { StudentModelModule } from '@/student-model/student-model.module';
 import { GamificationController } from './gamification.controller';
 import { AcademyGamificationController } from './academy-gamification.controller';
 import { XPService } from './xp.service';
@@ -8,6 +9,7 @@ import { CompletionEstimateService } from './completion-estimate.service';
 import { CourseProgressReadService } from './course-progress-read.service';
 
 @Module({
+  imports: [forwardRef(() => StudentModelModule)],
   controllers: [GamificationController, AcademyGamificationController],
   providers: [
     XPService,
