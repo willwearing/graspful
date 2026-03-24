@@ -85,6 +85,22 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
+    // 6. Redirect graspful brand away from student dashboard to creator dashboard,
+    //    and non-graspful brands away from creator pages to student dashboard.
+    if (user) {
+      const isGraspful = brand.id === "graspful";
+      if (isGraspful && pathname === "/dashboard") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/creator";
+        return NextResponse.redirect(url);
+      }
+      if (!isGraspful && pathname.startsWith("/creator")) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard";
+        return NextResponse.redirect(url);
+      }
+    }
+
     return response;
   } catch (error) {
     console.error("[middleware] Error:", error);

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Users, TrendingUp, DollarSign, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createApiFetcher } from "@/lib/api";
 import { resolvePageBrand } from "@/lib/brand/resolve";
@@ -83,17 +83,17 @@ export default async function CreatorDashboardPage() {
         <StatCard
           title="Students"
           value={stats.students.toLocaleString()}
-          icon={Users}
+          icon="Users"
         />
         <StatCard
           title="Avg Completion"
           value={`${Math.round(stats.avgCompletion)}%`}
-          icon={TrendingUp}
+          icon="TrendingUp"
         />
         <StatCard
           title="Revenue"
           value={formatCurrency(stats.totalRevenue)}
-          icon={DollarSign}
+          icon="DollarSign"
         />
       </div>
 

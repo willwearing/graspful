@@ -1,15 +1,22 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
+import { Users, TrendingUp, DollarSign, type LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+
+const iconMap: Record<string, LucideIcon> = {
+  Users,
+  TrendingUp,
+  DollarSign,
+};
 
 interface StatCardProps {
   title: string;
   value: string;
-  icon?: LucideIcon;
+  icon?: string;
 }
 
-export function StatCard({ title, value, icon: Icon }: StatCardProps) {
+export function StatCard({ title, value, icon }: StatCardProps) {
+  const Icon = icon ? iconMap[icon] : undefined;
   return (
     <Card>
       <CardContent className="flex items-center gap-4">
