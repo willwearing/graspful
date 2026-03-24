@@ -70,8 +70,10 @@ export default function LearningStaircasePage() {
       </h1>
       <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
         Every concept is broken into 2-4 knowledge points that form a
-        staircase from recognition to transfer. Each step is small enough
-        that the student never feels overwhelmed.
+        progressive staircase. The recommended pattern is recognition,
+        guided application, then transfer — though course authors have
+        flexibility in how they structure each step. Each step is small
+        enough that the student never feels overwhelmed.
       </p>
 
       {/* Cognitive load */}

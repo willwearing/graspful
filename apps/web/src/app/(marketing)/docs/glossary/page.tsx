@@ -82,7 +82,7 @@ const terms = [
     id: "knowledge-point-kp",
     term: "Knowledge Point (KP)",
     definition:
-      "A progressive difficulty stage within a concept. Each concept has 2-4 KPs forming a learning staircase: KP1 is typically recognition (can you identify it?), KP2 is guided application (can you use it with support?), and KP3 is transfer (can you apply it in a novel context?). Each KP has its own instruction text, optional worked example, and 3+ practice problems. A student masters a KP by answering two consecutive problems correctly.",
+      "A progressive difficulty stage within a concept. Each concept has 2-4 KPs forming a learning staircase. The recommended authoring pattern is recognition (can you identify it?), guided application (can you use it with support?), then transfer (can you apply it in a novel context?) — though this is a content guideline, not enforced by the engine. Each KP has its own instruction text, optional worked example, and 3+ practice problems. A student masters a KP by answering two consecutive problems correctly.",
   },
   {
     id: "mastery-state",
@@ -148,7 +148,7 @@ const terms = [
     id: "xp",
     term: "XP (Experience Points)",
     definition:
-      "A reward metric calibrated to approximately 1 XP per minute of study. XP is earned for answering practice problems correctly, completing knowledge points, passing section exams, and completing spaced repetition reviews. The calibration is intentional: a student with 600 XP has studied for roughly 10 hours. XP drives the gamification layer — streaks, leaderboards, and progress displays all reference XP totals.",
+      "A reward metric that scales with problem difficulty and activity type. XP is earned for answering practice problems correctly, completing knowledge points, passing section exams, and completing spaced repetition reviews. A daily cap of 500 XP and a minimum response time gate (2 seconds) prevent gaming. XP drives the gamification layer — streaks, leaderboards, and progress displays all reference XP totals.",
   },
 ];
 
