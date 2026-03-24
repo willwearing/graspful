@@ -2,16 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { StudentStateService } from '@/student-model/student-state.service';
 import { GraphQueryService } from '@/knowledge-graph/graph-query.service';
+import { CourseReadService } from '@/knowledge-graph/course-read.service';
 import { MemoryDecayService } from '@/spaced-repetition/memory-decay.service';
+import { XPService } from '@/gamification/xp.service';
 import { RemediationService } from './remediation.service';
 import { selectNextTask } from './task-selector';
 import { generateStudySession } from './session-generator';
 import { detectPlateau, findWeakPrerequisites } from './plateau-detector';
 import { SectionExamService } from '@/assessment/section-exam.service';
-import {
-  activeConceptWhere,
-  activeSectionWhere,
-} from '@/knowledge-graph/active-course-content';
 import {
   ConceptSnapshot,
   SectionSnapshot,
@@ -29,9 +27,11 @@ export class LearningEngineService {
     private prisma: PrismaService,
     private studentState: StudentStateService,
     private graphQuery: GraphQueryService,
+    private courseRead: CourseReadService,
     private remediationService: RemediationService,
     private memoryDecay: MemoryDecayService,
     private sectionExamService: SectionExamService,
+    private xpService: XPService,
   ) {}
 
   async getNextTask(
@@ -150,57 +150,19 @@ export class LearningEngineService {
    * Build the context needed by pure functions: snapshots, edges, frontier.
    */
   private async buildContext(userId: string, academyId: string) {
-    const courses = await this.prisma.course.findMany({
-      where: { academyId },
-      select: { id: true },
-      orderBy: { sortOrder: 'asc' },
-    });
+    const courseIds = await this.courseRead.getCourseIdsForAcademy(academyId);
 
     await Promise.all(
-      courses.map((course) =>
-        this.sectionExamService.syncSectionStates(userId, course.id),
+      courseIds.map((courseId) =>
+        this.sectionExamService.syncSectionStates(userId, courseId),
       ),
     );
 
     const [conceptStates, concepts, prereqEdges, sectionStates] = await Promise.all([
       this.studentState.getConceptStatesForAcademy(userId, academyId),
-      this.prisma.concept.findMany({
-        where: activeConceptWhere({
-          course: { academyId },
-        }),
-        select: {
-          id: true,
-          courseId: true,
-          sectionId: true,
-          difficulty: true,
-        },
-      }),
-      this.prisma.prerequisiteEdge.findMany({
-        where: {
-          sourceConcept: activeConceptWhere({
-            course: { academyId },
-          }),
-          targetConcept: activeConceptWhere({
-            course: { academyId },
-          }),
-        },
-        select: { sourceConceptId: true, targetConceptId: true },
-      }),
-      this.prisma.studentSectionState.findMany({
-        where: {
-          userId,
-          course: { academyId },
-          section: activeSectionWhere(),
-        },
-        select: {
-          courseId: true,
-          sectionId: true,
-          status: true,
-          section: {
-            select: { sortOrder: true },
-          },
-        },
-      }),
+      this.courseRead.getConceptsForAcademy(academyId),
+      this.courseRead.getPrereqEdgesForAcademy(academyId),
+      this.studentState.getSectionStatesForAcademy(userId, academyId),
     ]);
 
     const snapshots: ConceptSnapshot[] = conceptStates.map((s) => ({
@@ -255,48 +217,13 @@ export class LearningEngineService {
 
   /**
    * Compute XP earned since the student's last quiz submission.
-   * Sums xpAwarded from ProblemAttempts created after the last quiz attempt.
+   * Delegates to XPService (Gamification module owns XP data).
    */
   private async computeXPSinceLastQuiz(
     userId: string,
     academyId: string,
   ): Promise<number> {
-    const enrollment = await this.prisma.academyEnrollment.findUnique({
-      where: { userId_academyId: { userId, academyId } },
-      select: { totalXPEarned: true },
-    });
-
-    if (!enrollment) {
-      return 0;
-    }
-
-    // Find the most recent quiz XP event
-    const lastQuizXP = await this.prisma.xPEvent.findFirst({
-      where: {
-        userId,
-        academyId,
-        source: 'quiz',
-      },
-      orderBy: { createdAt: 'desc' },
-      select: { createdAt: true },
-    });
-
-    if (!lastQuizXP) {
-      // No quiz taken yet — all XP counts
-      return enrollment.totalXPEarned;
-    }
-
-    // Sum XP earned after the last quiz
-    const result = await this.prisma.xPEvent.aggregate({
-      where: {
-        userId,
-        academyId,
-        createdAt: { gt: lastQuizXP.createdAt },
-      },
-      _sum: { amount: true },
-    });
-
-    return result._sum.amount ?? 0;
+    return this.xpService.getXPSinceLastQuiz(userId, academyId);
   }
 
   /**

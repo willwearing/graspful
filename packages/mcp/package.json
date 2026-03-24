@@ -1,6 +1,6 @@
 {
   "name": "@graspful/mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for Graspful — create adaptive learning courses from AI agents",
   "keywords": ["mcp", "graspful", "course", "adaptive-learning", "ai-agent"],
   "bin": {
@@ -13,6 +13,7 @@
     "dev": "bun x tsc --watch"
   },
   "dependencies": {
+    "@graspful/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "js-yaml": "^4.1.0",
     "zod": "^3.24.0"

@@ -9,6 +9,7 @@ import { ProblemRenderer } from "@/components/app/problems/problem-renderer";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { Problem, ProblemAnswer } from "@/lib/types";
+import { useTimer } from "@/lib/hooks/use-timer";
 import { trackSectionExamStarted, trackSectionExamQuestionAnswered, trackSectionExamCompleted } from "@/lib/posthog/events";
 
 interface SectionExamData {
@@ -57,9 +58,7 @@ export function SectionExamFlow({
   const [answeredCount, setAnsweredCount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SectionExamResult | null>(null);
-  const [timeLeftMs, setTimeLeftMs] = useState(examData.timeLimitMs);
   const [error, setError] = useState<string | null>(null);
-  const timerStartRef = useRef(Date.now());
   const questionStartRef = useRef(Date.now());
   const finishCalledRef = useRef(false);
 
@@ -71,23 +70,27 @@ export function SectionExamFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (result) return;
+  async function handleFinish() {
+    if (finishCalledRef.current) return;
+    finishCalledRef.current = true;
 
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - timerStartRef.current;
-      const remaining = Math.max(0, examData.timeLimitMs - elapsed);
-      setTimeLeftMs(remaining);
-      if (remaining <= 0) {
-        clearInterval(interval);
-        if (!finishCalledRef.current) {
-          void handleFinish();
-        }
-      }
-    }, 1000);
+    try {
+      const response = await apiClientFetch<SectionExamResult>(
+        `${basePath}/${examData.sessionId}/complete`,
+        token,
+        { method: "POST" }
+      );
+      trackSectionExamCompleted(sectionId, response.passed, response.score);
+      setResult(response);
+    } catch {
+      setError("Could not complete the section exam.");
+    }
+  }
 
-    return () => clearInterval(interval);
-  }, [examData.timeLimitMs, result]);
+  const { remainingMs: timeLeftMs } = useTimer({
+    timeLimitMs: examData.timeLimitMs,
+    onExpire: () => { void handleFinish(); },
+  });
 
   function formatTime(ms: number): string {
     const totalSec = Math.ceil(ms / 1000);
@@ -129,23 +132,6 @@ export function SectionExamFlow({
     }
 
     setSubmitting(false);
-  }
-
-  async function handleFinish() {
-    if (finishCalledRef.current) return;
-    finishCalledRef.current = true;
-
-    try {
-      const response = await apiClientFetch<SectionExamResult>(
-        `${basePath}/${examData.sessionId}/complete`,
-        token,
-        { method: "POST" }
-      );
-      trackSectionExamCompleted(sectionId, response.passed, response.score);
-      setResult(response);
-    } catch {
-      setError("Could not complete the section exam.");
-    }
   }
 
   if (result) {

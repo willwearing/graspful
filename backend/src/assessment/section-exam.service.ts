@@ -10,6 +10,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { XPService } from '@/gamification/xp.service';
+import { StudentStateService } from '@/student-model/student-state.service';
 import {
   activeConceptWhere,
   activeKnowledgePointWhere,
@@ -37,6 +38,7 @@ export class SectionExamService {
   constructor(
     private prisma: PrismaService,
     private xpService: XPService,
+    private studentState: StudentStateService,
   ) {}
 
   async getReadySectionExam(userId: string, courseId: string) {
@@ -76,19 +78,10 @@ export class SectionExamService {
     return Promise.all(
       states.map(async (state) => {
         const conceptIds = state.section.concepts.map((concept) => concept.id);
-        const conceptStates =
-          conceptIds.length === 0
-            ? []
-            : await this.prisma.studentConceptState.findMany({
-                where: {
-                  userId,
-                  conceptId: { in: conceptIds },
-                },
-                select: {
-                  conceptId: true,
-                  masteryState: true,
-                },
-              });
+        const masteryMap = await this.studentState.getConceptMasteryForIds(userId, conceptIds);
+        const conceptStates = Array.from(masteryMap.entries()).map(
+          ([conceptId, masteryState]) => ({ conceptId, masteryState }),
+        );
 
         const latestAttempt = await this.prisma.sectionExamSession.findFirst({
           where: {
@@ -564,20 +557,14 @@ export class SectionExamService {
             status: SectionMasteryState.needs_review,
           },
         });
-
-        if (failedConcepts.length > 0) {
-          await tx.studentConceptState.updateMany({
-            where: {
-              userId,
-              conceptId: { in: failedConcepts },
-            },
-            data: {
-              masteryState: 'needs_review',
-            },
-          });
-        }
       }
     });
+
+    // Mark failed concepts as needs_review outside the transaction
+    // (StudentModel owns concept state; avoid cross-boundary writes in tx)
+    if (!passed && failedConcepts.length > 0) {
+      await this.studentState.markConceptsNeedsReview(userId, failedConcepts);
+    }
 
     let awardedXP = 0;
     if (xpResult.xp > 0) {

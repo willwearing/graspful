@@ -270,6 +270,45 @@ export class XPService {
     return days;
   }
 
+  async getXPSinceLastQuiz(userId: string, academyId: string): Promise<number> {
+    const enrollment = await this.prisma.academyEnrollment.findUnique({
+      where: { userId_academyId: { userId, academyId } },
+      select: { totalXPEarned: true },
+    });
+
+    if (!enrollment) {
+      return 0;
+    }
+
+    // Find the most recent quiz XP event
+    const lastQuizXP = await this.prisma.xPEvent.findFirst({
+      where: {
+        userId,
+        academyId,
+        source: 'quiz',
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+
+    if (!lastQuizXP) {
+      // No quiz taken yet — all XP counts
+      return enrollment.totalXPEarned;
+    }
+
+    // Sum XP earned after the last quiz
+    const result = await this.prisma.xPEvent.aggregate({
+      where: {
+        userId,
+        academyId,
+        createdAt: { gt: lastQuizXP.createdAt },
+      },
+      _sum: { amount: true },
+    });
+
+    return result._sum.amount ?? 0;
+  }
+
   private async resolveScope(courseId: string, academyId?: string) {
     if (academyId) {
       return { academyId, courseId };

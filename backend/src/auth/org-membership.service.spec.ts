@@ -53,6 +53,33 @@ describe('OrgMembershipService', () => {
     ).rejects.toThrow(NotFoundException);
   });
 
+  it('assigns owner role when joining the graspful platform org', async () => {
+    mockPrisma.organization.findUnique.mockResolvedValue({
+      id: 'org-graspful',
+      isActive: true,
+    });
+    mockPrisma.orgMembership.upsert.mockResolvedValue({
+      role: 'owner',
+    });
+
+    await expect(
+      service.joinOrganizationBySlug('graspful', 'user-1'),
+    ).resolves.toEqual({
+      orgId: 'org-graspful',
+      role: 'owner',
+    });
+
+    expect(mockPrisma.orgMembership.upsert).toHaveBeenCalledWith({
+      where: { orgId_userId: { orgId: 'org-graspful', userId: 'user-1' } },
+      update: {},
+      create: {
+        orgId: 'org-graspful',
+        userId: 'user-1',
+        role: 'owner',
+      },
+    });
+  });
+
   it('throws when the organization is archived', async () => {
     mockPrisma.organization.findUnique.mockResolvedValue({
       id: 'org-1',

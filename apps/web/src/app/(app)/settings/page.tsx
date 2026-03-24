@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolvePageBrand } from "@/lib/brand/resolve";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BillingSettings } from "@/components/app/billing-settings";
 
@@ -11,8 +12,7 @@ export default async function SettingsPage() {
 
   if (!user) redirect("/sign-in");
 
-  // Get org ID from user metadata (set during enrollment)
-  const orgId = user.user_metadata?.orgId as string | undefined;
+  const brand = await resolvePageBrand();
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 md:px-8">
@@ -34,7 +34,7 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
 
-        {orgId && <BillingSettings orgId={orgId} />}
+        <BillingSettings orgId={brand.orgSlug} />
 
         <Card>
           <CardHeader>

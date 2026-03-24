@@ -68,7 +68,17 @@ describe('LessonService', () => {
       getBlockedConceptIdsForCourse: jest.fn().mockResolvedValue(new Set()),
     };
 
-    service = new LessonService(mockPrisma, mockRemediationService);
+    const mockStudentState = {
+      getSectionState: jest.fn().mockResolvedValue(null),
+      getConceptState: jest.fn().mockImplementation((...args: any[]) =>
+        mockPrisma.studentConceptState.findUnique({ where: { userId_conceptId: { userId: args[0], conceptId: args[1] } } }),
+      ),
+      updateConceptAfterPractice: jest.fn().mockImplementation((...args: any[]) =>
+        mockPrisma.studentConceptState.update({ where: { userId_conceptId: { userId: args[0], conceptId: args[1] } }, data: args[2] }),
+      ),
+    };
+
+    service = new LessonService(mockPrisma, mockRemediationService, mockStudentState as any);
   });
 
   describe('startLesson', () => {

@@ -3,23 +3,26 @@ import { MemoryDecayService } from './memory-decay.service';
 describe('MemoryDecayService', () => {
   let service: MemoryDecayService;
   let mockPrisma: any;
+  let mockStudentState: any;
 
   beforeEach(() => {
     mockPrisma = {
-      studentConceptState: {
-        findMany: jest.fn(),
-        update: jest.fn(),
+      course: {
+        findUnique: jest.fn(),
       },
-      $transaction: jest.fn().mockResolvedValue([]),
     };
-    service = new MemoryDecayService(mockPrisma);
+    mockStudentState = {
+      getConceptStatesForDecay: jest.fn().mockResolvedValue([]),
+      batchDecayMemory: jest.fn().mockResolvedValue(undefined),
+    };
+    service = new MemoryDecayService(mockPrisma, mockStudentState);
   });
 
   it('should decay memory for all concepts based on elapsed time', async () => {
     const now = new Date('2026-03-10T12:00:00Z');
     const sevenDaysAgo = new Date('2026-03-03T12:00:00Z');
 
-    mockPrisma.studentConceptState.findMany.mockResolvedValue([
+    mockStudentState.getConceptStatesForDecay.mockResolvedValue([
       {
         userId: 'user1',
         conceptId: 'c1',
@@ -29,37 +32,38 @@ describe('MemoryDecayService', () => {
         masteryState: 'mastered',
       },
     ]);
-    mockPrisma.studentConceptState.update.mockResolvedValue({});
 
     await service.decayAllMemory('user1', 'course1', now);
 
-    expect(mockPrisma.$transaction).toHaveBeenCalledWith([
-      expect.anything(), // the update call for c1
+    expect(mockStudentState.batchDecayMemory).toHaveBeenCalledWith([
+      expect.objectContaining({
+        userId: 'user1',
+        conceptId: 'c1',
+        memory: expect.any(Number),
+      }),
     ]);
   });
 
-  it('should skip concepts with no lastPracticedAt (filtered by Prisma where)', async () => {
-    // Prisma where clause excludes lastPracticedAt: null, so findMany returns empty
-    mockPrisma.studentConceptState.findMany.mockResolvedValue([]);
+  it('should skip concepts with no lastPracticedAt (filtered by service query)', async () => {
+    mockStudentState.getConceptStatesForDecay.mockResolvedValue([]);
 
     await service.decayAllMemory('user1', 'course1', new Date());
 
-    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    expect(mockStudentState.batchDecayMemory).not.toHaveBeenCalled();
   });
 
-  it('should skip unstarted concepts (filtered by Prisma where)', async () => {
-    // Prisma where clause excludes masteryState: 'unstarted', so findMany returns empty
-    mockPrisma.studentConceptState.findMany.mockResolvedValue([]);
+  it('should skip unstarted concepts (filtered by service query)', async () => {
+    mockStudentState.getConceptStatesForDecay.mockResolvedValue([]);
 
     await service.decayAllMemory('user1', 'course1', new Date());
 
-    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    expect(mockStudentState.batchDecayMemory).not.toHaveBeenCalled();
   });
 
   it('should not update if decayed memory equals current memory (no change)', async () => {
     const now = new Date('2026-03-10T12:00:00Z');
 
-    mockPrisma.studentConceptState.findMany.mockResolvedValue([
+    mockStudentState.getConceptStatesForDecay.mockResolvedValue([
       {
         userId: 'user1',
         conceptId: 'c1',
@@ -72,6 +76,6 @@ describe('MemoryDecayService', () => {
 
     await service.decayAllMemory('user1', 'course1', now);
 
-    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    expect(mockStudentState.batchDecayMemory).not.toHaveBeenCalled();
   });
 });

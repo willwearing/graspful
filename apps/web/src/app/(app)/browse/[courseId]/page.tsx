@@ -11,6 +11,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { MasteryState, NextTask, SectionProgress, SectionMasteryState } from "@/lib/types";
 import { getSectionHref } from "@/lib/course-section-entry";
 import { getAcademyHref, getAcademyStudyHref, getAcademyDiagnosticHref } from "@/lib/academy-routes";
+import { CourseBrowseTracker } from "@/components/app/page-view-tracker";
 
 interface CourseSection {
   id: string;
@@ -182,6 +183,7 @@ export default async function CourseDetailPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 md:px-8">
+      <CourseBrowseTracker courseId={courseId} courseName={graph.course.name} />
       {/* Back nav */}
       <Link
         href={academyHref}

@@ -11,6 +11,7 @@ import { WeeklyXPChart } from "@/components/app/weekly-xp-chart";
 import { CompletionEstimate } from "@/components/app/completion-estimate";
 import { Leaderboard } from "@/components/app/leaderboard";
 import { KnowledgeGraphSection } from "@/components/app/knowledge-graph-section";
+import { MilestoneTracker } from "@/components/app/milestone-tracker";
 import { Button } from "@/components/ui/button";
 import { fetchCourseProfiles, type CourseProfile } from "@/lib/course-profiles";
 import Link from "next/link";
@@ -136,6 +137,15 @@ export default async function DashboardPage() {
           dailyTarget={xpSummary?.dailyTarget ?? 40}
         />
       </div>
+
+      {/* Milestone tracking */}
+      {streakStatus && xpSummary && (
+        <MilestoneTracker
+          currentStreak={streakStatus.currentStreak}
+          todayXP={xpSummary.today}
+          dailyCap={xpSummary.dailyCap}
+        />
+      )}
 
       {/* Completion estimate */}
       {stats && (

@@ -1,13 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import { StudentStateService } from '@/student-model/student-state.service';
 import { decayMemory } from './fire-equations';
-import { activeConceptWhere } from '@/knowledge-graph/active-course-content';
 
 const DECAY_EPSILON = 0.001; // skip updates smaller than this
 
 @Injectable()
 export class MemoryDecayService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private studentState: StudentStateService,
+  ) {}
 
   /**
    * Recalculate memory for all of a student's concept states in an academy,
@@ -24,24 +27,7 @@ export class MemoryDecayService {
     academyId: string,
     now: Date = new Date(),
   ): Promise<void> {
-    const states = await this.prisma.studentConceptState.findMany({
-      where: {
-        userId,
-        concept: activeConceptWhere({
-          course: { academyId },
-        }),
-        masteryState: { not: 'unstarted' },
-        lastPracticedAt: { not: null },
-      },
-      select: {
-        userId: true,
-        conceptId: true,
-        memory: true,
-        interval: true,
-        lastPracticedAt: true,
-        masteryState: true,
-      },
-    });
+    const states = await this.studentState.getConceptStatesForDecay(userId, academyId);
 
     const updates = states
       .map((state) => {
@@ -54,15 +40,12 @@ export class MemoryDecayService {
 
     if (updates.length === 0) return;
 
-    await this.prisma.$transaction(
-      updates.map(({ state, decayed }) =>
-        this.prisma.studentConceptState.update({
-          where: {
-            userId_conceptId: { userId: state.userId, conceptId: state.conceptId },
-          },
-          data: { memory: decayed },
-        }),
-      ),
+    await this.studentState.batchDecayMemory(
+      updates.map(({ state, decayed }) => ({
+        userId: state.userId,
+        conceptId: state.conceptId,
+        memory: decayed,
+      })),
     );
   }
 

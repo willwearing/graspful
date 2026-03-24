@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { XPService } from '@/gamification/xp.service';
+import { StudentStateService } from '@/student-model/student-state.service';
 import { evaluateAnswer } from './answer-evaluator';
 import { calculateQuizXP } from './xp-calculator';
 import {
@@ -46,6 +47,7 @@ export class QuizService {
   constructor(
     private prisma: PrismaService,
     private xpService: XPService,
+    private studentState: StudentStateService,
   ) {}
 
   async generateQuiz(userId: string, courseId: string) {
@@ -258,15 +260,7 @@ export class QuizService {
 
     // Mark failed concepts as needs_review
     if (failedConcepts.length > 0) {
-      await this.prisma.studentConceptState.updateMany({
-        where: {
-          userId: session.userId,
-          conceptId: { in: failedConcepts },
-        },
-        data: {
-          masteryState: 'needs_review',
-        },
-      });
+      await this.studentState.markConceptsNeedsReview(session.userId, failedConcepts);
     }
 
     // Calculate and award quiz XP

@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { BookOpen, CheckCircle2, ClipboardList, Play, Pause, Volume2 } from "lucide-react";
 import { useAudioPlayer } from "@/lib/hooks/use-audio-player";
 import { useLessonAudio } from "@/lib/hooks/use-lesson-audio";
-import { trackLessonComplete, trackLessonStarted, trackLessonPracticeAnswered, trackLessonAudioPlayed } from "@/lib/posthog/events";
+import { trackLessonComplete, trackLessonStarted, trackLessonPracticeAnswered, trackLessonAudioPlayed, trackLessonAbandoned } from "@/lib/posthog/events";
 import { LessonRichContent } from "@/components/app/lesson-rich-content";
 import type { Problem, ProblemAnswer, RichContentBlock } from "@/lib/types";
 
@@ -50,6 +50,9 @@ export function LessonFlow({ orgSlug, courseId, token, lesson }: LessonFlowProps
   const { loadQueue, isPlaying, currentItem } = useAudioPlayer();
   const lessonStartRef = useRef(0);
   const practiceStartRef = useRef(0);
+  const currentKPRef = useRef(currentKP);
+  const phaseRef = useRef(phase);
+  const completedRef = useRef(false);
 
   const kp = lesson.knowledgePoints[currentKP];
   const problems = kp.problems ?? [];
@@ -63,6 +66,28 @@ export function LessonFlow({ orgSlug, courseId, token, lesson }: LessonFlowProps
   const totalPhases = lesson.knowledgePoints.length * 3;
   const currentPhaseIndex = currentKP * 3 + (phase === "instruction" ? 0 : phase === "worked-example" ? 1 : 2);
   const progressPercent = ((currentPhaseIndex + 1) / totalPhases) * 100;
+
+  useEffect(() => { currentKPRef.current = currentKP; }, [currentKP]);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+
+  // Track abandonment on unmount if not complete
+  useEffect(() => {
+    return () => {
+      if (!completedRef.current) {
+        const durationSeconds = Math.round((Date.now() - lessonStartRef.current) / 1000);
+        trackLessonAbandoned(
+          courseId,
+          lesson.conceptId,
+          lesson.conceptName,
+          currentKPRef.current + 1,
+          lesson.knowledgePoints.length,
+          phaseRef.current,
+          durationSeconds,
+        );
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const startedAt = Date.now();
@@ -124,6 +149,7 @@ export function LessonFlow({ orgSlug, courseId, token, lesson }: LessonFlowProps
       );
       const durationSeconds = Math.round((Date.now() - lessonStartRef.current) / 1000);
       trackLessonComplete(lesson.conceptId, lesson.conceptName, durationSeconds);
+      completedRef.current = true;
       router.push(`/study/${courseId}`);
     } catch {
       setCompleting(false);

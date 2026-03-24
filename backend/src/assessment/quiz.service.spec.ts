@@ -52,7 +52,13 @@ describe('QuizService', () => {
       recordXPEvent: jest.fn().mockResolvedValue({ amount: 20 }),
     };
 
-    service = new QuizService(mockPrisma, mockXPService);
+    const mockStudentState = {
+      markConceptsNeedsReview: jest.fn().mockImplementation((...args: any[]) =>
+        mockPrisma.studentConceptState.updateMany({ where: { userId: args[0], conceptId: { in: args[1] } }, data: { masteryState: 'needs_review' } }),
+      ),
+    };
+
+    service = new QuizService(mockPrisma, mockXPService, mockStudentState as any);
   });
 
   describe('generateQuiz', () => {

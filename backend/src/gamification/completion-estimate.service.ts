@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import { StudentStateService } from '@/student-model/student-state.service';
 
 export interface CompletionEstimate {
   completionPercent: number;
@@ -16,7 +17,10 @@ const AVG_XP_PER_CONCEPT = 19;
 
 @Injectable()
 export class CompletionEstimateService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private studentState: StudentStateService,
+  ) {}
 
   async getAcademyEstimate(
     userId: string,
@@ -26,13 +30,7 @@ export class CompletionEstimateService {
       this.prisma.concept.count({
         where: { course: { academyId } },
       }),
-      this.prisma.studentConceptState.count({
-        where: {
-          userId,
-          concept: { course: { academyId } },
-          masteryState: 'mastered',
-        },
-      }),
+      this.studentState.countMasteredConcepts(userId, { academyId }),
       this.prisma.academyEnrollment.findUnique({
         where: { userId_academyId: { userId, academyId } },
       }),
@@ -85,9 +83,7 @@ export class CompletionEstimateService {
   async getEstimate(userId: string, courseId: string): Promise<CompletionEstimate> {
     const [totalConcepts, masteredConcepts, enrollment] = await Promise.all([
       this.prisma.concept.count({ where: { courseId } }),
-      this.prisma.studentConceptState.count({
-        where: { userId, concept: { courseId }, masteryState: 'mastered' },
-      }),
+      this.studentState.countMasteredConcepts(userId, { courseId }),
       this.prisma.courseEnrollment.findUnique({
         where: { userId_courseId: { userId, courseId } },
       }),

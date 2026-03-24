@@ -14,6 +14,7 @@ import {
   getAcademyStudyHref,
   getCourseBrowseHref,
 } from "@/lib/academy-routes";
+import { AcademyViewTracker } from "@/components/app/page-view-tracker";
 
 interface AcademyCourse {
   id: string;
@@ -95,6 +96,7 @@ export default async function AcademyPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 md:px-8">
+      <AcademyViewTracker academyId={academyId} academyName={academy.name} />
       <Link
         href="/browse"
         className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"

@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { createBrowserClient } from "@supabase/ssr";
 import { apiClientFetch } from "@/lib/api-client";
+import { useAuthToken } from "@/lib/hooks/use-auth-token";
+import { trackCheckoutInitiated, trackBillingPortalOpened } from "@/lib/posthog/events";
 
 interface SubscriptionInfo {
   plan: string;
@@ -17,22 +18,17 @@ interface SubscriptionInfo {
 }
 
 export function BillingSettings({ orgId }: { orgId: string }) {
+  const token = useAuthToken();
   const [sub, setSub] = useState<SubscriptionInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!token) return;
     async function load() {
       try {
-        const supabase = createBrowserClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        );
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-
         const data = await apiClientFetch<SubscriptionInfo>(
           `/orgs/${orgId}/billing/subscription`,
-          session.access_token,
+          token!,
         );
         setSub(data);
       } catch {
@@ -42,20 +38,12 @@ export function BillingSettings({ orgId }: { orgId: string }) {
       }
     }
     load();
-  }, [orgId]);
-
-  const getToken = async () => {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    );
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token;
-  };
+  }, [orgId, token]);
 
   const handleManage = async () => {
-    const token = await getToken();
     if (!token) return;
+
+    trackBillingPortalOpened();
 
     const { url } = await apiClientFetch<{ url: string }>(
       `/orgs/${orgId}/billing/portal`,
@@ -66,8 +54,9 @@ export function BillingSettings({ orgId }: { orgId: string }) {
   };
 
   const handleUpgrade = async (plan: "individual" | "team") => {
-    const token = await getToken();
     if (!token) return;
+
+    trackCheckoutInitiated(plan);
 
     const { url } = await apiClientFetch<{ url: string }>(
       `/orgs/${orgId}/billing/checkout`,

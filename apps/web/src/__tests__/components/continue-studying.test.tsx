@@ -11,7 +11,7 @@ vi.mock("next/link", () => ({
   }: {
     children?: ReactNode;
     href: string;
-  } & Omit<JSX.IntrinsicElements["a"], "href" | "children">) => (
+  } & Omit<React.JSX.IntrinsicElements["a"], "href" | "children">) => (
     <a href={href} {...props}>
       {children}
     </a>

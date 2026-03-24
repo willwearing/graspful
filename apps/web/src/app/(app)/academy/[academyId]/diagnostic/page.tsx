@@ -5,6 +5,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { resolvePageBrand } from "@/lib/brand/resolve";
 import { DiagnosticFlow } from "@/components/app/diagnostic-flow";
 import { ArrowLeft } from "lucide-react";
+import { AcademyEnrollTracker } from "@/components/app/page-view-tracker";
 
 export default async function AcademyDiagnosticPage({
   params,
@@ -71,6 +72,7 @@ export default async function AcademyDiagnosticPage({
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 md:px-8">
       <h1 className="text-2xl font-bold text-foreground mb-6">Diagnostic Assessment</h1>
+      <AcademyEnrollTracker academyId={academyId} academyName={academyId} />
       <DiagnosticFlow
         orgSlug={orgSlug}
         courseId={startData.courseId}

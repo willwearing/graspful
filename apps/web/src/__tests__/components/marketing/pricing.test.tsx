@@ -61,6 +61,6 @@ describe("PricingSection", () => {
 
     const ctaLink = screen.getByText("Get Started").closest("a");
     expect(ctaLink?.tagName).toBe("A");
-    expect(ctaLink.querySelector("button")).toBeNull();
+    expect(ctaLink?.querySelector("button")).toBeNull();
   });
 });

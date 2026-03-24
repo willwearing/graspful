@@ -3,6 +3,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { FireUpdateService } from '@/spaced-repetition/fire-update.service';
 import { calculateRawDelta } from '@/spaced-repetition/fire-equations';
 import { XPService } from '@/gamification/xp.service';
+import { StudentStateService } from '@/student-model/student-state.service';
 import { evaluateAnswer } from './answer-evaluator';
 import { calculateXP, ActivityType } from './xp-calculator';
 import { updateSpeed, deriveSpeed, blendSpeed, SpeedState, ConceptParams } from './speed-updater';
@@ -40,6 +41,7 @@ export class ProblemSubmissionService {
     private fireUpdate: FireUpdateService,
     private xpService: XPService,
     private sectionExamService: SectionExamService,
+    private studentState: StudentStateService,
   ) {}
 
   async submitAnswer(input: SubmitAnswerInput): Promise<SubmitAnswerResult> {
@@ -87,9 +89,7 @@ export class ProblemSubmissionService {
     );
 
     // 3. Get current attempt count for this user+KP to determine attempt number
-    const currentKPState = await this.prisma.studentKPState.findUnique({
-      where: { userId_knowledgePointId: { userId, knowledgePointId: kp.id } },
-    });
+    const currentKPState = await this.studentState.getKPState(userId, kp.id);
 
     const attemptNumber = (currentKPState?.attempts ?? 0) + 1;
 
@@ -122,10 +122,7 @@ export class ProblemSubmissionService {
     );
 
     // Capture pre-update memory for implicit repetition delta
-    const preUpdateMemory = (await this.prisma.studentConceptState.findUnique({
-      where: { userId_conceptId: { userId, conceptId: concept.id } },
-      select: { memory: true },
-    }))?.memory ?? 1;
+    const preUpdateMemory = await this.studentState.getConceptMemory(userId, concept.id);
 
     // 7. Update StudentConceptState (mastery transitions + speed)
     const updatedMasteryState = await this.updateConceptState(
@@ -200,31 +197,16 @@ export class ProblemSubmissionService {
     knowledgePointId: string,
     correct: boolean,
   ) {
-    const existing = await this.prisma.studentKPState.findUnique({
-      where: { userId_knowledgePointId: { userId, knowledgePointId } },
-    });
+    const existing = await this.studentState.getKPState(userId, knowledgePointId);
 
-    const currentConsecutive = existing?.consecutiveCorrect ?? 0;
-    const newConsecutive = correct ? currentConsecutive + 1 : 0;
-    const passed = (existing?.passed ?? false) || newConsecutive >= 2;
-
-    return this.prisma.studentKPState.upsert({
-      where: { userId_knowledgePointId: { userId, knowledgePointId } },
-      create: {
-        userId,
-        knowledgePointId,
-        attempts: 1,
-        consecutiveCorrect: correct ? 1 : 0,
-        passed: correct ? false : false, // need 2 consecutive
-        lastAttemptAt: new Date(),
-      },
-      update: {
-        attempts: { increment: 1 },
-        consecutiveCorrect: newConsecutive,
-        passed,
-        lastAttemptAt: new Date(),
-      },
-    });
+    return this.studentState.upsertKPState(
+      userId,
+      knowledgePointId,
+      correct,
+      existing
+        ? { consecutiveCorrect: existing.consecutiveCorrect, passed: existing.passed }
+        : undefined,
+    );
   }
 
   private async updateConceptState(
@@ -235,9 +217,7 @@ export class ProblemSubmissionService {
     responseTimeMs: number,
     concept: { difficulty: number; difficultyTheta: number; timeIntensity: number; timeIntensitySD: number },
   ) {
-    const conceptState = await this.prisma.studentConceptState.findUnique({
-      where: { userId_conceptId: { userId, conceptId } },
-    });
+    const conceptState = await this.studentState.getConceptState(userId, conceptId);
 
     if (!conceptState) {
       throw new NotFoundException(`Student concept state not found for concept ${conceptId}`);
@@ -282,17 +262,14 @@ export class ProblemSubmissionService {
       }
     }
 
-    await this.prisma.studentConceptState.update({
-      where: { userId_conceptId: { userId, conceptId } },
-      data: {
-        masteryState: newMasteryState,
-        speed: effectiveSpeed,
-        abilityTheta: updatedSpeed.abilityTheta,
-        speedRD: updatedSpeed.speedRD,
-        observationCount: updatedSpeed.observationCount,
-        failCount: newFailCount,
-        lastPracticedAt: new Date(),
-      },
+    await this.studentState.updateConceptAfterPractice(userId, conceptId, {
+      masteryState: newMasteryState,
+      speed: effectiveSpeed,
+      abilityTheta: updatedSpeed.abilityTheta,
+      speedRD: updatedSpeed.speedRD,
+      observationCount: updatedSpeed.observationCount,
+      failCount: newFailCount,
+      lastPracticedAt: new Date(),
     });
 
     return newMasteryState;
@@ -309,13 +286,10 @@ export class ProblemSubmissionService {
 
     if (kps.length === 0) return false;
 
-    const kpStates = await this.prisma.studentKPState.findMany({
-      where: {
-        userId,
-        knowledgePointId: { in: kps.map((kp) => kp.id) },
-      },
-      select: { passed: true },
-    });
+    const kpStates = await this.studentState.getKPStatesForIds(
+      userId,
+      kps.map((kp) => kp.id),
+    );
 
     return (
       kpStates.length === kps.length && kpStates.every((s) => s.passed)

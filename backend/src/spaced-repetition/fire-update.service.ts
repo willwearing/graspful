@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import { StudentStateService } from '@/student-model/student-state.service';
 import {
-  activeConceptWhere,
   activeEncompassingEdgeWhereAcademy,
 } from '@/knowledge-graph/active-course-content';
 import {
@@ -16,7 +16,10 @@ import { EncompassingLink } from './types';
 
 @Injectable()
 export class FireUpdateService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private studentState: StudentStateService,
+  ) {}
 
   /**
    * Update FIRe state after a review pass/fail on a specific concept.
@@ -36,9 +39,7 @@ export class FireUpdateService {
     quality: number,
     academyId?: string,
   ): Promise<void> {
-    const state = await this.prisma.studentConceptState.findUnique({
-      where: { userId_conceptId: { userId, conceptId } },
-    });
+    const state = await this.studentState.getConceptState(userId, conceptId);
 
     if (!state) return;
 
@@ -51,14 +52,11 @@ export class FireUpdateService {
     const newMemory = calculateMemory(state.memory, rawDelta, 0, state.interval);
     const newInterval = calculateNextInterval(newRepNum);
 
-    await this.prisma.studentConceptState.update({
-      where: { userId_conceptId: { userId, conceptId } },
-      data: {
-        repNum: newRepNum,
-        memory: newMemory,
-        interval: newInterval,
-        lastPracticedAt: new Date(),
-      },
+    await this.studentState.updateConceptFIRe(userId, conceptId, {
+      repNum: newRepNum,
+      memory: newMemory,
+      interval: newInterval,
+      lastPracticedAt: new Date(),
     });
 
     // Propagate implicit repetition if academyId is provided
@@ -97,18 +95,7 @@ export class FireUpdateService {
     const encompassingLinks: EncompassingLink[] = edges;
 
     // Get all concept speeds for this student across all courses in this academy
-    const conceptStates = await this.prisma.studentConceptState.findMany({
-      where: {
-        userId,
-        concept: activeConceptWhere({ course: { academyId } }),
-      },
-      select: {
-        conceptId: true,
-        speed: true,
-        repNum: true,
-        memory: true,
-      },
-    });
+    const conceptStates = await this.studentState.getConceptStatesForFIRe(userId, academyId);
 
     const speedMap = new Map<string, number>(
       conceptStates.map((s) => [s.conceptId, s.speed]),
@@ -136,15 +123,10 @@ export class FireUpdateService {
         const newRepNum = Math.max(0, current.repNum + update.repNumDelta);
         const newMemory = Math.min(1, Math.max(0, current.memory + update.memoryDelta));
 
-        return this.prisma.studentConceptState.update({
-          where: {
-            userId_conceptId: { userId, conceptId: update.conceptId },
-          },
-          data: {
-            repNum: newRepNum,
-            memory: newMemory,
-            interval: calculateNextInterval(newRepNum),
-          },
+        return this.studentState.updateConceptFIRe(userId, update.conceptId, {
+          repNum: newRepNum,
+          memory: newMemory,
+          interval: calculateNextInterval(newRepNum),
         });
       }),
     );

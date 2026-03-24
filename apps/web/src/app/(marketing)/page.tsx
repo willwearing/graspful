@@ -6,6 +6,7 @@ import { HowItWorks } from "@/components/marketing/how-it-works";
 import { FAQ } from "@/components/marketing/faq";
 import { PricingSection } from "@/components/marketing/pricing";
 import { CTA } from "@/components/marketing/cta";
+import { ScrollDepthTracker } from "@/components/marketing/tracking";
 import {
   CourseJsonLd,
   OrganizationJsonLd,
@@ -139,6 +140,7 @@ export default async function LandingPage() {
         educationalLevel="Professional"
         credentialCategory="Professional Certification"
       />
+      <ScrollDepthTracker />
     </div>
   );
 }
