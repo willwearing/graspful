@@ -107,12 +107,34 @@ export default function CLIReferencePage() {
       </div>
 
       <CommandSection
+        name="graspful register"
+        synopsis={`graspful register --email <email> --password <password>`}
+        description="Create a new Graspful account and return an API key. Credentials are saved automatically to ~/.graspful/credentials.json so subsequent commands are authenticated without a separate login step."
+        options={[
+          { flag: "--email <email>", description: "Account email address (required)" },
+          { flag: "--password <password>", description: "Account password (required)" },
+        ]}
+        examples={[
+          {
+            label: "Register a new account",
+            code: "graspful register --email you@example.com --password \"s3cret\"",
+          },
+        ]}
+        jsonOutput={`{
+  "apiKey": "gsk_abc123...",
+  "orgSlug": "you-example"
+}`}
+      />
+
+      <CommandSection
         name="graspful login"
-        synopsis="graspful login [--api-url <url>] [--token <token>]"
-        description="Authenticate with a Graspful instance. Saves credentials locally for subsequent commands. In interactive mode, prompts for an API key. Supports piped input for CI."
+        synopsis={`graspful login [--api-url <url>] [--token <token>] [--email <email> --password <password>]`}
+        description="Authenticate with a Graspful instance. Saves credentials locally for subsequent commands. Supports interactive prompts, API key auth, and email/password auth."
         options={[
           { flag: "--api-url <url>", description: "API base URL (defaults to https://api.graspful.com)" },
-          { flag: "--token <token>", description: "API key or JWT token (skips interactive prompt)" },
+          { flag: "--token <token>", description: "API key (skips interactive prompt)" },
+          { flag: "--email <email>", description: "Account email for email/password auth" },
+          { flag: "--password <password>", description: "Account password for email/password auth" },
         ]}
         examples={[
           {
@@ -120,11 +142,16 @@ export default function CLIReferencePage() {
             code: "graspful login",
           },
           {
-            label: "Non-interactive",
-            code: `graspful login --token gsk_abc123
-
-# Or pipe from a secret manager
-vault read -field=token secret/graspful | graspful login`,
+            label: "API key auth",
+            code: "graspful login --token gsk_abc123",
+          },
+          {
+            label: "Email/password auth",
+            code: "graspful login --email you@example.com --password \"s3cret\"",
+          },
+          {
+            label: "Pipe from a secret manager",
+            code: "vault read -field=token secret/graspful | graspful login",
           },
         ]}
         jsonOutput={`{

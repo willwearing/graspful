@@ -545,6 +545,7 @@ model Course {
   estimatedHours Float?   @map("estimated_hours")
   sortOrder      Int      @default(0) @map("sort_order")
   isPublished    Boolean  @default(false) @map("is_published")
+  archivedAt     DateTime? @map("archived_at") @db.Timestamptz
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
 

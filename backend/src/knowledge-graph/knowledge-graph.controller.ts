@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Logger,
   NotFoundException,
   Param,
   Post,
@@ -9,23 +11,31 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, MinRole } from '@/auth';
+import { OrgMembershipGuard, CurrentOrg, MinRole, JwtOrApiKeyGuard } from '@/auth';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { CourseImporterService, ImportResult } from './course-importer.service';
 import { CourseReadService } from './course-read.service';
 import { ReviewService, ReviewResult } from './review.service';
+import { CourseYamlExportService } from './course-yaml-export.service';
 import type { ValidationResult } from './graph-validation.service';
 import { PrismaService } from '@/prisma/prisma.service';
+import { BrandsService } from '@/brands/brands.service';
+import { VercelDomainsService } from '@/brands/vercel-domains.service';
 import { ImportCourseDto, ReviewCourseDto } from './dto/import-course.dto';
 
 @Controller('orgs/:orgId/courses')
-@UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
+@UseGuards(JwtOrApiKeyGuard, OrgMembershipGuard)
 export class KnowledgeGraphController {
+  private readonly logger = new Logger(KnowledgeGraphController.name);
+
   constructor(
     private courseReads: CourseReadService,
     private importer: CourseImporterService,
     private reviewService: ReviewService,
+    private courseYamlExport: CourseYamlExportService,
     private prisma: PrismaService,
+    private brandsService: BrandsService,
+    private vercelDomainsService: VercelDomainsService,
   ) {}
 
   @Get()
@@ -58,6 +68,35 @@ export class KnowledgeGraphController {
     return this.courseReads.getConceptDetail(org.orgId, courseId, conceptId);
   }
 
+  @Delete(':courseId')
+  @MinRole('admin')
+  async archiveCourse(
+    @Param('courseId') courseId: string,
+    @CurrentOrg() org: OrgContext,
+  ) {
+    const course = await this.prisma.course.findFirst({
+      where: { id: courseId, orgId: org.orgId, archivedAt: null },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
+    return this.prisma.course.update({
+      where: { id: courseId },
+      data: { archivedAt: new Date() },
+    });
+  }
+
+  @Get(':courseId/yaml')
+  async exportCourseYaml(
+    @Param('courseId') courseId: string,
+    @CurrentOrg() org: OrgContext,
+  ): Promise<{ yaml: string }> {
+    const yamlString = await this.courseYamlExport.exportCourse(org.orgId, courseId);
+    return { yaml: yamlString };
+  }
+
   @Post('import')
   @MinRole('admin')
   @UsePipes(new ValidationPipe({ whitelist: true }))
@@ -65,24 +104,29 @@ export class KnowledgeGraphController {
     @Body() body: ImportCourseDto,
     @CurrentOrg() org: OrgContext,
   ): Promise<ImportResult & { review?: ReviewResult }> {
-    if (body.publish) {
-      // Run review gate before import
-      const courseYaml = this.importer.parseCourseYaml(body.yaml);
-      const review = this.reviewService.review(courseYaml);
+    let result: ImportResult;
+    let review: ReviewResult | undefined;
 
-      const result = await this.importer.importFromYaml(body.yaml, org.orgId, {
+    if (body.publish) {
+      const courseYaml = this.importer.parseCourseYaml(body.yaml);
+      review = this.reviewService.review(courseYaml);
+
+      result = await this.importer.importFromYaml(body.yaml, org.orgId, {
         replace: body.replace,
         archiveMissing: body.archiveMissing,
         isPublished: review.passed,
       });
-
-      return { ...result, review };
+    } else {
+      result = await this.importer.importFromYaml(body.yaml, org.orgId, {
+        replace: body.replace,
+        archiveMissing: body.archiveMissing,
+      });
     }
 
-    return this.importer.importFromYaml(body.yaml, org.orgId, {
-      replace: body.replace,
-      archiveMissing: body.archiveMissing,
-    });
+    // Auto-create brand if none exists for this org
+    await this.ensureBrandForOrg(org, body.yaml);
+
+    return review ? { ...result, review } : result;
   }
 
   @Post('review')
@@ -152,6 +196,65 @@ export class KnowledgeGraphController {
     @CurrentOrg() org: OrgContext,
   ) {
     return this.courseReads.getKnowledgeFrontier(org.orgId, courseId, org.userId);
+  }
+
+  /**
+   * Auto-create a brand for the org if one doesn't already exist.
+   * Slug: {username}-{courseslug}, domain: {slug}.graspful.com
+   */
+  private async ensureBrandForOrg(org: OrgContext, yamlContent: string) {
+    // Check if any brand exists for this org
+    const orgRecord = await this.prisma.organization.findUnique({
+      where: { id: org.orgId },
+      select: { slug: true },
+    });
+    if (!orgRecord) return;
+
+    const existingBrands = await this.prisma.brand.findFirst({
+      where: { orgSlug: orgRecord.slug },
+    });
+    if (existingBrands) return;
+
+    // Parse course slug from YAML
+    const parsed = this.importer.parseCourseYaml(yamlContent);
+    const courseSlug = parsed.course.id;
+
+    // Derive username from email prefix
+    const username = org.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    // Build slug with uniqueness fallback
+    let slug = `${username}-${courseSlug}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+    let attempt = 0;
+    let finalSlug = slug;
+
+    while (await this.brandsService.findBySlug(finalSlug)) {
+      attempt++;
+      finalSlug = `${slug}-${attempt}`;
+    }
+
+    const domain = `${finalSlug}.graspful.com`;
+
+    try {
+      await this.brandsService.create({
+        slug: finalSlug,
+        name: parsed.course.name,
+        domain,
+        tagline: parsed.course.description ?? parsed.course.name,
+        logoUrl: '/logo.svg',
+        orgSlug: orgRecord.slug,
+        theme: {},
+        landing: {},
+        seo: {},
+        pricing: {},
+      });
+
+      // Provision domain on Vercel (fire-and-forget)
+      this.vercelDomainsService.addDomain(domain).catch((err) => {
+        this.logger.warn(`Brand domain provisioning failed for ${domain}: ${err}`);
+      });
+    } catch (err) {
+      this.logger.warn(`Auto brand creation failed for org ${org.orgId}: ${err}`);
+    }
   }
 
   /**

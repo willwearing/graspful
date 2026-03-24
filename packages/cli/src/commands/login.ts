@@ -16,11 +16,11 @@ function prompt(question: string): Promise<string> {
 export function registerLoginCommand(program: Command) {
   program
     .command('login')
-    .description('Authenticate with a Graspful instance')
+    .description('Authenticate with a Graspful instance (use "graspful register" for new accounts)')
     .option('--api-url <url>', 'API base URL')
     .option('--token <token>', 'API key or JWT token (skip interactive prompt)')
     .action(async (opts: { apiUrl?: string; token?: string }) => {
-      const baseUrl = opts.apiUrl || getBaseUrl();
+      const baseUrl = (opts.apiUrl || getBaseUrl()).replace(/\/$/, '');
 
       let token = opts.token;
       if (!token) {
@@ -34,6 +34,7 @@ export function registerLoginCommand(program: Command) {
         } else {
           console.log(`Authenticating with ${baseUrl}`);
           console.log('Enter your API key or JWT token:');
+          console.log('(New user? Run "graspful register" instead.)');
           token = await prompt('> ');
         }
       }

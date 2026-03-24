@@ -59,7 +59,7 @@ describe('CourseReadService', () => {
 
     await expect(service.listCourses('org-1')).resolves.toEqual(courses);
     expect(mockPrisma.course.findMany).toHaveBeenCalledWith({
-      where: { orgId: 'org-1' },
+      where: { orgId: 'org-1', archivedAt: null },
       orderBy: { createdAt: 'desc' },
     });
   });

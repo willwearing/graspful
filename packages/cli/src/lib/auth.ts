@@ -23,10 +23,13 @@ export function resolveCredentials(): Credentials {
     return { apiKey, baseUrl };
   }
 
-  // 2. Stored credentials (interactive mode)
+  // 2. Stored credentials (interactive or registered)
   if (fs.existsSync(CREDENTIALS_PATH)) {
     try {
       const stored = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
+      if (stored.apiKey) {
+        return { apiKey: stored.apiKey, baseUrl: stored.baseUrl || baseUrl };
+      }
       return { jwt: stored.jwt, baseUrl: stored.baseUrl || baseUrl };
     } catch {
       // Invalid file
@@ -44,6 +47,18 @@ export function saveCredentials(jwt: string, baseUrl?: string): void {
   fs.writeFileSync(
     CREDENTIALS_PATH,
     JSON.stringify({ jwt, baseUrl: baseUrl || getBaseUrl() }, null, 2),
+    { mode: 0o600 },
+  );
+}
+
+export function saveApiKeyCredentials(apiKey: string, baseUrl?: string): void {
+  const dir = path.dirname(CREDENTIALS_PATH);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  }
+  fs.writeFileSync(
+    CREDENTIALS_PATH,
+    JSON.stringify({ apiKey, baseUrl: baseUrl || getBaseUrl() }, null, 2),
     { mode: 0o600 },
   );
 }

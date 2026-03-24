@@ -10,7 +10,7 @@ import {
   Logger,
   UseGuards,
 } from '@nestjs/common';
-import { SupabaseAuthGuard } from '@/auth';
+import { SupabaseAuthGuard, JwtOrApiKeyGuard } from '@/auth';
 import { BrandsService } from './brands.service';
 import { VercelDomainsService } from './vercel-domains.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
@@ -46,7 +46,7 @@ export class BrandsController {
   }
 
   @Post()
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(JwtOrApiKeyGuard)
   async create(@Body() dto: CreateBrandDto) {
     const brand = await this.brandsService.create(dto);
 

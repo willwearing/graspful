@@ -95,6 +95,64 @@ export default function MCPPage() {
         MCP-compatible agent can create, validate, review, and publish courses.
       </p>
 
+      {/* Getting your API key */}
+      <section className="mt-12">
+        <h2 className="text-2xl font-bold text-foreground" id="api-key">
+          Getting your API key
+        </h2>
+        <p className="mt-2 text-muted-foreground">
+          The MCP server requires a <InlineCode>GRASPFUL_API_KEY</InlineCode> to
+          call the Graspful API. There are three ways to get one:
+        </p>
+        <div className="mt-4 space-y-3">
+          <div className="flex items-start gap-4 rounded-lg border border-border/30 bg-card px-4 py-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+              1
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">
+                Web dashboard
+              </p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Go to{" "}
+                <InlineCode>graspful.com</InlineCode> &rarr; API Keys and create
+                a new key.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-4 rounded-lg border border-border/30 bg-card px-4 py-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+              2
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">
+                CLI register
+              </p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Run{" "}
+                <InlineCode>graspful register --email you@example.com --password &quot;...&quot;</InlineCode>{" "}
+                to create a new account. The API key is returned in the response
+                and saved automatically.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-4 rounded-lg border border-border/30 bg-card px-4 py-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+              3
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">
+                Credentials file
+              </p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                If you have already logged in or registered, find your key in{" "}
+                <InlineCode>~/.graspful/credentials.json</InlineCode>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Setup */}
       <section className="mt-12">
         <h2 className="text-2xl font-bold text-foreground" id="setup">
@@ -102,7 +160,8 @@ export default function MCPPage() {
         </h2>
         <p className="mt-2 text-muted-foreground">
           Configure the MCP server in your agent. The server reads{" "}
-          <InlineCode>GRASPFUL_API_KEY</InlineCode> and{" "}
+          <InlineCode>GRASPFUL_API_KEY</InlineCode>,{" "}
+          <InlineCode>GRASPFUL_ORG</InlineCode>, and{" "}
           <InlineCode>GRASPFUL_API_URL</InlineCode> from environment variables.
         </p>
 
@@ -122,7 +181,8 @@ export default function MCPPage() {
       "command": "npx",
       "args": ["-y", "@graspful/mcp"],
       "env": {
-        "GRASPFUL_API_KEY": "gsk_your_key_here"
+        "GRASPFUL_API_KEY": "gsk_your_key_here",
+        "GRASPFUL_ORG": "your-org-slug"
       }
     }
   }
@@ -145,7 +205,8 @@ export default function MCPPage() {
       "command": "npx",
       "args": ["-y", "@graspful/mcp"],
       "env": {
-        "GRASPFUL_API_KEY": "gsk_your_key_here"
+        "GRASPFUL_API_KEY": "gsk_your_key_here",
+        "GRASPFUL_ORG": "your-org-slug"
       }
     }
   }
@@ -165,7 +226,8 @@ export default function MCPPage() {
       "command": "npx",
       "args": ["-y", "@graspful/mcp"],
       "env": {
-        "GRASPFUL_API_KEY": "gsk_your_key_here"
+        "GRASPFUL_API_KEY": "gsk_your_key_here",
+        "GRASPFUL_ORG": "your-org-slug"
       }
     }
   }
@@ -188,7 +250,8 @@ export default function MCPPage() {
       "command": "npx",
       "args": ["-y", "@graspful/mcp"],
       "env": {
-        "GRASPFUL_API_KEY": "gsk_your_key_here"
+        "GRASPFUL_API_KEY": "gsk_your_key_here",
+        "GRASPFUL_ORG": "your-org-slug"
       }
     }
   }

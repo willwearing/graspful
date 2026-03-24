@@ -6,13 +6,14 @@ import { ArrowRight } from "lucide-react";
 export const metadata: Metadata = {
   title: "Quickstart — Graspful Docs",
   description:
-    "Create and publish your first adaptive learning course in 5 minutes. Install the CLI, scaffold, fill, review, and import.",
+    "Create and publish your first adaptive learning course in 5 minutes. Register, import a course, and go live.",
   keywords: [
     "graspful quickstart",
     "graspful tutorial",
     "create course",
     "adaptive learning",
     "CLI quickstart",
+    "graspful register",
   ],
 };
 
@@ -29,8 +30,96 @@ export default function QuickstartPage() {
 
       {/* Step 1 */}
       <section className="mt-12">
+        <h2 className="text-2xl font-bold text-foreground" id="register">
+          1. Register
+        </h2>
+        <p className="mt-2 text-muted-foreground">
+          Create an account and get an API key. You can register via the API or
+          the CLI.
+        </p>
+        <CodeBlock language="bash">
+          {`# Via the API
+curl -X POST https://api.graspful.com/auth/register \\
+  -H "Content-Type: application/json" \\
+  -d '{"email":"you@example.com","password":"..."}'
+# → { "apiKey": "gsk_...", "orgSlug": "you-example" }
+
+# Or via the CLI
+graspful register --email you@example.com --password "..."`}
+        </CodeBlock>
+        <p className="mt-3 text-sm text-muted-foreground">
+          The CLI saves your credentials automatically so you can skip the login
+          step.
+        </p>
+      </section>
+
+      {/* Step 2 */}
+      <section className="mt-12">
+        <h2 className="text-2xl font-bold text-foreground" id="import">
+          2. Import a course
+        </h2>
+        <p className="mt-2 text-muted-foreground">
+          Import a course YAML into your org. Use the API directly or the CLI.
+        </p>
+        <CodeBlock language="bash">
+          {`# Via the API
+curl -X POST https://api.graspful.com/api/v1/orgs/you-example/courses/import \\
+  -H "Authorization: Bearer gsk_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{"yaml": "..."}'
+
+# Or via the CLI
+graspful import course.yaml --org you-example`}
+        </CodeBlock>
+      </section>
+
+      {/* Step 3 */}
+      <section className="mt-12">
+        <h2 className="text-2xl font-bold text-foreground" id="live">
+          3. Your course is live!
+        </h2>
+        <p className="mt-2 text-muted-foreground">
+          Visit your org subdomain to see it in action.
+        </p>
+        <CodeBlock language="bash">
+          {`# Your course is live at:
+https://you-example.graspful.com`}
+        </CodeBlock>
+      </section>
+
+      {/* Web UI alternative */}
+      <section className="mt-12 rounded-xl border border-border/50 bg-card p-6">
+        <h2 className="text-lg font-bold text-foreground mb-2">
+          Prefer a web UI?
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Sign up at{" "}
+          <Link
+            href="https://graspful.com"
+            className="text-primary hover:underline"
+          >
+            graspful.com
+          </Link>{" "}
+          and manage courses from the Creator Dashboard. Everything available via
+          the API and CLI is also available in the UI.
+        </p>
+      </section>
+
+      {/* Authoring workflow */}
+      <section className="mt-16">
+        <h2 className="text-2xl font-bold text-foreground" id="authoring">
+          Full authoring workflow
+        </h2>
+        <p className="mt-2 text-muted-foreground max-w-2xl">
+          If you want to create a course from scratch, the CLI provides the full
+          scaffold-fill-review-import pipeline.
+        </p>
+      </section>
+
+      {/* Step A */}
+      <section className="mt-12">
         <h2 className="text-2xl font-bold text-foreground" id="install">
-          1. Install the CLI
+          A. Install the CLI
         </h2>
         <p className="mt-2 text-muted-foreground">
           Install globally with bun or use npx to run without installing.
@@ -44,27 +133,10 @@ npx @graspful/cli`}
         </CodeBlock>
       </section>
 
-      {/* Step 2 */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="login">
-          2. Log in
-        </h2>
-        <p className="mt-2 text-muted-foreground">
-          Authenticate with your Graspful account. You can pass an API key
-          directly or use the interactive prompt.
-        </p>
-        <CodeBlock language="bash">
-          {`graspful login
-
-# Or pass a token directly
-graspful login --token <your-api-key>`}
-        </CodeBlock>
-      </section>
-
-      {/* Step 3 */}
+      {/* Step B */}
       <section className="mt-12">
         <h2 className="text-2xl font-bold text-foreground" id="scaffold">
-          3. Scaffold a course
+          B. Scaffold a course
         </h2>
         <p className="mt-2 text-muted-foreground">
           Generate the knowledge graph skeleton — sections, concepts, and
@@ -84,10 +156,10 @@ graspful login --token <your-api-key>`}
         </p>
       </section>
 
-      {/* Step 4 */}
+      {/* Step C */}
       <section className="mt-12">
         <h2 className="text-2xl font-bold text-foreground" id="fill">
-          4. Fill concepts
+          C. Fill concepts
         </h2>
         <p className="mt-2 text-muted-foreground">
           Add knowledge points and practice problems to each concept. The CLI
@@ -108,10 +180,10 @@ graspful fill concept aws-saa-c03.yaml vpc-basics --kps 3 --problems 4`}
         </p>
       </section>
 
-      {/* Step 5 */}
+      {/* Step D */}
       <section className="mt-12">
         <h2 className="text-2xl font-bold text-foreground" id="review">
-          5. Review
+          D. Review
         </h2>
         <p className="mt-2 text-muted-foreground">
           Run all 10 mechanical quality checks. Fix any failures before
@@ -134,10 +206,10 @@ graspful fill concept aws-saa-c03.yaml vpc-basics --kps 3 --problems 4`}
         </p>
       </section>
 
-      {/* Step 6 */}
+      {/* Step E */}
       <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="import">
-          6. Import and publish
+        <h2 className="text-2xl font-bold text-foreground" id="publish">
+          E. Import and publish
         </h2>
         <p className="mt-2 text-muted-foreground">
           Import the course YAML to the platform. Use{" "}
@@ -155,10 +227,10 @@ graspful import aws-saa-c03.yaml --org my-org --publish`}
         </CodeBlock>
       </section>
 
-      {/* Step 7 */}
+      {/* Step F */}
       <section className="mt-12">
         <h2 className="text-2xl font-bold text-foreground" id="brand">
-          7. Create a brand
+          F. Create a brand
         </h2>
         <p className="mt-2 text-muted-foreground">
           Generate a brand YAML to configure the landing page, theme, pricing,
