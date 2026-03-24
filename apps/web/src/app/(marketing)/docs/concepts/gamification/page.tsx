@@ -66,10 +66,11 @@ export default function GamificationPage() {
           </li>
         </ul>
         <p className="mt-4 text-muted-foreground">
-          The target calibration is roughly{" "}
-          <strong className="text-foreground">1 XP per minute of quality
-          study</strong>. A focused 30-minute session should earn around 30 XP.
-          This keeps the numbers intuitive for learners and administrators.
+          XP scales with{" "}
+          <strong className="text-foreground">problem difficulty and activity
+          type</strong>. Harder concepts and lower memory strength increase the
+          payout. A daily cap of 500 XP and a 2-second minimum response time
+          gate prevent gaming.
         </p>
       </section>
 
@@ -197,8 +198,8 @@ review_xp: 3     # still fresh-ish, lower XP`}
               prevents marathon grinding sessions. Research shows that
               distributed practice (spreading study across days) dramatically
               outperforms massed practice (cramming). The cap nudges students
-              toward the better strategy. At ~1 XP/minute, 500 XP represents
-              roughly 8 hours of study, well beyond a healthy daily session.
+              toward the better strategy. The cap is generous enough that
+              no normal study session will hit it.
             </p>
           </div>
         </div>
@@ -286,7 +287,7 @@ total_estimated_minutes: 2400    # from course.estimatedHours
 completed_minutes: 960           # based on mastered concepts
 remaining_minutes: 1440
 
-daily_xp_target: 30              # ~30 min/day at 1 XP/min
+daily_xp_target: 30              # ~30 min/day target
 projected_days_remaining: 48
 projected_completion: "2026-05-10"
 

@@ -44,8 +44,26 @@ export default function HowItWorksPage() {
           behind knowledge graphs, mastery-based progression, Bayesian
           diagnostics, and spaced repetition in rigorous detail. We&apos;re trying
           to take those ideas and build an engine that anyone can use, for any
-          subject, with AI agents doing the heavy lifting. If you want to understand{" "}
-          <em>why</em> Graspful works the way it does, start there.
+          subject, with AI agents doing the heavy lifting. The core algorithms
+          draw from established research: BKT from{" "}
+          <a
+            href="https://doi.org/10.1007/BF01099821"
+            className="text-primary hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Corbett &amp; Anderson (1994)
+          </a>
+          , information-theoretic question selection from standard{" "}
+          <a
+            href="https://en.wikipedia.org/wiki/Bayesian_experimental_design"
+            className="text-primary hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Bayesian experimental design
+          </a>
+          , and spaced repetition from decades of memory research.
         </p>
       </div>
 
@@ -106,7 +124,11 @@ export default function HowItWorksPage() {
           gain per question drops below a threshold, so strong students finish
           fast and weaker students get a more thorough assessment. The result is
           a complete mastery map: every concept is marked as mastered, in
-          progress, or unstarted.
+          progress, or unstarted. The diagnostic also propagates evidence
+          through the graph — a correct answer on an advanced concept gives
+          partial credit to its prerequisites (with a decay factor per hop),
+          and an incorrect answer propagates doubt to dependents. This means
+          the diagnostic learns more per question than a flat quiz would.
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
           <Link
@@ -189,11 +211,13 @@ export default function HowItWorksPage() {
         <p className="mt-2 text-muted-foreground">
           Each concept is broken into 2-4{" "}
           <strong className="text-foreground">knowledge points (KPs)</strong>{" "}
-          that form a progressive staircase. KP1 is recognition: can you
-          identify the concept? KP2 is guided application: can you use it with
-          support? KP3 is transfer: can you apply it to a novel scenario? Each
-          KP has its own instruction text, worked example, and practice
-          problems. Students climb one step at a time, and the engine only
+          that form a progressive staircase. The recommended pattern is
+          recognition (can you identify the concept?), guided application (can
+          you use it with support?), then transfer (can you apply it to a novel
+          scenario?) — though this is a content authoring guideline, not
+          something the engine enforces. Each KP has its own instruction text,
+          worked example, and practice problems. Students climb one step at a
+          time, and the engine only
           advances to the next KP after mastery of the current one (two
           consecutive correct answers). This staircase structure prevents the
           common problem of presenting complex material before the student is
@@ -308,14 +332,14 @@ export default function HowItWorksPage() {
           Consistent engagement is what separates students who finish from those
           who drop off. Graspful drives engagement with three mechanics:{" "}
           <strong className="text-foreground">XP</strong> (experience points
-          calibrated to ~1 XP per minute of study),{" "}
+          that scale with difficulty and time spent),{" "}
           <strong className="text-foreground">streaks</strong> (consecutive days
           of practice), and{" "}
-          <strong className="text-foreground">leaderboards</strong> (weekly and
-          all-time rankings per course). XP is earned for completing practice
+          <strong className="text-foreground">leaderboards</strong> (weekly
+          rankings per course). XP is earned for completing practice
           problems, finishing KPs, passing section exams, and completing reviews.
-          The calibration is deliberate: students can estimate their study time
-          by looking at their XP total.
+          A daily cap of 500 XP and a minimum response time gate prevent
+          gaming.
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
           <Link

@@ -198,7 +198,7 @@ const sectionGroups = [
         icon: TrendingUp,
         title: "Learning Staircase",
         description:
-          "Knowledge points with progressive difficulty — recognition, guided application, independent transfer.",
+          "Knowledge points with progressive difficulty — structured as a staircase from simple to complex.",
       },
     ],
   },

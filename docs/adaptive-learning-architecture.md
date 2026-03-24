@@ -102,7 +102,7 @@ We studied Math Academy (mathacademy.com) extensively. Here's what we're borrowi
 | Adaptive diagnostic assessment | Same approach: select questions that maximize information about the graph |
 | Mastery enforcement with plateau detection | Same: can't advance without prerequisites, remediation on failure |
 | Minimum effective dose instruction | Audio explanation + worked example + practice problems |
-| XP system calibrated to ~1 XP per minute | Same gamification model |
+| XP system scaled by difficulty and activity type | Same gamification model |
 | Timed broad-coverage quizzes | Same: periodic quizzes across recent material |
 
 ### What We're Adapting
