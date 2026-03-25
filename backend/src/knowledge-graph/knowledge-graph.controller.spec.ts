@@ -152,6 +152,7 @@ describe('KnowledgeGraphController', () => {
       };
       mockImporter.importFromYaml.mockResolvedValue(importResult);
       mockImporter.parseCourseYaml.mockReturnValue({ course: { id: 'test', name: 'Test' } });
+      mockPrisma.brand.findFirst.mockResolvedValue({ domain: 'test-org.graspful.com' });
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
       const body = {
@@ -161,7 +162,10 @@ describe('KnowledgeGraphController', () => {
       };
       const result = await controller.importCourse(body, orgCtx as any);
 
-      expect(result).toEqual(importResult);
+      expect(result.courseId).toBe('c1');
+      expect(result.published).toBe(false);
+      expect(result.url).toBeTruthy();
+      expect(typeof result.url).toBe('string');
       expect(mockImporter.importFromYaml).toHaveBeenCalledWith(body.yaml, 'org-1', {
         replace: true,
         archiveMissing: true,
@@ -190,17 +194,52 @@ describe('KnowledgeGraphController', () => {
       mockImporter.parseCourseYaml.mockReturnValue(parsedYaml);
       mockReviewService.review.mockReturnValue(reviewResult);
       mockImporter.importFromYaml.mockResolvedValue(importResult);
+      mockPrisma.brand.findFirst.mockResolvedValue({ domain: 'test-org.graspful.com' });
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
       const body = { yaml: 'course:\n  id: test', publish: true };
       const result = await controller.importCourse(body, orgCtx as any);
 
       expect(result.review).toEqual(reviewResult);
+      expect(result.published).toBe(true);
+      expect(result.url).toBeTruthy();
       expect(mockImporter.importFromYaml).toHaveBeenCalledWith(
         body.yaml,
         'org-1',
         { replace: undefined, archiveMissing: undefined, isPublished: true },
       );
+    });
+
+    it('should set published=false and include reviewFailures when review fails', async () => {
+      const parsedYaml = { concepts: [], sections: [], course: { id: 'test' } };
+      const reviewResult = {
+        passed: false,
+        score: '3/10',
+        failures: ['check1 failed', 'missing prerequisites'],
+        warnings: [],
+        stats: { concepts: 0, kps: 0, problems: 0 },
+      };
+      const importResult = {
+        courseId: 'c1',
+        conceptCount: 0,
+        knowledgePointCount: 0,
+        problemCount: 0,
+        prerequisiteEdgeCount: 0,
+        encompassingEdgeCount: 0,
+        warnings: [],
+      };
+
+      mockImporter.parseCourseYaml.mockReturnValue(parsedYaml);
+      mockReviewService.review.mockReturnValue(reviewResult);
+      mockImporter.importFromYaml.mockResolvedValue(importResult);
+
+      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
+      const body = { yaml: 'course:\n  id: test', publish: true };
+      const result = await controller.importCourse(body, orgCtx as any);
+
+      expect(result.published).toBe(false);
+      expect(result.reviewFailures).toEqual(['check1 failed', 'missing prerequisites']);
+      expect(result.review).toEqual(reviewResult);
     });
   });
 
@@ -270,6 +309,60 @@ describe('KnowledgeGraphController', () => {
         where: { id: 'c1' },
         data: { archivedAt: expect.any(Date) },
       });
+    });
+  });
+
+  describe('publishCourse', () => {
+    it('should return courseId and url in response', async () => {
+      const courseId = 'c1';
+      const course = { id: courseId, slug: 'test-course', name: 'Test', description: null, version: '1.0', estimatedHours: 10 };
+      const sections = [{ id: 's1', slug: 'section-1', name: 'Section 1', description: null }];
+      const concepts = [
+        { id: 'con1', slug: 'concept-a', name: 'A', sectionId: 's1', difficulty: 3, estimatedMinutes: 10, tags: [], sourceReference: null },
+      ];
+      const prereqs: Array<{ sourceConceptId: string; targetConceptId: string }> = [];
+      const conceptDetail = {
+        id: 'con1',
+        slug: 'concept-a',
+        name: 'A',
+        sectionId: 's1',
+        difficulty: 3,
+        estimatedMinutes: 10,
+        tags: [],
+        sourceReference: null,
+        knowledgePoints: [],
+        prerequisiteFor: [],
+      };
+      const reviewResult = {
+        passed: true,
+        score: '10/10',
+        failures: [],
+        warnings: [],
+        stats: { concepts: 1, kps: 0, problems: 0 },
+      };
+
+      mockPrisma.course.findFirst.mockResolvedValue(course);
+      mockCourseReads.getCourseGraph.mockResolvedValue({
+        course,
+        sections,
+        concepts,
+        prerequisiteEdges: prereqs,
+        encompassingEdges: [],
+      });
+      mockCourseReads.getConceptDetail.mockResolvedValue(conceptDetail);
+      mockReviewService.review.mockReturnValue(reviewResult);
+      mockPrisma.course.update.mockResolvedValue({ ...course, isPublished: true });
+      mockPrisma.organization.findUnique.mockResolvedValue({ slug: 'test-org' });
+      mockPrisma.brand.findFirst.mockResolvedValue({ domain: 'test.graspful.com' });
+
+      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
+      const result = await controller.publishCourse(courseId, orgCtx as any);
+
+      expect(result.courseId).toBe(courseId);
+      expect(result.published).toBe(true);
+      expect(result.url).toContain('test.graspful.com');
+      expect(result.url).toContain(courseId);
+      expect(result.review).toEqual(reviewResult);
     });
   });
 

@@ -76,12 +76,25 @@ export function registerImportCommand(program: Command) {
           process.exit(1);
         }
       } else {
-        // Brand import
+        // Brand import — unwrap YAML structure to flat DTO
         try {
-          const brandData = raw as Record<string, unknown>;
+          const parsed = raw as Record<string, unknown>;
+          const brandSection = (parsed.brand || {}) as Record<string, unknown>;
+          const dto = {
+            slug: brandSection.id || brandSection.slug,
+            name: brandSection.name,
+            domain: brandSection.domain,
+            tagline: brandSection.tagline || '',
+            logoUrl: (brandSection.logoUrl as string) || '/logo.svg',
+            orgSlug: brandSection.orgSlug,
+            theme: parsed.theme || {},
+            landing: parsed.landing || {},
+            seo: parsed.seo || {},
+            pricing: parsed.pricing || {},
+          };
           const result = await api.post<{ slug: string; domain: string; verificationStatus: string }>(
             '/api/v1/brands',
-            brandData,
+            dto,
           );
 
           output(

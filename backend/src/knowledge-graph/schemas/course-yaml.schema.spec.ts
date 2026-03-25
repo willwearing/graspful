@@ -1,4 +1,5 @@
 import { CourseYamlSchema } from './course-yaml.schema';
+import { CourseYamlSchema as SharedCourseYamlSchema } from '../../../../packages/shared/src/schemas/course-yaml.schema';
 
 describe('CourseYamlSchema', () => {
   it('should validate a minimal valid course', () => {
@@ -220,6 +221,47 @@ describe('CourseYamlSchema', () => {
     };
     const result = CourseYamlSchema.safeParse(input);
     expect(result.success).toBe(true);
+  });
+
+  it('should coerce null/boolean option values to strings (shared schema)', () => {
+    const input = {
+      course: {
+        id: 'test-course',
+        name: 'Test Course',
+        estimatedHours: 10,
+        version: '1.0',
+      },
+      concepts: [
+        {
+          id: 'concept-1',
+          name: 'Concept 1',
+          difficulty: 3,
+          estimatedMinutes: 15,
+          tags: ['tag1'],
+          knowledgePoints: [
+            {
+              id: 'kp-1',
+              problems: [
+                {
+                  id: 'p-1',
+                  type: 'multiple_choice',
+                  question: 'Which values are falsy?',
+                  options: [null, true, false, 'some string'],
+                  correct: 0,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = SharedCourseYamlSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const options = result.data.concepts[0].knowledgePoints[0].problems[0].options;
+      expect(options).toEqual(['null', 'true', 'false', 'some string']);
+    }
   });
 
   it('should reject section exam blueprint concepts outside the section', () => {
