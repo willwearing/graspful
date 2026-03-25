@@ -1,6 +1,6 @@
 {
   "name": "@graspful/mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "MCP server for Graspful — create adaptive learning courses from AI agents",
   "keywords": ["mcp", "mcp-server", "graspful", "course", "course-creation", "adaptive-learning", "ai-agent", "knowledge-graph", "spaced-repetition", "edtech", "education", "yaml", "lms", "model-context-protocol"],
   "repository": {
