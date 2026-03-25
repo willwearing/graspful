@@ -22,12 +22,12 @@ export function generateLlmsTxt(input: LlmsTxtInput): string {
     "",
     `## Links`,
     "",
-    `- Website: https://${input.domain}`,
-    `- AI Agents: https://${input.domain}/agents`,
+    `- Get Started: npx @graspful/cli init`,
     `- Documentation: https://${input.domain}/docs`,
     `- Quickstart: https://${input.domain}/docs/quickstart`,
+    `- AI Agents: https://${input.domain}/agents`,
+    `- Full Docs for LLMs: https://${input.domain}/llms-full.txt`,
     `- Pricing: https://${input.domain}/pricing`,
-    `- Sign Up: https://${input.domain}/sign-up`,
   ];
   return lines.join("\n");
 }
