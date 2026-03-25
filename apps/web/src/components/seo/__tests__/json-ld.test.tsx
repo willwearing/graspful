@@ -91,7 +91,7 @@ describe("WebSiteJsonLd", () => {
     const { container } = render(
       <WebSiteJsonLd
         name="Graspful"
-        url="https://graspful.com"
+        url="https://graspful.ai"
         description="Course creation platform for AI agents"
       />,
     );
@@ -103,7 +103,7 @@ describe("WebSiteJsonLd", () => {
     expect(data["@type"]).toBe("WebSite");
     expect(data["@context"]).toBe("https://schema.org");
     expect(data.name).toBe("Graspful");
-    expect(data.url).toBe("https://graspful.com");
+    expect(data.url).toBe("https://graspful.ai");
     expect(data.potentialAction["@type"]).toBe("SearchAction");
   });
 });
@@ -114,7 +114,7 @@ describe("SoftwareApplicationJsonLd", () => {
       <SoftwareApplicationJsonLd
         name="Graspful"
         description="Course creation platform"
-        url="https://graspful.com"
+        url="https://graspful.ai"
         applicationCategory="EducationalApplication"
         operatingSystem="Web"
         offers={{ price: 0, priceCurrency: "USD" }}

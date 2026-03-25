@@ -13,7 +13,7 @@ async function getBaseUrl(): Promise<string> {
   } catch {
     // static export or build time — fall back to env
   }
-  return process.env.NEXT_PUBLIC_SITE_URL || "https://graspful.com";
+  return process.env.NEXT_PUBLIC_SITE_URL || "https://graspful.ai";
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

@@ -4,26 +4,26 @@
 
 ## Docs
 
-- [How Graspful Works](https://graspful.com/docs/how-it-works): Conceptual overview of the adaptive learning engine
-- [Quickstart](https://graspful.com/docs/quickstart): Create and publish a course in 5 minutes
-- [Course Creation Guide](https://graspful.com/docs/course-creation-guide): Step-by-step guide to building a course
-- [CLI Reference](https://graspful.com/docs/cli): Full CLI command reference
-- [MCP Server](https://graspful.com/docs/mcp): MCP server setup for AI agents
-- [Course Schema](https://graspful.com/docs/course-schema): YAML schema for courses
-- [Brand Schema](https://graspful.com/docs/brand-schema): YAML schema for white-label brands
-- [Review Gate](https://graspful.com/docs/review-gate): 10 quality checks for publishing
-- [Billing](https://graspful.com/docs/billing): 70/30 revenue share via Stripe Connect
-- [Glossary](https://graspful.com/docs/glossary): Definitions for all platform concepts
+- [How Graspful Works](https://graspful.ai/docs/how-it-works): Conceptual overview of the adaptive learning engine
+- [Quickstart](https://graspful.ai/docs/quickstart): Create and publish a course in 5 minutes
+- [Course Creation Guide](https://graspful.ai/docs/course-creation-guide): Step-by-step guide to building a course
+- [CLI Reference](https://graspful.ai/docs/cli): Full CLI command reference
+- [MCP Server](https://graspful.ai/docs/mcp): MCP server setup for AI agents
+- [Course Schema](https://graspful.ai/docs/course-schema): YAML schema for courses
+- [Brand Schema](https://graspful.ai/docs/brand-schema): YAML schema for white-label brands
+- [Review Gate](https://graspful.ai/docs/review-gate): 10 quality checks for publishing
+- [Billing](https://graspful.ai/docs/billing): 70/30 revenue share via Stripe Connect
+- [Glossary](https://graspful.ai/docs/glossary): Definitions for all platform concepts
 
 ## Concepts
 
-- [Knowledge Graph](https://graspful.com/docs/concepts/knowledge-graph): Prerequisites, encompassing edges, and the knowledge frontier
-- [Mastery Learning](https://graspful.com/docs/concepts/mastery-learning): Bayesian Knowledge Tracing and mastery states
-- [Adaptive Diagnostics](https://graspful.com/docs/concepts/adaptive-diagnostics): MEPE question selection and evidence propagation
-- [Spaced Repetition](https://graspful.com/docs/concepts/spaced-repetition): FIRe algorithm and implicit repetition
-- [Task Selection](https://graspful.com/docs/concepts/task-selection): Priority-based learning with remediation
-- [Gamification](https://graspful.com/docs/concepts/gamification): XP, streaks, and engagement
-- [Learning Staircase](https://graspful.com/docs/concepts/learning-staircase): Knowledge points and scaffolding
+- [Knowledge Graph](https://graspful.ai/docs/concepts/knowledge-graph): Prerequisites, encompassing edges, and the knowledge frontier
+- [Mastery Learning](https://graspful.ai/docs/concepts/mastery-learning): Bayesian Knowledge Tracing and mastery states
+- [Adaptive Diagnostics](https://graspful.ai/docs/concepts/adaptive-diagnostics): MEPE question selection and evidence propagation
+- [Spaced Repetition](https://graspful.ai/docs/concepts/spaced-repetition): FIRe algorithm and implicit repetition
+- [Task Selection](https://graspful.ai/docs/concepts/task-selection): Priority-based learning with remediation
+- [Gamification](https://graspful.ai/docs/concepts/gamification): XP, streaks, and engagement
+- [Learning Staircase](https://graspful.ai/docs/concepts/learning-staircase): Knowledge points and scaffolding
 
 ## API
 

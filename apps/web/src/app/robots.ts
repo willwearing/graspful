@@ -14,7 +14,7 @@ async function getBaseUrl(): Promise<string> {
   } catch {
     // static export or build time
   }
-  return process.env.NEXT_PUBLIC_SITE_URL || "https://graspful.com";
+  return process.env.NEXT_PUBLIC_SITE_URL || "https://graspful.ai";
 }
 
 export default async function robots(): Promise<MetadataRoute.Robots> {

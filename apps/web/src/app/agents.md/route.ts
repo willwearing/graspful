@@ -21,7 +21,7 @@ export async function GET() {
       "npx @graspful/cli init",
       "```",
       "",
-      "Full documentation: https://graspful.com/llms-full.txt",
+      "Full documentation: https://graspful.ai/llms-full.txt",
     ].join("\n");
   }
 
