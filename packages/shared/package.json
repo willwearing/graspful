@@ -1,17 +1,27 @@
 {
   "name": "@graspful/shared",
-  "private": true,
-  "version": "0.0.1",
+  "version": "0.2.1",
+  "description": "Shared schemas and types for the Graspful platform",
   "main": "./dist/index.js",
-  "devDependencies": {
-    "typescript": "^5.7.0"
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/willwearing/graspful.git",
+    "directory": "packages/shared"
   },
+  "homepage": "https://graspful.ai",
   "scripts": {
     "build": "bun x tsc",
     "dev": "bun x tsc --watch"
   },
-  "types": "./dist/index.d.ts",
   "dependencies": {
     "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

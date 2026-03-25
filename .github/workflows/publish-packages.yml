@@ -54,8 +54,14 @@ jobs:
             echo "target=all" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build shared
+      - name: Build and publish @graspful/shared
         run: cd packages/shared && bun run build
+
+      - name: Publish @graspful/shared
+        if: github.event.inputs.dry_run != 'true'
+        run: cd packages/shared && bun publish --access public || echo "shared already published at this version"
+        env:
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Build CLI
         if: steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli'
