@@ -31,7 +31,7 @@ describe('graspful login', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('saves credentials with --token flag', async () => {
+  it('saves API key credentials when token starts with gsk_', async () => {
     const { registerLoginCommand } = await import('../login');
     const { Command } = await import('commander');
 
@@ -45,10 +45,29 @@ describe('graspful login', () => {
       '--api-url', 'http://localhost:3000',
     ]);
 
-    // Verify credentials were saved with the token as JWT
     expect(writeFileSyncSpy).toHaveBeenCalledTimes(1);
     const savedContent = JSON.parse(writeFileSyncSpy.mock.calls[0][1] as string);
-    expect(savedContent.jwt).toBe('gsk_my_api_key');
+    expect(savedContent.apiKey).toBe('gsk_my_api_key');
+    expect(savedContent.baseUrl).toBe('http://localhost:3000');
+  });
+
+  it('saves JWT credentials when token does not start with gsk_', async () => {
+    const { registerLoginCommand } = await import('../login');
+    const { Command } = await import('commander');
+
+    const program = new Command();
+    registerLoginCommand(program);
+
+    await program.parseAsync([
+      'node', 'graspful',
+      'login',
+      '--token', 'eyJhbGciOiJIUzI1NiJ9.test',
+      '--api-url', 'http://localhost:3000',
+    ]);
+
+    expect(writeFileSyncSpy).toHaveBeenCalledTimes(1);
+    const savedContent = JSON.parse(writeFileSyncSpy.mock.calls[0][1] as string);
+    expect(savedContent.jwt).toBe('eyJhbGciOiJIUzI1NiJ9.test');
     expect(savedContent.baseUrl).toBe('http://localhost:3000');
   });
 

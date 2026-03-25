@@ -34,6 +34,14 @@ export function registerRegisterCommand(program: Command) {
           } catch {
             if (body) message = body;
           }
+
+          // Add actionable hints based on status code
+          if (res.status === 409) {
+            message += '\nHint: Run `graspful login` to authenticate with an existing account.';
+          } else if (res.status === 429) {
+            message += '\nHint: Too many attempts. Wait a few minutes and try again.';
+          }
+
           outputError(message);
           process.exit(1);
         }
@@ -53,7 +61,11 @@ export function registerRegisterCommand(program: Command) {
         );
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        outputError(`Registration failed: ${msg}`);
+        if (msg.includes('ECONNREFUSED') || msg.includes('fetch failed') || msg.includes('ENOTFOUND')) {
+          outputError(`Could not reach the API at ${baseUrl}. Check your connection or use --api-url.`);
+        } else {
+          outputError(`Registration failed: ${msg}`);
+        }
         process.exit(1);
       }
     });

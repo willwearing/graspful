@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import * as readline from 'readline';
-import { saveCredentials, getBaseUrl } from '../lib/auth';
+import { saveCredentials, saveApiKeyCredentials, getBaseUrl } from '../lib/auth';
 import { output, outputError } from '../lib/output';
 
 function prompt(question: string): Promise<string> {
@@ -44,11 +44,16 @@ export function registerLoginCommand(program: Command) {
         process.exit(1);
       }
 
-      saveCredentials(token, baseUrl);
+      const isApiKey = token.startsWith('gsk_');
+      if (isApiKey) {
+        saveApiKeyCredentials(token, baseUrl);
+      } else {
+        saveCredentials(token, baseUrl);
+      }
 
       output(
-        { authenticated: true, baseUrl },
-        `Authenticated. Credentials saved for ${baseUrl}`,
+        { authenticated: true, baseUrl, tokenType: isApiKey ? 'apiKey' : 'jwt' },
+        `Authenticated${isApiKey ? ' (API key)' : ''}. Credentials saved for ${baseUrl}`,
       );
     });
 }

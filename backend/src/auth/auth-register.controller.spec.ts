@@ -10,6 +10,7 @@ describe('RegistrationService', () => {
   let mockPrisma: any;
   let mockApiKeyService: any;
   let mockConfig: any;
+  let mockVercelDomains: any;
   let mockSupabaseAdmin: any;
   let mockTx: any;
 
@@ -56,10 +57,15 @@ describe('RegistrationService', () => {
       }),
     };
 
+    mockVercelDomains = {
+      addDomain: jest.fn().mockResolvedValue({ name: 'test.graspful.com', verified: false }),
+    };
+
     service = new RegistrationService(
       mockPrisma,
       mockApiKeyService,
       mockConfig,
+      mockVercelDomains,
     );
 
     // Override the supabase client's admin API
