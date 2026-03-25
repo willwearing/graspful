@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BillingController } from './billing.controller';
 import { BillingService } from './billing.service';
-import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
+import { JwtOrApiKeyGuard, OrgMembershipGuard } from '@/auth';
 
 const mockGuard = { canActivate: () => true };
 
@@ -20,7 +20,7 @@ describe('BillingController', () => {
       controllers: [BillingController],
       providers: [{ provide: BillingService, useValue: mockBillingService }],
     })
-      .overrideGuard(SupabaseAuthGuard)
+      .overrideGuard(JwtOrApiKeyGuard)
       .useValue(mockGuard)
       .overrideGuard(OrgMembershipGuard)
       .useValue(mockGuard)
