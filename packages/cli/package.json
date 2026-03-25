@@ -8,7 +8,7 @@
     "url": "https://github.com/willwearing/graspful.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://graspful.com",
+  "homepage": "https://graspful.ai",
   "bin": {
     "graspful": "./dist/index.js"
   },

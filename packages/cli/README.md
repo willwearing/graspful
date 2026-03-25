@@ -303,7 +303,7 @@ graspful import course.yaml --org my-org
 
 ## Links
 
-- [Website](https://graspful.com)
+- [Website](https://graspful.ai)
 - [GitHub](https://github.com/willwearing/graspful)
 - [MCP Server (`@graspful/mcp`)](https://www.npmjs.com/package/@graspful/mcp)
 - [Content Authoring Guide](https://github.com/willwearing/graspful/tree/main/content)
