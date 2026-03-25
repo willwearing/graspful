@@ -128,9 +128,9 @@ graspful validate course.yaml --format json
 
 ## Links
 
-- Documentation: https://graspful.com/docs
-- CLI reference: https://graspful.com/docs/cli
-- MCP setup: https://graspful.com/docs/mcp
-- Course YAML schema: https://graspful.com/docs/course-schema
-- Brand YAML schema: https://graspful.com/docs/brand-schema
-- Full docs for LLMs: https://graspful.com/llms-full.txt
+- Documentation: https://graspful.ai/docs
+- CLI reference: https://graspful.ai/docs/cli
+- MCP setup: https://graspful.ai/docs/mcp
+- Course YAML schema: https://graspful.ai/docs/course-schema
+- Brand YAML schema: https://graspful.ai/docs/brand-schema
+- Full docs for LLMs: https://graspful.ai/llms-full.txt

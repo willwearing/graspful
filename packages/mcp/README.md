@@ -8,9 +8,9 @@ MCP server for creating adaptive learning courses. AI agents scaffold, validate,
 
 Part of [Graspful](https://graspful.ai) -- the agent-first adaptive learning platform. Courses are authored as two YAML files (graph structure + content), validated offline, then imported via API.
 
-## Quick Setup
+## Quick Start
 
-### Auto-configure (recommended)
+### 1. Configure your editor
 
 ```bash
 npx @graspful/cli init
@@ -18,25 +18,40 @@ npx @graspful/cli init
 
 Detects your editor (Claude Code, Cursor, Windsurf) and writes the MCP config automatically.
 
-### Manual
-
-Add to your editor's MCP config (see [Editor Configuration](#editor-configuration) below):
+Or add manually to your editor's MCP config (see [Editor Configuration](#editor-configuration) below):
 
 ```json
 {
   "mcpServers": {
     "graspful": {
       "command": "npx",
-      "args": ["@graspful/mcp"],
-      "env": {
-        "GRASPFUL_API_KEY": "gsk_your_key_here"
-      }
+      "args": ["@graspful/mcp"]
     }
   }
 }
 ```
 
-The API key is only needed for import/publish/list operations. Scaffold, fill, validate, review, and describe all work offline.
+### 2. Create an account
+
+Call the `graspful_register` tool with your email and password. This creates an account, org, and API key — all in one step, no browser needed.
+
+```
+graspful_register(email: "you@example.com", password: "your-password")
+```
+
+Or via CLI: `npx @graspful/cli register --email you@example.com --password your-password`
+
+### 3. Build a course
+
+```
+graspful_scaffold_course(topic: "Your Topic", estimatedHours: 10)
+→ edit the YAML
+graspful_validate(yaml: "...")
+graspful_review_course(yaml: "...")
+graspful_import_course(yaml: "...", org: "your-org", publish: true)
+```
+
+Scaffold, fill, validate, and review work offline — no account needed. You only need to register before importing or publishing.
 
 ## Available Tools
 
