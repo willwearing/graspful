@@ -1,7 +1,8 @@
-import { Injectable, ConflictException, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PrismaService } from '@/prisma/prisma.service';
+import { VercelDomainsService } from '@/brands/vercel-domains.service';
 import { ApiKeyService } from './api-key/api-key.service';
 import * as crypto from 'crypto';
 
@@ -14,6 +15,7 @@ export class RegistrationService {
     private prisma: PrismaService,
     private apiKeyService: ApiKeyService,
     private config: ConfigService,
+    private vercelDomains: VercelDomainsService,
   ) {
     this.supabase = createClient(
       this.config.getOrThrow('SUPABASE_URL'),
@@ -38,9 +40,20 @@ export class RegistrationService {
         code: (authError as any)?.code,
       });
       if (authError?.message?.includes('User already registered')) {
-        throw new ConflictException('An account with this email already exists');
+        throw new ConflictException('An account with this email already exists. Run `graspful login` to authenticate.');
       }
-      throw new InternalServerErrorException('Registration failed');
+      if (authError?.message?.includes('invalid') && authError?.message?.includes('email')) {
+        throw new BadRequestException('Invalid email address');
+      }
+      if (authError?.message?.includes('password') || authError?.message?.includes('weak')) {
+        throw new BadRequestException('Password must be at least 8 characters');
+      }
+      if (authError?.status === 429) {
+        throw new BadRequestException('Too many registration attempts. Try again later.');
+      }
+      throw new InternalServerErrorException(
+        `Registration failed: ${authError?.message || 'Unknown error'}`,
+      );
     }
 
     const supabaseUserId = authData.user.id;
@@ -55,7 +68,7 @@ export class RegistrationService {
     // Note: Supabase has an AFTER INSERT trigger on auth.users that auto-creates
     // a public.users row. We use upsert to handle the race gracefully.
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const txResult = await this.prisma.$transaction(async (tx) => {
         const user = await tx.user.upsert({
           where: { id: supabaseUserId },
           update: { email },
@@ -93,8 +106,17 @@ export class RegistrationService {
           data: { orgId: org.id, userId: user.id, name: 'default', keyHash, keyPrefix },
         });
 
-        return { userId: user.id, orgSlug: org.slug, apiKey: rawApiKey };
+        return { userId: user.id, orgSlug: org.slug, apiKey: rawApiKey, domain };
       });
+
+      // Provision the subdomain on Vercel (non-blocking — registration shouldn't fail if Vercel is down)
+      try {
+        await this.vercelDomains.addDomain(txResult.domain);
+      } catch (err) {
+        this.logger.warn(`Failed to provision domain ${txResult.domain} on Vercel: ${err}`);
+      }
+
+      return { userId: txResult.userId, orgSlug: txResult.orgSlug, apiKey: txResult.apiKey };
     } catch (error) {
       this.logger.error('Prisma transaction failed during registration', {
         message: (error as Error).message,

@@ -72,11 +72,14 @@ export class BrandsController {
       this.logger.warn(
         `Domain provisioning failed for ${dto.domain}, brand created without domain: ${error}`,
       );
+      const dnsInstructions =
+        await this.vercelDomainsService.getDnsInstructions(dto.domain);
       return {
         brand,
         domain: {
           verified: false,
           error: 'Domain provisioning failed. Configure DNS manually.',
+          dnsInstructions,
         },
       };
     }

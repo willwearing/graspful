@@ -24,6 +24,7 @@ export function scaffoldBrand(niche: string, options: { name?: string; domain?: 
       name,
       domain,
       tagline: config.tagline,
+      logoUrl: '/icon.svg',
       orgSlug: options.orgSlug || 'TODO: your-org-slug',
     },
     theme: {
@@ -53,6 +54,11 @@ export function scaffoldBrand(niche: string, options: { name?: string; domain?: 
         ],
       },
       faq: [],
+    },
+    pricing: {
+      monthly: 0,
+      currency: 'usd',
+      trialDays: 0,
     },
     seo: {
       title: `${name} — Adaptive Learning`,

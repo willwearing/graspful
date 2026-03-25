@@ -66,7 +66,7 @@ describe('graspful register', () => {
     // Verify fetch was called with correct endpoint and body
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     const fetchCall = (globalThis.fetch as any).mock.calls[0];
-    expect(fetchCall[0]).toBe('http://localhost:3000/auth/register');
+    expect(fetchCall[0]).toBe('http://localhost:3000/api/v1/auth/register');
     const fetchBody = JSON.parse(fetchCall[1].body);
     expect(fetchBody.email).toBe('test@example.com');
     expect(fetchBody.password).toBe('securepassword');
@@ -162,6 +162,6 @@ describe('graspful register', () => {
 
     expect(exitSpy).toHaveBeenCalledWith(1);
     const errorOutput = consoleErrorSpy.mock.calls.map((c: any[]) => c[0]).join('\n');
-    expect(errorOutput).toContain('ECONNREFUSED');
+    expect(errorOutput).toContain('Could not reach the API');
   });
 });

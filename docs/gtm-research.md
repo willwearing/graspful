@@ -1,6 +1,7 @@
 # Graspful Go-to-Market Research: Agent-First Distribution
 
-> Last updated: March 2026. All sources from December 2024 -- March 2026.
+> Last updated: March 25, 2026. All sources from December 2024 -- March 2026.
+> Incorporates insights from Kyle Poyar's "Inside the AI-Native Org" report (Growth Unhinged, March 2026) — interviews with founders of Clay, Gamma, HeyGen, Intercom/Fin.ai, Fireworks AI, bolt.new, GC AI, 7AI, AirOps, GrowthX, HappyRobot, Fyxer, and incident.io.
 
 ---
 
@@ -10,9 +11,12 @@ Graspful is an adaptive course creation platform where AI agents are the primary
 
 The opportunity is large: the e-learning market is $320B+ (2025) growing 14% annually, and the AI-in-education segment is growing 41% year-over-year ($5.88B in 2024 to $8.30B in 2025). But Graspful's competitive moat isn't in the LMS market -- it's in being the **first course creation platform built for agents to operate**. No competitor offers this.
 
-The strategy has two phases:
+The strategy has three phases:
 1. **Agent Engine Optimization (AEO)** -- make Graspful discoverable and selectable by AI agents
 2. **Human Discovery** -- reach the course creators and developer-educators who will instruct agents to use Graspful
+3. **Sales Motion Evolution** -- start self-serve + founder-led, layer in sales-assisted as demand warrants
+
+**Key insight from AI-native founders (Poyar, March 2026):** The median AI-native startup hits $1M ARR in just 12 months — 2x faster than traditional SaaS. PMF is binary, not gradual. AI quality is the most important early variable. And the winning GTM motion combines bottom-up discovery with top-down sales.
 
 ---
 
@@ -282,6 +286,92 @@ When agents need to find tools they don't already have:
 
 ---
 
+### 1.5 PMF Signals and AI Quality Measurement (from Poyar Report)
+
+#### PMF Is Binary for AI-Native Products
+
+Poyar's interviews reveal that PMF for AI-native companies is not gradual — it's obvious and immediate. Founders either felt extreme market pull or they didn't. The hard part was keeping up with demand, not finding it.
+
+**Key quotes from founders:**
+- bolt.new (Alexander Berger): "We felt PMF on day one. This just kept accelerating."
+- GrowthX (Marcel Santilli): "We had $2M in revenue and hadn't even announced the company yet." — 60% win rate, <30 day sales cycles, via workshops.
+- Gamma (Jon Noronha): "We saw growth without any marketing. The tickets were from people asking how to pay us."
+
+**What this means for Graspful:** Don't over-invest in distribution before the product creates undeniable pull. The AEO/registry work in Phase 1 is low-effort and correct, but if agents and users aren't coming back after first use, the problem is product quality, not discoverability. **PMF is the gate before scaling GTM spend.**
+
+#### How to Measure AI Quality
+
+AI-native companies measure whether their product actually works across four signal types (Poyar framework):
+
+| Signal Type | What to Measure | Graspful Equivalent |
+|-------------|----------------|---------------------|
+| **1. Explicit user signals** | Thumbs up/down, chat feedback, ratings | Post-session learner rating, course creator satisfaction survey after generation |
+| **2. Implicit user signals** | Edit intensity, sharing/exporting AI outputs, time spent editing | How much creators edit generated courses (less editing = better AI). Whether learners share courses. |
+| **3. Adoption signals** | DAU/MAU, consumption volume, DAU:MAU ratio | Courses created per creator per week. Study sessions per learner per day. CLI/MCP invocations per user. |
+| **4. Business impact signals** | Time savings vs manual, resolution rate, outcome delivery | Time to create a course (agent vs manual). Learner mastery improvement rate. Course completion rates. |
+
+**Graspful-specific quality gates to implement:**
+- Track "edit distance" between AI-generated course and final published version (lower = better AI)
+- Track learner mastery velocity on AI-generated vs manually-created courses
+- Track % of generated courses that get published (vs abandoned)
+- Add explicit feedback mechanism: thumbs up/down on generated concepts and knowledge points
+
+**Source:** Kyle Poyar, "How the top AI-native startups launch and grow," Growth Unhinged, March 25, 2026.
+
+#### Pricing: Charge More Than You Think
+
+Poyar's finding: price sensitivity drops dramatically when AI does real work. Gamma A/B tested and found the highest price ($20/mo) performed best — 2x a conventional productivity app. GC AI charges 20x the cost of a Claude subscription and people buy quickly.
+
+**What this means for Graspful:** The 70/30 revenue share model is fine for the marketplace, but for direct subscriptions (course creation tools), price aggressively. If the AI creates a course in 5 minutes that would take 40 hours manually, the value is enormous. Don't anchor to traditional LMS pricing ($29-99/mo). Anchor to the value of the outcome — hours saved, courses shipped, learner outcomes improved.
+
+**Action item:** When pricing the creator tier, test a premium price point ($49-99/mo) rather than racing to the bottom. AI products that do real work earn premium pricing.
+
+---
+
+### 1.6 Sales Motion Evolution (from Poyar Report)
+
+#### The Pattern: Self-Serve → Founder-Led → Sales-Assisted
+
+Poyar found a clear pattern across 13 AI-native companies:
+
+| Stage | ARR Range | Motion | Graspful Implication |
+|-------|-----------|--------|---------------------|
+| **Early** | $0 - $500K | Self-serve + founder-led | CLI/MCP is inherently self-serve. Supplement with founder workshops teaching "how to build courses with AI agents." |
+| **Growth** | $500K - $5M | Add first AE, but still mostly self-serve/founder-led | Don't hire sales early. The product should sell itself to individual creators. |
+| **Scale** | $5M+ | Sales-assisted, enterprise deals | Layer in sales for institutions (universities, certification bodies, training companies). |
+
+**Critical finding:** Only 1 of 13 AI-native companies stayed purely self-serve. Three-in-four eventually added sales-assisted motions. But they delayed it — the median company didn't hire their first AE until $2-5M ARR.
+
+#### Bottom-Up Discovery + Top-Down Sales
+
+The winning AI-native GTM motion threads both personas:
+
+1. **Bottom-up:** Individual course creators and developer-educators discover Graspful via MCP registries, GitHub, HN, etc. They love the product and use it.
+2. **Top-down flip:** These creators work at institutions (training companies, certification bodies, universities). Once they've proven it works, sell the transformation to their leadership: "What if your team shipped 10x more courses at higher quality?"
+
+**Key quote (AirOps, Matt Hammel):** "You have to attach it both to the end user level and the leadership level if you want to be ingrained. Just don't sell to AI committees; you'll get stuck in imaginary budget land."
+
+**Key quote (bolt.new, Alexander Berger):** "The paradox is that to get maximum value out of the tool, we actually need to engage in more of a top-down or traditional enterprise sale."
+
+#### Sell the Transformation, Not Features
+
+Poyar's founders designed early sales to feel like consulting, not feature demos. They're selling a business transformation powered by AI.
+
+**What this means for Graspful's messaging:**
+
+| Don't Say (Features) | Say Instead (Transformation) |
+|----------------------|------------------------------|
+| "YAML-defined knowledge graphs" | "Create a complete adaptive course in 5 minutes instead of 40 hours" |
+| "BKT + spaced repetition algorithm" | "Your learners master material 3x faster with personalized paths" |
+| "MCP server for AI agents" | "Your AI assistant can now build professional courses — no course design expertise needed" |
+| "70/30 revenue share marketplace" | "Ship courses to paying students this week, not next quarter" |
+
+**The GrowthX playbook is directly applicable:** Marcel Santilli hit $2M in revenue before announcing the company, by running workshops teaching people the DIY approach, then closing $150K contracts with a 60% win rate. Graspful could run "Build an Adaptive Course in 60 Minutes" workshops for developer-educators and certification prep companies, then convert attendees to paid plans.
+
+**Source:** Kyle Poyar, "How the top AI-native startups launch and grow," Growth Unhinged, March 25, 2026.
+
+---
+
 ## Part 2: Execution Plan
 
 ### Phase 1: Agent-First (AEO -- Agent Engine Optimization)
@@ -444,9 +534,11 @@ This is the long game (Tier 3). Content that appears in authoritative, crawlable
 
 #### 2.1 Content Marketing Strategy
 
+**Messaging reframe (per Poyar):** Lead with the transformation, not the technology. "Create adaptive courses in minutes" beats "YAML knowledge graphs with BKT." Feature-level messaging wins developers; transformation messaging wins buyers.
+
 | Action | Why It Matters | Impact | Effort | Timeline |
 |--------|---------------|--------|--------|----------|
-| **"Agent-First Course Creation" pillar blog post** -- explain the paradigm shift from GUI to YAML/CLI/MCP. | Defines the category. If agents find this content, Graspful becomes the reference implementation. | Very High | High (2-3 days) | Week 2-3 |
+| **"Agent-First Course Creation" pillar blog post** -- explain the paradigm shift from GUI to YAML/CLI/MCP. Frame as *transformation*: "What happens when creating a course takes 5 minutes instead of 40 hours?" | Defines the category. If agents find this content, Graspful becomes the reference implementation. | Very High | High (2-3 days) | Week 2-3 |
 | **"How to Create an Adaptive Learning Course in 5 Minutes" tutorial** with video. | Concrete demonstration. Works for both human SEO and agent citation ("how to create adaptive course"). | Very High | High (2-3 days) | Week 3-4 |
 | **Technical deep-dive on knowledge graph + BKT + spaced repetition** architecture. | Targets developer-educators who want to understand the science. Establishes authority for GEO. | High | Medium (1-2 days) | Week 4-5 |
 | **Case study: "Building a CKA Exam Prep Course with Claude Code + Graspful"** -- end to end, showing the agent workflow. | Social proof + demonstrates the agent-first workflow in practice. | Very High | Medium (1-2 days) | Week 4-5 |

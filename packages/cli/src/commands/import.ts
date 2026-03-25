@@ -85,22 +85,36 @@ export function registerImportCommand(program: Command) {
             name: brandSection.name,
             domain: brandSection.domain,
             tagline: brandSection.tagline || '',
-            logoUrl: (brandSection.logoUrl as string) || '/logo.svg',
+            logoUrl: (brandSection.logoUrl as string) || '/icon.svg',
             orgSlug: brandSection.orgSlug,
             theme: parsed.theme || {},
             landing: parsed.landing || {},
             seo: parsed.seo || {},
             pricing: parsed.pricing || {},
           };
-          const result = await api.post<{ slug: string; domain: string; verificationStatus: string }>(
-            '/api/v1/brands',
-            dto,
-          );
+          const result = await api.post<{
+            brand: { slug: string; domain: string };
+            domain: {
+              verified: boolean;
+              error?: string;
+              dnsInstructions?: { type: string; name: string; value: string };
+            };
+          }>('/api/v1/brands', dto);
 
-          output(
-            result,
-            `Imported brand: ${result.slug}\n  Domain: ${result.domain}\n  Verification: ${result.verificationStatus}`,
-          );
+          const slug = result.brand?.slug || dto.slug;
+          const domain = result.brand?.domain || dto.domain;
+          const verified = result.domain?.verified ?? false;
+          const dns = result.domain?.dnsInstructions;
+
+          let msg = `Imported brand: ${slug}\n  Domain: ${domain} (${verified ? 'verified' : 'not yet verified'})`;
+          if (dns) {
+            msg += `\n\n  Configure DNS:\n    ${dns.type}  ${dns.name}  →  ${dns.value}`;
+          }
+          if (!verified) {
+            msg += `\n\n  Check status later: graspful domain-status ${slug}`;
+          }
+
+          output(result, msg);
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           outputError(`Brand import failed: ${msg}`);

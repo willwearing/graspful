@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { SupabaseAuthGuard } from './guards/supabase-auth.guard';
 import { OrgMembershipGuard } from './guards/org-membership.guard';
@@ -13,10 +13,12 @@ import { RegistrationService } from './registration.service';
 import { ProvisionService } from './provision.service';
 import { ApiKeyModule } from './api-key/api-key.module';
 import { ApiKeyController } from './api-key/api-key.controller';
+import { BrandsModule } from '@/brands/brands.module';
 
 @Module({
   imports: [
     ApiKeyModule,
+    forwardRef(() => BrandsModule),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
   ],
   controllers: [OrgJoinController, AuthRegisterController, AuthProvisionController, UsersMeController, ApiKeyController],
