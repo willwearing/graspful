@@ -13,3 +13,5 @@ test-results/
 tasks/
 vitally/
 .vercel
+*.tgz
+/package/
