@@ -6,7 +6,7 @@
 
 MCP server for creating adaptive learning courses. AI agents scaffold, validate, review, and publish courses as YAML knowledge graphs.
 
-Part of [Graspful](https://graspful.com) -- the agent-first adaptive learning platform. Courses are authored as two YAML files (graph structure + content), validated offline, then imported via API.
+Part of [Graspful](https://graspful.ai) -- the agent-first adaptive learning platform. Courses are authored as two YAML files (graph structure + content), validated offline, then imported via API.
 
 ## Quick Setup
 
@@ -250,7 +250,7 @@ Same pattern -- point `command` at `npx` and `args` at `@graspful/mcp`. The serv
 
 ## Links
 
-- [Graspful](https://graspful.com) -- Platform
+- [Graspful](https://graspful.ai) -- Platform
 - [Content Authoring Guide](../../content/README.md) -- YAML schema reference and authoring rules
 - [Course Review Gate](../../docs/course-review-gate.md) -- Full specification of all 10 quality checks
 - [CLI Agent Strategy](../../docs/cli-agent-strategy.md) -- Design philosophy and architecture
