@@ -85,7 +85,7 @@ export function registerFillConceptCommand(program: Command) {
         targetConcept['knowledgePoints'] = newKps;
       }
 
-      const updatedYaml = yaml.dump(rawObj, { lineWidth: 120, noRefs: true });
+      const updatedYaml = yaml.dump(rawObj, { lineWidth: 120, noRefs: true, schema: yaml.JSON_SCHEMA });
       fs.writeFileSync(file, updatedYaml);
 
       output(

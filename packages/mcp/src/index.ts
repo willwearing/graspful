@@ -1167,9 +1167,24 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
         } catch (e) {
           throw new Error(`YAML parse error: ${e instanceof Error ? e.message : String(e)}`);
         }
+        // Unwrap YAML structure to flat DTO (brand YAML has nested brand: key)
+        const parsed = raw as Record<string, unknown>;
+        const brandSection = (parsed.brand || {}) as Record<string, unknown>;
+        const dto = {
+          slug: brandSection.id || brandSection.slug,
+          name: brandSection.name,
+          domain: brandSection.domain,
+          tagline: brandSection.tagline || '',
+          logoUrl: (brandSection.logoUrl as string) || '/logo.svg',
+          orgSlug: brandSection.orgSlug,
+          theme: parsed.theme || {},
+          landing: parsed.landing || {},
+          seo: parsed.seo || {},
+          pricing: parsed.pricing || {},
+        };
         const result = await apiPost<{ slug: string; domain: string; verificationStatus: string }>(
           '/api/v1/brands',
-          raw,
+          dto,
         );
         return textResult(JSON.stringify(result, null, 2));
       } catch (e) {

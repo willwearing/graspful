@@ -38,7 +38,7 @@ const ProblemYamlSchema = z.object({
     'scenario',
   ]),
   question: z.string(),
-  options: z.array(z.string()).optional(),
+  options: z.array(z.preprocess((v) => (v == null ? 'null' : String(v)), z.string())).optional(),
   correct: z.union([z.number(), z.string()]),
   explanation: z.string().optional(),
   difficulty: z.number().int().min(1).max(5).optional(),

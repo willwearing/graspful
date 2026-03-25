@@ -304,6 +304,8 @@ test.describe.serial("Agent Course Creation (API only)", () => {
     expect(body.problemCount).toBeGreaterThanOrEqual(18);
     expect(body.prerequisiteEdgeCount).toBeGreaterThanOrEqual(3);
     expect(body.warnings).toEqual([]);
+    expect(body.published).toBe(false);
+    expect(typeof body.url).toBe("string");
 
     courseId = body.courseId;
   });
@@ -343,6 +345,8 @@ test.describe.serial("Agent Course Creation (API only)", () => {
 
     const body = await res.json();
     expect(body.published).toBe(true);
+    expect(body.courseId).toMatch(UUID_RE);
+    expect(typeof body.url).toBe("string");
     expect(body.review.passed).toBe(true);
     expect(body.review.score).toBe("10/10");
   });
@@ -408,6 +412,8 @@ test.describe.serial("Agent Course Creation (API only)", () => {
     const body = await res.json();
     expect(body.courseId).toMatch(UUID_RE);
     expect(body.review).toBeTruthy();
+    expect(body.published).toBe(true);
+    expect(typeof body.url).toBe("string");
     expect(body.review.passed).toBe(true);
     expect(body.review.score).toBe("10/10");
   });

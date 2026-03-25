@@ -103,7 +103,7 @@ export class KnowledgeGraphController {
   async importCourse(
     @Body() body: ImportCourseDto,
     @CurrentOrg() org: OrgContext,
-  ): Promise<ImportResult & { review?: ReviewResult }> {
+  ): Promise<ImportResult & { published: boolean; url: string | null; review?: ReviewResult; reviewFailures?: ReviewResult['failures'] }> {
     let result: ImportResult;
     let review: ReviewResult | undefined;
 
@@ -126,7 +126,11 @@ export class KnowledgeGraphController {
     // Auto-create brand if none exists for this org
     await this.ensureBrandForOrg(org, body.yaml);
 
-    return review ? { ...result, review } : result;
+    const published = body.publish ? (review?.passed ?? false) : false;
+    const url = await this.buildCourseUrl(org.orgId, result.courseId);
+    const reviewFailures = review && !review.passed ? review.failures : undefined;
+
+    return { ...result, published, url, review, reviewFailures };
   }
 
   @Post('review')
@@ -144,7 +148,7 @@ export class KnowledgeGraphController {
   async publishCourse(
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
-  ): Promise<{ published: boolean; review: ReviewResult }> {
+  ): Promise<{ courseId: string; published: boolean; url: string | null; review: ReviewResult }> {
     // Fetch the course with its full content for review
     const course = await this.prisma.course.findFirst({
       where: { id: courseId, orgId: org.orgId },
@@ -178,7 +182,8 @@ export class KnowledgeGraphController {
       });
     }
 
-    return { published: review.passed, review };
+    const url = await this.buildCourseUrl(org.orgId, courseId);
+    return { courseId, published: review.passed, url, review };
   }
 
   @Post(':courseId/validate')
@@ -255,6 +260,26 @@ export class KnowledgeGraphController {
     } catch (err) {
       this.logger.warn(`Auto brand creation failed for org ${org.orgId}: ${err}`);
     }
+  }
+
+  /**
+   * Build the learner-facing URL for a course.
+   * Looks up the org's brand domain and composes https://{domain}/browse/{courseId}.
+   */
+  private async buildCourseUrl(orgId: string, courseId: string): Promise<string | null> {
+    const orgRecord = await this.prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { slug: true },
+    });
+    if (!orgRecord) return null;
+
+    const brand = await this.prisma.brand.findFirst({
+      where: { orgSlug: orgRecord.slug, isActive: true },
+      select: { domain: true },
+    });
+    if (!brand) return null;
+
+    return `https://${brand.domain}/browse/${courseId}`;
   }
 
   /**

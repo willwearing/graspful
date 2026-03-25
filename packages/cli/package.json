@@ -1,6 +1,6 @@
 {
   "name": "@graspful/cli",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Create adaptive learning courses from YAML. CLI and MCP server for AI agents.",
   "keywords": ["course", "learning", "adaptive", "mcp", "mcp-server", "ai", "ai-agent", "agent", "cli", "education", "edtech", "knowledge-graph", "spaced-repetition", "course-creation", "yaml", "adaptive-learning", "lms"],
   "repository": {

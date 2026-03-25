@@ -1,15 +1,17 @@
+import { IsString, IsNotEmpty, IsOptional, IsObject } from 'class-validator';
+
 export class CreateBrandDto {
-  slug!: string;
-  name!: string;
-  domain!: string;
-  tagline!: string;
-  logoUrl!: string;
-  faviconUrl?: string;
-  ogImageUrl?: string;
-  orgSlug!: string;
-  theme!: Record<string, unknown>;
-  landing!: Record<string, unknown>;
-  seo!: Record<string, unknown>;
-  pricing!: Record<string, unknown>;
-  contentScope?: Record<string, unknown>;
+  @IsString() @IsNotEmpty() slug!: string;
+  @IsString() @IsNotEmpty() name!: string;
+  @IsString() @IsNotEmpty() domain!: string;
+  @IsString() tagline!: string;
+  @IsString() logoUrl!: string;
+  @IsOptional() @IsString() faviconUrl?: string;
+  @IsOptional() @IsString() ogImageUrl?: string;
+  @IsString() @IsNotEmpty() orgSlug!: string;
+  @IsObject() theme!: Record<string, unknown>;
+  @IsObject() landing!: Record<string, unknown>;
+  @IsObject() seo!: Record<string, unknown>;
+  @IsObject() pricing!: Record<string, unknown>;
+  @IsOptional() @IsObject() contentScope?: Record<string, unknown>;
 }
