@@ -35,8 +35,20 @@ describe("generateLlmsTxt", () => {
       features: [],
     });
     expect(result).toContain("https://example.com");
-    expect(result).toContain("https://example.com/sign-up");
     expect(result).toContain("https://example.com/pricing");
+    expect(result).toContain("llms-full.txt");
+  });
+
+  it("includes agent registration guidance", () => {
+    const result = generateLlmsTxt({
+      name: "TestBrand",
+      tagline: "A tagline",
+      description: "A description",
+      domain: "example.com",
+      features: [],
+    });
+    expect(result).toContain("register");
+    expect(result).toContain("graspful_register");
   });
 
   it("formats features as bullet points", () => {
