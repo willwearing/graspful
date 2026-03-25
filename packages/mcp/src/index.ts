@@ -15,6 +15,22 @@ import {
 } from '@graspful/shared';
 import type { CourseYaml, QualityCheckResult, QualityGateResult } from '@graspful/shared';
 
+// ─── Auth guard ─────────────────────────────────────────────────────────────
+
+const AUTH_REQUIRED_ERROR =
+  'Not authenticated. To authenticate, either:\n' +
+  '1. Call the graspful_register tool with an email and password to create an account and get an API key, OR\n' +
+  '2. Set the GRASPFUL_API_KEY environment variable (e.g., GRASPFUL_API_KEY=gsk_...).\n\n' +
+  'You can scaffold, validate, and review courses without authentication. ' +
+  'Authentication is only required for importing, publishing, and listing courses.';
+
+function requireApiAuth(): void {
+  const apiKey = process.env.GRASPFUL_API_KEY;
+  if (!apiKey) {
+    throw new Error(AUTH_REQUIRED_ERROR);
+  }
+}
+
 // ─── API Client (mirrors packages/cli/src/lib/api-client.ts) ──────────────
 
 function getApiCredentials(): { baseUrl: string; authHeader?: string } {
@@ -925,7 +941,7 @@ A score of 10/10 is required for publishing. Run this before graspful_import_cou
     name: 'graspful_import_course',
     description: `Import a course YAML into a Graspful organization. Creates the course as a draft by default.
 
-Requires GRASPFUL_API_KEY environment variable to be set.
+IMPORTANT: Requires authentication. If not authenticated, call graspful_register first to create an account and get an API key, or set the GRASPFUL_API_KEY environment variable. Without auth, this tool will fail.
 
 If publish=true, the server runs the review gate first — the course must pass all 10 quality checks to be published. If review fails, the course is imported as a draft and failures are returned.
 
@@ -944,7 +960,7 @@ Returns { courseId, url, published, reviewFailures? }.`,
     name: 'graspful_publish_course',
     description: `Publish a draft course (sets isPublished = true). The server runs the review gate — course must pass all 10 quality checks.
 
-Requires GRASPFUL_API_KEY environment variable to be set.
+IMPORTANT: Requires authentication. If not authenticated, call graspful_register first to create an account and get an API key, or set the GRASPFUL_API_KEY environment variable. Without auth, this tool will fail.
 
 Returns { courseId, published }.`,
     inputSchema: {
@@ -1004,7 +1020,7 @@ Edit the YAML to customize, then import with graspful_import_brand.`,
     name: 'graspful_import_brand',
     description: `Import a brand YAML into Graspful. Creates the white-label site configuration.
 
-Requires GRASPFUL_API_KEY environment variable to be set.
+IMPORTANT: Requires authentication. If not authenticated, call graspful_register first to create an account and get an API key, or set the GRASPFUL_API_KEY environment variable. Without auth, this tool will fail.
 
 Returns { slug, domain, verificationStatus }.`,
     inputSchema: {
@@ -1019,7 +1035,7 @@ Returns { slug, domain, verificationStatus }.`,
     name: 'graspful_list_courses',
     description: `List all courses in a Graspful organization.
 
-Requires GRASPFUL_API_KEY environment variable to be set.
+IMPORTANT: Requires authentication. If not authenticated, call graspful_register first to create an account and get an API key, or set the GRASPFUL_API_KEY environment variable. Without auth, this tool will fail.
 
 Returns an array of courses with their IDs, names, published status, and stats.`,
     inputSchema: {
@@ -1028,6 +1044,24 @@ Returns an array of courses with their IDs, names, published status, and stats.`
         org: { type: 'string', description: 'Organization slug (e.g., "acme-learning")' },
       },
       required: ['org'],
+    },
+  },
+  {
+    name: 'graspful_register',
+    description: `Create a new Graspful account and organization. Returns an API key that authenticates all subsequent tool calls.
+
+Call this BEFORE using graspful_import_course, graspful_publish_course, graspful_import_brand, or graspful_list_courses. Those tools require authentication and will fail without it.
+
+You do NOT need to register to use graspful_scaffold_course, graspful_fill_concept, graspful_validate, graspful_review_course, graspful_describe_course, or graspful_create_brand — those work offline.
+
+Returns { userId, orgSlug, apiKey }. The API key is automatically used for subsequent authenticated tool calls in this session.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', description: 'Email address for the new account' },
+        password: { type: 'string', description: 'Password (min 8 characters)' },
+      },
+      required: ['email', 'password'],
     },
   },
 ];
@@ -1082,6 +1116,7 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
 
     case 'graspful_import_course': {
       try {
+        requireApiAuth();
         const result = await apiPost<{ courseId: string; url: string; published: boolean; reviewFailures?: string[] }>(
           `/api/v1/orgs/${args.org}/courses/import`,
           { yaml: args.yaml, publish: args.publish ?? false },
@@ -1094,6 +1129,7 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
 
     case 'graspful_publish_course': {
       try {
+        requireApiAuth();
         const result = await apiPost<{ courseId: string; published: boolean }>(
           `/api/v1/orgs/${args.org}/courses/${args.courseId}/publish`,
           {},
@@ -1124,6 +1160,7 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
 
     case 'graspful_import_brand': {
       try {
+        requireApiAuth();
         let raw: unknown;
         try {
           raw = yaml.load(args.yaml as string);
@@ -1142,12 +1179,53 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
 
     case 'graspful_list_courses': {
       try {
+        requireApiAuth();
         const result = await apiGet<unknown[]>(
           `/api/v1/orgs/${args.org}/courses`,
         );
         return textResult(JSON.stringify(result, null, 2));
       } catch (e) {
         return errorResult(`List failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+
+    case 'graspful_register': {
+      try {
+        const email = args.email as string;
+        const password = args.password as string;
+        const { baseUrl } = getApiCredentials();
+
+        const res = await fetch(`${baseUrl}/api/v1/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          let message = `Registration failed (${res.status})`;
+          try {
+            const parsed = JSON.parse(text);
+            if (parsed.message) message = parsed.message;
+          } catch {
+            if (text) message = text;
+          }
+          return errorResult(message);
+        }
+
+        const data = await res.json() as { userId: string; orgSlug: string; apiKey: string };
+
+        // Set the API key in the environment so subsequent tool calls are authenticated
+        process.env.GRASPFUL_API_KEY = data.apiKey;
+
+        return textResult(JSON.stringify({
+          userId: data.userId,
+          orgSlug: data.orgSlug,
+          apiKey: data.apiKey,
+          message: `Account created. Organization slug: ${data.orgSlug}. API key is now active for this session — you can call graspful_import_course, graspful_publish_course, and other authenticated tools.`,
+        }, null, 2));
+      } catch (e) {
+        return errorResult(`Registration failed: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
 
