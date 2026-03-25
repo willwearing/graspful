@@ -4,6 +4,7 @@ import { fetchBrandByDomain, fetchBrandBySlug } from "./resolve-db";
 
 /** In-memory brand registry. Phase 7 uses hardcoded brands; future phases fetch from DB. */
 const brandsByDomain = new Map<string, BrandConfig>([
+  ["graspful.ai", graspfulBrand],
   ["graspful.vercel.app", graspfulBrand],
   ["firefighterprep.vercel.app", firefighterBrand],
   ["electricianprep.vercel.app", electricianBrand],

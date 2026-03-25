@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 const BRAND_CONFIG_TEMPLATE = `# Brand Configuration
-# See docs: https://docs.graspful.com/brand-config
+# See docs: https://graspful.ai/docs/brand-schema
 
 name: "My Course Brand"
 slug: "my-course-brand"       # URL-safe, unique
@@ -52,7 +52,7 @@ seo:
 `;
 
 const COURSE_CONTENT_TEMPLATE = `# Course Content
-# See docs: https://docs.graspful.com/course-yaml
+# See docs: https://graspful.ai/docs/course-schema
 
 name: "My Course"
 slug: "my-course"

@@ -50,7 +50,12 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (data.session) {
           // Auto-confirm is on (dev) — redirect immediately
           trackSignUp(data.session.user.id);
-          // Auto-join the brand's org
+          // Provision personal org + join the brand's org
+          try {
+            await apiClientFetch(`/auth/provision`, data.session.access_token, { method: "POST" });
+          } catch {
+            // Non-fatal
+          }
           try {
             await apiClientFetch(`/orgs/${brand.orgSlug}/join`, data.session.access_token, { method: "POST" });
           } catch {
@@ -71,8 +76,13 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (data.session) {
           trackSignIn(data.session.user.id);
         }
-        // Auto-join the brand's org on sign-in (idempotent)
+        // Provision personal org (idempotent) + join the brand's org on sign-in
         if (data.session) {
+          try {
+            await apiClientFetch(`/auth/provision`, data.session.access_token, { method: "POST" });
+          } catch {
+            // Non-fatal
+          }
           try {
             await apiClientFetch(`/orgs/${brand.orgSlug}/join`, data.session.access_token, { method: "POST" });
           } catch {

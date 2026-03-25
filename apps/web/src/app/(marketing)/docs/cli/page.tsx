@@ -131,7 +131,7 @@ export default function CLIReferencePage() {
         synopsis={`graspful login [--api-url <url>] [--token <token>] [--email <email> --password <password>]`}
         description="Authenticate with a Graspful instance. Saves credentials locally for subsequent commands. Supports interactive prompts, API key auth, and email/password auth."
         options={[
-          { flag: "--api-url <url>", description: "API base URL (defaults to https://api.graspful.com)" },
+          { flag: "--api-url <url>", description: "API base URL (defaults to https://api.graspful.ai)" },
           { flag: "--token <token>", description: "API key (skips interactive prompt)" },
           { flag: "--email <email>", description: "Account email for email/password auth" },
           { flag: "--password <password>", description: "Account password for email/password auth" },
@@ -156,7 +156,7 @@ export default function CLIReferencePage() {
         ]}
         jsonOutput={`{
   "authenticated": true,
-  "baseUrl": "https://api.graspful.com"
+  "baseUrl": "https://api.graspful.ai"
 }`}
       />
 

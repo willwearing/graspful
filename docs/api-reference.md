@@ -523,7 +523,7 @@ graspful login [options]
 
 | Flag | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
-| `--api-url <url>` | string | No | `GRASPFUL_API_URL` or `https://api.graspful.com` | API base URL. |
+| `--api-url <url>` | string | No | `GRASPFUL_API_URL` or `https://api.graspful.ai` | API base URL. |
 | `--token <token>` | string | No | — | API key or JWT. Skips interactive prompt. |
 
 **Behavior:**
@@ -539,11 +539,11 @@ graspful login
 ```
 
 ```
-Authenticating with https://api.graspful.com
+Authenticating with https://api.graspful.ai
 Enter your API key or JWT token:
 (New user? Run "graspful register" instead.)
 > sk-abc123...
-Authenticated. Credentials saved for https://api.graspful.com
+Authenticated. Credentials saved for https://api.graspful.ai
 ```
 
 **Example (non-interactive):**
@@ -570,7 +570,7 @@ graspful register --email <email> --password <password> [options]
 |------|------|----------|---------|-------------|
 | `--email <email>` | string | Yes | — | Email address. |
 | `--password <password>` | string | Yes | — | Password. |
-| `--api-url <url>` | string | No | `GRASPFUL_API_URL` or `https://api.graspful.com` | API base URL. |
+| `--api-url <url>` | string | No | `GRASPFUL_API_URL` or `https://api.graspful.ai` | API base URL. |
 
 **Example:**
 
@@ -592,7 +592,7 @@ You're ready. Run: graspful import course.yaml --org alice-org
   "userId": "uuid",
   "orgSlug": "alice-org",
   "apiKey": "sk-abc123...",
-  "baseUrl": "https://api.graspful.com"
+  "baseUrl": "https://api.graspful.ai"
 }
 ```
 
@@ -1314,7 +1314,7 @@ Credentials file: `~/.graspful/credentials.json`
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GRASPFUL_API_KEY` | — | API key for authenticating with the Graspful API. Takes precedence over stored credentials. |
-| `GRASPFUL_API_URL` | `https://api.graspful.com` | Base URL for the Graspful API. Used by both CLI and MCP server. Trailing slash is stripped automatically. |
+| `GRASPFUL_API_URL` | `https://api.graspful.ai` | Base URL for the Graspful API. Used by both CLI and MCP server. Trailing slash is stripped automatically. |
 
 ---
 

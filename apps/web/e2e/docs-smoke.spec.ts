@@ -9,6 +9,17 @@ const DOCS_PAGES = [
   { path: "/docs/brand-schema", heading: /brand/i },
   { path: "/docs/billing", heading: /billing|revenue/i },
   { path: "/docs/review-gate", heading: /review|quality/i },
+  { path: "/docs/course-creation-guide", heading: /course|creation|guide/i },
+  { path: "/docs/design-guide", heading: /design/i },
+  { path: "/docs/glossary", heading: /glossary/i },
+  { path: "/docs/how-it-works", heading: /how.*works/i },
+  { path: "/docs/concepts/adaptive-diagnostics", heading: /diagnostic/i },
+  { path: "/docs/concepts/knowledge-graph", heading: /knowledge.*graph/i },
+  { path: "/docs/concepts/mastery-learning", heading: /mastery/i },
+  { path: "/docs/concepts/spaced-repetition", heading: /spaced.*repetition/i },
+  { path: "/docs/concepts/task-selection", heading: /task.*selection/i },
+  { path: "/docs/concepts/gamification", heading: /gamification/i },
+  { path: "/docs/concepts/learning-staircase", heading: /staircase|learning/i },
 ];
 
 test.describe("Docs Pages Smoke Tests", () => {

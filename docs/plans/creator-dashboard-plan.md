@@ -250,12 +250,12 @@ When the agent later imports a course, the brand is auto-created from the userna
 This means an agent can go from zero to importing courses in two API calls:
 ```bash
 # 1. Register (returns API key + org slug)
-curl -X POST https://api.graspful.com/auth/register \
+curl -X POST https://api.graspful.ai/auth/register \
   -d '{"email":"agent@example.com","password":"..."}'
 # → { "apiKey": "gsk_...", "orgSlug": "agent-example" }
 
 # 2. Import a course
-curl -X POST https://api.graspful.com/api/v1/orgs/agent-example/courses/import \
+curl -X POST https://api.graspful.ai/api/v1/orgs/agent-example/courses/import \
   -H "Authorization: Bearer gsk_..." \
   -d '{"yaml": "..."}'
 ```

@@ -52,13 +52,23 @@ export async function GET(request: NextRequest) {
           await ph.shutdown();
         }
       }
-      // Auto-join the brand's org so the user has access to this site's content
+      // Provision personal org + join the brand's org
       const token = data?.session?.access_token;
       if (token) {
         const hostname = request.headers.get("host") || "localhost";
         const cookieHeader = request.headers.get("cookie");
         const brand = await resolveBrand(hostname, cookieHeader);
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
+        // Create personal org if first time (idempotent)
+        try {
+          await fetch(`${backendUrl}/auth/provision`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } catch {
+          // Non-fatal
+        }
+        // Join the brand's org for content access
         try {
           await fetch(`${backendUrl}/orgs/${brand.orgSlug}/join`, {
             method: "POST",

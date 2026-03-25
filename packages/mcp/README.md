@@ -246,7 +246,7 @@ Same pattern -- point `command` at `npx` and `args` at `@graspful/mcp`. The serv
 | Variable | Required | Description |
 |----------|:---:|-------------|
 | `GRASPFUL_API_KEY` | For import/publish/list | API key for authenticated operations |
-| `GRASPFUL_API_URL` | No | API base URL (default: `https://api.graspful.com`) |
+| `GRASPFUL_API_URL` | No | API base URL (default: `https://api.graspful.ai`) |
 
 ## Links
 

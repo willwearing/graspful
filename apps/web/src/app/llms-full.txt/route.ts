@@ -320,7 +320,7 @@ Each check returns pass/fail with details. Fix failures before importing.
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | \`GRASPFUL_API_KEY\` | Yes (for API ops) | — | API key for authentication. Get one from your org settings. |
-| \`GRASPFUL_API_URL\` | No | \`https://api.graspful.com\` | API base URL. Override for self-hosted or dev. |
+| \`GRASPFUL_API_URL\` | No | \`https://api.graspful.ai\` | API base URL. Override for self-hosted or dev. |
 
 ---
 
