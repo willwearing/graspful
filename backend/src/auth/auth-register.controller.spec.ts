@@ -21,13 +21,19 @@ describe('RegistrationService', () => {
 
     mockTx = {
       user: {
-        create: jest.fn(),
+        upsert: jest.fn(),
       },
       organization: {
         create: jest.fn(),
       },
       orgMembership: {
         create: jest.fn(),
+      },
+      brand: {
+        create: jest.fn().mockResolvedValue({}),
+      },
+      apiKey: {
+        create: jest.fn().mockResolvedValue({}),
       },
     };
 
@@ -68,7 +74,7 @@ describe('RegistrationService', () => {
       error: null,
     });
 
-    mockTx.user.create.mockResolvedValue({
+    mockTx.user.upsert.mockResolvedValue({
       id: 'sup-user-1',
       email: 'will@example.com',
     });
@@ -83,16 +89,11 @@ describe('RegistrationService', () => {
       role: 'owner',
     });
 
-    mockApiKeyService.createKey.mockResolvedValue({
-      key: 'gsk_abc123',
-      id: 'key-1',
-    });
-
     const result = await service.register('will@example.com', 'securepassword');
 
     expect(result.userId).toBe('sup-user-1');
     expect(result.orgSlug).toBe('will-example');
-    expect(result.apiKey).toBe('gsk_abc123');
+    expect(result.apiKey).toMatch(/^gsk_/);
 
     expect(mockSupabaseAdmin.createUser).toHaveBeenCalledWith({
       email: 'will@example.com',
@@ -100,8 +101,10 @@ describe('RegistrationService', () => {
       email_confirm: true,
     });
 
-    expect(mockTx.user.create).toHaveBeenCalledWith({
-      data: { id: 'sup-user-1', email: 'will@example.com' },
+    expect(mockTx.user.upsert).toHaveBeenCalledWith({
+      where: { id: 'sup-user-1' },
+      update: { email: 'will@example.com' },
+      create: { id: 'sup-user-1', email: 'will@example.com' },
     });
 
     expect(mockTx.organization.create).toHaveBeenCalledWith({
@@ -120,11 +123,20 @@ describe('RegistrationService', () => {
       },
     });
 
-    expect(mockApiKeyService.createKey).toHaveBeenCalledWith(
-      'org-1',
-      'sup-user-1',
-      'default',
-    );
+    expect(mockTx.brand.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        slug: 'will-example',
+        orgSlug: 'will-example',
+      }),
+    });
+
+    expect(mockTx.apiKey.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        orgId: 'org-1',
+        userId: 'sup-user-1',
+        name: 'default',
+      }),
+    });
 
     expect(mockPrisma.$transaction).toHaveBeenCalled();
   });
@@ -160,7 +172,7 @@ describe('RegistrationService', () => {
     // Slug collision: findUnique returns existing org
     mockPrisma.organization.findUnique.mockResolvedValue({ slug: 'will-example' });
 
-    mockTx.user.create.mockResolvedValue({
+    mockTx.user.upsert.mockResolvedValue({
       id: 'sup-user-2',
       email: 'will@example.com',
     });
@@ -171,14 +183,13 @@ describe('RegistrationService', () => {
     });
 
     mockTx.orgMembership.create.mockResolvedValue({ id: 'mem-2' });
-    mockApiKeyService.createKey.mockResolvedValue({ key: 'gsk_def456', id: 'key-2' });
 
     const result = await service.register('will@example.com', 'securepassword');
 
     // The slug passed to organization.create should have a suffix
     const createCall = mockTx.organization.create.mock.calls[0][0];
     expect(createCall.data.slug).toMatch(/^will-example-.+/);
-    expect(result.apiKey).toBe('gsk_def456');
+    expect(result.apiKey).toMatch(/^gsk_/);
   });
 
   it('cleans up Supabase user if transaction fails', async () => {
