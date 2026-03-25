@@ -54,6 +54,9 @@ jobs:
             echo "target=all" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Build shared
+        run: cd packages/shared && bun run build
+
       - name: Build CLI
         if: steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli'
         run: cd packages/cli && bun run build
