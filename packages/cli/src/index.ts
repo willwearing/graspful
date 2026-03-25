@@ -11,6 +11,7 @@ import { registerFillConceptCommand } from './commands/fill-concept';
 import { registerDescribeCommand } from './commands/describe';
 import { registerLoginCommand } from './commands/login';
 import { registerRegisterCommand } from './commands/register';
+import { registerInitCommand } from './commands/init';
 
 const program = new Command();
 
@@ -36,5 +37,6 @@ const fillCmd = registerFillConceptCommand(program);
 registerDescribeCommand(program);
 registerLoginCommand(program);
 registerRegisterCommand(program);
+registerInitCommand(program);
 
 program.parse();
