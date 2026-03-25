@@ -299,7 +299,7 @@ graspful import course.yaml --org my-org
 | Variable | Description |
 |----------|-------------|
 | `GRASPFUL_API_KEY` | API key for authenticated commands (`import`, `publish`) |
-| `GRASPFUL_API_URL` | API base URL (default: `https://api.graspful.com`) |
+| `GRASPFUL_API_URL` | API base URL (default: `https://api.graspful.ai`) |
 
 ## Links
 

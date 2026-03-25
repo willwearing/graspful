@@ -39,7 +39,7 @@ export default function QuickstartPage() {
         </p>
         <CodeBlock language="bash">
           {`# Via the API
-curl -X POST https://api.graspful.com/auth/register \\
+curl -X POST https://api.graspful.ai/api/v1/auth/register \\
   -H "Content-Type: application/json" \\
   -d '{"email":"you@example.com","password":"..."}'
 # → { "apiKey": "gsk_...", "orgSlug": "you-example" }
@@ -63,7 +63,7 @@ graspful register --email you@example.com --password "..."`}
         </p>
         <CodeBlock language="bash">
           {`# Via the API
-curl -X POST https://api.graspful.com/api/v1/orgs/you-example/courses/import \\
+curl -X POST https://api.graspful.ai/api/v1/orgs/you-example/courses/import \\
   -H "Authorization: Bearer gsk_..." \\
   -H "Content-Type: application/json" \\
   -d '{"yaml": "..."}'

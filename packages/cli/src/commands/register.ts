@@ -19,7 +19,7 @@ export function registerRegisterCommand(program: Command) {
       const baseUrl = (opts.apiUrl || getBaseUrl()).replace(/\/$/, '');
 
       try {
-        const res = await fetch(`${baseUrl}/auth/register`, {
+        const res = await fetch(`${baseUrl}/api/v1/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: opts.email, password: opts.password }),

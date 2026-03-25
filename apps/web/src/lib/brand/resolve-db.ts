@@ -1,10 +1,17 @@
 import type { BrandConfig } from "./config";
 
-const BACKEND_URL = (
-  process.env.BACKEND_INTERNAL_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  "http://localhost:3000"
-).trim();
+// Ensure the base URL always includes the /api/v1 prefix.
+// BACKEND_INTERNAL_URL may be bare (e.g. http://backend:3000).
+function resolveBackendUrl(): string {
+  const raw = (
+    process.env.BACKEND_INTERNAL_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    "http://localhost:3000"
+  ).trim();
+  return raw.endsWith("/api/v1") ? raw : `${raw.replace(/\/$/, "")}/api/v1`;
+}
+
+const BACKEND_URL = resolveBackendUrl();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 interface CacheEntry {

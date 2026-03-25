@@ -11,7 +11,7 @@ export interface Credentials {
 const CREDENTIALS_PATH = path.join(os.homedir(), '.graspful', 'credentials.json');
 
 export function getBaseUrl(): string {
-  return process.env.GRASPFUL_API_URL || 'https://api.graspful.com';
+  return process.env.GRASPFUL_API_URL || 'https://api.graspful.ai';
 }
 
 export function resolveCredentials(): Credentials {

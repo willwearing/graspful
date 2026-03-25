@@ -20,6 +20,24 @@
 
 All brands are served from the same Vercel deployment. The middleware resolves the brand from the `Host` header and injects the correct theme, copy, and content scope. Custom domains can be added later when purchased — just update the brand config and add the domain in Vercel.
 
+### Custom Domains
+
+| Domain | Points to | Status |
+|--------|-----------|--------|
+| `graspful.ai` | Vercel (frontend) | Live |
+| `api.graspful.ai` | Railway (backend) | Railway custom domain added — **DNS CNAME pending** |
+| `docs.graspful.com` | N/A | No separate docs site — docs are at `graspful.ai/docs/*` |
+
+#### api.graspful.ai DNS Setup
+
+Railway custom domain created 2026-03-25. Add this DNS record on the `graspful.ai` domain (managed via Cloudflare):
+
+| Type | Host | Value |
+|------|------|-------|
+| CNAME | `api` | `nm7hvpld.up.railway.app` |
+
+Once the CNAME propagates, Railway will auto-provision an SSL certificate. The CLI, MCP server, and all public docs reference `api.graspful.ai`.
+
 ## CI/CD Flow
 
 ```

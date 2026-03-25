@@ -197,7 +197,7 @@ export default function BillingPage() {
         </p>
         <CodeBlock language="bash">
           {`# Via the API
-curl -X POST https://api.graspful.com/api/v1/orgs/my-org/api-keys \\
+curl -X POST https://api.graspful.ai/api/v1/orgs/my-org/api-keys \\
   -H "Authorization: Bearer <your-jwt>" \\
   -H "Content-Type: application/json" \\
   -d '{"name": "CI Pipeline"}'`}

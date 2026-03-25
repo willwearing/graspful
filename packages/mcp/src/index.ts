@@ -18,7 +18,7 @@ import type { CourseYaml, QualityCheckResult, QualityGateResult } from '@graspfu
 // ─── API Client (mirrors packages/cli/src/lib/api-client.ts) ──────────────
 
 function getApiCredentials(): { baseUrl: string; authHeader?: string } {
-  const baseUrl = (process.env.GRASPFUL_API_URL || 'https://api.graspful.com').replace(/\/$/, '');
+  const baseUrl = (process.env.GRASPFUL_API_URL || 'https://api.graspful.ai').replace(/\/$/, '');
   const apiKey = process.env.GRASPFUL_API_KEY;
   if (apiKey) {
     return { baseUrl, authHeader: `Bearer ${apiKey}` };

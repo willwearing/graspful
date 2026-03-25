@@ -58,3 +58,22 @@ The backend follows Domain-Driven Design with bounded contexts. Each NestJS modu
 - Tests: Jest for backend unit tests, Playwright for e2e
 - E2E helpers: `apps/web/e2e/helpers/auth.ts` — `signUpTestUser()` creates fresh users
 - Brand cookie: `dev-brand-override` selects org in dev
+
+## E2E Test Coverage Requirements
+
+**Every live site page and API endpoint MUST have an e2e test.** This is non-negotiable — bread-and-butter functionality that users depend on must have regression coverage.
+
+### What must be tested:
+
+1. **All pages render** — every route under `(marketing)` and `(app)` must have a smoke test verifying it returns 200 and renders its heading. See `e2e/docs-smoke.spec.ts` for the pattern.
+2. **Auth flows** — sign-up, sign-in, sign-out, email confirmation callback, org provisioning
+3. **Creator flows** — API key CRUD, course import, brand config import, course publish
+4. **API registration** — `POST /auth/register` returns userId + orgSlug + apiKey (agent onboarding)
+5. **API provisioning** — `POST /auth/provision` creates personal org for web UI sign-ups
+6. **Learner flows** — browse, enroll, diagnostic, study session
+
+### When adding a new page or endpoint:
+
+- Add an e2e test in the same PR
+- If it's a new doc page, add it to the `DOCS_PAGES` array in `e2e/docs-smoke.spec.ts`
+- If it's a new API endpoint, add API-level tests using the `helpers/api-auth.ts` helpers
