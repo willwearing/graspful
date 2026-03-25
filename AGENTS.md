@@ -3,6 +3,19 @@
 > You are an AI agent helping a user build an adaptive learning course on Graspful.
 > Follow these steps in order. Use the CLI or MCP — do NOT use a browser for account creation or course management.
 
+## Authentication — Read This First
+
+**You can scaffold, fill, validate, and review courses without any account.** These operations run locally.
+
+**You MUST authenticate before importing or publishing.** Four tools require auth: `graspful_import_course`, `graspful_publish_course`, `graspful_import_brand`, `graspful_list_courses`.
+
+To authenticate, do ONE of:
+1. **MCP tool (recommended):** Call `graspful_register(email, password)` — creates an account + org + API key. The key is automatically active for the rest of the session.
+2. **CLI:** Run `graspful register --email <email> --password <password>` — saves credentials to `~/.graspful/credentials.json`.
+3. **Environment variable:** Set `GRASPFUL_API_KEY=gsk_...` before starting the MCP server.
+
+If you try an authenticated tool without auth, you'll get a clear error telling you to register first.
+
 ## Step 1: Install the CLI
 
 ```bash
@@ -19,34 +32,35 @@ If MCP is already configured, you have these tools available — no CLI needed:
 
 | Tool | Auth? | Description |
 |------|:---:|-------------|
+| `graspful_register` | No | **Call this first if you need to import/publish.** Creates account + org + API key |
 | `graspful_scaffold_course` | No | Generate course YAML skeleton |
 | `graspful_fill_concept` | No | Add KPs and problems to a concept |
 | `graspful_validate` | No | Validate YAML against schema |
 | `graspful_review_course` | No | Run 10 quality checks |
 | `graspful_describe_course` | No | Course statistics |
 | `graspful_create_brand` | No | Generate brand YAML |
-| `graspful_import_course` | Yes | Import course to platform |
-| `graspful_publish_course` | Yes | Publish a draft course |
-| `graspful_import_brand` | Yes | Import brand config |
-| `graspful_list_courses` | Yes | List org courses |
+| `graspful_import_course` | **Yes** | Import course to platform (call `graspful_register` first) |
+| `graspful_publish_course` | **Yes** | Publish a draft course (call `graspful_register` first) |
+| `graspful_import_brand` | **Yes** | Import brand config (call `graspful_register` first) |
+| `graspful_list_courses` | **Yes** | List org courses (call `graspful_register` first) |
 
-Tools marked "No" for auth work offline — no account needed. You can scaffold, fill, validate, and review courses without registering.
+Tools marked "No" for auth work offline — no account needed. Tools marked **Yes** will fail with a clear error if you haven't authenticated. Call `graspful_register` first.
 
-## Step 2: Register (only when you need to import/publish)
+## Step 2: Register (before importing/publishing)
 
-Register via CLI. Do NOT use a browser.
+If you haven't already authenticated (see "Authentication" above), do it now before proceeding to import.
 
+**MCP (recommended):**
+```
+graspful_register(email: "you@example.com", password: "your-password")
+```
+
+**CLI:**
 ```bash
 graspful register --email <email> --password <password>
 ```
 
-This creates an account, org, and API key — saved to `~/.graspful/credentials.json` automatically.
-
-If you already have an API key, set it as an environment variable instead:
-
-```bash
-export GRASPFUL_API_KEY=gsk_...
-```
+Both create an account, org, and API key. The MCP tool auto-activates the key for the current session. The CLI saves it to `~/.graspful/credentials.json`.
 
 ## Step 3: Build a course
 
