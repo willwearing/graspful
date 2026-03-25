@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     title: "Build courses with AI agents — Graspful",
     description:
       "Define courses as YAML, import via CLI or MCP, and get a live product with a landing page, knowledge graph, spaced repetition, and billing.",
-    url: "https://graspful.com/agents",
+    url: "https://graspful.ai/agents",
     images: [
       {
         url: "/images/og-graspful.png",
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     images: ["/images/og-graspful.png"],
   },
   alternates: {
-    canonical: "https://graspful.com/agents",
+    canonical: "https://graspful.ai/agents",
   },
 };
 
@@ -435,7 +435,7 @@ export default function AgentsPage() {
       <SoftwareApplicationJsonLd
         name="Graspful"
         description="The course creation platform for AI agents. Define courses as YAML, import via CLI or MCP, and get adaptive learning with knowledge graphs, spaced repetition, and billing."
-        url="https://graspful.com"
+        url="https://graspful.ai"
         applicationCategory="EducationalApplication"
         operatingSystem="Web"
         offers={{ price: 0, priceCurrency: "USD" }}

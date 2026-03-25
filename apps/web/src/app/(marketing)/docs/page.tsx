@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     title: "Documentation — Graspful",
     description:
       "CLI reference, MCP server setup, YAML schemas, billing, and quality checks for Graspful course creation.",
-    url: "https://graspful.com/docs",
+    url: "https://graspful.ai/docs",
     images: [
       {
         url: "/images/og-graspful.png",
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     images: ["/images/og-graspful.png"],
   },
   alternates: {
-    canonical: "https://graspful.com/docs",
+    canonical: "https://graspful.ai/docs",
   },
 };
 

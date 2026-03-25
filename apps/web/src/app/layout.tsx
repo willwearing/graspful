@@ -115,7 +115,7 @@ export default async function RootLayout({
               creator: {
                 "@type": "Organization",
                 name: "Graspful",
-                url: "https://graspful.com",
+                url: "https://graspful.ai",
               },
               featureList: [
                 "Adaptive Learning",

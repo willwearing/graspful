@@ -115,7 +115,7 @@ export default function MCPPage() {
               </p>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Go to{" "}
-                <InlineCode>graspful.com</InlineCode> &rarr; API Keys and create
+                <InlineCode>graspful.ai</InlineCode> &rarr; API Keys and create
                 a new key.
               </p>
             </div>

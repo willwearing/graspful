@@ -95,10 +95,10 @@ https://you-example.graspful.com`}
         <p className="text-sm text-muted-foreground">
           Sign up at{" "}
           <Link
-            href="https://graspful.com"
+            href="https://graspful.ai"
             className="text-primary hover:underline"
           >
-            graspful.com
+            graspful.ai
           </Link>{" "}
           and manage courses from the Creator Dashboard. Everything available via
           the API and CLI is also available in the UI.

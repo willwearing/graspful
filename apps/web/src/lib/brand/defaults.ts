@@ -692,7 +692,7 @@ export const posthogBrand: BrandConfig = {
 export const graspfulBrand: BrandConfig = {
   id: "graspful",
   name: "Graspful",
-  domain: "graspful.vercel.app",
+  domain: "graspful.ai",
   tagline: "Create Adaptive Courses with AI Agents",
   logoUrl: "/images/logo-graspful.svg",
   faviconUrl: "/favicon.ico",
