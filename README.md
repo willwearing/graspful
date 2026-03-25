@@ -20,13 +20,7 @@ Two YAMLs (course + brand) produce one live product with adaptive learning, spac
 
 ```bash
 npx @graspful/cli init
-```
-
-Or install globally:
-
-```bash
-bun add -g @graspful/cli
-graspful login
+graspful register --email you@example.com --password your-password
 graspful create course --scaffold-only --topic "Your Topic" -o course.yaml
 ```
 
@@ -59,17 +53,20 @@ graspful/
 
 ## CLI Commands
 
-| Command | Description |
-|---------|-------------|
-| `graspful create course` | Generate course YAML skeleton |
-| `graspful create brand` | Generate brand YAML with theme presets |
-| `graspful fill concept` | Add KPs and problems to a concept |
-| `graspful validate` | Offline schema + DAG validation |
-| `graspful review` | 10 mechanical quality checks |
-| `graspful describe` | Course statistics |
-| `graspful import` | Push YAML to Graspful instance |
-| `graspful publish` | Publish a draft course |
-| `graspful login` | Authenticate |
+| Command | Auth? | Description |
+|---------|:---:|-------------|
+| `graspful register` | No | Create account + org + API key |
+| `graspful login` | No | Authenticate with existing credentials |
+| `graspful create course` | No | Generate course YAML skeleton |
+| `graspful create brand` | No | Generate brand YAML with theme presets |
+| `graspful fill concept` | No | Add KPs and problems to a concept |
+| `graspful validate` | No | Offline schema + DAG validation |
+| `graspful review` | No | 10 mechanical quality checks |
+| `graspful describe` | No | Course statistics |
+| `graspful import` | **Yes** | Push YAML to Graspful instance |
+| `graspful publish` | **Yes** | Publish a draft course |
+
+Run `graspful register --email <email> --password <password>` before `import` or `publish`. Credentials are saved to `~/.graspful/credentials.json`.
 
 ## MCP Server
 
@@ -86,11 +83,30 @@ Or manually add to your MCP config:
   "mcpServers": {
     "graspful": {
       "command": "npx",
-      "args": ["@graspful/mcp"]
+      "args": ["@graspful/mcp"],
+      "env": { "GRASPFUL_API_KEY": "gsk_..." }
     }
   }
 }
 ```
+
+### MCP Tools
+
+| Tool | Auth? | Description |
+|------|:---:|-------------|
+| `graspful_register` | No | Create account + org + API key (call first if you need to import/publish) |
+| `graspful_scaffold_course` | No | Generate course YAML skeleton |
+| `graspful_fill_concept` | No | Add KPs and problems to a concept |
+| `graspful_validate` | No | Validate YAML against schema |
+| `graspful_review_course` | No | Run 10 quality checks |
+| `graspful_describe_course` | No | Course statistics |
+| `graspful_create_brand` | No | Generate brand YAML |
+| `graspful_import_course` | **Yes** | Import course to platform |
+| `graspful_publish_course` | **Yes** | Publish a draft course |
+| `graspful_import_brand` | **Yes** | Import brand config |
+| `graspful_list_courses` | **Yes** | List org courses |
+
+Auth-gated tools return a prescriptive error if unauthenticated, telling the agent to call `graspful_register` first. You can also set `GRASPFUL_API_KEY` as an env var in your MCP config.
 
 ## Development
 
