@@ -205,7 +205,7 @@ export class KnowledgeGraphController {
 
   /**
    * Auto-create a brand for the org if one doesn't already exist.
-   * Slug: {username}-{courseslug}, domain: {slug}.graspful.com
+   * Slug: {username}-{courseslug}, domain: {slug}.graspful.ai
    */
   private async ensureBrandForOrg(org: OrgContext, yamlContent: string) {
     // Check if any brand exists for this org
@@ -237,7 +237,7 @@ export class KnowledgeGraphController {
       finalSlug = `${slug}-${attempt}`;
     }
 
-    const domain = `${finalSlug}.graspful.com`;
+    const domain = `${finalSlug}.graspful.ai`;
 
     try {
       await this.brandsService.create({

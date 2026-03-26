@@ -78,7 +78,7 @@ export class RegistrationService {
         await tx.orgMembership.create({ data: { orgId: org.id, userId: user.id, role: 'owner' } });
 
         // Create a default brand so the org is accessible via the web UI
-        const domain = `${orgSlug}.graspful.com`;
+        const domain = `${orgSlug}.graspful.ai`;
         await tx.brand.create({
           data: {
             slug: orgSlug,

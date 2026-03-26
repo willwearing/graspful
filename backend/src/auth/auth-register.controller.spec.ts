@@ -58,7 +58,7 @@ describe('RegistrationService', () => {
     };
 
     mockVercelDomains = {
-      addDomain: jest.fn().mockResolvedValue({ name: 'test.graspful.com', verified: false }),
+      addDomain: jest.fn().mockResolvedValue({ name: 'test.graspful.ai', verified: false }),
     };
 
     service = new RegistrationService(

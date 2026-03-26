@@ -1,4 +1,5 @@
 import type { BrandConfig } from "./config";
+import { defaultBrand } from "./defaults";
 
 // Ensure the base URL always includes the /api/v1 prefix.
 // BACKEND_INTERNAL_URL may be bare (e.g. http://backend:3000).
@@ -23,6 +24,61 @@ const cache = new Map<string, CacheEntry>();
 
 export function clearBrandCache() {
   cache.clear();
+}
+
+/** Map raw API response to BrandConfig, filling defaults for missing nested fields. */
+function mapToBrandConfig(data: Record<string, unknown>): BrandConfig {
+  const landing = (data.landing || {}) as Record<string, unknown>;
+  const hero = (landing.hero || {}) as Record<string, string>;
+  const features = (landing.features || {}) as Record<string, unknown>;
+  const howItWorks = (landing.howItWorks || {}) as Record<string, unknown>;
+  const bottomCta = (landing.bottomCta || {}) as Record<string, string>;
+
+  return {
+    id: data.slug as string,
+    name: data.name as string,
+    domain: data.domain as string,
+    tagline: (data.tagline as string) || "",
+    logoUrl: (data.logoUrl as string) || "/icon.svg",
+    faviconUrl: (data.faviconUrl as string) || "/favicon.ico",
+    ogImageUrl: (data.ogImageUrl as string) || "",
+    orgSlug: (data.orgSlug as string) || "",
+    theme: data.theme && typeof data.theme === "object" && "light" in (data.theme as object)
+      ? data.theme as BrandConfig["theme"]
+      : defaultBrand.theme,
+    landing: {
+      hero: {
+        headline: hero.headline || (data.name as string) || "",
+        subheadline: hero.subheadline || "",
+        ctaText: hero.ctaText || "Start Learning",
+      },
+      features: {
+        heading: (features.heading as string) || "Features",
+        subheading: (features.subheading as string) || "",
+        items: (features.items as BrandConfig["landing"]["features"]["items"]) || [],
+      },
+      howItWorks: {
+        heading: (howItWorks.heading as string) || "How it works",
+        items: (howItWorks.items as BrandConfig["landing"]["howItWorks"]["items"]) || [],
+      },
+      faq: (landing.faq as BrandConfig["landing"]["faq"]) || [],
+      bottomCta: {
+        headline: bottomCta.headline || "Ready to start learning?",
+        subheadline: bottomCta.subheadline || "Begin your adaptive learning journey today.",
+      },
+    },
+    seo: {
+      title: ((data.seo as Record<string, unknown>)?.title as string) || (data.name as string) || "",
+      description: ((data.seo as Record<string, unknown>)?.description as string) || "",
+      keywords: ((data.seo as Record<string, unknown>)?.keywords as string[]) || [],
+    },
+    pricing: data.pricing && typeof data.pricing === "object" && "monthly" in (data.pricing as object)
+      ? data.pricing as BrandConfig["pricing"]
+      : defaultBrand.pricing,
+    contentScope: data.contentScope && typeof data.contentScope === "object" && "courseIds" in (data.contentScope as object)
+      ? data.contentScope as BrandConfig["contentScope"]
+      : { courseIds: [] },
+  };
 }
 
 export async function fetchBrandBySlug(
@@ -53,21 +109,7 @@ export async function fetchBrandBySlug(
     }
 
     const data = await res.json();
-    const brand: BrandConfig = {
-      id: data.slug,
-      name: data.name,
-      domain: data.domain,
-      tagline: data.tagline,
-      logoUrl: data.logoUrl,
-      faviconUrl: data.faviconUrl,
-      ogImageUrl: data.ogImageUrl || "",
-      orgSlug: data.orgSlug,
-      theme: data.theme,
-      landing: data.landing,
-      seo: data.seo,
-      pricing: data.pricing,
-      contentScope: data.contentScope,
-    };
+    const brand = mapToBrandConfig(data);
 
     cache.set(cacheKey, { brand, expiresAt: now + CACHE_TTL_MS });
     return brand;
@@ -103,21 +145,7 @@ export async function fetchBrandByDomain(
     }
 
     const data = await res.json();
-    const brand: BrandConfig = {
-      id: data.slug,
-      name: data.name,
-      domain: data.domain,
-      tagline: data.tagline,
-      logoUrl: data.logoUrl,
-      faviconUrl: data.faviconUrl,
-      ogImageUrl: data.ogImageUrl || "",
-      orgSlug: data.orgSlug,
-      theme: data.theme,
-      landing: data.landing,
-      seo: data.seo,
-      pricing: data.pricing,
-      contentScope: data.contentScope,
-    };
+    const brand = mapToBrandConfig(data);
 
     cache.set(domain, { brand, expiresAt: now + CACHE_TTL_MS });
     return brand;

@@ -56,7 +56,7 @@ export class ProvisionService {
       });
 
       // Default brand so the org is accessible via the web UI
-      const domain = `${orgSlug}.graspful.com`;
+      const domain = `${orgSlug}.graspful.ai`;
       await tx.brand.create({
         data: {
           slug: orgSlug,

@@ -6,7 +6,7 @@ function buildValidDto(): CreateBrandDto {
   Object.assign(dto, {
     slug: 'test-brand',
     name: 'Test Brand',
-    domain: 'test.graspful.com',
+    domain: 'test.graspful.ai',
     tagline: 'Learn better',
     logoUrl: '/logo.svg',
     orgSlug: 'test-org',
@@ -63,7 +63,7 @@ describe('CreateBrandDto', () => {
       brand: {
         slug: 'test-brand',
         name: 'Test Brand',
-        domain: 'test.graspful.com',
+        domain: 'test.graspful.ai',
         orgSlug: 'test-org',
       },
     });

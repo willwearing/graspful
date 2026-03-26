@@ -152,7 +152,7 @@ describe('KnowledgeGraphController', () => {
       };
       mockImporter.importFromYaml.mockResolvedValue(importResult);
       mockImporter.parseCourseYaml.mockReturnValue({ course: { id: 'test', name: 'Test' } });
-      mockPrisma.brand.findFirst.mockResolvedValue({ domain: 'test-org.graspful.com' });
+      mockPrisma.brand.findFirst.mockResolvedValue({ domain: 'test-org.graspful.ai' });
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
       const body = {
@@ -194,7 +194,7 @@ describe('KnowledgeGraphController', () => {
       mockImporter.parseCourseYaml.mockReturnValue(parsedYaml);
       mockReviewService.review.mockReturnValue(reviewResult);
       mockImporter.importFromYaml.mockResolvedValue(importResult);
-      mockPrisma.brand.findFirst.mockResolvedValue({ domain: 'test-org.graspful.com' });
+      mockPrisma.brand.findFirst.mockResolvedValue({ domain: 'test-org.graspful.ai' });
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
       const body = { yaml: 'course:\n  id: test', publish: true };
@@ -353,14 +353,14 @@ describe('KnowledgeGraphController', () => {
       mockReviewService.review.mockReturnValue(reviewResult);
       mockPrisma.course.update.mockResolvedValue({ ...course, isPublished: true });
       mockPrisma.organization.findUnique.mockResolvedValue({ slug: 'test-org' });
-      mockPrisma.brand.findFirst.mockResolvedValue({ domain: 'test.graspful.com' });
+      mockPrisma.brand.findFirst.mockResolvedValue({ domain: 'test.graspful.ai' });
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
       const result = await controller.publishCourse(courseId, orgCtx as any);
 
       expect(result.courseId).toBe(courseId);
       expect(result.published).toBe(true);
-      expect(result.url).toContain('test.graspful.com');
+      expect(result.url).toContain('test.graspful.ai');
       expect(result.url).toContain(courseId);
       expect(result.review).toEqual(reviewResult);
     });

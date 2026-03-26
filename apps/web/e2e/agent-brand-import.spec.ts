@@ -46,7 +46,7 @@ test.describe.serial("Agent Brand Import (API only)", () => {
     const dto = {
       slug,
       name: "Test Brand",
-      domain: `${slug}.graspful.com`,
+      domain: `${slug}.graspful.ai`,
       tagline: "Test tagline",
       logoUrl: "/logo.svg",
       orgSlug,

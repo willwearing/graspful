@@ -16,7 +16,7 @@ export function scaffoldBrand(niche: string, options: { name?: string; domain?: 
   const config = NICHE_PRESETS[niche] || NICHE_PRESETS['default'];
   const slug = (options.name || niche).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const name = options.name || `${niche.charAt(0).toUpperCase() + niche.slice(1)} Academy`;
-  const domain = options.domain || `${slug}.graspful.com`;
+  const domain = options.domain || `${slug}.graspful.ai`;
 
   return yaml.dump({
     brand: {

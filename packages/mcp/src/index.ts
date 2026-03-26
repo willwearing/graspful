@@ -120,7 +120,7 @@ function scaffoldBrand(niche: string, options: { name?: string; domain?: string;
   const config = NICHE_PRESETS[niche] || NICHE_PRESETS['default'];
   const slug = (options.name || niche).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const name = options.name || `${niche.charAt(0).toUpperCase() + niche.slice(1)} Academy`;
-  const domain = options.domain || `${slug}.graspful.com`;
+  const domain = options.domain || `${slug}.graspful.ai`;
 
   return yaml.dump({
     brand: {
@@ -1010,7 +1010,7 @@ Edit the YAML to customize, then import with graspful_import_brand.`,
       properties: {
         niche: { type: 'string', description: 'Brand niche: education, healthcare, finance, tech, or legal' },
         name: { type: 'string', description: 'Brand name (default: "{Niche} Academy")' },
-        domain: { type: 'string', description: 'Custom domain (default: "{slug}.graspful.com")' },
+        domain: { type: 'string', description: 'Custom domain (default: "{slug}.graspful.ai")' },
         orgSlug: { type: 'string', description: 'Organization slug to associate with' },
       },
       required: ['niche'],
