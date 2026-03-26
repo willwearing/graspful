@@ -48,6 +48,27 @@ export class BrandsService {
     });
   }
 
+  async upsert(dto: CreateBrandDto) {
+    const data = {
+      name: dto.name,
+      domain: dto.domain,
+      tagline: dto.tagline,
+      logoUrl: dto.logoUrl || '/icon.svg',
+      faviconUrl: dto.faviconUrl || '/favicon.ico',
+      ogImageUrl: dto.ogImageUrl,
+      theme: dto.theme as Prisma.InputJsonValue,
+      landing: dto.landing as Prisma.InputJsonValue,
+      seo: dto.seo as Prisma.InputJsonValue,
+      pricing: (dto.pricing || {}) as Prisma.InputJsonValue,
+      contentScope: (dto.contentScope || {}) as Prisma.InputJsonValue,
+    };
+    return this.prisma.brand.upsert({
+      where: { slug: dto.slug },
+      update: data,
+      create: { ...data, slug: dto.slug, orgSlug: dto.orgSlug },
+    });
+  }
+
   async update(slug: string, dto: UpdateBrandDto) {
     const data: Prisma.BrandUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name;

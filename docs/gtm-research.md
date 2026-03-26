@@ -318,14 +318,6 @@ AI-native companies measure whether their product actually works across four sig
 
 **Source:** Kyle Poyar, "How the top AI-native startups launch and grow," Growth Unhinged, March 25, 2026.
 
-#### Pricing: Charge More Than You Think
-
-Poyar's finding: price sensitivity drops dramatically when AI does real work. Gamma A/B tested and found the highest price ($20/mo) performed best — 2x a conventional productivity app. GC AI charges 20x the cost of a Claude subscription and people buy quickly.
-
-**What this means for Graspful:** The 70/30 revenue share model is fine for the marketplace, but for direct subscriptions (course creation tools), price aggressively. If the AI creates a course in 5 minutes that would take 40 hours manually, the value is enormous. Don't anchor to traditional LMS pricing ($29-99/mo). Anchor to the value of the outcome — hours saved, courses shipped, learner outcomes improved.
-
-**Action item:** When pricing the creator tier, test a premium price point ($49-99/mo) rather than racing to the bottom. AI products that do real work earn premium pricing.
-
 ---
 
 ### 1.6 Sales Motion Evolution (from Poyar Report)
@@ -595,7 +587,35 @@ This is the long game (Tier 3). Content that appears in authoritative, crawlable
 | **Record a YouTube walkthrough** (10-15 min) of building a course from scratch with an AI agent. | Video content reaches different audience. YouTube is indexed by search and LLMs. | High | High (1-2 days) | Week 5-6 |
 | **Build integrations with popular AI agents** -- Cursor, Claude Code, Windsurf. Ensure MCP works seamlessly. | Direct channel to agent-using developers. These are the power users. | Very High | Medium (testing) | Week 1-2 |
 
-#### 2.5 Partnership Opportunities
+#### 2.5 Workshop-Led Sales Motion (NEW — from Poyar Report)
+
+GrowthX hit $2M revenue before announcing the company via workshops. This is directly applicable to Graspful.
+
+| Action | Why It Matters | Impact | Effort | Timeline |
+|--------|---------------|--------|--------|----------|
+| **Run "Build an Adaptive Course in 60 Minutes" workshops** — live sessions showing how to use Claude Code + Graspful to create a complete course from scratch. Free or low-cost. | GrowthX proved this works: teach the DIY approach, demonstrate the value, then convert. Workshop attendees have the highest intent. | Very High | Medium (prep 1 day, run 2hrs/week) | Week 4+ |
+| **Target certification prep communities first** — electrical, CDL, CKA, AWS. Run niche workshops for specific verticals. | Vertical-specific workshops convert better. "Build a CKA Prep Course in 60 Minutes" is more compelling than generic. | High | Medium | Week 6+ |
+| **Record workshops and publish as content** — YouTube, blog post write-ups, etc. | Workshops become content marketing assets. Double duty: convert attendees live + generate ongoing traffic. | High | Low (already doing the work) | Ongoing |
+| **Offer white-glove onboarding for first 10 paying customers** — help them build their first course, get feedback, iterate. | Consulting-style early engagement builds relationships and surfaces product gaps. Poyar: "Best GTM teams look like consulting firms." | Very High | High (5-10 hours per customer) | Month 1-3 |
+
+**Why workshops work for Graspful specifically:**
+- The product's value is best demonstrated live (agent creates course in real-time = wow moment)
+- Course creators are used to learning via workshops/webinars
+- You build a list of engaged prospects who've seen the product work
+- Workshop content seeds training data (YouTube, blog posts, Reddit discussions)
+
+#### 2.6 Enterprise / Institutional Flip (NEW — from Poyar Report)
+
+The bottom-up → top-down pattern from Poyar's research. Individual creators discover and love Graspful, then you sell the transformation to their organization.
+
+| Action | Why It Matters | Impact | Effort | Timeline |
+|--------|---------------|--------|--------|----------|
+| **Identify institutional users among self-serve signups** — track email domains, look for .edu, training companies, certification bodies. | These are your enterprise leads. They found you bottom-up; now flip to top-down. | High | Low (analytics) | Month 2+ |
+| **Build an "institutional" tier** with team management, custom branding, analytics, SSO. | Institutions need admin controls that individual creators don't. This unlocks larger deal sizes. | High | High (product work) | Month 3-6 |
+| **Pitch the transformation, not features** — "What if your team shipped 10 adaptive courses per month instead of 1?" | Per Poyar: executives buy transformation, not tools. Don't sell Graspful; sell what their org becomes with Graspful. | Very High | Low (messaging) | Month 2+ |
+| **Don't hire an AE until $2-5M ARR** — rely on founder-led sales + self-serve until then. | Poyar's median: first AE at $2-5M ARR. HeyGen and Gamma waited until $10M+. Premature sales hiring burns cash. | N/A (cost avoidance) | N/A | Ongoing discipline |
+
+#### 2.7 Partnership Opportunities
 
 | Action | Why It Matters | Impact | Effort | Timeline |
 |--------|---------------|--------|--------|----------|
@@ -739,6 +759,14 @@ log: ~/.claude/autoresearch-logs/aeo-quality.tsv
 
 ## Appendix A: Complete Checklist (by Tier)
 
+### Pre-Tier: AI Quality & PMF Measurement (Ongoing — from Poyar Report)
+- [ ] Implement explicit feedback: thumbs up/down on generated concepts and knowledge points
+- [ ] Track edit distance between AI-generated course and published version
+- [ ] Track % of generated courses that get published vs abandoned
+- [ ] Track learner mastery velocity on AI-generated vs manually-created courses
+- [ ] Define PMF signal: what does "obvious, binary PMF" look like for Graspful?
+- [ ] Set up workshop pipeline: "Build an Adaptive Course in 60 Minutes" recurring sessions
+
 ### Tier 0 — Critical Path (Days 1-2)
 - [ ] Publish `@graspful/mcp` to npm
 - [ ] Publish `@graspful/cli` to npm
@@ -789,11 +817,15 @@ log: ~/.claude/autoresearch-logs/aeo-quality.tsv
 | Days 3-5 | 1 | GitHub metadata, npm metadata, example courses | Product surface is polished for anyone who finds it |
 | Week 2-3 | 2 | llms.txt, docs, FAQ, comparisons, benchmarks | Content surfaces are optimized for AI citation |
 | Week 3-4 | 3 | Show HN, Reddit, blog posts | Human attention starts flowing |
+| Week 4+ | Phase 2 | Workshops ("Build a Course in 60 Minutes"), white-glove onboarding for first 10 customers | Consulting-style sales generating revenue + feedback |
 | Week 5-6 | Phase 2 | Product Hunt, demo video, YouTube walkthrough | Launch events with polished product behind them |
 | Week 7-8 | Phase 2 | Community engagement, partnership outreach | Sustained growth engine running |
-| Month 3+ | Ongoing | Weekly content, autoresearch loop, partnership deals | Graspful enters model training data |
+| Month 2+ | Phase 3 | Identify institutional users, pitch transformation to their orgs | Bottom-up → top-down flip generating larger deals |
+| Month 3+ | Ongoing | Weekly content, autoresearch loop, partnership deals, enterprise tier | Graspful enters model training data; enterprise pipeline building |
 
 **Each tier has a gate.** Don't start a tier until the previous tier's gate is passed. The gates are sanity checks, not perfection bars — "good enough to not embarrass you" is the standard.
+
+**PMF is the meta-gate (Poyar insight).** If you're not seeing binary PMF signals — users coming back unprompted, asking how to pay, growth without marketing — pause GTM investment and fix the product. Don't scale distribution for a product that doesn't create pull.
 
 ## Appendix C: Competitive Landscape for Agent-First Course Creation
 
