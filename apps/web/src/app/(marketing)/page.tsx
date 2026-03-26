@@ -57,6 +57,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LandingPage() {
   const brand = await resolvePageBrand();
   const url = `https://${brand.domain}`;
+  const isGraspful = brand.id === "graspful";
 
   return (
     <div className="bg-background text-foreground">
@@ -74,32 +75,33 @@ export default async function LandingPage() {
         heading={brand.landing.howItWorks.heading}
         steps={brand.landing.howItWorks.items}
       />
-      {/* Science-backed learning */}
-      <section className="bg-muted/50 py-24 md:py-32">
-        <div className="mx-auto max-w-5xl px-6">
-          <h2 className="text-center text-3xl font-bold tracking-[-0.03em] text-foreground sm:text-4xl mb-4">
-            Science-backed adaptive learning
-          </h2>
-          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Every course on Graspful uses research-backed algorithms to personalize the learning path, schedule reviews, and ensure mastery.
-          </p>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              { title: "Knowledge Graph", desc: "Concepts connected by prerequisites. Students build on solid foundations." },
-              { title: "Adaptive Diagnostics", desc: "Skip what you know. Start where it matters." },
-              { title: "Mastery Enforcement", desc: "No gaps. Students prove understanding before advancing." },
-              { title: "Spaced Repetition", desc: "Optimally-timed reviews so nothing is forgotten." },
-              { title: "Targeted Remediation", desc: "When stuck, the system finds exactly which prerequisite is weak." },
-              { title: "Implicit Review", desc: "Advanced topics automatically reinforce foundations." },
-            ].map((item) => (
-              <div key={item.title} className="rounded-xl border border-border/50 bg-card p-6 shadow-sm">
-                <h3 className="text-sm font-semibold text-foreground mb-1">{item.title}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
+      {isGraspful && (
+        <section className="bg-muted/50 py-24 md:py-32">
+          <div className="mx-auto max-w-5xl px-6">
+            <h2 className="text-center text-3xl font-bold tracking-[-0.03em] text-foreground sm:text-4xl mb-4">
+              Science-backed adaptive learning
+            </h2>
+            <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+              Every course on Graspful uses research-backed algorithms to personalize the learning path, schedule reviews, and ensure mastery.
+            </p>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                { title: "Knowledge Graph", desc: "Concepts connected by prerequisites. Students build on solid foundations." },
+                { title: "Adaptive Diagnostics", desc: "Skip what you know. Start where it matters." },
+                { title: "Mastery Enforcement", desc: "No gaps. Students prove understanding before advancing." },
+                { title: "Spaced Repetition", desc: "Optimally-timed reviews so nothing is forgotten." },
+                { title: "Targeted Remediation", desc: "When stuck, the system finds exactly which prerequisite is weak." },
+                { title: "Implicit Review", desc: "Advanced topics automatically reinforce foundations." },
+              ].map((item) => (
+                <div key={item.title} className="rounded-xl border border-border/50 bg-card p-6 shadow-sm">
+                  <h3 className="text-sm font-semibold text-foreground mb-1">{item.title}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
       <PricingSection />
       <FAQ items={brand.landing.faq} />
       <CTA
@@ -120,9 +122,11 @@ export default async function LandingPage() {
         operatingSystem="Web"
         offers={{ price: 0, priceCurrency: "USD" }}
       />
-      <FAQPageJsonLd items={brand.landing.faq} />
+      {brand.landing.faq.length > 0 && (
+        <FAQPageJsonLd items={brand.landing.faq} />
+      )}
       <CourseJsonLd
-        name={`${brand.name} -- Audio Exam Prep`}
+        name={brand.name}
         description={brand.seo.description}
         provider={brand.name}
         url={url}
@@ -133,13 +137,15 @@ export default async function LandingPage() {
         description={brand.seo.description}
         logoUrl={`${url}${brand.logoUrl}`}
       />
-      <CredentialJsonLd
-        name={`${brand.name} Certification Prep`}
-        description={brand.seo.description}
-        url={url}
-        educationalLevel="Professional"
-        credentialCategory="Professional Certification"
-      />
+      {isGraspful && (
+        <CredentialJsonLd
+          name={`${brand.name} Certification Prep`}
+          description={brand.seo.description}
+          url={url}
+          educationalLevel="Professional"
+          credentialCategory="Professional Certification"
+        />
+      )}
       <ScrollDepthTracker />
     </div>
   );

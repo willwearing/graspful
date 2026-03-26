@@ -240,16 +240,49 @@ export class KnowledgeGraphController {
     const domain = `${finalSlug}.graspful.ai`;
 
     try {
+      const courseName = parsed.course.name;
+      const courseDesc = parsed.course.description ?? courseName;
       await this.brandsService.create({
         slug: finalSlug,
-        name: parsed.course.name,
+        name: courseName,
         domain,
-        tagline: parsed.course.description ?? parsed.course.name,
-        logoUrl: '/logo.svg',
+        tagline: courseDesc,
+        logoUrl: '/icon.svg',
         orgSlug: orgRecord.slug,
         theme: {},
-        landing: {},
-        seo: {},
+        landing: {
+          hero: {
+            headline: `Learn ${courseName}`,
+            subheadline: courseDesc,
+            ctaText: 'Start Learning',
+          },
+          features: {
+            heading: 'Why choose us?',
+            items: [
+              { title: 'Adaptive Learning', description: 'Content adapts to your knowledge level', icon: 'Brain' },
+              { title: 'Spaced Repetition', description: 'Review at optimal intervals for lasting memory', icon: 'Timer' },
+              { title: 'Progress Tracking', description: 'See exactly where you stand', icon: 'Workflow' },
+            ],
+          },
+          howItWorks: {
+            heading: 'How it works',
+            items: [
+              { title: 'Take a diagnostic', description: 'We assess what you already know' },
+              { title: 'Learn adaptively', description: 'Focus on gaps, skip what you know' },
+              { title: 'Master the material', description: 'Prove mastery through progressive challenges' },
+            ],
+          },
+          faq: [],
+          bottomCta: {
+            headline: `Ready to learn ${courseName}?`,
+            subheadline: 'Start your adaptive learning journey today.',
+          },
+        },
+        seo: {
+          title: `${courseName} — Adaptive Learning`,
+          description: courseDesc,
+          keywords: [],
+        },
         pricing: {},
       });
 

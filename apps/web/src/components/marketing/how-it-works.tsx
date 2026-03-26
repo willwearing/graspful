@@ -4,6 +4,7 @@ interface HowItWorksProps {
 }
 
 export function HowItWorks({ heading, steps }: HowItWorksProps) {
+  if (!steps || steps.length === 0) return null;
   return (
     <section className="relative bg-[#0A1628] py-32 md:py-40 overflow-hidden">
       <div className="gradient-mesh opacity-30">

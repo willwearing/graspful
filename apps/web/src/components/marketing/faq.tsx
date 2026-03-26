@@ -13,6 +13,7 @@ interface FAQProps {
 }
 
 export function FAQ({ items }: FAQProps) {
+  if (!items || items.length === 0) return null;
   return (
     <section className="mx-auto max-w-3xl px-6 py-24">
       <h2 className="text-center text-3xl font-bold text-foreground mb-12">

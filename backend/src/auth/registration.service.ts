@@ -77,7 +77,8 @@ export class RegistrationService {
         const org = await tx.organization.create({ data: { slug: orgSlug, name: orgName, niche: 'general' } });
         await tx.orgMembership.create({ data: { orgId: org.id, userId: user.id, role: 'owner' } });
 
-        // Create a default brand so the org is accessible via the web UI
+        // Create a default brand so the org is accessible via the web UI.
+        // This is a placeholder — it gets replaced when the user imports a brand YAML.
         const domain = `${orgSlug}.graspful.ai`;
         await tx.brand.create({
           data: {
@@ -90,9 +91,24 @@ export class RegistrationService {
             theme: {},
             landing: {
               hero: { headline: orgName, subheadline: 'Adaptive learning', ctaText: 'Start Learning' },
-              features: { heading: 'Features', items: [] },
-              howItWorks: { heading: 'How it works', items: [] },
+              features: {
+                heading: 'Why choose us?',
+                items: [
+                  { title: 'Adaptive Learning', description: 'Content adapts to your knowledge level', icon: 'Brain' },
+                  { title: 'Spaced Repetition', description: 'Review at optimal intervals for lasting memory', icon: 'Timer' },
+                  { title: 'Progress Tracking', description: 'See exactly where you stand', icon: 'Workflow' },
+                ],
+              },
+              howItWorks: {
+                heading: 'How it works',
+                items: [
+                  { title: 'Take a diagnostic', description: 'We assess what you already know' },
+                  { title: 'Learn adaptively', description: 'Focus on gaps, skip what you know' },
+                  { title: 'Master the material', description: 'Prove mastery through progressive challenges' },
+                ],
+              },
               faq: [],
+              bottomCta: { headline: 'Ready to start learning?', subheadline: 'Begin your adaptive learning journey today.' },
             },
             seo: { title: orgName, description: `Adaptive learning at ${orgName}`, keywords: [] },
           },

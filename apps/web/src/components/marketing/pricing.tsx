@@ -251,12 +251,53 @@ function LearnerPricing() {
   );
 }
 
+function FreePricing() {
+  return (
+    <section id="pricing" className="py-20 px-4 bg-background">
+      <div className="mx-auto max-w-md">
+        <h2 className="text-3xl font-bold text-center text-foreground mb-4">
+          100% Free
+        </h2>
+        <p className="text-center text-muted-foreground mb-10">
+          No credit card required. Start learning immediately.
+        </p>
+        <Card className="border-primary shadow-lg">
+          <CardHeader>
+            <CardTitle>Free</CardTitle>
+            <CardDescription>
+              <span className="text-3xl font-bold text-foreground">$0</span>{" "}
+              <span className="text-muted-foreground">forever</span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 mb-6">
+              {["Full course access", "Adaptive learning", "Spaced repetition", "Progress tracking"].map((feature) => (
+                <li key={feature} className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-primary shrink-0" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+            <Button className="w-full" render={<Link href="/sign-up" />}>
+              Start Learning
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </section>
+  );
+}
+
 export function PricingSection() {
   const brand = useBrand();
-  const isCreatorBrand = brand.id === "graspful";
 
-  if (isCreatorBrand) {
+  if (brand.id === "graspful") {
     return <CreatorPricing />;
+  }
+
+  const isFree = !brand.pricing.monthly && !brand.pricing.yearly;
+  if (isFree) {
+    return <FreePricing />;
   }
 
   return <LearnerPricing />;
