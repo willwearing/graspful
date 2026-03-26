@@ -51,7 +51,7 @@ export class BrandsController {
   @UseGuards(JwtOrApiKeyGuard)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   async create(@Body() dto: CreateBrandDto) {
-    const brand = await this.brandsService.create(dto);
+    const brand = await this.brandsService.upsert(dto);
 
     // Provision domain on Vercel
     try {
