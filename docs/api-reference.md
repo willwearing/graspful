@@ -134,7 +134,7 @@ graspful create brand --niche <niche> [options]
 |------|------|----------|---------|-------------|
 | `--niche <niche>` | string | Yes | — | Brand niche. One of: `education`, `healthcare`, `finance`, `tech`, `legal`. Anything else uses the `default` preset. |
 | `--name <name>` | string | No | `"{Niche} Academy"` | Brand display name. |
-| `--domain <domain>` | string | No | `"{slug}.graspful.com"` | Custom domain. |
+| `--domain <domain>` | string | No | `"{slug}.graspful.ai"` | Custom domain. |
 | `--org <slug>` | string | No | `"TODO: your-org-slug"` | Organization slug. |
 | `-o, --output <file>` | string | No | stdout | Output file path. |
 
@@ -432,7 +432,7 @@ graspful import course.yaml --org acme-learning --publish
 
 ```
 Imported course: abc123-uuid
-  URL: https://acme-learning.graspful.com/courses/abc123-uuid
+  URL: https://acme-learning.graspful.ai/browse/abc123-uuid
   Published: true
 ```
 
@@ -453,7 +453,7 @@ Imported brand: medprep-academy
 ```json
 {
   "courseId": "abc123-uuid",
-  "url": "https://acme-learning.graspful.com/courses/abc123-uuid",
+  "url": "https://acme-learning.graspful.ai/browse/abc123-uuid",
   "published": true
 }
 ```
@@ -889,7 +889,7 @@ Generate a brand YAML scaffold for a white-label learning site.
 |------|------|----------|---------|-------------|
 | `niche` | string | Yes | — | Brand niche: `education`, `healthcare`, `finance`, `tech`, or `legal`. |
 | `name` | string | No | `"{Niche} Academy"` | Brand display name. |
-| `domain` | string | No | `"{slug}.graspful.com"` | Custom domain. |
+| `domain` | string | No | `"{slug}.graspful.ai"` | Custom domain. |
 | `orgSlug` | string | No | `"TODO: your-org-slug"` | Organization slug to associate with. |
 
 **Returns:** Raw YAML string (not JSON-wrapped).

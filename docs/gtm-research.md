@@ -470,7 +470,7 @@ Good: "Generate an adaptive learning course as a YAML knowledge graph. Provide a
 
 | Action | Why It Matters | Impact | Effort | Tier |
 |--------|---------------|--------|--------|------|
-| **Create `llms.txt`** at graspful.com root with index of all docs pages + 1-sentence descriptions. | AI coding assistants (Cursor, Claude Code, Copilot) actively use this when encountering new APIs. | High | Low (1-2 hours) | 2 |
+| **Create `llms.txt`** at `graspful.ai/llms.txt` with index of all docs pages + 1-sentence descriptions. | AI coding assistants (Cursor, Claude Code, Copilot) actively use this when encountering new APIs. | High | Low (1-2 hours) | 2 |
 | **Create `llms-full.txt`** with complete documentation content in Markdown. | Full context dump for agents that want everything. | High | Medium (3-4 hours) | 2 |
 | **Structure all docs in clean Markdown** with headers, code blocks, and FAQ sections. | Markdown is LLMs' native language. No complex HTML parsing needed. | High | Medium (ongoing) | 2 |
 | **Add JSON-LD schema markup** to documentation site (Article, SoftwareApplication, HowTo). | Helps AI engines parse and understand content structure. | Medium | Medium (3-4 hours) | 2 |

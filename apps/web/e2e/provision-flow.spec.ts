@@ -190,7 +190,7 @@ test.describe("Brand resolution", () => {
   });
 
   test("docs pages are accessible from main site", async ({ page }) => {
-    // Verify all the doc routes that were previously referenced as docs.graspful.com
+    // Verify all the doc routes that were previously referenced as a separate docs domain
     for (const path of [
       "/docs/brand-schema",
       "/docs/course-schema",

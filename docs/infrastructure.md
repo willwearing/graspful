@@ -26,7 +26,7 @@ All brands are served from the same Vercel deployment. The middleware resolves t
 |--------|-----------|--------|
 | `graspful.ai` | Vercel (frontend) | Live |
 | `api.graspful.ai` | Railway (backend) | Railway custom domain added — **DNS CNAME pending** |
-| `docs.graspful.com` | N/A | No separate docs site — docs are at `graspful.ai/docs/*` |
+| `graspful.ai/docs/*` | Vercel (frontend) | Live docs routes on the main site |
 
 #### api.graspful.ai DNS Setup
 

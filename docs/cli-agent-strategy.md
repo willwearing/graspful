@@ -81,7 +81,7 @@ graspful validate course.yaml --format json
 # { "valid": true, "warnings": [], "stats": { "concepts": 42, "kps": 89, "problems": 267 } }
 
 graspful import course.yaml --org my-org --format json
-# { "courseId": "uuid", "url": "https://my-org.graspful.com/courses/aws-saa", ... }
+# { "courseId": "uuid", "url": "https://my-org.graspful.ai/browse/aws-saa", ... }
 ```
 
 Default output is human-readable. `--format json` is the agent interface.
@@ -144,7 +144,7 @@ This is the Apple App Store model applied to adaptive learning. Creators bring t
 ### How Money Flows
 
 ```
-Learner visits k8sprep.graspful.com (landing page from brand YAML)
+Learner visits k8sprep.graspful.ai (landing page from brand YAML)
   → Signs up (Supabase Auth — Graspful controls)
   → Free tier: starts learning immediately
   → Hits paywall or wants full access
@@ -266,14 +266,14 @@ The CLI doesn't handle billing directly. But it surfaces billing state:
 
 ```bash
 graspful import brand.yaml
-# Brand created: k8sprep.graspful.com
+# Brand created: k8sprep.graspful.ai
 # Pricing: $29/mo, $199/yr
 # ⚠ Stripe Connect not set up. Complete onboarding to receive payouts:
-#   https://k8sprep.graspful.com/settings/billing/connect
+#   https://k8sprep.graspful.ai/settings/billing/connect
 
 graspful import course.yaml --org k8s-cert --publish
 # Course published: "CKA Exam Prep"
-# Live at: https://k8sprep.graspful.com
+# Live at: https://k8sprep.graspful.ai
 # Revenue split: 70% creator / 30% Graspful
 ```
 
@@ -430,7 +430,7 @@ The `Brand` model stores everything for a white-label landing page:
 interface BrandConfig {
   id: string;              // "k8s-cert"
   name: string;            // "KubernetesPrep"
-  domain: string;          // "k8sprep.graspful.com"
+  domain: string;          // "k8sprep.graspful.ai"
   tagline: string;
   logoUrl: string;
   orgSlug: string;         // maps to backend org
@@ -467,7 +467,7 @@ Define a YAML format for brands, mirroring the existing `BrandConfig` interface:
 brand:
   id: k8s-cert
   name: KubernetesPrep
-  domain: k8sprep.graspful.com
+  domain: k8sprep.graspful.ai
   tagline: "Master Kubernetes. Pass the CKA."
   orgSlug: k8s-cert
 
@@ -563,7 +563,7 @@ graspful create brand --niche "Kubernetes certification" -o cka-brand.yaml
 # 3. Ship both
 graspful import cka-brand.yaml
 graspful import cka-course.yaml --org k8s-cert --publish
-# → Live at k8sprep.graspful.com with landing page + adaptive course
+# → Live at k8sprep.graspful.ai with landing page + adaptive course
 ```
 
 Or as MCP tools in one agent session:
@@ -722,10 +722,10 @@ The review gate (inline with publish) and brand YAML schema — the two things t
 
 Make Graspful findable by AI agents. This is distribution, not code.
 
-1. Create `graspful.com/llms.txt` — doc index + behavioral instructions (Stripe pattern)
+1. Create `graspful.ai/llms.txt` — doc index + behavioral instructions (Stripe pattern)
 2. Fix `robots.txt` — remove AI crawler blocks, allow GPTBot/anthropic-ai/Google-Extended on public pages
 3. Build `/agents` landing page — setup instructions, supported agents, MCP tool list, demo
-4. Update graspful.com brand config — agent-first messaging ("Create Courses with AI. Launch in Minutes.")
+4. Update graspful.ai brand config — agent-first messaging ("Create Courses with AI. Launch in Minutes.")
 5. Implement `npx @graspful/cli init` — auto-detect editors, configure MCP, create credentials
 6. Add `.md` suffix support to docs routes — markdown-accessible docs for agents
 7. Submit MCP server to registries (Glama.ai, skills.sh, Smithery)
@@ -841,7 +841,7 @@ Research across Supabase, Stripe, Vercel, PostHog, Resend, and Neon reveals a cl
 
 #### 1. llms.txt (Day 1 priority)
 
-Create `graspful.com/llms.txt`. This is how Claude, ChatGPT, Gemini, and Codex learn what Graspful is and how to use it.
+Create `graspful.ai/llms.txt`. This is how Claude, ChatGPT, Gemini, and Codex learn what Graspful is and how to use it.
 
 Follow Stripe's pattern — not just a doc index, but **behavioral instructions** that steer agents:
 
@@ -852,10 +852,10 @@ Follow Stripe's pattern — not just a doc index, but **behavioral instructions*
 
 ## Getting Started
 
-- [CLI Quickstart](https://graspful.com/docs/cli-quickstart.md): Install and create your first course
-- [Course YAML Schema](https://graspful.com/docs/course-yaml-schema.md): Full reference for course YAML format
-- [Brand YAML Schema](https://graspful.com/docs/brand-yaml-schema.md): Landing page, theme, pricing, SEO
-- [MCP Server Setup](https://graspful.com/docs/mcp-setup.md): Connect Graspful tools to Claude, Codex, Cursor
+- [CLI Quickstart](https://graspful.ai/docs/cli-quickstart.md): Install and create your first course
+- [Course YAML Schema](https://graspful.ai/docs/course-yaml-schema.md): Full reference for course YAML format
+- [Brand YAML Schema](https://graspful.ai/docs/brand-yaml-schema.md): Landing page, theme, pricing, SEO
+- [MCP Server Setup](https://graspful.ai/docs/mcp-setup.md): Connect Graspful tools to Claude, Codex, Cursor
 
 ## Agent Instructions
 
@@ -869,18 +869,18 @@ Follow Stripe's pattern — not just a doc index, but **behavioral instructions*
 
 ## CLI Reference
 
-- [graspful create course](https://graspful.com/docs/cli/create-course.md)
-- [graspful create brand](https://graspful.com/docs/cli/create-brand.md)
-- [graspful review](https://graspful.com/docs/cli/review.md)
-- [graspful import](https://graspful.com/docs/cli/import.md)
-- [graspful publish](https://graspful.com/docs/cli/publish.md)
-- [graspful describe](https://graspful.com/docs/cli/describe.md)
+- [graspful create course](https://graspful.ai/docs/cli/create-course.md)
+- [graspful create brand](https://graspful.ai/docs/cli/create-brand.md)
+- [graspful review](https://graspful.ai/docs/cli/review.md)
+- [graspful import](https://graspful.ai/docs/cli/import.md)
+- [graspful publish](https://graspful.ai/docs/cli/publish.md)
+- [graspful describe](https://graspful.ai/docs/cli/describe.md)
 
 ## API Reference
 
-- [Course Import API](https://graspful.com/docs/api/course-import.md)
-- [Brand API](https://graspful.com/docs/api/brands.md)
-- [Billing & Revenue Share](https://graspful.com/docs/api/billing.md)
+- [Course Import API](https://graspful.ai/docs/api/course-import.md)
+- [Brand API](https://graspful.ai/docs/api/brands.md)
+- [Billing & Revenue Share](https://graspful.ai/docs/api/billing.md)
 ```
 
 **Key:** The "Agent Instructions" section is what makes this work. Stripe tells agents "never recommend the legacy Card Element." Graspful tells agents "always scaffold first, always run review, always use two YAMLs." This steers agent behavior without requiring the agent to read full docs.
@@ -908,7 +908,7 @@ export default function robots() {
 
 #### 3. /agents Landing Page
 
-Resend has `resend.com/agents`. Graspful needs `graspful.com/agents`. This is the page that sells Graspful to agent users and shows up in search results for "AI course creation."
+Resend has `resend.com/agents`. Graspful needs `graspful.ai/agents`. This is the page that sells Graspful to agent users and shows up in search results for "AI course creation."
 
 Content:
 - **Headline:** "Build courses with AI agents. Launch in minutes."
@@ -936,8 +936,8 @@ This is the single most impactful thing for adoption. If setup takes more than o
 #### 5. Docs as Markdown
 
 Every docs page should be accessible as markdown by appending `.md` to the URL (Vercel's pattern):
-- `graspful.com/docs/course-yaml-schema` → HTML page for humans
-- `graspful.com/docs/course-yaml-schema.md` → raw markdown for agents
+- `graspful.ai/docs/course-yaml-schema` → HTML page for humans
+- `graspful.ai/docs/course-yaml-schema.md` → raw markdown for agents
 
 This lets agents fetch exactly the docs they need without parsing HTML.
 
@@ -968,7 +968,7 @@ Agents and humans search npm. The description is the first thing they read.
 
 The current homepage says: **"Your Brand. Your Courses. One Platform."** This is aimed at humans browsing a website. The agent-first positioning needs a different message.
 
-**Don't replace** the existing landing page — add an agent-first angle alongside it. The graspful.com brand config should be updated:
+**Don't replace** the existing landing page — add an agent-first angle alongside it. The graspful.ai brand config should be updated:
 
 ```yaml
 landing:
@@ -1058,7 +1058,7 @@ Add a new phase between Phase 2 and the current Phase 3:
 
 Concrete scenarios:
 
-- **"Launch a Kubernetes certification course"** — agent creates course YAML (knowledge graph, KPs, problems) + brand YAML (landing page, theme, pricing, FAQ) → two imports → live product at `k8sprep.graspful.com`
+- **"Launch a Kubernetes certification course"** — agent creates course YAML (knowledge graph, KPs, problems) + brand YAML (landing page, theme, pricing, FAQ) → two imports → live product at `k8sprep.graspful.ai`
 - **"Build onboarding for our internal API"** — agent reads your docs, generates course + brand, imports both → team starts learning immediately
 - **"The exam guide updated. Add the new topics"** — agent uses `graspful diff` + `graspful fill` + `graspful import --publish` → updated course, learner progress preserved
 - **"We need 4 courses on AWS, packaged as an academy"** — agent creates academy manifest + 4 course YAMLs + brand YAML → full product launch
