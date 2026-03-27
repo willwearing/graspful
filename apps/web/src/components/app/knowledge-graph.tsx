@@ -9,24 +9,15 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-type MasteryState = "unstarted" | "in_progress" | "mastered" | "needs_review";
-
-interface ConceptNode {
-  id: string;
-  name: string;
-  masteryState: MasteryState;
-  courseId?: string;
-}
-
-interface PrereqEdge {
-  sourceConceptId: string;
-  targetConceptId: string;
-}
+import type {
+  KnowledgeGraphNode,
+  KnowledgeGraphEdge,
+  MasteryState,
+} from "@graspful/shared";
 
 interface KnowledgeGraphProps {
-  concepts: ConceptNode[];
-  edges: PrereqEdge[];
+  concepts: KnowledgeGraphNode[];
+  edges: KnowledgeGraphEdge[];
   courseIds?: string[];
 }
 
@@ -62,8 +53,8 @@ const HORIZONTAL_GAP = 40;
 const VERTICAL_GAP = 80;
 
 function computeHierarchicalLayout(
-  concepts: ConceptNode[],
-  edges: PrereqEdge[]
+  concepts: KnowledgeGraphNode[],
+  edges: KnowledgeGraphEdge[]
 ): { id: string; x: number; y: number }[] {
   const ids = new Set(concepts.map((c) => c.id));
 
@@ -131,7 +122,7 @@ function computeHierarchicalLayout(
 }
 
 export function KnowledgeGraph({ concepts, edges, courseIds }: KnowledgeGraphProps) {
-  const safeEdges = edges ?? [];
+  const safeEdges = useMemo(() => edges ?? [], [edges]);
 
   // Build course color map for academy view
   const courseColorMap = useMemo(() => {
@@ -152,8 +143,9 @@ export function KnowledgeGraph({ concepts, edges, courseIds }: KnowledgeGraphPro
         x: (i % 5) * 200,
         y: Math.floor(i / 5) * 120,
       };
-      const borderColor = courseColorMap && c.courseId
-        ? courseColorMap.get(c.courseId) ?? "#e2e8f0"
+      const courseId = c.courseId;
+      const borderColor = courseColorMap && courseId
+        ? courseColorMap.get(courseId) ?? "#e2e8f0"
         : "#e2e8f0";
       return {
         id: c.id,

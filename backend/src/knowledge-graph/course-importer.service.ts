@@ -4,7 +4,12 @@ import { ProblemType } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { GraphValidationService } from './graph-validation.service';
 import { buildQualifiedConceptRef, parseConceptRef } from './concept-ref';
-import { CourseYamlSchema, CourseYaml } from './schemas/course-yaml.schema';
+import { CourseYamlSchema, type CourseYaml } from '@graspful/shared';
+
+type CourseSectionYaml = CourseYaml['sections'][number];
+type CourseConceptYaml = CourseYaml['concepts'][number];
+type CourseKnowledgePointYaml = CourseConceptYaml['knowledgePoints'][number];
+type CourseProblemYaml = CourseKnowledgePointYaml['problems'][number];
 
 export interface ImportResult {
   courseId: string;
@@ -57,6 +62,7 @@ type RemovedContent = {
   sections: Array<{ id: string; slug: string }>;
   concepts: Array<{ id: string; slug: string }>;
   knowledgePoints: Array<{ id: string; key: string }>;
+  problems: Array<{ id: string; key: string }>;
 };
 
 @Injectable()
@@ -67,12 +73,15 @@ export class CourseImporterService {
   ) {}
 
   parseCourseYaml(yamlContent: string, scope?: CourseImportScope): CourseYaml {
-    const raw = yaml.load(yamlContent);
+    let raw: unknown = yamlContent;
+    for (let depth = 0; depth < 3 && typeof raw === 'string'; depth++) {
+      raw = yaml.load(raw);
+    }
     const parseResult = CourseYamlSchema.safeParse(raw);
 
     if (!parseResult.success) {
       throw new BadRequestException(
-        `Invalid course YAML: ${parseResult.error.errors.map((e) => e.message).join(', ')}`,
+        `Invalid course YAML: ${parseResult.error.errors.map((e: { message: string }) => e.message).join(', ')}`,
       );
     }
 
@@ -89,9 +98,9 @@ export class CourseImporterService {
 
   validateCourseGraph(data: CourseYaml) {
     const currentCourseSlug = data.course.id;
-    const conceptIds = data.concepts.map((concept) => concept.id);
-    const prereqEdges = data.concepts.flatMap((concept) =>
-      concept.prerequisites.map((prereqRef) => {
+    const conceptIds = data.concepts.map((concept: CourseConceptYaml) => concept.id);
+    const prereqEdges = data.concepts.flatMap((concept: CourseConceptYaml) =>
+      concept.prerequisites.map((prereqRef: string) => {
         const parsedRef = parseConceptRef(prereqRef, currentCourseSlug);
         if (parsedRef.courseSlug !== currentCourseSlug) {
           throw new BadRequestException(
@@ -105,8 +114,8 @@ export class CourseImporterService {
         };
       }),
     );
-    const encompEdges = data.concepts.flatMap((concept) =>
-      concept.encompassing.map((edgeRef) => {
+    const encompEdges = data.concepts.flatMap((concept: CourseConceptYaml) =>
+      concept.encompassing.map((edgeRef: CourseConceptYaml['encompassing'][number]) => {
         const parsedRef = parseConceptRef(edgeRef.concept, currentCourseSlug);
         if (parsedRef.courseSlug !== currentCourseSlug) {
           throw new BadRequestException(
@@ -253,7 +262,12 @@ export class CourseImporterService {
     const [existingSections, existingConcepts, existingKnowledgePoints, enrollments]: [
       Array<{ id: string; slug: string }>,
       Array<{ id: string; slug: string }>,
-      Array<{ id: string; slug: string; conceptId: string }>,
+      Array<{
+        id: string;
+        slug: string;
+        conceptId: string;
+        problems: Array<{ id: string; authoredId: string }>;
+      }>,
       Array<{ userId: string }>,
     ] =
       existingCourse && options.replace
@@ -268,7 +282,17 @@ export class CourseImporterService {
             }),
             tx.knowledgePoint.findMany({
               where: { concept: { courseId: course.id } },
-              select: { id: true, slug: true, conceptId: true },
+              select: {
+                id: true,
+                slug: true,
+                conceptId: true,
+                problems: {
+                  select: {
+                    id: true,
+                    authoredId: true,
+                  },
+                },
+              },
             }),
             tx.courseEnrollment.findMany({
               where: { courseId: course.id },
@@ -288,13 +312,27 @@ export class CourseImporterService {
     );
     const existingKnowledgePointByKey = new Map<
       string,
-      { id: string; slug: string; conceptId: string }
+      {
+        id: string;
+        slug: string;
+        conceptId: string;
+        problems: Array<{ id: string; authoredId: string }>;
+      }
     >(
       existingKnowledgePoints.map((kp) => [
         `${existingConceptSlugById.get(kp.conceptId)}:${kp.slug}`,
         kp,
       ]),
     );
+    const existingProblemKeys = new Map<string, Array<{ id: string; authoredId: string }>>();
+    for (const kp of existingKnowledgePoints) {
+      const conceptSlug = existingConceptSlugById.get(kp.conceptId);
+      if (!conceptSlug) {
+        continue;
+      }
+
+      existingProblemKeys.set(`${conceptSlug}:${kp.slug}`, kp.problems);
+    }
     const removedContent =
       existingCourse && options.replace
         ? this.collectRemovedContent(
@@ -302,6 +340,7 @@ export class CourseImporterService {
             existingConcepts,
             existingKnowledgePoints,
             existingConceptSlugById,
+            existingProblemKeys,
             data,
           )
         : this.emptyRemovedContent();
@@ -419,27 +458,49 @@ export class CourseImporterService {
                 workedExampleText: kpYaml.workedExample,
                 workedExampleContent: kpYaml.workedExampleContent,
                 isArchived: false,
-              },
-            });
+            },
+          });
 
         knowledgePointCount++;
 
-        await tx.problem.deleteMany({
-          where: { knowledgePointId: kp.id },
-        });
+        const existingProblemsByAuthoredId = new Map(
+          (existingKnowledgePoint?.problems ?? []).map((problem) => [
+            problem.authoredId,
+            problem,
+          ]),
+        );
 
         for (const probYaml of kpYaml.problems) {
-          await tx.problem.create({
-            data: {
-              knowledgePointId: kp.id,
-              type: probYaml.type as ProblemType,
-              questionText: probYaml.question,
-              options: probYaml.options ?? undefined,
-              correctAnswer: probYaml.correct as any,
-              explanation: probYaml.explanation,
-              difficulty: probYaml.difficulty ?? 3,
-            },
-          });
+          const existingProblem = existingProblemsByAuthoredId.get(probYaml.id);
+          if (existingProblem) {
+            await tx.problem.update({
+              where: { id: existingProblem.id },
+              data: {
+                type: probYaml.type as ProblemType,
+                questionText: probYaml.question,
+                options: probYaml.options ?? undefined,
+                correctAnswer: probYaml.correct as any,
+                explanation: probYaml.explanation,
+                difficulty: probYaml.difficulty ?? 3,
+                authoredId: probYaml.id,
+                isArchived: false,
+              },
+            });
+          } else {
+            await tx.problem.create({
+              data: {
+                knowledgePointId: kp.id,
+                authoredId: probYaml.id,
+                type: probYaml.type as ProblemType,
+                questionText: probYaml.question,
+                options: probYaml.options ?? undefined,
+                correctAnswer: probYaml.correct as any,
+                explanation: probYaml.explanation,
+                difficulty: probYaml.difficulty ?? 3,
+                isArchived: false,
+              },
+            });
+          }
           problemCount++;
         }
       }
@@ -618,21 +679,35 @@ export class CourseImporterService {
       sections: [],
       concepts: [],
       knowledgePoints: [],
+      problems: [],
     };
   }
 
   private collectRemovedContent(
     existingSections: Array<{ id: string; slug: string }>,
     existingConcepts: Array<{ id: string; slug: string }>,
-    existingKnowledgePoints: Array<{ id: string; slug: string; conceptId: string }>,
+    existingKnowledgePoints: Array<{
+      id: string;
+      slug: string;
+      conceptId: string;
+      problems: Array<{ id: string; authoredId: string }>;
+    }>,
     conceptSlugById: Map<string, string>,
+    existingProblemKeys: Map<string, Array<{ id: string; authoredId: string }>>,
     data: CourseYaml,
   ) {
-    const incomingSectionSlugs = new Set(data.sections.map((section) => section.id));
-    const incomingConceptSlugs = new Set(data.concepts.map((concept) => concept.id));
+    const incomingSectionSlugs = new Set(data.sections.map((section: CourseSectionYaml) => section.id));
+    const incomingConceptSlugs = new Set(data.concepts.map((concept: CourseConceptYaml) => concept.id));
     const incomingKnowledgePointKeys = new Set(
-      data.concepts.flatMap((concept) =>
-        concept.knowledgePoints.map((kp) => `${concept.id}:${kp.id}`),
+      data.concepts.flatMap((concept: CourseConceptYaml) =>
+        concept.knowledgePoints.map((kp: CourseKnowledgePointYaml) => `${concept.id}:${kp.id}`),
+        ),
+    );
+    const incomingProblemKeys = new Set(
+      data.concepts.flatMap((concept: CourseConceptYaml) =>
+        concept.knowledgePoints.flatMap((kp: CourseKnowledgePointYaml) =>
+          kp.problems.map((problem: CourseProblemYaml) => `${concept.id}:${kp.id}:${problem.id}`),
+        ),
       ),
     );
 
@@ -648,11 +723,20 @@ export class CourseImporterService {
         key: `${conceptSlugById.get(kp.conceptId)}:${kp.slug}`,
       }))
       .filter((kp) => !incomingKnowledgePointKeys.has(kp.key));
+    const removedProblems = Array.from(existingProblemKeys.entries())
+      .flatMap(([kpKey, problems]) =>
+        problems.map((problem) => ({
+          id: problem.id,
+          key: `${kpKey}:${problem.authoredId}`,
+        })),
+      )
+      .filter((problem) => !incomingProblemKeys.has(problem.key));
 
     return {
       sections: removedSections,
       concepts: removedConcepts,
       knowledgePoints: removedKnowledgePoints,
+      problems: removedProblems,
     };
   }
 
@@ -660,11 +744,13 @@ export class CourseImporterService {
     const removedSections = removedContent.sections.map((section) => section.slug);
     const removedConcepts = removedContent.concepts.map((concept) => concept.slug);
     const removedKnowledgePoints = removedContent.knowledgePoints.map((kp) => kp.key);
+    const removedProblems = removedContent.problems.map((problem) => problem.key);
 
     if (
       removedSections.length === 0 &&
       removedConcepts.length === 0 &&
-      removedKnowledgePoints.length === 0
+      removedKnowledgePoints.length === 0 &&
+      removedProblems.length === 0
     ) {
       return;
     }
@@ -678,6 +764,9 @@ export class CourseImporterService {
         : null,
       removedKnowledgePoints.length > 0
         ? `knowledge points [${removedKnowledgePoints.join(', ')}]`
+        : null,
+      removedProblems.length > 0
+        ? `problems [${removedProblems.join(', ')}]`
         : null,
     ]
       .filter(Boolean)
@@ -709,6 +798,12 @@ export class CourseImporterService {
       );
     }
 
+    if (removedContent.problems.length > 0) {
+      warnings.push(
+        `Archived problems: ${removedContent.problems.map((problem) => problem.key).join(', ')}`,
+      );
+    }
+
     return warnings;
   }
 
@@ -732,9 +827,22 @@ export class CourseImporterService {
           data: { isArchived: boolean };
         }) => Promise<unknown>;
       };
+      problem: {
+        updateMany: (args: {
+          where: { id: { in: string[] } };
+          data: { isArchived: boolean };
+        }) => Promise<unknown>;
+      };
     },
     removedContent: RemovedContent,
   ) {
+    if (removedContent.problems.length > 0) {
+      await tx.problem.updateMany({
+        where: { id: { in: removedContent.problems.map((problem) => problem.id) } },
+        data: { isArchived: true },
+      });
+    }
+
     if (removedContent.knowledgePoints.length > 0) {
       await tx.knowledgePoint.updateMany({
         where: { id: { in: removedContent.knowledgePoints.map((kp) => kp.id) } },

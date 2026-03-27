@@ -9,6 +9,7 @@ import {
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { DiagnosticSessionService } from './diagnostic-session.service';
+import type { DiagnosticAnswerInput } from './domain/diagnostic-session.types';
 
 @Controller('orgs/:orgId/academies/:academyId/diagnostic')
 @UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
@@ -29,7 +30,7 @@ export class AcademyDiagnosticController {
 
   @Post('answer')
   async submitAnswer(
-    @Body() body: { sessionId: string; answer: any; responseTimeMs: number },
+    @Body() body: DiagnosticAnswerInput & { sessionId: string },
     @CurrentOrg() org: OrgContext,
   ) {
     return this.diagnosticSession.submitAnswer(body.sessionId, org.userId, {

@@ -37,6 +37,7 @@ export class CourseYamlExportService {
               orderBy: { sortOrder: 'asc' },
               include: {
                 problems: {
+                  where: { isArchived: false },
                   orderBy: { createdAt: 'asc' },
                 },
               },
@@ -151,14 +152,14 @@ export class CourseYamlExportService {
             kpObj.workedExampleContent = kp.workedExampleContent;
           }
 
-          if (kp.problems.length > 0) {
-            kpObj.problems = kp.problems.map((p) => {
-              const pObj: Record<string, unknown> = {
-                id: p.id,
-                type: p.type,
-                question: p.questionText,
-                correct: p.correctAnswer,
-              };
+              if (kp.problems.length > 0) {
+                kpObj.problems = kp.problems.map((p) => {
+                  const pObj: Record<string, unknown> = {
+                    id: p.authoredId,
+                    type: p.type,
+                    question: p.questionText,
+                    correct: p.correctAnswer,
+                  };
               if (p.options) pObj.options = p.options;
               if (p.explanation) pObj.explanation = p.explanation;
               if (p.difficulty !== 3) pObj.difficulty = p.difficulty;

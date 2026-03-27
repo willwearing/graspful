@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, ConflictException, InternalServerError
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PrismaService } from '@/prisma/prisma.service';
-import { VercelDomainsService } from '@/brands/vercel-domains.service';
+import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
 import { ApiKeyService } from './api-key/api-key.service';
 import * as crypto from 'crypto';
 

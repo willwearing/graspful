@@ -7,7 +7,7 @@ import { evaluateAnswer } from './answer-evaluator';
 import { calculateQuizXP } from './xp-calculator';
 import {
   activeConceptWhere,
-  activeKnowledgePointWhere,
+  activeProblemWhere,
 } from '@/knowledge-graph/active-course-content';
 import { serializeProblemForClient } from '@/shared/utils/problem-presentation';
 
@@ -83,11 +83,11 @@ export class QuizService {
 
     // Get one problem per selected concept
     const problems = await this.prisma.problem.findMany({
-      where: {
-        knowledgePoint: activeKnowledgePointWhere({
+      where: activeProblemWhere({
+        knowledgePoint: {
           conceptId: { in: selectedConceptIds },
-        }),
-      },
+        },
+      }),
       include: {
         knowledgePoint: {
           select: { conceptId: true },

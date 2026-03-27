@@ -51,8 +51,8 @@ export async function resolveBrand(
 
     const devBrandId =
       typeof process !== "undefined"
-        ? process.env.DEV_BRAND_ID || "firefighter"
-        : "firefighter";
+        ? process.env.DEV_BRAND_ID || "graspful"
+        : "graspful";
     return brandsById.get(devBrandId) ?? defaultBrand;
   }
 

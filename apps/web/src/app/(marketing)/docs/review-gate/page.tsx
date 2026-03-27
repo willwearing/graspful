@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { CodeBlock, InlineCode } from "@/components/docs/code-block";
 
 export const metadata: Metadata = {

@@ -70,6 +70,7 @@ describe('CourseYamlExportService', () => {
             problems: [
               {
                 id: 'p1',
+                authoredId: 'problem-1',
                 type: 'multiple_choice',
                 questionText: 'What is x?',
                 options: ['1', '2', '3'],
@@ -100,6 +101,7 @@ describe('CourseYamlExportService', () => {
     expect(parsed.concepts[0].difficulty).toBe(3);
     expect(parsed.concepts[0].knowledgePoints).toHaveLength(1);
     expect(parsed.concepts[0].knowledgePoints[0].problems).toHaveLength(1);
+    expect(parsed.concepts[0].knowledgePoints[0].problems[0].id).toBe('problem-1');
   });
 
   it('exports prerequisite and encompassing edges', async () => {

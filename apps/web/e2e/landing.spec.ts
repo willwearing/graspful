@@ -6,35 +6,39 @@ test.describe("Landing page", () => {
   });
 
   test("renders hero section with brand content", async ({ page }) => {
-    // Should show the brand's headline (firefighter is default dev brand)
+    // Should show a brand-specific headline
     await expect(page.locator("h1")).toBeVisible();
     await expect(page.locator("h1")).not.toBeEmpty();
 
-    // CTA button should link to sign-up
-    const ctaLink = page.getByRole("link", { name: /start studying/i }).first();
+    // Primary CTA should link to sign-up regardless of current marketing copy
+    const ctaLink = page.locator('a[href="/sign-up"]').first();
     await expect(ctaLink).toBeVisible();
     await expect(ctaLink).toHaveAttribute("href", /\/sign-up/);
   });
 
   test("renders features section", async ({ page }) => {
-    await expect(page.getByText("Why Audio Learning Works")).toBeVisible();
-    // Should have at least 3 feature cards
-    const featureHeadings = page.locator("h3");
-    await expect(featureHeadings).not.toHaveCount(0);
+    const featureHeadings = page.locator("section h3");
+    expect(await featureHeadings.count()).toBeGreaterThanOrEqual(3);
   });
 
   test("renders how it works section", async ({ page }) => {
     await expect(page.getByText("How It Works")).toBeVisible();
-    await expect(page.getByText("Take a Diagnostic")).toBeVisible();
-    await expect(page.getByText("Study Adaptively")).toBeVisible();
-    await expect(page.getByText("Pass Your Exam")).toBeVisible();
+    const steps = page.locator('section:has-text("How It Works") h3');
+    expect(await steps.count()).toBeGreaterThanOrEqual(3);
   });
 
   test("renders pricing section with plan toggle", async ({ page }) => {
-    await expect(page.getByText("Simple Pricing")).toBeVisible();
-    // Monthly/Yearly toggle
-    await expect(page.getByRole("button", { name: /monthly/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /yearly/i })).toBeVisible();
+    await expect(page.locator("#pricing")).toBeVisible();
+    const monthlyToggle = page.getByRole("button", { name: /monthly/i });
+    const yearlyToggle = page.getByRole("button", { name: /yearly/i });
+
+    if ((await monthlyToggle.count()) > 0 || (await yearlyToggle.count()) > 0) {
+      await expect(monthlyToggle).toBeVisible();
+      await expect(yearlyToggle).toBeVisible();
+    } else {
+      const signUpCtas = page.locator('#pricing a[href="/sign-up"]');
+      expect(await signUpCtas.count()).toBeGreaterThanOrEqual(1);
+    }
   });
 
   test("renders FAQ section with accordion", async ({ page }) => {
@@ -48,11 +52,7 @@ test.describe("Landing page", () => {
   });
 
   test("renders CTA section at bottom", async ({ page }) => {
-    await expect(page.getByText("Ready to Start Studying?")).toBeVisible();
-    // CTA button text is brand-specific (e.g. "Start Studying Free")
-    const ctaLink = page
-      .getByRole("link", { name: /start studying/i })
-      .last();
+    const ctaLink = page.locator('a[href="/sign-up"]').last();
     await expect(ctaLink).toBeVisible();
   });
 

@@ -1,13 +1,5 @@
 import { apiFetch, type ApiFetcher } from "@/lib/api";
-
-export interface CourseProfile {
-  totalConcepts: number;
-  mastered: number;
-  inProgress: number;
-  needsReview: number;
-  unstarted: number;
-  completionPercent: number;
-}
+import type { CourseProfile } from "@graspful/shared";
 
 export async function fetchCourseProfiles(
   orgSlug: string,

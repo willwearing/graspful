@@ -759,6 +759,7 @@ enum DiagnosticState {
 
 model Problem {
   id                  String      @id @default(uuid()) @db.Uuid
+  authoredId          String      @map("authored_id")
   knowledgePointId    String      @map("knowledge_point_id") @db.Uuid
   type                ProblemType
   questionText        String      @map("question_text")
@@ -769,6 +770,7 @@ model Problem {
   explanationAudioUrl String?     @map("explanation_audio_url")
   difficulty          Int         @default(3)
   isReviewVariant     Boolean     @default(false) @map("is_review_variant")
+  isArchived          Boolean     @default(false) @map("is_archived")
   createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -777,7 +779,9 @@ model Problem {
   sectionExamQuestions SectionExamQuestion[]
   diagnosticSessions DiagnosticSession[]
 
+  @@unique([knowledgePointId, authoredId])
   @@index([knowledgePointId])
+  @@index([knowledgePointId, isArchived])
   @@map("problems")
 }
 

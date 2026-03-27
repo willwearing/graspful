@@ -1,4 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "node:path";
+
+const backendDir = path.resolve(__dirname, "../../backend");
 
 export default defineConfig({
   testDir: "./e2e",
@@ -17,10 +20,19 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: {
-    command: "bun run dev",
-    url: "http://localhost:3001",
-    reuseExistingServer: true,
-    timeout: 30_000,
-  },
+  webServer: [
+    {
+      command: "bun run start:prod",
+      cwd: backendDir,
+      url: "http://localhost:3000/api/v1/health",
+      reuseExistingServer: true,
+      timeout: 60_000,
+    },
+    {
+      command: "bun run dev",
+      url: "http://localhost:3001",
+      reuseExistingServer: true,
+      timeout: 30_000,
+    },
+  ],
 });

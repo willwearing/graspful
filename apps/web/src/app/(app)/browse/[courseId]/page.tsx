@@ -8,56 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import type { MasteryState, NextTask, SectionProgress, SectionMasteryState } from "@/lib/types";
+import type {
+  CourseGraph,
+  CourseProfile,
+  MasteryState,
+  NextTask,
+  SectionMasteryState,
+  SectionProgress,
+} from "@graspful/shared";
 import { getSectionHref } from "@/lib/course-section-entry";
 import { getAcademyHref, getAcademyStudyHref, getAcademyDiagnosticHref } from "@/lib/academy-routes";
 import { CourseBrowseTracker } from "@/components/app/page-view-tracker";
-
-interface CourseSection {
-  id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  sortOrder: number;
-}
-
-interface Concept {
-  id: string;
-  name: string;
-  description: string | null;
-  difficulty: number;
-  sortOrder: number;
-  slug: string;
-  sectionId: string | null;
-}
-
-interface ConceptState {
-  conceptId: string;
-  masteryState: MasteryState;
-}
-
-interface CourseGraph {
-  course: {
-    academyId?: string | null;
-    id: string;
-    name: string;
-    description: string | null;
-  };
-  sections: CourseSection[];
-  concepts: Concept[];
-}
-
-interface CourseProfile {
-  totalConcepts: number;
-  mastered: number;
-  inProgress: number;
-  needsReview: number;
-  unstarted: number;
-  completionPercent: number;
-  diagnosticCompleted: boolean;
-  certifiedSections?: number;
-  examReadySections?: number;
-}
 
 const sectionStatusLabel: Record<SectionMasteryState, string> = {
   locked: "Locked",
@@ -112,7 +73,9 @@ export default async function CourseDetailPage({
         apiFetch<CourseProfile>(`/orgs/${orgSlug}/courses/${courseId}/profile`),
         apiFetch<NextTask>(`/orgs/${orgSlug}/courses/${courseId}/next-task`),
         apiFetch<SectionProgress[]>(`/orgs/${orgSlug}/courses/${courseId}/sections`),
-        apiFetch<ConceptState[]>(`/orgs/${orgSlug}/courses/${courseId}/mastery`),
+        apiFetch<Array<{ conceptId: string; masteryState: MasteryState }>>(
+          `/orgs/${orgSlug}/courses/${courseId}/mastery`,
+        ),
       ]);
 
     profile = profileRes.status === "fulfilled" ? profileRes.value : null;

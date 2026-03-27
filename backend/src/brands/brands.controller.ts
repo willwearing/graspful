@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseAuthGuard, JwtOrApiKeyGuard } from '@/auth';
 import { BrandsService } from './brands.service';
-import { VercelDomainsService } from './vercel-domains.service';
+import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
 

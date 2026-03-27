@@ -4,31 +4,17 @@ import { useState, useEffect } from "react";
 import { KnowledgeGraph } from "./knowledge-graph";
 import { apiClientFetch } from "@/lib/api-client";
 import { useAuthToken } from "@/lib/hooks/use-auth-token";
+import type {
+  KnowledgeGraphData,
+  KnowledgeGraphEdge,
+  KnowledgeGraphNode,
+  MasteryState,
+} from "@graspful/shared";
 
 interface KnowledgeGraphSectionProps {
   orgSlug: string;
   courseId: string;
   academyId?: string;
-}
-
-type MasteryState = "unstarted" | "in_progress" | "mastered" | "needs_review";
-
-interface RawConcept {
-  id: string;
-  name: string;
-  courseId?: string;
-  masteryState?: MasteryState;
-}
-
-interface RawGraphData {
-  concepts: RawConcept[];
-  edges?: Array<{ sourceConceptId: string; targetConceptId: string }>;
-  prerequisiteEdges?: Array<{ sourceConceptId: string; targetConceptId: string }>;
-}
-
-interface ConceptState {
-  conceptId: string;
-  masteryState: MasteryState;
 }
 
 export function KnowledgeGraphSection({
@@ -37,8 +23,8 @@ export function KnowledgeGraphSection({
   academyId,
 }: KnowledgeGraphSectionProps) {
   const token = useAuthToken();
-  const [concepts, setConcepts] = useState<Array<{ id: string; name: string; masteryState: MasteryState; courseId?: string }> | null>(null);
-  const [edges, setEdges] = useState<Array<{ sourceConceptId: string; targetConceptId: string }>>([]);
+  const [concepts, setConcepts] = useState<KnowledgeGraphNode[] | null>(null);
+  const [edges, setEdges] = useState<KnowledgeGraphEdge[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,10 +35,14 @@ export function KnowledgeGraphSection({
       : `/orgs/${orgSlug}/courses/${courseId}`;
 
     Promise.all([
-      apiClientFetch<RawGraphData>(`${basePath}/graph`, token),
+      apiClientFetch<KnowledgeGraphData>(`${basePath}/graph`, token),
       academyId
-        ? Promise.resolve([] as ConceptState[]) // Academy graph endpoint includes mastery
-        : apiClientFetch<ConceptState[]>(`${basePath}/mastery`, token).catch(() => [] as ConceptState[]),
+        ? Promise.resolve([] as Array<{ conceptId: string; masteryState: MasteryState }>) // Academy graph endpoint includes mastery
+        : apiClientFetch<
+            Array<{ conceptId: string; masteryState: MasteryState }>
+          >(`${basePath}/mastery`, token).catch(
+            () => [] as Array<{ conceptId: string; masteryState: MasteryState }>
+          ),
     ])
       .then(([graphData, masteryData]) => {
         const masteryMap = new Map<string, MasteryState>();
@@ -69,7 +59,7 @@ export function KnowledgeGraphSection({
             masteryState: c.masteryState ?? masteryMap.get(c.id) ?? "unstarted",
           }))
         );
-        setEdges(graphData.edges ?? graphData.prerequisiteEdges ?? []);
+        setEdges(graphData.prerequisiteEdges ?? graphData.edges ?? []);
       })
       .catch(() => setConcepts(null))
       .finally(() => setLoading(false));

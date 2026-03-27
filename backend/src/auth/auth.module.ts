@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { SupabaseAuthGuard } from './guards/supabase-auth.guard';
 import { OrgMembershipGuard } from './guards/org-membership.guard';
@@ -13,12 +13,13 @@ import { RegistrationService } from './registration.service';
 import { ProvisionService } from './provision.service';
 import { ApiKeyModule } from './api-key/api-key.module';
 import { ApiKeyController } from './api-key/api-key.controller';
-import { BrandsModule } from '@/brands/brands.module';
+import { SharedApplicationModule } from '@/shared/application/shared-application.module';
+import { MyOrganizationsQueryService } from './queries/my-organizations.query';
 
 @Module({
   imports: [
     ApiKeyModule,
-    forwardRef(() => BrandsModule),
+    SharedApplicationModule,
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
   ],
   controllers: [OrgJoinController, AuthRegisterController, AuthProvisionController, UsersMeController, ApiKeyController],
@@ -30,6 +31,7 @@ import { BrandsModule } from '@/brands/brands.module';
     OrgMembershipService,
     RegistrationService,
     ProvisionService,
+    MyOrganizationsQueryService,
   ],
   exports: [
     ApiKeyModule,
@@ -38,6 +40,7 @@ import { BrandsModule } from '@/brands/brands.module';
     GlobalAdminGuard,
     JwtOrApiKeyGuard,
     OrgMembershipService,
+    MyOrganizationsQueryService,
   ],
 })
 export class AuthModule {}

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { KnowledgeGraph } from "@/components/app/knowledge-graph";
+import type { KnowledgeGraphEdge, KnowledgeGraphNode } from "@graspful/shared";
 
 // Mock @xyflow/react
 vi.mock("@xyflow/react", () => ({
@@ -19,14 +20,14 @@ vi.mock("@xyflow/react", () => ({
 }));
 
 describe("KnowledgeGraph", () => {
-  const concepts = [
+  const concepts: KnowledgeGraphNode[] = [
     { id: "c1", name: "Concept A", masteryState: "mastered" as const },
     { id: "c2", name: "Concept B", masteryState: "in_progress" as const },
     { id: "c3", name: "Concept C", masteryState: "unstarted" as const },
     { id: "c4", name: "Concept D", masteryState: "needs_review" as const },
   ];
 
-  const edges = [
+  const edges: KnowledgeGraphEdge[] = [
     { sourceConceptId: "c1", targetConceptId: "c2" },
     { sourceConceptId: "c2", targetConceptId: "c3" },
     { sourceConceptId: "c1", targetConceptId: "c4" },

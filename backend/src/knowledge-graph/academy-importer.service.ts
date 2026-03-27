@@ -177,7 +177,7 @@ export class AcademyImporterService {
     parsedCourses: ParsedManifestCourse[],
   ) {
     const conceptDescriptors = parsedCourses.flatMap(({ data }) =>
-      data.concepts.map((concept) => ({
+      data.concepts.map((concept: CourseYaml['concepts'][number]) => ({
         id: buildQualifiedConceptRef(data.course.id, concept.id),
         courseSlug: data.course.id,
       })),

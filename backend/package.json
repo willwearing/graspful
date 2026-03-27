@@ -6,12 +6,13 @@
     "build": "prisma generate && nest build",
     "dev": "bun x nest build && bun x nest start --watch",
     "start": "nest start",
-    "start:prod": "TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/main",
+    "start:prod": "TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/main.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "lint": "eslint \"{src,test}/**/*.ts\" --fix"
+    "lint": "eslint --config eslint.config.mjs \"{src,prisma}/**/*.ts\" --fix"
   },
   "dependencies": {
+    "@graspful/shared": "workspace:*",
     "@nestjs/common": "^10.4.0",
     "@nestjs/config": "^3.3.0",
     "@nestjs/core": "^10.4.0",
@@ -43,6 +44,8 @@
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.10.0",
+    "@typescript-eslint/parser": "^8.46.1",
+    "eslint": "^9",
     "jest": "^29.7.0",
     "prisma": "^5.22.0",
     "ts-jest": "^29.2.0",

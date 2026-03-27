@@ -1,28 +1,11 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import {
-  CourseProgressState,
-  SectionMasteryState,
-  StudentCourseState,
-} from '@prisma/client';
+import { CourseProgressState, SectionMasteryState, StudentCourseState } from '@prisma/client';
 import { activeSectionWhere } from '@/knowledge-graph/active-course-content';
-
-/**
- * Valid state transitions for CourseProgressState:
- *   locked    -> unlocked
- *   unlocked  -> active
- *   active    -> completed
- */
-const VALID_TRANSITIONS: Record<CourseProgressState, CourseProgressState[]> = {
-  [CourseProgressState.locked]: [CourseProgressState.unlocked],
-  [CourseProgressState.unlocked]: [CourseProgressState.active],
-  [CourseProgressState.active]: [CourseProgressState.completed],
-  [CourseProgressState.completed]: [],
-};
+import {
+  assertCourseProgressTransitionAllowed,
+  requireCourseProgressState,
+} from './domain/course-progress-state.rules';
 
 @Injectable()
 export class CourseStateService {
@@ -55,22 +38,15 @@ export class CourseStateService {
     courseId: string,
     targetStatus: CourseProgressState,
   ): Promise<StudentCourseState> {
-    const state = await this.prisma.studentCourseState.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
+    const state = requireCourseProgressState(
+      await this.prisma.studentCourseState.findUnique({
+        where: { userId_courseId: { userId, courseId } },
+      }),
+      userId,
+      courseId,
+    );
 
-    if (!state) {
-      throw new NotFoundException(
-        `No course state found for user ${userId} course ${courseId}`,
-      );
-    }
-
-    const allowed = VALID_TRANSITIONS[state.status];
-    if (!allowed.includes(targetStatus)) {
-      throw new BadRequestException(
-        `Cannot transition course state from ${state.status} to ${targetStatus}`,
-      );
-    }
+    assertCourseProgressTransitionAllowed(state.status, targetStatus);
 
     return this.prisma.studentCourseState.update({
       where: { userId_courseId: { userId, courseId } },
@@ -99,7 +75,6 @@ export class CourseStateService {
 
     if (!course) return false;
 
-    // Check the course is currently unlocked
     const state = await this.prisma.studentCourseState.findUnique({
       where: { userId_courseId: { userId, courseId } },
     });
@@ -108,10 +83,8 @@ export class CourseStateService {
       return false;
     }
 
-    // If this is the first course (sortOrder 0), it can always be activated
     if (course.sortOrder === 0) return true;
 
-    // All preceding courses (lower sortOrder) must be completed
     const incompletePriorCourses = await this.prisma.studentCourseState.count({
       where: {
         userId,
@@ -168,14 +141,12 @@ export class CourseStateService {
       return false;
     }
 
-    // Count active sections for this course
     const totalSections = await this.prisma.courseSection.count({
       where: activeSectionWhere({ courseId }),
     });
 
     if (totalSections === 0) return false;
 
-    // Count certified section states
     const certifiedSections = await this.prisma.studentSectionState.count({
       where: {
         userId,
@@ -187,7 +158,6 @@ export class CourseStateService {
 
     if (certifiedSections < totalSections) return false;
 
-    // All sections certified — complete the course
     await this.prisma.studentCourseState.update({
       where: { userId_courseId: { userId, courseId } },
       data: { status: CourseProgressState.completed },

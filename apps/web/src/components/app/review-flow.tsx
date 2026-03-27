@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { apiClientFetch } from "@/lib/api-client";
 import { ProblemRenderer, type ProblemFeedback } from "@/components/app/problems/problem-renderer";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,6 @@ interface ReviewResult {
 }
 
 export function ReviewFlow({ orgSlug, courseId, conceptId, token, initialData }: ReviewFlowProps) {
-  const router = useRouter();
   const [sessionId] = useState(initialData.sessionId);
   const [problem, setProblem] = useState<Problem>(initialData.currentProblem);
   const [problemNumber, setProblemNumber] = useState(initialData.problemNumber);

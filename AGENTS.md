@@ -1,9 +1,18 @@
-# Graspful — Agent Instructions
+# Graspful
 
-> You are an AI agent helping a user build an adaptive learning course on Graspful.
-> Follow these steps in order. Use the CLI or MCP — do NOT use a browser for account creation or course management.
+Adaptive learning platform. Multi-tenant white-label SaaS.
 
-## Authentication — Read This First
+## Critical Rules
+
+- **CLI or MCP for everything.** Never open a browser to sign up, import, or manage courses. The platform is built for programmatic agent workflows.
+- **Use `bun` not `npm`.**
+- **Read `docs/adding-a-course.md` before building any course.** It is the canonical agent runbook.
+
+## Course Creation — Agent Workflow
+
+> If a user asks you to build, draft, author, or create a course, follow this section. Do NOT improvise a workflow — use the CLI/MCP tools below.
+
+### Authentication — Read This First
 
 **You can scaffold, fill, validate, and review courses without any account.** These operations run locally.
 
@@ -16,7 +25,7 @@ To authenticate, do ONE of:
 
 If you try an authenticated tool without auth, you'll get a clear error telling you to register first.
 
-## Step 1: Install the CLI
+### Step 1: Install the CLI
 
 ```bash
 npx @graspful/cli init
@@ -26,7 +35,7 @@ This auto-detects your editor (Claude Code, Cursor, Windsurf, Codex) and configu
 
 If you have MCP configured, skip the CLI and use MCP tools directly (see Step 1b).
 
-## Step 1b: MCP alternative
+### Step 1b: MCP alternative
 
 If MCP is already configured, you have these tools available — no CLI needed:
 
@@ -46,7 +55,9 @@ If MCP is already configured, you have these tools available — no CLI needed:
 
 Tools marked "No" for auth work offline — no account needed. Tools marked **Yes** will fail with a clear error if you haven't authenticated. Call `graspful_register` first.
 
-## Step 2: Register (before importing/publishing)
+**MCP discovery:** To check if MCP is active, try calling `graspful_validate` with any small YAML string. If it responds, MCP is working. If you get a "tool not found" error, fall back to the CLI.
+
+### Step 2: Register (before importing/publishing)
 
 If you haven't already authenticated (see "Authentication" above), do it now before proceeding to import.
 
@@ -62,9 +73,17 @@ graspful register --email <email> --password <password>
 
 Both create an account, org, and API key. The MCP tool auto-activates the key for the current session. The CLI saves it to `~/.graspful/credentials.json`.
 
-## Step 3: Build a course
+### Step 3: Build a course
 
-The workflow is: scaffold → fill → validate → review → import.
+The workflow is: scaffold -> fill -> validate -> review -> import.
+
+**Before writing any YAML**, follow the detailed runbook in `docs/adding-a-course.md`. Key steps:
+1. Gather source material (official docs, syllabi, PDFs — not marketing copy)
+2. Decide: single course or academy with multiple courses
+3. Build the prerequisite graph (roots -> trunk -> branches -> leaves)
+4. Write the YAML skeleton (graph first, content second)
+5. Fill concepts one at a time
+6. Validate and review
 
 ```bash
 # 1. Scaffold the knowledge graph
@@ -87,14 +106,68 @@ Or with MCP tools:
 
 ```
 graspful_scaffold_course(topic: "Your Topic", estimatedHours: 10)
-→ edit the YAML
+-> edit the YAML
 graspful_fill_concept(yaml: "...", conceptId: "concept-id")
 graspful_validate(yaml: "...")
 graspful_review_course(yaml: "...")
 graspful_import_course(yaml: "...", org: "org-slug", publish: true)
 ```
 
-## Step 4: Brand (optional)
+### Images, Videos, Links in Course Content
+
+Course YAML supports rich media through **content blocks** on two fields: `instructionContent` and `workedExampleContent`. Each is an array of typed blocks.
+
+**Image block:**
+```yaml
+instructionContent:
+  - type: image
+    url: https://example.com/photo.jpg
+    alt: Description for accessibility
+    caption: Optional caption text
+    width: 960  # optional, positive integer
+```
+
+**Video block:**
+```yaml
+instructionContent:
+  - type: video
+    url: https://youtube.com/watch?v=abc123
+    title: Video title
+    caption: Optional caption
+```
+
+**Link block:**
+```yaml
+instructionContent:
+  - type: link
+    url: https://example.com/reference
+    title: Link title
+    description: Optional description
+```
+
+**Callout block:**
+```yaml
+instructionContent:
+  - type: callout
+    title: Important distinction
+    body: The explanation text here.
+```
+
+**Important:** `instruction` and `workedExample` (the plain text fields) should remain readable as standalone text because they power audio. Put images, diagrams, external references, and video links in the `*Content` blocks — do not bury URLs in the prose.
+
+When a user asks for images or visual comparisons in a course, use `image` content blocks with publicly accessible URLs. Every knowledge point can have multiple content blocks.
+
+### Working from source material (PDFs, documents, etc.)
+
+When building a course from a PDF or document:
+
+1. Read the full source material first
+2. Extract the key concepts, facts, and distinctions
+3. Map them to a prerequisite graph (what must be learned before what?)
+4. For visual content (photos, diagrams, comparisons), find or request publicly accessible image URLs and use `image` content blocks
+5. Do not copy-paste prose verbatim — rewrite for the lesson pattern (instruction -> worked example -> problems)
+
+### Step 4: Brand (optional)
 
 Create a white-label landing page and theme:
 
@@ -103,7 +176,7 @@ graspful create brand --niche tech --name "My Academy" --org my-org -o brand.yam
 graspful import brand.yaml
 ```
 
-## Key rules
+### Key rules
 
 - **CLI or MCP for everything.** Never open a browser to sign up, import, or manage courses.
 - **Validate after every edit.** It's offline and fast.
@@ -111,7 +184,7 @@ graspful import brand.yaml
 - **Review before import.** The server rejects courses that fail the quality gate.
 - **Problem IDs must be globally unique.** Use `{concept-id}-{kp-index}-p{problem-index}`.
 
-## Output format
+### Output format
 
 Pass `--format json` to any CLI command for machine-readable output:
 
@@ -119,12 +192,88 @@ Pass `--format json` to any CLI command for machine-readable output:
 graspful validate course.yaml --format json
 ```
 
-## Environment variables
+### Environment variables
 
 | Variable | Description |
 |----------|-------------|
 | `GRASPFUL_API_KEY` | API key for import/publish (set automatically by `register` or `login`) |
 | `GRASPFUL_API_URL` | API base URL (default: `https://api.graspful.ai`) |
+
+## Tech Stack
+
+- **Frontend:** Next.js 16 (App Router), React, Tailwind CSS, shadcn/ui
+- **Backend:** NestJS (TypeScript), Prisma ORM, PostgreSQL (Supabase-hosted)
+- **Auth:** Supabase Auth (JWT)
+- **Monorepo:** Turborepo, bun as package manager
+
+## Architecture — DDD Bounded Contexts
+
+The backend follows Domain-Driven Design with bounded contexts. Each NestJS module owns its domain. **Do not leak domain logic across boundaries.**
+
+| Context | Module | Aggregate Root | Owns |
+|---------|--------|---------------|------|
+| Knowledge Graph | `knowledge-graph/` | Course | Concepts, KnowledgePoints, PrerequisiteEdges, EncompassingEdges |
+| Student Model | `student-model/` | StudentProfile | ConceptState, KPState, mastery, enrollment |
+| Diagnostic | `diagnostic/` | DiagnosticSession | BKT engine, MEPE selector, stopping criteria, session persistence |
+| Learning Engine | `learning-engine/` | LearningSession | Task selection, frontier, mastery enforcement, remediation |
+| Assessment | `assessment/` | Assessment | Problems, answer evaluation, reviews, quizzes |
+| Spaced Repetition | `spaced-repetition/` | RepetitionSchedule | FIRe algorithm, review scheduling |
+| Gamification | `gamification/` | PlayerProgress | XP, streaks, leaderboards |
+
+### DDD Rules
+
+1. **Services call services, not repositories of other modules.** If Diagnostic needs mastery data, it calls `StudentStateService`, not `prisma.studentConceptState` directly.
+2. **Controllers are thin.** Extract, validate, delegate to service, return. No domain logic in controllers.
+3. **Each module owns its Prisma queries.** Other modules request data through the owning module's service.
+4. **Cross-context data for the frontend** should be composed at the API/controller layer or in a dedicated query service — not by having one domain service reach into another's tables.
+
+## Backend
+
+- Build: `cd backend && /path/to/tsc -p tsconfig.build.json --outDir dist` (nest build has symlink issues with bun)
+- Run: `TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/main.js`
+- Dev: `bun run dev` (nest start --watch)
+- Test: `bun run test`
+- Port: 3000
+
+## Frontend
+
+- Dev: `bun run dev` (port 3001)
+- Build: `npx next build`
+- E2E: `cd apps/web && npx playwright test`
+
+## Prisma
+
+- Schema: `backend/prisma/schema.prisma`
+- Migrate: `cd backend && npx prisma migrate dev --name <name>`
+- Generate: `npx prisma generate` (runs automatically after migrate)
+
+## Conventions
+
+- Use `bun` not `npm`
+- snake_case for DB columns (Prisma `@@map`), camelCase for TypeScript
+- All Prisma models use `@db.Uuid` for IDs and `@db.Timestamptz` for dates
+- Tests: Jest for backend unit tests, Playwright for e2e
+- E2E helpers: `apps/web/e2e/helpers/auth.ts` — `signUpTestUser()` creates fresh users
+- Brand cookie: `dev-brand-override` selects org in dev
+
+## E2E Test Coverage Requirements
+
+**Every live site page and API endpoint MUST have an e2e test.** This is non-negotiable — bread-and-butter functionality that users depend on must have regression coverage.
+
+### What must be tested:
+
+1. **All pages render** — every route under `(marketing)` and `(app)` must have a smoke test verifying it returns 200 and renders its heading. See `e2e/docs-smoke.spec.ts` for the pattern.
+2. **Auth flows** — sign-up, sign-in, sign-out, email confirmation callback, org provisioning
+3. **Creator flows** — API key CRUD, course import, brand config import, course publish
+4. **API registration** — `POST /auth/register` returns userId + orgSlug + apiKey (agent onboarding)
+5. **API provisioning** — `POST /auth/provision` creates personal org for web UI sign-ups
+6. **Learner flows** — browse, enroll, diagnostic, study session
+
+### When adding a new page or endpoint:
+
+- Add an e2e test in the same PR
+- If it's a new doc page, add it to the `DOCS_PAGES` array in `e2e/docs-smoke.spec.ts`
+- If it's a new API endpoint, add API-level tests using the `helpers/api-auth.ts` helpers
 
 ## Links
 

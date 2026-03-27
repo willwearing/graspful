@@ -160,8 +160,8 @@ describe('DiagnosticSessionService', () => {
 
       const result = await service.startDiagnostic(orgId, userId, academyId);
 
-      expect(result.question.items).toEqual(['Capture', 'Edit', 'Mix', 'Master']);
-      expect(result.question.options).toBeUndefined();
+      expect(result.question!.items).toEqual(['Capture', 'Edit', 'Mix', 'Master']);
+      expect(result.question!.options).toBeUndefined();
     });
 
     it('should resume an existing in-progress session', async () => {

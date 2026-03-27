@@ -88,10 +88,9 @@ export function usePlaybackPersistence(
   // Save on unmount (reads from refs, never stale)
   useEffect(() => {
     return () => {
-      saveState(itemIdRef.current, timeRef.current, rateRef.current);
+      saveNow();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [saveNow]);
 }
 
 export function getPersistedPlayback(): PlaybackState | null {

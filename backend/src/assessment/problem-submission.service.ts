@@ -75,7 +75,7 @@ export class ProblemSubmissionService {
     const kp = problem.knowledgePoint;
     const concept = kp.concept;
 
-    if (kp.isArchived || concept.isArchived || concept.section?.isArchived) {
+    if (problem.isArchived || kp.isArchived || concept.isArchived || concept.section?.isArchived) {
       throw new NotFoundException(`Problem ${problemId} not found`);
     }
 

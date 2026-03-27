@@ -79,19 +79,19 @@ export default async function LandingPage() {
         <section className="bg-muted/50 py-24 md:py-32">
           <div className="mx-auto max-w-5xl px-6">
             <h2 className="text-center text-3xl font-bold tracking-[-0.03em] text-foreground sm:text-4xl mb-4">
-              Science-backed adaptive learning
+              Your students learn better
             </h2>
             <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-              Every course on Graspful uses research-backed algorithms to personalize the learning path, schedule reviews, and ensure mastery.
+              Every Graspful course adapts to each student. They focus on what they don&apos;t know, review at the right time, and prove mastery before moving on.
             </p>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {[
-                { title: "Knowledge Graph", desc: "Concepts connected by prerequisites. Students build on solid foundations." },
-                { title: "Adaptive Diagnostics", desc: "Skip what you know. Start where it matters." },
-                { title: "Mastery Enforcement", desc: "No gaps. Students prove understanding before advancing." },
-                { title: "Spaced Repetition", desc: "Optimally-timed reviews so nothing is forgotten." },
-                { title: "Targeted Remediation", desc: "When stuck, the system finds exactly which prerequisite is weak." },
-                { title: "Implicit Review", desc: "Advanced topics automatically reinforce foundations." },
+                { title: "Personalized Path", desc: "Each student gets a unique learning path based on what they already know." },
+                { title: "Smart Diagnostics", desc: "A quick assessment skips what they've mastered. No wasted time." },
+                { title: "No Gaps Allowed", desc: "Students prove they understand each topic before moving forward." },
+                { title: "Timed Reviews", desc: "The system schedules reviews at the optimal time so nothing is forgotten." },
+                { title: "Finds Weak Spots", desc: "When a student is stuck, the system identifies exactly which foundation is shaky." },
+                { title: "Built-In Reinforcement", desc: "Advanced topics naturally reinforce earlier material." },
               ].map((item) => (
                 <div key={item.title} className="rounded-xl border border-border/50 bg-card p-6 shadow-sm">
                   <h3 className="text-sm font-semibold text-foreground mb-1">{item.title}</h3>

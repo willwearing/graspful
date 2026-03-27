@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { apiFetch, createApiFetcher } from "@/lib/api";
+import { createApiFetcher } from "@/lib/api";
 import { resolvePageBrand } from "@/lib/brand/resolve";
 import { CourseCard } from "@/components/app/course-card";
 import { StreakCounter } from "@/components/app/streak-counter";
@@ -13,57 +13,17 @@ import { Leaderboard } from "@/components/app/leaderboard";
 import { KnowledgeGraphSection } from "@/components/app/knowledge-graph-section";
 import { MilestoneTracker } from "@/components/app/milestone-tracker";
 import { Button } from "@/components/ui/button";
-import { fetchCourseProfiles, type CourseProfile } from "@/lib/course-profiles";
+import { fetchCourseProfiles } from "@/lib/course-profiles";
 import Link from "next/link";
-
-interface Course {
-  academyId: string;
-  id: string;
-  orgId: string;
-  slug: string;
-  name: string;
-  description: string | null;
-}
-
-interface XPSummary {
-  today: number;
-  thisWeek: number;
-  total: number;
-  dailyTarget: number;
-  dailyCap: number;
-}
-
-interface StreakStatusResponse {
-  currentStreak: number;
-  longestStreak: number;
-  todayComplete: boolean;
-  todayXP: number;
-  dailyTarget: number;
-  freezeTokensRemaining: number;
-}
-
-interface DailyXP {
-  date: string;
-  xp: number;
-}
-
-interface LeaderboardEntry {
-  rank: number;
-  userId: string;
-  displayName: string;
-  avatarUrl: string | null;
-  weeklyXP: number;
-}
-
-interface StatsResponse {
-  completionPercent: number;
-  totalConcepts: number;
-  masteredConcepts: number;
-  remainingConcepts: number;
-  averageDailyXP: number;
-  estimatedWeeksRemaining: number | null;
-  dailyXPTarget: number;
-}
+import type {
+  AcademyCourse,
+  CompletionEstimate as CompletionEstimateData,
+  CourseProfile,
+  DailyXP,
+  LeaderboardEntry,
+  StreakStatus,
+  XPSummary,
+} from "@graspful/shared";
 
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -81,11 +41,11 @@ export default async function DashboardPage() {
   const brand = await resolvePageBrand();
 
   // Fetch enrolled courses
-  let courses: Course[] = [];
+  let courses: AcademyCourse[] = [];
   let profiles: Map<string, CourseProfile> = new Map();
 
   try {
-    courses = await serverApiFetch<Course[]>(`/orgs/${brand.orgSlug}/courses`);
+    courses = await serverApiFetch<AcademyCourse[]>(`/orgs/${brand.orgSlug}/courses`);
     profiles = await fetchCourseProfiles(brand.orgSlug, courses, serverApiFetch);
   } catch {
     // API may not be running -- show empty state
@@ -96,10 +56,10 @@ export default async function DashboardPage() {
 
   // Fetch gamification data — prefer academy-scoped if available
   let xpSummary: XPSummary | null = null;
-  let streakStatus: StreakStatusResponse | null = null;
+  let streakStatus: StreakStatus | null = null;
   let weeklyXP: DailyXP[] = [];
   let leaderboard: LeaderboardEntry[] = [];
-  let stats: StatsResponse | null = null;
+  let stats: CompletionEstimateData | null = null;
 
   if (courses.length > 0) {
     const basePath = academyId
@@ -109,10 +69,10 @@ export default async function DashboardPage() {
     const [xpRes, streakRes, weeklyRes, boardRes, statsRes] =
       await Promise.allSettled([
         serverApiFetch<XPSummary>(`${basePath}/xp`),
-        serverApiFetch<StreakStatusResponse>(`${basePath}/streak`),
+        serverApiFetch<StreakStatus>(`${basePath}/streak`),
         serverApiFetch<DailyXP[]>(`${basePath}/xp/weekly`),
         serverApiFetch<LeaderboardEntry[]>(`${basePath}/leaderboard`),
-        serverApiFetch<StatsResponse>(`${basePath}/stats`),
+        serverApiFetch<CompletionEstimateData>(`${basePath}/stats`),
       ]);
 
     xpSummary = xpRes.status === "fulfilled" ? xpRes.value : null;
