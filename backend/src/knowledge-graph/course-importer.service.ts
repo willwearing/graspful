@@ -6,6 +6,11 @@ import { GraphValidationService } from './graph-validation.service';
 import { buildQualifiedConceptRef, parseConceptRef } from './concept-ref';
 import { CourseYamlSchema, type CourseYaml } from '@graspful/shared';
 
+type CourseSectionYaml = CourseYaml['sections'][number];
+type CourseConceptYaml = CourseYaml['concepts'][number];
+type CourseKnowledgePointYaml = CourseConceptYaml['knowledgePoints'][number];
+type CourseProblemYaml = CourseKnowledgePointYaml['problems'][number];
+
 export interface ImportResult {
   courseId: string;
   sectionCount: number;
@@ -76,7 +81,7 @@ export class CourseImporterService {
 
     if (!parseResult.success) {
       throw new BadRequestException(
-        `Invalid course YAML: ${parseResult.error.errors.map((e) => e.message).join(', ')}`,
+        `Invalid course YAML: ${parseResult.error.errors.map((e: { message: string }) => e.message).join(', ')}`,
       );
     }
 
@@ -93,9 +98,9 @@ export class CourseImporterService {
 
   validateCourseGraph(data: CourseYaml) {
     const currentCourseSlug = data.course.id;
-    const conceptIds = data.concepts.map((concept) => concept.id);
-    const prereqEdges = data.concepts.flatMap((concept) =>
-      concept.prerequisites.map((prereqRef) => {
+    const conceptIds = data.concepts.map((concept: CourseConceptYaml) => concept.id);
+    const prereqEdges = data.concepts.flatMap((concept: CourseConceptYaml) =>
+      concept.prerequisites.map((prereqRef: string) => {
         const parsedRef = parseConceptRef(prereqRef, currentCourseSlug);
         if (parsedRef.courseSlug !== currentCourseSlug) {
           throw new BadRequestException(
@@ -109,8 +114,8 @@ export class CourseImporterService {
         };
       }),
     );
-    const encompEdges = data.concepts.flatMap((concept) =>
-      concept.encompassing.map((edgeRef) => {
+    const encompEdges = data.concepts.flatMap((concept: CourseConceptYaml) =>
+      concept.encompassing.map((edgeRef: CourseConceptYaml['encompassing'][number]) => {
         const parsedRef = parseConceptRef(edgeRef.concept, currentCourseSlug);
         if (parsedRef.courseSlug !== currentCourseSlug) {
           throw new BadRequestException(
@@ -691,17 +696,17 @@ export class CourseImporterService {
     existingProblemKeys: Map<string, Array<{ id: string; authoredId: string }>>,
     data: CourseYaml,
   ) {
-    const incomingSectionSlugs = new Set(data.sections.map((section) => section.id));
-    const incomingConceptSlugs = new Set(data.concepts.map((concept) => concept.id));
+    const incomingSectionSlugs = new Set(data.sections.map((section: CourseSectionYaml) => section.id));
+    const incomingConceptSlugs = new Set(data.concepts.map((concept: CourseConceptYaml) => concept.id));
     const incomingKnowledgePointKeys = new Set(
-      data.concepts.flatMap((concept) =>
-        concept.knowledgePoints.map((kp) => `${concept.id}:${kp.id}`),
+      data.concepts.flatMap((concept: CourseConceptYaml) =>
+        concept.knowledgePoints.map((kp: CourseKnowledgePointYaml) => `${concept.id}:${kp.id}`),
         ),
     );
     const incomingProblemKeys = new Set(
-      data.concepts.flatMap((concept) =>
-        concept.knowledgePoints.flatMap((kp) =>
-          kp.problems.map((problem) => `${concept.id}:${kp.id}:${problem.id}`),
+      data.concepts.flatMap((concept: CourseConceptYaml) =>
+        concept.knowledgePoints.flatMap((kp: CourseKnowledgePointYaml) =>
+          kp.problems.map((problem: CourseProblemYaml) => `${concept.id}:${kp.id}:${problem.id}`),
         ),
       ),
     );
