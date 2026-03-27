@@ -18,7 +18,7 @@ slug: "my-course-brand"       # URL-safe, unique
 tagline: "Learn X — the smart way"
 
 # Domain (assigned after publish)
-# domain: "my-course-brand.graspful.com"
+# domain: "my-course-brand.graspful.ai"
 
 # Theme colors (HSL values)
 theme:

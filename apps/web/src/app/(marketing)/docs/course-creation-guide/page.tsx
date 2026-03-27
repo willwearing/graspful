@@ -959,7 +959,7 @@ graspful import js-fundamentals.yaml --org my-org --publish`}
           {`brand:
   id: js-mastery
   name: JS Mastery
-  domain: js-mastery.graspful.com
+  domain: js-mastery.graspful.ai
   tagline: "Master JavaScript from zero to async."
   orgSlug: my-org
 
@@ -1021,10 +1021,10 @@ contentScope:
         </h3>
         <p className="mt-2 text-muted-foreground">
           By default, brands are served at{" "}
-          <InlineCode>your-brand.graspful.com</InlineCode>. For a custom domain
+          <InlineCode>your-brand.graspful.ai</InlineCode>. For a custom domain
           (e.g., <InlineCode>learn.yourdomain.com</InlineCode>), add a CNAME
           record pointing to{" "}
-          <InlineCode>brands.graspful.com</InlineCode> and update the{" "}
+          <InlineCode>cname.vercel-dns.com</InlineCode> and update the{" "}
           <InlineCode>domain</InlineCode> field in your brand YAML. SSL is
           provisioned automatically.
         </p>

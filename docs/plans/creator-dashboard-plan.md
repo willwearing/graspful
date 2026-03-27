@@ -2,9 +2,9 @@
 
 ## Problem
 
-graspful.vercel.app has Sign In / Get Started buttons that land on the **student** dashboard (streaks, XP, lessons). This makes no sense — graspful.com is for **course creators and AI agents**, not learners.
+graspful.vercel.app has Sign In / Get Started buttons that land on the **student** dashboard (streaks, XP, lessons). This makes no sense — graspful.ai is for **course creators and AI agents**, not learners.
 
-When a creator signs in on graspful.com, they should see their courses, learner stats, and revenue.
+When a creator signs in on graspful.ai, they should see their courses, learner stats, and revenue.
 
 ## Current State
 
@@ -55,10 +55,10 @@ Reuse the existing `(app)` sidebar. For the graspful brand, swap the nav items:
 │          │  Your Courses                             │
 │          │  ┌─────────────────────────────────────┐ │
 │          │  │ AWS SA        Published  89 learners│ │
-│          │  │ will-aws.graspful.com  [Edit][Archv]│ │
+│          │  │ will-aws.graspful.ai  [Edit][Archv]│ │
 │          │  ├─────────────────────────────────────┤ │
 │          │  │ JavaScript    Draft       0 learners│ │
-│          │  │ will-js.graspful.com   [Edit][Archv]│ │
+│          │  │ will-js.graspful.ai   [Edit][Archv]│ │
 │          │  └─────────────────────────────────────┘ │
 │          │                                           │
 └──────────┴──────────────────────────────────────────┘
@@ -76,7 +76,7 @@ Reuse the existing `(app)` sidebar. For the graspful brand, swap the nav items:
 - Course name
 - Status badge (Published / Draft)
 - Learner count (enrolled)
-- Brand URL as a link (e.g., `will-javascript.graspful.com`) — opens in new tab
+- Brand URL as a link (e.g., `will-javascript.graspful.ai`) — opens in new tab
 - **Edit button** → navigates to `/creator/manage/[courseId]` (loads YAML into editor)
 - **Archive button** → confirmation modal, user types course slug to confirm
 
@@ -245,7 +245,7 @@ Flow:
 5. Generate an API key automatically
 6. Return the API key + org slug
 
-When the agent later imports a course, the brand is auto-created from the username prefix + course slug (e.g., `will-javascript`). The brand gets a subdomain at `will-javascript.graspful.com` with a default landing page generated from the course YAML.
+When the agent later imports a course, the brand is auto-created from the username prefix + course slug (e.g., `will-javascript`). The brand gets a subdomain at `will-javascript.graspful.ai` with a default landing page generated from the course YAML.
 
 This means an agent can go from zero to importing courses in two API calls:
 ```bash
@@ -317,7 +317,7 @@ But the MCP setup docs need to show the full flow:
 
 ### Self-service org creation (browser path)
 
-On graspful.com sign-up via browser:
+On graspful.ai sign-up via browser:
 1. User creates account (existing Supabase email/password form)
 2. After first login, auto-create an org:
    - Slug derived from email (e.g., `will@example.com` → `will-example`)
@@ -357,7 +357,7 @@ The schema already supports many-to-many (User ↔ Org via `OrgMembership`). No 
 ┌───────────────────────────────────────────────────┐
 │ JavaScript Fundamentals                           │
 │ Published  •  89 learners                         │
-│ will-javascript.graspful.com                      │
+│ will-javascript.graspful.ai                      │
 │                                    [Edit] [Archive]│
 └───────────────────────────────────────────────────┘
 ```
@@ -365,7 +365,7 @@ The schema already supports many-to-many (User ↔ Org via `OrgMembership`). No 
 **Brand slug auto-generation:** When a course is imported, the brand slug is derived from the user's username prefix + course slug:
 - `will@example.com` imports `javascript-fundamentals` → brand slug `will-javascript`
 - If `will-javascript` is taken → `will-javascript-1`, `will-javascript-2`, etc.
-- The brand domain becomes `will-javascript.graspful.com`
+- The brand domain becomes `will-javascript.graspful.ai`
 
 **Org switcher:** The sidebar shows which org/brand you're viewing. If you have multiple, a dropdown lets you switch. For single-org users, this is hidden.
 
@@ -388,7 +388,7 @@ The schema already supports many-to-many (User ↔ Org via `OrgMembership`). No 
 
 | Endpoint | Change |
 |----------|--------|
-| `POST /orgs/{orgSlug}/courses/import` | Auto-create brand if none exists. Brand slug = `{username}-{courseslug}`. Provision `{slug}.graspful.com` subdomain via Vercel. |
+| `POST /orgs/{orgSlug}/courses/import` | Auto-create brand if none exists. Brand slug = `{username}-{courseslug}`. Provision `{slug}.graspful.ai` subdomain via Vercel. |
 
 ### New guard
 
@@ -510,7 +510,7 @@ apps/web/src/app/(marketing)/docs/mcp/page.tsx         # Add "Getting your API k
 
 | Test | Flow |
 |------|------|
-| `agent-full-flow.spec.ts` | Register via API → get API key → import course → brand auto-created at `{user}-{course}.graspful.com` → course appears in creator dashboard with live URL → edit via /creator/manage/[id] |
+| `agent-full-flow.spec.ts` | Register via API → get API key → import course → brand auto-created at `{user}-{course}.graspful.ai` → course appears in creator dashboard with live URL → edit via /creator/manage/[id] |
 
 ## Execution Plan — Parallelized for Multiple Agents
 
@@ -639,7 +639,7 @@ Agent 8:                                    [H1-H8 E2E ]
 2. **Self-service org slug** — derived from email. `will@example.com` → `will-example`. No manual input.
 3. **Agent self-signup** — yes. `POST /auth/register` returns API key + org slug. Two API calls from zero to importing. Docs updated to show this as the primary path.
 4. **Multi-org** — supported out of the box. Schema already has many-to-many via `OrgMembership`. Each course import can auto-create a brand/org. Brand slug = `{username}-{courseslug}` (e.g., `will-javascript`). Org switcher in sidebar when user has multiple.
-5. **Brand auto-creation on import** — when a course is imported and no brand exists for it, auto-create one. Slug: `{username}-{courseslug}`. Domain: `{slug}.graspful.com`. Default landing page from course YAML data. If slug taken, append `-1`, `-2`, etc.
+5. **Brand auto-creation on import** — when a course is imported and no brand exists for it, auto-create one. Slug: `{username}-{courseslug}`. Domain: `{slug}.graspful.ai`. Default landing page from course YAML data. If slug taken, append `-1`, `-2`, etc.
 6. **Course cards show brand URL** — each course card links to its live subdomain. Edit button opens Monaco editor with the course YAML.
 7. **Monaco Editor** — lazy-loaded via `next/dynamic`. Only downloads when user navigates to `/creator/manage`. YAML syntax highlighting, dark theme, 500px fixed height, no minimap.
 8. **Course management is create + edit** — same component, same tabs. New course = template pre-filled. Edit = YAML loaded from `GET /courses/{id}/yaml`.

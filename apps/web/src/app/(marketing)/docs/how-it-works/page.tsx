@@ -375,7 +375,7 @@ graspful create course --topic "JavaScript Fundamentals" -o js-course.yaml
 graspful import js-course.yaml --org my-org --publish
 
 # 2. Create and import the brand
-graspful create brand --name "JS Mastery" --domain js.graspful.com -o js-brand.yaml
+graspful create brand --name "JS Mastery" --domain js.graspful.ai -o js-brand.yaml
 graspful import js-brand.yaml`}
         </CodeBlock>
         <p className="mt-2 text-sm text-muted-foreground">

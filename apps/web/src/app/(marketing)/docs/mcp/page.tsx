@@ -438,7 +438,7 @@ The returned YAML includes brand identity, theme, landing page sections (hero, f
           inputs={[
             { name: "niche", type: "string", description: "Brand niche: education, healthcare, finance, tech, or legal" },
             { name: "name", type: "string", description: 'Brand name (default: "{Niche} Academy")' },
-            { name: "domain", type: "string", description: 'Custom domain (default: "{slug}.graspful.com")' },
+            { name: "domain", type: "string", description: 'Custom domain (default: "{slug}.graspful.ai")' },
             { name: "orgSlug", type: "string", description: "Organization slug to associate with" },
           ]}
           required={["niche"]}

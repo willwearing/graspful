@@ -2844,7 +2844,7 @@ Open `http://localhost:3001` and verify:
 - **Self-service brand portal** (Phase 3 -- needs auth, preview, etc.)
 - **OG image generation** (per-brand dynamic OG images via `@vercel/og`)
 - **A/B testing hero variants** with PostHog feature flags (mentioned in spec, do after baseline is live)
-- **Subdomain routing** (brand.graspful.com) -- currently all custom domains; add subdomain tier later
+- **Subdomain routing** (brand.graspful.ai) -- currently all custom domains; add subdomain tier later
 
 ---
 

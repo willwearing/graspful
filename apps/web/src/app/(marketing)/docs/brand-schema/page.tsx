@@ -125,7 +125,7 @@ contentScope:    # optional — which courses this brand serves
           fields={[
             { name: "id", type: "string", required: true, description: "Kebab-case identifier for the brand" },
             { name: "name", type: "string", required: true, description: "Display name (shown in nav, footer, and SEO)" },
-            { name: "domain", type: "string", required: true, description: 'Custom domain (e.g., "aws-prep.graspful.com" or "prep.yourdomain.com")' },
+            { name: "domain", type: "string", required: true, description: 'Custom domain (e.g., "aws-prep.graspful.ai" or "prep.yourdomain.com")' },
             { name: "tagline", type: "string", required: true, description: "Short tagline shown in the footer" },
             { name: "logoUrl", type: "string", required: false, description: "Path to logo image (e.g., /images/logo.svg)" },
             { name: "faviconUrl", type: "string", required: false, description: "Path to favicon" },
@@ -317,7 +317,7 @@ contentScope:    # optional — which courses this brand serves
           {`brand:
   id: aws-prep
   name: AWS Prep Academy
-  domain: aws-prep.graspful.com
+  domain: aws-prep.graspful.ai
   tagline: "Pass the AWS exam on your first try."
   logoUrl: /images/logo-aws-prep.svg
   faviconUrl: /favicon.ico
