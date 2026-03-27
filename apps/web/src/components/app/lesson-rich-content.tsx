@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ExternalLink, ImageIcon, Lightbulb, PlayCircle } from "lucide-react";
 import type { RichContentBlock } from "@/lib/types";
 
@@ -40,12 +41,19 @@ export function LessonRichContent({ blocks }: LessonRichContentProps) {
                 <ImageIcon className="size-4" />
                 Visual
               </div>
-              <img
-                src={block.url}
-                alt={block.alt}
-                className="w-full rounded-lg border border-border bg-background object-contain"
+              <div
+                className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border border-border bg-background"
                 style={block.width ? { maxWidth: `${block.width}px` } : undefined}
-              />
+              >
+                <Image
+                  src={block.url}
+                  alt={block.alt}
+                  fill
+                  unoptimized
+                  sizes="(max-width: 768px) 100vw, 768px"
+                  className="object-contain"
+                />
+              </div>
               {block.caption ? (
                 <figcaption className="mt-3 text-sm text-muted-foreground">{block.caption}</figcaption>
               ) : null}

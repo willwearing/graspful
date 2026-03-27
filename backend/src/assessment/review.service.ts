@@ -4,7 +4,7 @@ import { FireUpdateService } from '@/spaced-repetition/fire-update.service';
 import { StudentStateService } from '@/student-model/student-state.service';
 import { ProblemSubmissionService } from './problem-submission.service';
 import { SectionExamService } from './section-exam.service';
-import { activeKnowledgePointWhere } from '@/knowledge-graph/active-course-content';
+import { activeProblemWhere } from '@/knowledge-graph/active-course-content';
 import {
   type ClientProblem,
   serializeProblemForClient,
@@ -48,10 +48,10 @@ export class ReviewService {
 
     // Select 3-5 review problems from this concept's KPs
     const problems = await this.prisma.problem.findMany({
-      where: {
-        knowledgePoint: activeKnowledgePointWhere({ conceptId }),
+      where: activeProblemWhere({
+        knowledgePoint: { conceptId },
         isReviewVariant: true,
-      },
+      }),
       take: 5,
       orderBy: { difficulty: 'asc' },
     });
@@ -60,9 +60,9 @@ export class ReviewService {
     let selectedProblems = problems;
     if (selectedProblems.length < 3) {
       selectedProblems = await this.prisma.problem.findMany({
-        where: {
-          knowledgePoint: activeKnowledgePointWhere({ conceptId }),
-        },
+        where: activeProblemWhere({
+          knowledgePoint: { conceptId },
+        }),
         take: 5,
         orderBy: { difficulty: 'asc' },
       });

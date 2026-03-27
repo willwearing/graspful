@@ -6,29 +6,32 @@ test.describe("Pricing page", () => {
   });
 
   test("renders pricing heading and plan details", async ({ page }) => {
-    await expect(page.getByText("Simple Pricing")).toBeVisible();
-    // Should show a price
-    await expect(page.getByText(/\$\d+/).first()).toBeVisible();
+    await expect(page.locator("#pricing h2")).toBeVisible();
+    const priceSignals = page.getByText(/\$\d+|70\/30/);
+    await expect(priceSignals.first()).toBeVisible();
   });
 
-  test("monthly/yearly toggle changes price", async ({ page }) => {
-    // Get initial price text
-    const priceElement = page.getByText(/\$\d+/).first();
-    await expect(priceElement).toBeVisible();
+  test("pricing controls or creator plan cards render", async ({ page }) => {
+    const monthlyToggle = page.getByRole("button", { name: /monthly/i });
+    const yearlyToggle = page.getByRole("button", { name: /yearly/i });
 
-    // Click yearly toggle
-    await page.getByRole("button", { name: /yearly/i }).click();
-    // Price should still be visible (possibly different value)
-    await expect(page.getByText(/\$\d+/).first()).toBeVisible();
+    if ((await monthlyToggle.count()) > 0 || (await yearlyToggle.count()) > 0) {
+      const priceElement = page.getByText(/\$\d+/).first();
+      await expect(priceElement).toBeVisible();
+      await yearlyToggle.click();
+      await expect(page.getByText(/\$\d+/).first()).toBeVisible();
+      await monthlyToggle.click();
+      await expect(page.getByText(/\$\d+/).first()).toBeVisible();
+      return;
+    }
 
-    // Click monthly toggle
-    await page.getByRole("button", { name: /monthly/i }).click();
-    await expect(page.getByText(/\$\d+/).first()).toBeVisible();
+    const signUpCtas = page.locator('#pricing a[href="/sign-up"]');
+    expect(await signUpCtas.count()).toBeGreaterThanOrEqual(2);
   });
 
   test("CTA button links to sign-up", async ({ page }) => {
     const ctaLinks = page.getByRole("link", {
-      name: /free trial|get started/i,
+      name: /free trial|get started|start building|start earning|start learning/i,
     });
     const count = await ctaLinks.count();
     expect(count).toBeGreaterThanOrEqual(1);

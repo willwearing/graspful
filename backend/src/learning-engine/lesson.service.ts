@@ -88,7 +88,7 @@ export class LessonService {
         instructionAudioUrl: true,
         workedExampleAudioUrl: true,
         problems: {
-          where: { isReviewVariant: false },
+          where: { isReviewVariant: false, isArchived: false },
           orderBy: { createdAt: 'asc' },
           select: {
             id: true,

@@ -18,8 +18,8 @@ landing:
     subheadline: "Technical onboarding for PostHog TAMs -- data models, ingestion pipelines, identification, group analytics, and more."
     ctaText: "Start Learning"
   features:
-    heading: "Why Audio Learning Works"
-    subheading: "Turn dead time into study time. Learn while your hands and eyes are busy."
+    heading: "What You'll Master"
+    subheading: "Deep technical fluency with PostHog's core systems."
     items:
       - title: "Data Model Foundations"
         description: "Learn entities, attributes, keys, and relationships before diving into PostHog specifics."

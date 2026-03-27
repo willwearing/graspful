@@ -66,3 +66,68 @@ export async function signInTestUser(
   await page.getByRole("button", { name: "Sign In" }).click();
   await page.waitForURL(/\/(dashboard|creator)/, { timeout: 15_000 });
 }
+
+export async function getBrowserAccessToken(page: Page): Promise<string | null> {
+  const cookies = await page.context().cookies();
+  const authCookie = cookies.find((cookie) => cookie.name.includes("auth-token"));
+
+  if (authCookie?.value?.startsWith("base64-")) {
+    try {
+      const decoded = Buffer.from(authCookie.value.slice("base64-".length), "base64").toString(
+        "utf8"
+      );
+      const parsed = JSON.parse(decoded) as { access_token?: string };
+      if (typeof parsed.access_token === "string") {
+        return parsed.access_token;
+      }
+    } catch {
+      // Fall through to localStorage probing
+    }
+  }
+
+  return page.evaluate(() => {
+    const seen = new Set<string>();
+
+    function readToken(candidate: unknown): string | null {
+      if (!candidate || typeof candidate !== "object") return null;
+      const record = candidate as Record<string, unknown>;
+
+      if (typeof record.access_token === "string") {
+        return record.access_token;
+      }
+
+      if (record.currentSession) {
+        const nested = readToken(record.currentSession);
+        if (nested) return nested;
+      }
+
+      if (Array.isArray(candidate)) {
+        for (const item of candidate) {
+          const nested = readToken(item);
+          if (nested) return nested;
+        }
+      }
+
+      return null;
+    }
+
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (!key || seen.has(key) || !key.includes("auth-token")) continue;
+      seen.add(key);
+
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+
+      try {
+        const parsed = JSON.parse(raw);
+        const token = readToken(parsed);
+        if (token) return token;
+      } catch {
+        // Ignore unrelated localStorage values
+      }
+    }
+
+    return null;
+  });
+}

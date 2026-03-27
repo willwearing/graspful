@@ -9,40 +9,13 @@ import { KnowledgeGraphSection } from "@/components/app/knowledge-graph-section"
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { fetchCourseProfiles, type CourseProfile } from "@/lib/course-profiles";
+import { fetchCourseProfiles } from "@/lib/course-profiles";
 import {
   getAcademyStudyHref,
   getCourseBrowseHref,
 } from "@/lib/academy-routes";
 import { AcademyViewTracker } from "@/components/app/page-view-tracker";
-
-interface AcademyCourse {
-  id: string;
-  academyId: string;
-  orgId: string;
-  slug: string;
-  name: string;
-  description: string | null;
-}
-
-interface AcademyDetail {
-  id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-}
-
-interface AcademyProfile {
-  totalConcepts: number;
-  mastered: number;
-  inProgress: number;
-  needsReview: number;
-  unstarted: number;
-  completionPercent: number;
-  diagnosticCompleted: boolean;
-  activeCourses: number;
-  completedCourses: number;
-}
+import type { AcademyCourse, AcademyDetail, AcademyProfile } from "@graspful/shared";
 
 export default async function AcademyPage({
   params,

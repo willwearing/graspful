@@ -592,8 +592,8 @@ export const posthogBrand: BrandConfig = {
       ctaText: "Start Learning",
     },
     features: {
-      heading: "Why Audio Learning Works",
-      subheading: "Turn dead time into study time. Learn while your hands and eyes are busy.",
+      heading: "What You'll Master",
+      subheading: "Deep technical fluency with PostHog's core systems.",
       items: [
         {
           title: "Data Model Foundations",
@@ -693,7 +693,7 @@ export const graspfulBrand: BrandConfig = {
   id: "graspful",
   name: "Graspful",
   domain: "graspful.ai",
-  tagline: "Create Adaptive Courses with AI Agents",
+  tagline: "Turn Your Expertise Into a Course Business",
   logoUrl: "/images/logo-graspful.svg",
   faviconUrl: "/favicon.ico",
   ogImageUrl: "/images/og-graspful.png",
@@ -751,52 +751,52 @@ export const graspfulBrand: BrandConfig = {
 
   landing: {
     hero: {
-      headline: "Create Courses with AI. Launch in Minutes.",
+      headline: "Build courses where students actually learn.",
       subheadline:
-        "Tell an AI agent what to teach. Graspful builds the knowledge graph, practice problems, landing page, and billing. You get a live adaptive course — instantly.",
+        "Your expertise. AI's scaffolding. Every course gets adaptive diagnostics, mastery tracking, and spaced review. Launch a live product in minutes, not months.",
       ctaText: "Start Building Free",
     },
     features: {
-      heading: "Why Graspful",
+      heading: "What we do for you",
       subheading:
-        "The course creation platform that AI agents already know how to use.",
+        "You know what to teach. We make sure students actually learn it.",
       items: [
         {
-          title: "Two YAMLs, One Product",
+          title: "Adaptive Diagnostics",
           description:
-            "Define your course content and landing page as YAML. Import both. Get a live product with adaptive learning, spaced repetition, and Stripe billing.",
-          icon: "FileCode",
+            "Every student starts with a diagnostic that maps what they already know. No wasted time. The course reshapes itself around their gaps.",
+          icon: "Brain",
           wide: true,
         },
         {
-          title: "Agent-First",
+          title: "Fully Automated Learning Paths",
           description:
-            "CLI and MCP server for Claude, Codex, Cursor, and any AI agent. Agents create courses as well as humans — faster.",
+            "The system knows what each student needs and when. No guesswork, no manual sequencing. You build the content once. The algorithm does the rest.",
           icon: "Bot",
         },
         {
-          title: "Knowledge Graph Engine",
+          title: "Research-Backed Retention",
           description:
-            "Not just flashcards. Real prerequisite graphs, diagnostic assessments, mastery tracking, and spaced repetition based on Math Academy's research.",
+            "Spaced repetition, mastery gates, prerequisite enforcement. Students retain what they learn instead of cramming and forgetting.",
           icon: "Network",
         },
         {
-          title: "White-Label Everything",
+          title: "Your Brand, Your Business",
           description:
-            "Your domain, your brand, your pricing. Graspful is invisible to your learners.",
+            "Your domain. Your colors. Your pricing. Learners see your brand, not ours.",
           icon: "Palette",
           wide: true,
         },
         {
-          title: "70/30 Revenue Share",
+          title: "Free to Build. You Keep 70%.",
           description:
-            "Free to create. We collect learner payments and send you 70%. No upfront cost, no monthly fee.",
+            "No upfront costs. No monthly fees. When learners subscribe, you keep 70%. We only make money when you do.",
           icon: "DollarSign",
         },
         {
-          title: "Quality Gate Built In",
+          title: "Quality Checks Built In",
           description:
-            "10 mechanical checks validate every course: deduplication, difficulty staircase, graph structure. Bad courses don't ship.",
+            "Automated checks catch duplicate questions, missing explanations, and difficulty gaps before your course goes live.",
           icon: "ShieldCheck",
         },
       ],
@@ -805,70 +805,75 @@ export const graspfulBrand: BrandConfig = {
       heading: "How It Works",
       items: [
         {
-          title: "Tell an Agent What to Teach",
+          title: "Describe What You Want to Teach",
           description:
-            "Give Claude or Codex a topic and source material. It scaffolds the knowledge graph, writes practice problems, and creates your landing page.",
+            "Pick your topic. Upload your notes, study guide, or exam outline. AI turns it into a structured course with practice problems.",
         },
         {
-          title: "Review & Publish",
+          title: "Review and Customize",
           description:
-            "The quality gate checks structure, deduplication, and difficulty. Fix any issues, then publish with one command.",
+            "Check the content. Edit anything. Quality checks run automatically to catch issues before launch.",
         },
         {
-          title: "Learners Pay, You Earn",
+          title: "Publish and Earn",
           description:
-            "Your landing page goes live with Stripe billing. Learners subscribe. You keep 70%.",
+            "Your course goes live with its own landing page and billing. Learners subscribe. You get paid.",
         },
       ],
     },
     faq: [
       {
-        question: "Do I need to write code?",
+        question: "What is Graspful?",
         answer:
-          "No. Courses are YAML files. AI agents generate them. The CLI validates and imports them. No code required.",
+          "Graspful is a course creation platform. You describe what you want to teach, AI builds the course, and you get a live product with its own landing page, billing, and adaptive learning. You earn 70% of every subscription.",
       },
       {
-        question: "Which AI agents work with Graspful?",
+        question: "Do I need to be technical?",
         answer:
-          "Any agent that supports MCP (Claude Code, Cursor, Codex, VS Code Copilot, Gemini, Windsurf) or can run CLI commands.",
+          "No. If you can use ChatGPT, you can use Graspful. Describe your topic, review what AI creates, and publish. No coding, no design skills required.",
       },
       {
         question: "How does billing work?",
         answer:
-          "Free to create courses. When learners subscribe on your landing page, Graspful collects payment and sends you 70%. We keep 30% for the platform.",
+          "Free to create courses. When learners subscribe on your landing page, Graspful collects payment and sends you 70%. No upfront costs, no monthly fees.",
       },
       {
         question: "What makes this different from Udemy or Teachable?",
         answer:
-          "Adaptive learning. Real knowledge graphs with prerequisites and mastery tracking. Spaced repetition. Diagnostic assessments. Plus: AI agents can create courses — no clicking through a UI for hours.",
+          "Adaptive learning. Students get personalized paths, spaced review, and mastery tracking. Not just a video playlist. Plus AI builds the course for you, so you can launch in minutes instead of months.",
       },
       {
         question: "Can I use my own domain?",
         answer:
-          "Yes. Every brand gets a custom domain. Your learners see your brand, not Graspful.",
+          "Yes. Your learners see your brand, your domain, your colors. Graspful is invisible.",
+      },
+      {
+        question: "How do students learn on Graspful courses?",
+        answer:
+          "Every course uses adaptive diagnostics, prerequisite tracking, and spaced repetition. Students focus on what they don't know yet, and the system schedules reviews so they don't forget.",
       },
     ],
     bottomCta: {
-      headline: "Build your first course in 5 minutes",
-      subheadline: "npx @graspful/cli init",
+      headline: "Build your first course today",
+      subheadline: "Free to create. You earn 70% when learners subscribe.",
     },
   },
 
   seo: {
-    title: "Graspful — Create Adaptive Courses with AI Agents",
+    title: "Graspful: Turn Your Expertise Into a Course Business",
     description:
-      "The course creation platform for AI agents. Define courses as YAML, get a live product with knowledge graphs, spaced repetition, landing pages, and Stripe billing. Free to create. 70/30 revenue share.",
+      "Create and sell adaptive online courses with AI. You describe what to teach, AI builds the course. Learners get personalized paths, spaced review, and mastery tracking. Free to create. You earn 70%.",
     keywords: [
-      "course creation",
+      "create online course",
+      "sell courses online",
+      "course creation platform",
       "adaptive learning",
-      "ai agents",
-      "mcp",
-      "knowledge graph",
-      "spaced repetition",
-      "cli",
-      "course platform",
-      "online courses",
+      "monetize expertise",
+      "build a course business",
+      "online course platform",
       "certification prep",
+      "ai course builder",
+      "spaced repetition",
     ],
   },
 

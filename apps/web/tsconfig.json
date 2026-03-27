@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@graspful/shared": ["../../packages/shared/src/index.ts"],
+      "@graspful/shared/*": ["../../packages/shared/src/*"]
     }
   },
   "include": [

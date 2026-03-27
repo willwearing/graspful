@@ -25,6 +25,7 @@ concepts:
     knowledgePoints:
       - id: kp-alpha-1
         instruction: "This is the instruction for alpha."
+        workedExample: "Adding 1 and 1 gives 2, so the correct answer is the second option."
         problems:
           - id: p-alpha-1
             type: multiple_choice

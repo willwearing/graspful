@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { resolveBrand } from "@/lib/brand/resolve";
-import { defaultBrand } from "@/lib/brand/defaults";
+import { defaultBrand, firefighterBrand, graspfulBrand } from "@/lib/brand/defaults";
 
 describe("resolveBrand", () => {
-  it("returns firefighter brand for localhost", async () => {
+  it("returns the platform brand for localhost by default", async () => {
     const brand = await resolveBrand("localhost:3001");
-    expect(brand.id).toBe("firefighter");
-    expect(brand.name).toBe("FirefighterPrep");
+    expect(brand.id).toBe(graspfulBrand.id);
+    expect(brand.name).toBe(graspfulBrand.name);
   });
 
   it("returns default brand for unknown hosts", async () => {
@@ -16,7 +16,7 @@ describe("resolveBrand", () => {
 
   it("strips port from hostname before resolving", async () => {
     const brand = await resolveBrand("localhost:3001");
-    expect(brand.id).toBe("firefighter");
+    expect(brand.id).toBe(graspfulBrand.id);
   });
 
   it("resolves known domain firefighterprep.vercel.app", async () => {
@@ -32,11 +32,20 @@ describe("resolveBrand", () => {
 
   it("brand config has correct orgId", async () => {
     const brand = await resolveBrand("localhost");
-    expect(brand.orgSlug).toBe("firefighter-prep");
+    expect(brand.orgSlug).toBe(graspfulBrand.orgSlug);
   });
 
   it("resolves 127.0.0.1 the same as localhost", async () => {
     const brand = await resolveBrand("127.0.0.1:3001");
-    expect(brand.id).toBe("firefighter");
+    expect(brand.id).toBe(graspfulBrand.id);
+  });
+
+  it("honors the dev-brand override cookie on localhost", async () => {
+    const brand = await resolveBrand(
+      "localhost:3001",
+      "dev-brand-override=firefighter",
+    );
+    expect(brand.id).toBe(firefighterBrand.id);
+    expect(brand.orgSlug).toBe(firefighterBrand.orgSlug);
   });
 });

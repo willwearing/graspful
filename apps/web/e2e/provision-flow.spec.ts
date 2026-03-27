@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUpBrandedTestUser, signInTestUser } from "./helpers/auth";
+import { signUpBrandedTestUser, getBrowserAccessToken, TEST_BRAND_ID } from "./helpers/auth";
 import {
   registerAndGetApiContext,
   apiPost,
@@ -18,14 +18,16 @@ const UUID_RE =
  * and need their personal org provisioned after authentication.
  */
 test.describe("User provisioning (web UI sign-up flow)", () => {
-  test("POST /auth/provision creates org for new user", async ({ request }) => {
-    // First register via /auth/register to get a valid JWT
-    const ctx = await registerAndGetApiContext(request);
+  test("POST /auth/provision creates org for signed-in user", async ({ page, request }) => {
+    await signUpBrandedTestUser(page, "graspful");
+    const token = await getBrowserAccessToken(page);
+
+    expect(token).toBeTruthy();
 
     // Call provision endpoint — should be idempotent (user already has an org)
     const res = await request.post(`${BACKEND_URL}/auth/provision`, {
       headers: {
-        Authorization: `Bearer ${ctx.token}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     });
@@ -51,31 +53,10 @@ test.describe("User provisioning (web UI sign-up flow)", () => {
     page,
     request,
   }) => {
-    // Sign up via UI
-    const email = await signUpBrandedTestUser(page, "graspful");
+    await signUpBrandedTestUser(page, "graspful");
+    const token = await getBrowserAccessToken(page);
 
-    // Get the session token from Supabase
-    const token = await page.evaluate(async () => {
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabase = createClient(
-        (window as any).__NEXT_DATA__?.props?.pageProps?.supabaseUrl ||
-          process.env.NEXT_PUBLIC_SUPABASE_URL ||
-          "http://localhost:54321",
-        (window as any).__NEXT_DATA__?.props?.pageProps?.supabaseAnonKey ||
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-          ""
-      );
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      return session?.access_token;
-    });
-
-    // If we can't get token from browser, skip this assertion
-    if (!token) {
-      test.skip();
-      return;
-    }
+    expect(token).toBeTruthy();
 
     // Call /users/me/orgs to verify the user has at least one org
     const res = await request.get(`${BACKEND_URL}/users/me/orgs`, {
@@ -170,16 +151,24 @@ concepts:
 
 test.describe("Platform org auto-creation", () => {
   test("joining 'graspful' org works even if it didn't exist before", async ({
+    page,
     request,
   }) => {
-    // Register to get a valid auth token
-    const ctx = await registerAndGetApiContext(request);
+    await signUpBrandedTestUser(page, TEST_BRAND_ID);
+    const token = await getBrowserAccessToken(page);
 
     // Try to join the graspful platform org
-    const joinRes = await apiPost(ctx, `/orgs/graspful/join`, {});
+    const joinRes = await request.post(`${BACKEND_URL}/orgs/graspful/join`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      data: {},
+    });
     // Should succeed (201) — auto-creates if missing
-    expect(joinRes.status).toBeLessThan(300);
-    expect(joinRes.body.orgId).toBeTruthy();
+    expect(joinRes.status()).toBeLessThan(300);
+    const body = await joinRes.json();
+    expect(body.orgId).toBeTruthy();
   });
 });
 

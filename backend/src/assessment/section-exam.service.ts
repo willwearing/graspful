@@ -181,6 +181,7 @@ export class SectionExamService {
               where: activeKnowledgePointWhere(),
               select: {
                 problems: {
+                  where: { isArchived: false },
                   select: {
                     id: true,
                     type: true,

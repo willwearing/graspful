@@ -102,9 +102,9 @@ test.describe("Route protection", () => {
 test.describe("Public routes", () => {
   test("landing page is accessible without auth", async ({ page }) => {
     await page.goto("/");
-    await expect(
-      page.getByText("Start Studying Free").first()
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('a[href="/sign-up"]').first()).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test("pricing page is accessible without auth", async ({ page }) => {

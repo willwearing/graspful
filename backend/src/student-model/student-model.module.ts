@@ -1,15 +1,14 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AssessmentModule } from '@/assessment/assessment.module';
 import { StudentModelController } from './student-model.controller';
 import { AcademyStudentModelController } from './academy-student-model.controller';
 import { EnrollmentService } from './enrollment.service';
-import { StudentStateService } from './student-state.service';
-import { CourseStateService } from './course-state.service';
+import { StudentModelCoreModule } from './application/student-model-core.module';
 
 @Module({
-  imports: [forwardRef(() => AssessmentModule)],
+  imports: [StudentModelCoreModule, AssessmentModule],
   controllers: [StudentModelController, AcademyStudentModelController],
-  providers: [EnrollmentService, StudentStateService, CourseStateService],
-  exports: [EnrollmentService, StudentStateService, CourseStateService],
+  providers: [EnrollmentService],
+  exports: [StudentModelCoreModule, EnrollmentService],
 })
 export class StudentModelModule {}

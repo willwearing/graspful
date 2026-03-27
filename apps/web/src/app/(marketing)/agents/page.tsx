@@ -193,7 +193,7 @@ export default function AgentsPage() {
               <div className="w-full h-full bg-gradient-to-r from-primary via-secondary to-primary animate-line-grow" style={{ animationDuration: "1.5s" }} />
             </div>
             <div className="grid gap-12 sm:grid-cols-3 sm:gap-8">
-              {workflowSteps.map((step, i) => {
+              {workflowSteps.map((step) => {
                 const Icon = step.icon;
                 return (
                   <div key={step.title} className="flex flex-col items-center text-center">

@@ -1,37 +1,14 @@
 import { describe, it, expect } from "vitest";
+import { decideRoute, isPublicRoute } from "@/proxy";
 
 /**
- * The middleware itself relies on Next.js request/response objects and Supabase
+ * The proxy itself relies on Next.js request/response objects and Supabase
  * server client, which are difficult to instantiate in vitest without heavy mocking.
  *
  * Instead, we extract and test the pure-logic pieces:
  * - PUBLIC_ROUTES matching
  * - Routing decision matrix (unauthenticated + protected → redirect, etc.)
  */
-
-const PUBLIC_ROUTES = ["/", "/sign-in", "/sign-up", "/auth/callback", "/pricing"];
-
-function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  );
-}
-
-type RoutingDecision =
-  | { action: "redirect"; to: string }
-  | { action: "next" };
-
-const AUTH_PAGES = ["/", "/sign-in", "/sign-up"];
-
-function decideRoute(pathname: string, user: boolean): RoutingDecision {
-  if (!user && !isPublicRoute(pathname)) {
-    return { action: "redirect", to: "/sign-in" };
-  }
-  if (user && AUTH_PAGES.includes(pathname)) {
-    return { action: "redirect", to: "/dashboard" };
-  }
-  return { action: "next" };
-}
 
 describe("isPublicRoute", () => {
   it("marks / as public", () => {
@@ -52,6 +29,14 @@ describe("isPublicRoute", () => {
 
   it("marks /pricing as public", () => {
     expect(isPublicRoute("/pricing")).toBe(true);
+  });
+
+  it("marks /agents as public", () => {
+    expect(isPublicRoute("/agents")).toBe(true);
+  });
+
+  it("marks /docs as public", () => {
+    expect(isPublicRoute("/docs")).toBe(true);
   });
 
   it("marks /dashboard as NOT public", () => {
@@ -84,12 +69,22 @@ describe("middleware routing decisions", () => {
   });
 
   it("redirects authenticated user on /sign-in to /dashboard", () => {
-    const result = decideRoute("/sign-in", true);
+    const result = decideRoute("/sign-in", true, "student-brand");
     expect(result).toEqual({ action: "redirect", to: "/dashboard" });
   });
 
   it("redirects authenticated user on /sign-up to /dashboard", () => {
-    const result = decideRoute("/sign-up", true);
+    const result = decideRoute("/sign-up", true, "student-brand");
+    expect(result).toEqual({ action: "redirect", to: "/dashboard" });
+  });
+
+  it("redirects graspful authenticated users from /dashboard to /creator", () => {
+    const result = decideRoute("/dashboard", true, "graspful");
+    expect(result).toEqual({ action: "redirect", to: "/creator" });
+  });
+
+  it("redirects non-graspful authenticated users from /creator to /dashboard", () => {
+    const result = decideRoute("/creator", true, "student-brand");
     expect(result).toEqual({ action: "redirect", to: "/dashboard" });
   });
 

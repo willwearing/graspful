@@ -4,7 +4,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { apiFetch, ApiError } from "@/lib/api";
 import { resolvePageBrand } from "@/lib/brand/resolve";
 import { DiagnosticFlow } from "@/components/app/diagnostic-flow";
-import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 export default async function DiagnosticPage({

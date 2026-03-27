@@ -46,7 +46,7 @@ export function Hero({ headline, subheadline, ctaText }: HeroProps) {
         <div className="animate-fade-up" style={{ animationDelay: "0.8s" }}>
           <a
             href="/sign-up"
-            onClick={(e) => {
+            onClick={() => {
               trackLandingCtaClick("hero", brand.id);
             }}
             className="btn-gradient glow-pulse mt-10 inline-block px-12 py-4 text-base font-medium"

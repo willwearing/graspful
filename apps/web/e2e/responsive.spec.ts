@@ -7,9 +7,7 @@ test.describe("Mobile responsive design", () => {
     await page.goto("/");
     await expect(page.locator("h1")).toBeVisible();
     // CTA should still be visible
-    await expect(
-      page.getByRole("link", { name: /start studying/i }).first()
-    ).toBeVisible();
+    await expect(page.locator('a[href="/sign-up"]').first()).toBeVisible();
   });
 
   test("sign-in page renders on mobile viewport", async ({ page }) => {
@@ -31,8 +29,8 @@ test.describe("Mobile responsive design", () => {
 
   test("pricing page renders on mobile viewport", async ({ page }) => {
     await page.goto("/pricing");
-    await expect(page.getByText("Simple Pricing")).toBeVisible();
-    await expect(page.getByText(/\$\d+/).first()).toBeVisible();
+    await expect(page.locator("#pricing")).toBeVisible();
+    await expect(page.getByText(/\$\d+|70\/30/).first()).toBeVisible();
   });
 
   test("no horizontal overflow on mobile", async ({ page }) => {
@@ -50,6 +48,7 @@ test.describe("Tablet responsive design", () => {
   test("landing page renders on tablet viewport", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("h1")).toBeVisible();
-    await expect(page.getByText("Why Audio Learning Works")).toBeVisible();
+    const featureHeadings = page.locator("section h3");
+    expect(await featureHeadings.count()).toBeGreaterThanOrEqual(3);
   });
 });

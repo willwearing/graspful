@@ -17,6 +17,11 @@ const ACTIVE_KNOWLEDGE_POINT_FILTER: Prisma.KnowledgePointWhereInput = {
   concept: ACTIVE_CONCEPT_FILTER,
 };
 
+const ACTIVE_PROBLEM_FILTER: Prisma.ProblemWhereInput = {
+  isArchived: false,
+  knowledgePoint: ACTIVE_KNOWLEDGE_POINT_FILTER,
+};
+
 export function activeSectionWhere(
   where: Prisma.CourseSectionWhereInput = {},
 ): Prisma.CourseSectionWhereInput {
@@ -38,6 +43,14 @@ export function activeKnowledgePointWhere(
 ): Prisma.KnowledgePointWhereInput {
   return {
     AND: [where, ACTIVE_KNOWLEDGE_POINT_FILTER],
+  };
+}
+
+export function activeProblemWhere(
+  where: Prisma.ProblemWhereInput = {},
+): Prisma.ProblemWhereInput {
+  return {
+    AND: [where, ACTIVE_PROBLEM_FILTER],
   };
 }
 

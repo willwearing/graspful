@@ -179,7 +179,19 @@ function createMockPrisma() {
               const concept = findConceptById(kp.conceptId);
               return concept?.courseId === courseId;
             });
-            return results.map((kp) => selectFields(kp, args.select));
+            return results.map((kp) => {
+              const base = selectFields(kp, args.select);
+              if (args.select?.problems) {
+                const nestedSelect = args.select.problems.select;
+                return {
+                  ...base,
+                  problems: createdProblems
+                    .filter((problem) => problem.knowledgePointId === kp.id)
+                    .map((problem) => selectFields(problem, nestedSelect)),
+                };
+              }
+              return base;
+            });
           }),
           create: jest.fn(async (args: any) => {
             kpCounter++;
@@ -217,17 +229,47 @@ function createMockPrisma() {
           }),
         },
         problem: {
+          findMany: jest.fn(async (args: any) => {
+            const knowledgePointId = args.where.knowledgePointId;
+            const results = createdProblems.filter((problem) => problem.knowledgePointId === knowledgePointId);
+            return results.map((problem) => selectFields(problem, args.select));
+          }),
+          update: jest.fn(async (args: any) => {
+            const problem = createdProblems.find((entry) => entry.id === args.where.id);
+            Object.assign(problem, args.data);
+            return problem;
+          }),
+          updateMany: jest.fn(async (args: any) => {
+            const ids = new Set(args.where.id.in);
+            let count = 0;
+            for (const problem of createdProblems) {
+              if (ids.has(problem.id)) {
+                Object.assign(problem, args.data);
+                count++;
+              }
+            }
+            return { count };
+          }),
           deleteMany: jest.fn(async (args: any) => {
-            const { knowledgePointId } = args.where;
+            const ids = new Set(args.where.id?.in ?? []);
+            const knowledgePointId = args.where.knowledgePointId;
             for (let i = createdProblems.length - 1; i >= 0; i--) {
-              if (createdProblems[i].knowledgePointId === knowledgePointId) {
+              const problem = createdProblems[i];
+              const matchesKnowledgePoint =
+                knowledgePointId != null && problem.knowledgePointId === knowledgePointId;
+              const matchesId = ids.size > 0 && ids.has(problem.id);
+              if (matchesKnowledgePoint || matchesId) {
                 createdProblems.splice(i, 1);
               }
             }
             return { count: 0 };
           }),
           create: jest.fn(async (args: any) => {
-            const problem = { id: `problem-${createdProblems.length}`, ...args.data };
+            const problem = {
+              id: `problem-${createdProblems.length}`,
+              authoredId: args.data.authoredId ?? args.data.id ?? `authored-${createdProblems.length}`,
+              ...args.data,
+            };
             createdProblems.push(problem);
             return problem;
           }),
@@ -553,6 +595,26 @@ concepts: []
     await expect(service.importFromYaml(yaml, 'org-123')).rejects.toThrow();
   });
 
+  it('should parse a transport-encoded YAML string payload', () => {
+    const mockPrisma = createMockPrisma();
+    const validationService = new GraphValidationService();
+    const service = new CourseImporterService(mockPrisma as any, validationService);
+
+    const yaml = `
+course:
+  id: encoded-course
+  name: Encoded Course
+  estimatedHours: 1
+  version: "1.0"
+concepts: []
+`;
+
+    const parsed = service.parseCourseYaml(JSON.stringify(yaml.trim()));
+
+    expect(parsed.course.id).toBe('encoded-course');
+    expect(parsed.concepts).toEqual([]);
+  });
+
   it('should reject a course with cycles', async () => {
     const mockPrisma = createMockPrisma();
     const validationService = new GraphValidationService();
@@ -660,6 +722,80 @@ concepts:
       expect(result2.conceptCount).toBe(1);
       expect(mockPrisma._created.createdConcepts[0].id).toBe(originalConceptId);
       expect(mockPrisma._created.deletedCourses).toHaveLength(0);
+    });
+
+    it('should reconcile problems by authored id and preserve matched problem rows on replace', async () => {
+      const mockPrisma = createMockPrisma();
+      const validationService = new GraphValidationService();
+      const service = new CourseImporterService(mockPrisma as any, validationService);
+
+      const baseYaml = `
+course:
+  id: problem-reconcile
+  name: Problem Reconcile
+  estimatedHours: 6
+  version: "1.0"
+
+concepts:
+  - id: concept-1
+    name: Concept One
+    difficulty: 3
+    estimatedMinutes: 15
+    knowledgePoints:
+      - id: kp-1
+        problems:
+          - id: p-1
+            type: true_false
+            question: "Is the first statement true?"
+            correct: "true"
+          - id: p-2
+            type: true_false
+            question: "Is the second statement true?"
+            correct: "false"
+`;
+
+      const updatedYaml = `
+course:
+  id: problem-reconcile
+  name: Problem Reconcile
+  estimatedHours: 6
+  version: "1.1"
+
+concepts:
+  - id: concept-1
+    name: Concept One
+    difficulty: 3
+    estimatedMinutes: 15
+    knowledgePoints:
+      - id: kp-1
+        problems:
+          - id: p-1
+            type: true_false
+            question: "Is the first statement still true?"
+            correct: "true"
+          - id: p-3
+            type: true_false
+            question: "Is the third statement true?"
+            correct: "true"
+`;
+
+      await service.importFromYaml(baseYaml, 'org-123');
+      const originalProblem = mockPrisma._created.createdProblems.find((problem: any) => problem.authoredId === 'p-1');
+
+      await service.importFromYaml(updatedYaml, 'org-123', {
+        replace: true,
+        archiveMissing: true,
+      });
+
+      const updatedProblem = mockPrisma._created.createdProblems.find((problem: any) => problem.authoredId === 'p-1');
+      const removedProblem = mockPrisma._created.createdProblems.find((problem: any) => problem.authoredId === 'p-2');
+      const newProblem = mockPrisma._created.createdProblems.find((problem: any) => problem.authoredId === 'p-3');
+
+      expect(updatedProblem?.id).toBe(originalProblem?.id);
+      expect(updatedProblem?.questionText).toBe('Is the first statement still true?');
+      expect(removedProblem?.id).toBeDefined();
+      expect(removedProblem?.isArchived).toBe(true);
+      expect(newProblem?.authoredId).toBe('p-3');
     });
 
     it('should not delete existing course when replace is false', async () => {

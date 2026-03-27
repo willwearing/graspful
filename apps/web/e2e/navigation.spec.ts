@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Navigation and routing", () => {
   test("landing page → sign-up via CTA", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: /start studying/i }).first().click();
+    await page.locator('a[href="/sign-up"]').first().click();
     await expect(page).toHaveURL(/\/sign-up/);
     await expect(page.getByText("Create your account")).toBeVisible();
   });
@@ -21,7 +21,7 @@ test.describe("Navigation and routing", () => {
 
   test("landing page → pricing via nav or scroll", async ({ page }) => {
     await page.goto("/pricing");
-    await expect(page.getByText("Simple Pricing")).toBeVisible();
+    await expect(page.locator("#pricing")).toBeVisible();
   });
 
   test("sign-up → sign-in link navigation", async ({ page }) => {

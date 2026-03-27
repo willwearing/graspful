@@ -1,12 +1,12 @@
+jest.mock('./course-read.service', () => ({
+  CourseReadService: class CourseReadService {},
+}));
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { KnowledgeGraphController } from './knowledge-graph.controller';
-import { CourseImporterService } from './course-importer.service';
 import { CourseReadService } from './course-read.service';
-import { ReviewService } from './review.service';
 import { CourseYamlExportService } from './course-yaml-export.service';
-import { PrismaService } from '@/prisma/prisma.service';
-import { BrandsService } from '@/brands/brands.service';
-import { VercelDomainsService } from '@/brands/vercel-domains.service';
+import { CourseManagementService } from './application/course-management.service';
 import { OrgMembershipGuard, JwtOrApiKeyGuard } from '@/auth';
 
 const mockGuard = { canActivate: () => true };
@@ -14,12 +14,8 @@ const mockGuard = { canActivate: () => true };
 describe('KnowledgeGraphController', () => {
   let controller: KnowledgeGraphController;
   let mockCourseReads: any;
-  let mockImporter: any;
-  let mockReviewService: any;
   let mockCourseYamlExport: any;
-  let mockPrisma: any;
-  let mockBrandsService: any;
-  let mockVercelDomainsService: any;
+  let mockCourseManagement: any;
 
   beforeEach(async () => {
     mockCourseReads = {
@@ -31,51 +27,23 @@ describe('KnowledgeGraphController', () => {
       getKnowledgeFrontier: jest.fn(),
     };
 
-    mockImporter = {
-      importFromYaml: jest.fn(),
-      parseCourseYaml: jest.fn(),
-    };
-
-    mockReviewService = {
-      review: jest.fn(),
-    };
-
     mockCourseYamlExport = {
       exportCourse: jest.fn(),
     };
 
-    mockPrisma = {
-      course: {
-        findFirst: jest.fn(),
-        update: jest.fn(),
-      },
-      organization: {
-        findUnique: jest.fn(),
-      },
-      brand: {
-        findFirst: jest.fn(),
-      },
-    };
-
-    mockBrandsService = {
-      findBySlug: jest.fn(),
-      create: jest.fn(),
-    };
-
-    mockVercelDomainsService = {
-      addDomain: jest.fn(),
+    mockCourseManagement = {
+      archiveCourse: jest.fn(),
+      importCourse: jest.fn(),
+      publishCourse: jest.fn(),
+      reviewCourseYaml: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [KnowledgeGraphController],
       providers: [
         { provide: CourseReadService, useValue: mockCourseReads },
-        { provide: CourseImporterService, useValue: mockImporter },
-        { provide: ReviewService, useValue: mockReviewService },
         { provide: CourseYamlExportService, useValue: mockCourseYamlExport },
-        { provide: PrismaService, useValue: mockPrisma },
-        { provide: BrandsService, useValue: mockBrandsService },
-        { provide: VercelDomainsService, useValue: mockVercelDomainsService },
+        { provide: CourseManagementService, useValue: mockCourseManagement },
       ],
     })
       .overrideGuard(OrgMembershipGuard)
@@ -88,7 +56,7 @@ describe('KnowledgeGraphController', () => {
   });
 
   describe('listCourses', () => {
-    it('should return courses for an org', async () => {
+    it('returns courses for an org', async () => {
       const courses = [{ id: 'c1', name: 'Course 1' }];
       mockCourseReads.listCourses.mockResolvedValue(courses);
 
@@ -101,151 +69,39 @@ describe('KnowledgeGraphController', () => {
   });
 
   describe('getCourseGraph', () => {
-    it('should return the full graph structure', async () => {
-      const course = { id: 'c1', name: 'Course' };
-      const sections = [{ id: 's1', courseId: 'c1', sortOrder: 0 }];
-      const concepts = [
-        { id: 'con1', slug: 'a', name: 'A' },
-        { id: 'con2', slug: 'b', name: 'B' },
-      ];
-      const prereqs = [{ sourceConceptId: 'con1', targetConceptId: 'con2' }];
-      const encompassing = [{ sourceConceptId: 'con1', targetConceptId: 'con2', weight: 0.5 }];
-
-      mockCourseReads.getCourseGraph.mockResolvedValue({
-        course,
-        sections,
-        concepts,
-        prerequisiteEdges: prereqs,
-        encompassingEdges: encompassing,
-      });
+    it('returns the full graph structure', async () => {
+      const graph = {
+        course: { id: 'c1', name: 'Course' },
+        sections: [{ id: 's1' }],
+        concepts: [{ id: 'con1' }],
+        prerequisiteEdges: [],
+        encompassingEdges: [],
+      };
+      mockCourseReads.getCourseGraph.mockResolvedValue(graph);
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
       const result = await controller.getCourseGraph('c1', orgCtx as any);
 
-      expect(result.course).toEqual(course);
-      expect(result.sections).toEqual(sections);
-      expect(result.concepts).toEqual(concepts);
-      expect(result.prerequisiteEdges).toEqual(prereqs);
-      expect(result.encompassingEdges).toEqual(encompassing);
+      expect(result).toEqual(graph);
     });
   });
 
   describe('importCourse', () => {
-    beforeEach(() => {
-      // Default: no brand exists for org
-      mockPrisma.organization.findUnique.mockResolvedValue({ slug: 'test-org' });
-      mockPrisma.brand.findFirst.mockResolvedValue(null);
-      mockBrandsService.findBySlug.mockResolvedValue(null);
-      mockBrandsService.create.mockResolvedValue({ id: 'brand-1' });
-      mockVercelDomainsService.addDomain.mockResolvedValue({});
-    });
-
-    it('should call the importer with yaml content', async () => {
-      const importResult = {
-        courseId: 'c1',
-        conceptCount: 5,
-        knowledgePointCount: 3,
-        problemCount: 10,
-        prerequisiteEdgeCount: 4,
-        encompassingEdgeCount: 2,
-        warnings: [],
-      };
-      mockImporter.importFromYaml.mockResolvedValue(importResult);
-      mockImporter.parseCourseYaml.mockReturnValue({ course: { id: 'test', name: 'Test' } });
-      mockPrisma.brand.findFirst.mockResolvedValue({ domain: 'test-org.graspful.ai' });
+    it('delegates import orchestration to the application service', async () => {
+      const response = { courseId: 'c1', published: false, url: 'https://example.com', warnings: [] };
+      mockCourseManagement.importCourse.mockResolvedValue(response);
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
-      const body = {
-        yaml: 'course:\n  id: test\n  name: Test',
-        replace: true,
-        archiveMissing: true,
-      };
-      const result = await controller.importCourse(body, orgCtx as any);
+      const body = { yaml: 'course:\n  id: test', replace: true, archiveMissing: true };
+      const result = await controller.importCourse(body as any, orgCtx as any);
 
-      expect(result.courseId).toBe('c1');
-      expect(result.published).toBe(false);
-      expect(result.url).toBeTruthy();
-      expect(typeof result.url).toBe('string');
-      expect(mockImporter.importFromYaml).toHaveBeenCalledWith(body.yaml, 'org-1', {
-        replace: true,
-        archiveMissing: true,
-      });
-    });
-
-    it('should run review gate when publish=true', async () => {
-      const parsedYaml = { concepts: [], sections: [], course: { id: 'test' } };
-      const reviewResult = {
-        passed: true,
-        score: '10/10',
-        failures: [],
-        warnings: [],
-        stats: { concepts: 0, kps: 0, problems: 0 },
-      };
-      const importResult = {
-        courseId: 'c1',
-        conceptCount: 0,
-        knowledgePointCount: 0,
-        problemCount: 0,
-        prerequisiteEdgeCount: 0,
-        encompassingEdgeCount: 0,
-        warnings: [],
-      };
-
-      mockImporter.parseCourseYaml.mockReturnValue(parsedYaml);
-      mockReviewService.review.mockReturnValue(reviewResult);
-      mockImporter.importFromYaml.mockResolvedValue(importResult);
-      mockPrisma.brand.findFirst.mockResolvedValue({ domain: 'test-org.graspful.ai' });
-
-      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
-      const body = { yaml: 'course:\n  id: test', publish: true };
-      const result = await controller.importCourse(body, orgCtx as any);
-
-      expect(result.review).toEqual(reviewResult);
-      expect(result.published).toBe(true);
-      expect(result.url).toBeTruthy();
-      expect(mockImporter.importFromYaml).toHaveBeenCalledWith(
-        body.yaml,
-        'org-1',
-        { replace: undefined, archiveMissing: undefined, isPublished: true },
-      );
-    });
-
-    it('should set published=false and include reviewFailures when review fails', async () => {
-      const parsedYaml = { concepts: [], sections: [], course: { id: 'test' } };
-      const reviewResult = {
-        passed: false,
-        score: '3/10',
-        failures: ['check1 failed', 'missing prerequisites'],
-        warnings: [],
-        stats: { concepts: 0, kps: 0, problems: 0 },
-      };
-      const importResult = {
-        courseId: 'c1',
-        conceptCount: 0,
-        knowledgePointCount: 0,
-        problemCount: 0,
-        prerequisiteEdgeCount: 0,
-        encompassingEdgeCount: 0,
-        warnings: [],
-      };
-
-      mockImporter.parseCourseYaml.mockReturnValue(parsedYaml);
-      mockReviewService.review.mockReturnValue(reviewResult);
-      mockImporter.importFromYaml.mockResolvedValue(importResult);
-
-      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
-      const body = { yaml: 'course:\n  id: test', publish: true };
-      const result = await controller.importCourse(body, orgCtx as any);
-
-      expect(result.published).toBe(false);
-      expect(result.reviewFailures).toEqual(['check1 failed', 'missing prerequisites']);
-      expect(result.review).toEqual(reviewResult);
+      expect(result).toEqual(response);
+      expect(mockCourseManagement.importCourse).toHaveBeenCalledWith(orgCtx, body);
     });
   });
 
   describe('reviewCourse', () => {
-    it('should return review result for yaml', async () => {
-      const parsedYaml = { concepts: [], sections: [], course: { id: 'test' } };
+    it('delegates review to the application service', async () => {
       const reviewResult = {
         passed: true,
         score: '10/10',
@@ -253,18 +109,51 @@ describe('KnowledgeGraphController', () => {
         warnings: [],
         stats: { concepts: 0, kps: 0, problems: 0 },
       };
+      mockCourseManagement.reviewCourseYaml.mockResolvedValue(reviewResult);
 
-      mockImporter.parseCourseYaml.mockReturnValue(parsedYaml);
-      mockReviewService.review.mockReturnValue(reviewResult);
-
-      const result = await controller.reviewCourse({ yaml: 'course:\n  id: test' });
+      const result = await controller.reviewCourse({ yaml: 'course:\n  id: test' } as any);
 
       expect(result).toEqual(reviewResult);
     });
   });
 
+  describe('archiveCourse', () => {
+    it('delegates archive to the application service', async () => {
+      mockCourseManagement.archiveCourse.mockResolvedValue({ id: 'c1', archivedAt: new Date() });
+
+      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
+      await controller.archiveCourse('c1', orgCtx as any);
+
+      expect(mockCourseManagement.archiveCourse).toHaveBeenCalledWith('org-1', 'c1');
+    });
+  });
+
+  describe('publishCourse', () => {
+    it('delegates publish to the application service', async () => {
+      const reviewResult = {
+        passed: true,
+        score: '10/10',
+        failures: [],
+        warnings: [],
+        stats: { concepts: 1, kps: 0, problems: 0 },
+      };
+      const response = {
+        courseId: 'c1',
+        published: true,
+        url: 'https://test.graspful.ai/browse/c1',
+        review: reviewResult,
+      };
+      mockCourseManagement.publishCourse.mockResolvedValue(response);
+
+      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
+      const result = await controller.publishCourse('c1', orgCtx as any);
+
+      expect(result).toEqual(response);
+    });
+  });
+
   describe('validateCourseGraph', () => {
-    it('should return validation results for a course', async () => {
+    it('returns validation results for a course', async () => {
       mockCourseReads.validateCourseGraph.mockResolvedValue({
         isValid: true,
         errors: [],
@@ -279,7 +168,7 @@ describe('KnowledgeGraphController', () => {
   });
 
   describe('getKnowledgeFrontier', () => {
-    it('should return frontier concepts for a user', async () => {
+    it('returns frontier concepts for a user', async () => {
       mockCourseReads.getKnowledgeFrontier.mockResolvedValue({
         courseId: 'c1',
         userId: 'u1',
@@ -295,79 +184,8 @@ describe('KnowledgeGraphController', () => {
     });
   });
 
-  describe('archiveCourse', () => {
-    it('should soft-delete a course by setting archivedAt', async () => {
-      const now = new Date();
-      mockPrisma.course.findFirst.mockResolvedValue({ id: 'c1', archivedAt: null });
-      mockPrisma.course.update.mockResolvedValue({ id: 'c1', archivedAt: now });
-
-      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
-      const result = await controller.archiveCourse('c1', orgCtx as any);
-
-      expect(result.archivedAt).toEqual(now);
-      expect(mockPrisma.course.update).toHaveBeenCalledWith({
-        where: { id: 'c1' },
-        data: { archivedAt: expect.any(Date) },
-      });
-    });
-  });
-
-  describe('publishCourse', () => {
-    it('should return courseId and url in response', async () => {
-      const courseId = 'c1';
-      const course = { id: courseId, slug: 'test-course', name: 'Test', description: null, version: '1.0', estimatedHours: 10 };
-      const sections = [{ id: 's1', slug: 'section-1', name: 'Section 1', description: null }];
-      const concepts = [
-        { id: 'con1', slug: 'concept-a', name: 'A', sectionId: 's1', difficulty: 3, estimatedMinutes: 10, tags: [], sourceReference: null },
-      ];
-      const prereqs: Array<{ sourceConceptId: string; targetConceptId: string }> = [];
-      const conceptDetail = {
-        id: 'con1',
-        slug: 'concept-a',
-        name: 'A',
-        sectionId: 's1',
-        difficulty: 3,
-        estimatedMinutes: 10,
-        tags: [],
-        sourceReference: null,
-        knowledgePoints: [],
-        prerequisiteFor: [],
-      };
-      const reviewResult = {
-        passed: true,
-        score: '10/10',
-        failures: [],
-        warnings: [],
-        stats: { concepts: 1, kps: 0, problems: 0 },
-      };
-
-      mockPrisma.course.findFirst.mockResolvedValue(course);
-      mockCourseReads.getCourseGraph.mockResolvedValue({
-        course,
-        sections,
-        concepts,
-        prerequisiteEdges: prereqs,
-        encompassingEdges: [],
-      });
-      mockCourseReads.getConceptDetail.mockResolvedValue(conceptDetail);
-      mockReviewService.review.mockReturnValue(reviewResult);
-      mockPrisma.course.update.mockResolvedValue({ ...course, isPublished: true });
-      mockPrisma.organization.findUnique.mockResolvedValue({ slug: 'test-org' });
-      mockPrisma.brand.findFirst.mockResolvedValue({ domain: 'test.graspful.ai' });
-
-      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
-      const result = await controller.publishCourse(courseId, orgCtx as any);
-
-      expect(result.courseId).toBe(courseId);
-      expect(result.published).toBe(true);
-      expect(result.url).toContain('test.graspful.ai');
-      expect(result.url).toContain(courseId);
-      expect(result.review).toEqual(reviewResult);
-    });
-  });
-
   describe('exportCourseYaml', () => {
-    it('should return YAML string from export service', async () => {
+    it('returns YAML string from export service', async () => {
       mockCourseYamlExport.exportCourse.mockResolvedValue('course:\n  id: test');
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };

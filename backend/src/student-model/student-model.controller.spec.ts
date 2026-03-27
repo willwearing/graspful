@@ -1,3 +1,11 @@
+jest.mock('./student-state.service', () => ({
+  StudentStateService: class StudentStateService {},
+}));
+
+jest.mock('@/assessment/section-exam.service', () => ({
+  SectionExamService: class SectionExamService {},
+}));
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { StudentModelController } from './student-model.controller';
 import { EnrollmentService } from './enrollment.service';
