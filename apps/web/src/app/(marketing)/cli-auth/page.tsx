@@ -30,13 +30,6 @@ export default function CliAuthPage() {
     async function completeCliAuth() {
       if (typeof window === "undefined") return;
 
-      const token = getHashToken();
-      if (!token) {
-        setState("error");
-        setError("Missing CLI auth token. Start the flow again from your terminal.");
-        return;
-      }
-
       const currentUrl = new URL(window.location.href);
       const nextMode = currentUrl.searchParams.get("mode") === "sign-up" ? "sign-up" : "sign-in";
       const nextEmail = currentUrl.searchParams.get("email") ?? "";
@@ -45,6 +38,13 @@ export default function CliAuthPage() {
       if (!cancelled) {
         setMode(nextMode);
         setEmail(nextEmail);
+      }
+
+      const token = getHashToken();
+      if (!token) {
+        setState("error");
+        setError("Missing CLI auth token. Start the flow again from your terminal.");
+        return;
       }
 
       const supabase = createSupabaseBrowserClient();
