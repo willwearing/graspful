@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { createSupabaseBrowserClient, hasSupabaseBrowserEnv } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,8 +19,6 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const supabase = createSupabaseBrowserClient();
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -33,6 +31,11 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
+      if (!hasSupabaseBrowserEnv()) {
+        throw new Error("Password reset is not configured for this environment");
+      }
+
+      const supabase = createSupabaseBrowserClient();
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       router.push("/creator");
