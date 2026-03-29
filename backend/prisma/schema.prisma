@@ -22,18 +22,19 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  stripeConnectAccountId    String?  @unique @map("stripe_connect_account_id")
-  connectOnboardingComplete Boolean  @default(false) @map("connect_onboarding_complete")
+  stripeConnectAccountId    String? @unique @map("stripe_connect_account_id")
+  connectOnboardingComplete Boolean @default(false) @map("connect_onboarding_complete")
 
-  memberships    OrgMembership[]
-  exams          Exam[]
-  subscription   Subscription?
-  inviteTokens   InviteToken[]
-  generationJobs AudioGenerationJob[]
-  academies      Academy[]
-  courses        Course[]
-  apiKeys        ApiKey[]
-  revenueEvents  RevenueEvent[]
+  memberships     OrgMembership[]
+  exams           Exam[]
+  subscription    Subscription?
+  inviteTokens    InviteToken[]
+  generationJobs  AudioGenerationJob[]
+  academies       Academy[]
+  courses         Course[]
+  apiKeys         ApiKey[]
+  cliAuthSessions CliAuthSession[]
+  revenueEvents   RevenueEvent[]
 
   @@map("organizations")
 }
@@ -43,23 +44,23 @@ model Organization {
 // =============================================================================
 
 model Brand {
-  id          String   @id @default(uuid()) @db.Uuid
-  slug        String   @unique
-  name        String
-  domain      String   @unique
-  tagline     String
-  logoUrl     String   @map("logo_url")
-  faviconUrl  String   @default("/favicon.ico") @map("favicon_url")
-  ogImageUrl  String?  @map("og_image_url")
-  orgSlug     String   @map("org_slug")
-  theme       Json     @default("{}")
-  landing     Json     @default("{}")
-  seo         Json     @default("{}")
-  pricing     Json     @default("{}")
-  contentScope Json    @default("{}") @map("content_scope")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id           String   @id @default(uuid()) @db.Uuid
+  slug         String   @unique
+  name         String
+  domain       String   @unique
+  tagline      String
+  logoUrl      String   @map("logo_url")
+  faviconUrl   String   @default("/favicon.ico") @map("favicon_url")
+  ogImageUrl   String?  @map("og_image_url")
+  orgSlug      String   @map("org_slug")
+  theme        Json     @default("{}")
+  landing      Json     @default("{}")
+  seo          Json     @default("{}")
+  pricing      Json     @default("{}")
+  contentScope Json     @default("{}") @map("content_scope")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@map("brands")
 }
@@ -77,24 +78,25 @@ model User {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  memberships   OrgMembership[]
-  sentInvites   OrgMembership[] @relation("InvitedBy")
-  progress      UserProgress[]
-  streaks       UserStreak[]
-  bookmarks     UserBookmark[]
-  invitesSent   InviteToken[]   @relation("InviteSender")
-  triggeredJobs AudioGenerationJob[] @relation("JobTriggeredBy")
-  academyEnrollments AcademyEnrollment[]
-  enrollments          CourseEnrollment[]
-  courseStates         StudentCourseState[]
-  conceptStates        StudentConceptState[]
-  sectionStates        StudentSectionState[]
-  kpStates             StudentKPState[]
-  problemAttempts      ProblemAttempt[]
-  sectionExamSessions  SectionExamSession[]
-  xpEvents             XPEvent[]
-  diagnosticSessions   DiagnosticSession[]
-  apiKeys              ApiKey[]
+  memberships         OrgMembership[]
+  sentInvites         OrgMembership[]       @relation("InvitedBy")
+  progress            UserProgress[]
+  streaks             UserStreak[]
+  bookmarks           UserBookmark[]
+  invitesSent         InviteToken[]         @relation("InviteSender")
+  triggeredJobs       AudioGenerationJob[]  @relation("JobTriggeredBy")
+  academyEnrollments  AcademyEnrollment[]
+  enrollments         CourseEnrollment[]
+  courseStates        StudentCourseState[]
+  conceptStates       StudentConceptState[]
+  sectionStates       StudentSectionState[]
+  kpStates            StudentKPState[]
+  problemAttempts     ProblemAttempt[]
+  sectionExamSessions SectionExamSession[]
+  xpEvents            XPEvent[]
+  diagnosticSessions  DiagnosticSession[]
+  apiKeys             ApiKey[]
+  cliAuthSessions     CliAuthSession[]
 
   @@map("users")
 }
@@ -159,15 +161,15 @@ model Exam {
 }
 
 model Topic {
-  id         String   @id @default(uuid()) @db.Uuid
-  examId     String   @map("exam_id") @db.Uuid
-  title      String
-  slug       String
+  id          String   @id @default(uuid()) @db.Uuid
+  examId      String   @map("exam_id") @db.Uuid
+  title       String
+  slug        String
   description String?
-  sortOrder  Int      @default(0) @map("sort_order")
-  isArchived Boolean  @default(false) @map("is_archived")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  sortOrder   Int      @default(0) @map("sort_order")
+  isArchived  Boolean  @default(false) @map("is_archived")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   exam     Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
   sections Section[]
@@ -178,15 +180,15 @@ model Topic {
 }
 
 model Section {
-  id         String   @id @default(uuid()) @db.Uuid
-  topicId    String   @map("topic_id") @db.Uuid
-  title      String
-  slug       String
+  id          String   @id @default(uuid()) @db.Uuid
+  topicId     String   @map("topic_id") @db.Uuid
+  title       String
+  slug        String
   description String?
-  sortOrder  Int      @default(0) @map("sort_order")
-  isArchived Boolean  @default(false) @map("is_archived")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  sortOrder   Int      @default(0) @map("sort_order")
+  isArchived  Boolean  @default(false) @map("is_archived")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   topic      Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
   studyItems StudyItem[]
@@ -226,19 +228,19 @@ model StudyItem {
 // =============================================================================
 
 model AudioFile {
-  id            String   @id @default(uuid()) @db.Uuid
-  studyItemId   String   @map("study_item_id") @db.Uuid
-  voice         String
-  model         String   @default("kokoro")
-  textHash      String   @map("text_hash")
-  storagePath   String   @map("storage_path")
-  storageBucket String   @default("audio") @map("storage_bucket")
-  fileSizeBytes Int      @map("file_size_bytes")
-  durationSeconds Float? @map("duration_seconds")
-  format        String   @default("flac")
-  isCurrent     Boolean  @default(true) @map("is_current")
-  generatedAt   DateTime @default(now()) @map("generated_at") @db.Timestamptz
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  id              String   @id @default(uuid()) @db.Uuid
+  studyItemId     String   @map("study_item_id") @db.Uuid
+  voice           String
+  model           String   @default("kokoro")
+  textHash        String   @map("text_hash")
+  storagePath     String   @map("storage_path")
+  storageBucket   String   @default("audio") @map("storage_bucket")
+  fileSizeBytes   Int      @map("file_size_bytes")
+  durationSeconds Float?   @map("duration_seconds")
+  format          String   @default("flac")
+  isCurrent       Boolean  @default(true) @map("is_current")
+  generatedAt     DateTime @default(now()) @map("generated_at") @db.Timestamptz
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   studyItem StudyItem @relation(fields: [studyItemId], references: [id], onDelete: Cascade)
 
@@ -410,21 +412,42 @@ model InviteToken {
 // =============================================================================
 
 model ApiKey {
-  id          String   @id @default(uuid()) @db.Uuid
-  orgId       String   @map("org_id") @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
-  name        String
-  keyHash     String   @unique @map("key_hash")
-  keyPrefix   String   @map("key_prefix")
-  lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz
-  expiresAt   DateTime? @map("expires_at") @db.Timestamptz
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  id         String    @id @default(uuid()) @db.Uuid
+  orgId      String    @map("org_id") @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  name       String
+  keyHash    String    @unique @map("key_hash")
+  keyPrefix  String    @map("key_prefix")
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz
+  expiresAt  DateTime? @map("expires_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
   @@map("api_keys")
+}
+
+model CliAuthSession {
+  id              String    @id @default(uuid()) @db.Uuid
+  tokenHash       String    @unique @map("token_hash")
+  mode            String
+  userId          String?   @map("user_id") @db.Uuid
+  orgId           String?   @map("org_id") @db.Uuid
+  encryptedApiKey String?   @map("encrypted_api_key")
+  authorizedAt    DateTime? @map("authorized_at") @db.Timestamptz
+  expiresAt       DateTime  @map("expires_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  org  Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  user User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([expiresAt])
+  @@index([userId])
+  @@index([orgId])
+  @@map("cli_auth_sessions")
 }
 
 // =============================================================================
@@ -477,13 +500,13 @@ model Academy {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  org               Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  parts             AcademyPart[]
-  courses           Course[]
-  enrollments       AcademyEnrollment[]
+  org                Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  parts              AcademyPart[]
+  courses            Course[]
+  enrollments        AcademyEnrollment[]
   diagnosticSessions DiagnosticSession[]
-  xpEvents          XPEvent[]
-  remediations      Remediation[]
+  xpEvents           XPEvent[]
+  remediations       Remediation[]
 
   @@unique([orgId, slug])
   @@index([orgId])
@@ -500,7 +523,7 @@ model AcademyPart {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  academy Academy @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  academy Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
   courses Course[]
 
   @@unique([academyId, slug])
@@ -509,19 +532,19 @@ model AcademyPart {
 }
 
 model AcademyEnrollment {
-  id                  String    @id @default(uuid()) @db.Uuid
-  userId              String    @map("user_id") @db.Uuid
-  academyId           String    @map("academy_id") @db.Uuid
-  diagnosticCompleted Boolean   @default(false) @map("diagnostic_completed")
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @map("user_id") @db.Uuid
+  academyId             String    @map("academy_id") @db.Uuid
+  diagnosticCompleted   Boolean   @default(false) @map("diagnostic_completed")
   diagnosticCompletedAt DateTime? @map("diagnostic_completed_at") @db.Timestamptz
-  dailyXPTarget       Int       @default(40) @map("daily_xp_target")
-  totalXPEarned       Int       @default(0) @map("total_xp_earned")
-  streakFreezeTokens  Int       @default(1) @map("streak_freeze_tokens")
-  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  dailyXPTarget         Int       @default(40) @map("daily_xp_target")
+  totalXPEarned         Int       @default(0) @map("total_xp_earned")
+  streakFreezeTokens    Int       @default(1) @map("streak_freeze_tokens")
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
-  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  academy      Academy @relation(fields: [academyId], references: [id], onDelete: Cascade)
-  courseStates  StudentCourseState[]
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  academy      Academy              @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  courseStates StudentCourseState[]
 
   @@unique([userId, academyId])
   @@index([userId])
@@ -534,32 +557,32 @@ model AcademyEnrollment {
 // =============================================================================
 
 model Course {
-  id             String   @id @default(uuid()) @db.Uuid
-  orgId          String   @map("org_id") @db.Uuid
-  academyId      String   @map("academy_id") @db.Uuid
-  partId         String?  @map("part_id") @db.Uuid
+  id             String    @id @default(uuid()) @db.Uuid
+  orgId          String    @map("org_id") @db.Uuid
+  academyId      String    @map("academy_id") @db.Uuid
+  partId         String?   @map("part_id") @db.Uuid
   slug           String
   name           String
   description    String?
-  version        String   @default("1.0")
-  estimatedHours Float?   @map("estimated_hours")
-  sortOrder      Int      @default(0) @map("sort_order")
-  isPublished    Boolean  @default(false) @map("is_published")
+  version        String    @default("1.0")
+  estimatedHours Float?    @map("estimated_hours")
+  sortOrder      Int       @default(0) @map("sort_order")
+  isPublished    Boolean   @default(false) @map("is_published")
   archivedAt     DateTime? @map("archived_at") @db.Timestamptz
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
-  org                Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  academy            Academy            @relation(fields: [academyId], references: [id], onDelete: Cascade)
-  part               AcademyPart?       @relation(fields: [partId], references: [id], onDelete: SetNull)
-  sections           CourseSection[]
-  concepts           Concept[]
-  enrollments        CourseEnrollment[]
-  courseStates       StudentCourseState[]
-  sectionStates      StudentSectionState[]
+  org                 Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  academy             Academy               @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  part                AcademyPart?          @relation(fields: [partId], references: [id], onDelete: SetNull)
+  sections            CourseSection[]
+  concepts            Concept[]
+  enrollments         CourseEnrollment[]
+  courseStates        StudentCourseState[]
+  sectionStates       StudentSectionState[]
   sectionExamSessions SectionExamSession[]
-  xpEvents           XPEvent[]
-  diagnosticSessions DiagnosticSession[]
+  xpEvents            XPEvent[]
+  diagnosticSessions  DiagnosticSession[]
 
   @@unique([orgId, slug])
   @@unique([academyId, slug])
@@ -575,18 +598,18 @@ model Course {
 // =============================================================================
 
 model CourseSection {
-  id          String   @id @default(uuid()) @db.Uuid
-  courseId     String   @map("course_id") @db.Uuid
-  slug        String
-  name        String
-  description String?
-  sectionExamConfig Json? @map("section_exam_config")
-  sortOrder   Int      @default(0) @map("sort_order")
-  isArchived  Boolean  @default(false) @map("is_archived")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id                String   @id @default(uuid()) @db.Uuid
+  courseId          String   @map("course_id") @db.Uuid
+  slug              String
+  name              String
+  description       String?
+  sectionExamConfig Json?    @map("section_exam_config")
+  sortOrder         Int      @default(0) @map("sort_order")
+  isArchived        Boolean  @default(false) @map("is_archived")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  course        Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course        Course                @relation(fields: [courseId], references: [id], onDelete: Cascade)
   concepts      Concept[]
   studentStates StudentSectionState[]
   examSessions  SectionExamSession[]
@@ -601,36 +624,36 @@ model CourseSection {
 // =============================================================================
 
 model Concept {
-  id                String   @id @default(uuid()) @db.Uuid
-  courseId           String   @map("course_id") @db.Uuid
-  orgId              String   @map("org_id") @db.Uuid
-  sectionId          String?  @map("section_id") @db.Uuid
-  slug               String
-  name               String
-  description        String?
-  difficulty         Int      @default(5)
-  estimatedMinutes   Int?     @map("estimated_minutes")
-  tags               String[] @default([])
-  sourceReference    String?  @map("source_reference")
-  sortOrder          Int      @default(0) @map("sort_order")
-  isArchived         Boolean  @default(false) @map("is_archived")
-  difficultyTheta    Float    @default(0) @map("difficulty_theta")
-  timeIntensity      Float    @default(0) @map("time_intensity")
-  timeIntensitySD    Float    @default(0) @map("time_intensity_sd")
-  studyItemId        String?  @unique @map("study_item_id") @db.Uuid
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id               String   @id @default(uuid()) @db.Uuid
+  courseId         String   @map("course_id") @db.Uuid
+  orgId            String   @map("org_id") @db.Uuid
+  sectionId        String?  @map("section_id") @db.Uuid
+  slug             String
+  name             String
+  description      String?
+  difficulty       Int      @default(5)
+  estimatedMinutes Int?     @map("estimated_minutes")
+  tags             String[] @default([])
+  sourceReference  String?  @map("source_reference")
+  sortOrder        Int      @default(0) @map("sort_order")
+  isArchived       Boolean  @default(false) @map("is_archived")
+  difficultyTheta  Float    @default(0) @map("difficulty_theta")
+  timeIntensity    Float    @default(0) @map("time_intensity")
+  timeIntensitySD  Float    @default(0) @map("time_intensity_sd")
+  studyItemId      String?  @unique @map("study_item_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  course             Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  section            CourseSection?  @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-  knowledgePoints    KnowledgePoint[]
-  prerequisiteOf     PrerequisiteEdge[] @relation("PrerequisiteSource")
-  prerequisiteFor    PrerequisiteEdge[] @relation("PrerequisiteTarget")
-  encompassedBy      EncompassingEdge[] @relation("EncompassingSource")
-  encompasses        EncompassingEdge[] @relation("EncompassingTarget")
-  studentStates          StudentConceptState[]
-  sectionExamQuestions   SectionExamQuestion[]
-  diagnosticSnapshots    DiagnosticMasterySnapshot[]
+  course               Course                      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  section              CourseSection?              @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  knowledgePoints      KnowledgePoint[]
+  prerequisiteOf       PrerequisiteEdge[]          @relation("PrerequisiteSource")
+  prerequisiteFor      PrerequisiteEdge[]          @relation("PrerequisiteTarget")
+  encompassedBy        EncompassingEdge[]          @relation("EncompassingSource")
+  encompasses          EncompassingEdge[]          @relation("EncompassingTarget")
+  studentStates        StudentConceptState[]
+  sectionExamQuestions SectionExamQuestion[]
+  diagnosticSnapshots  DiagnosticMasterySnapshot[]
 
   @@unique([courseId, slug])
   @@index([orgId])
@@ -657,8 +680,8 @@ model KnowledgePoint {
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  concept  Concept   @relation(fields: [conceptId], references: [id], onDelete: Cascade)
-  problems Problem[]
+  concept       Concept          @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  problems      Problem[]
   studentStates StudentKPState[]
 
   @@unique([conceptId, slug])
@@ -671,12 +694,12 @@ model KnowledgePoint {
 // =============================================================================
 
 model PrerequisiteEdge {
-  id               String  @id @default(uuid()) @db.Uuid
-  sourceConceptId  String  @map("source_concept_id") @db.Uuid
-  targetConceptId  String  @map("target_concept_id") @db.Uuid
-  sourceKPId       String? @map("source_kp_id") @db.Uuid
-  targetKPId       String? @map("target_kp_id") @db.Uuid
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  id              String   @id @default(uuid()) @db.Uuid
+  sourceConceptId String   @map("source_concept_id") @db.Uuid
+  targetConceptId String   @map("target_concept_id") @db.Uuid
+  sourceKPId      String?  @map("source_kp_id") @db.Uuid
+  targetKPId      String?  @map("target_kp_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   sourceConcept Concept @relation("PrerequisiteSource", fields: [sourceConceptId], references: [id], onDelete: Cascade)
   targetConcept Concept @relation("PrerequisiteTarget", fields: [targetConceptId], references: [id], onDelete: Cascade)
@@ -686,14 +709,14 @@ model PrerequisiteEdge {
 }
 
 model EncompassingEdge {
-  id               String   @id @default(uuid()) @db.Uuid
-  sourceConceptId  String   @map("source_concept_id") @db.Uuid
-  targetConceptId  String   @map("target_concept_id") @db.Uuid
-  weight           Float    @default(0.5)
-  weightSource     String   @default("authored") @map("weight_source")
+  id               String    @id @default(uuid()) @db.Uuid
+  sourceConceptId  String    @map("source_concept_id") @db.Uuid
+  targetConceptId  String    @map("target_concept_id") @db.Uuid
+  weight           Float     @default(0.5)
+  weightSource     String    @default("authored") @map("weight_source")
   lastCalibratedAt DateTime? @map("last_calibrated_at") @db.Timestamptz
-  retentionGap     Float?   @map("retention_gap")
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  retentionGap     Float?    @map("retention_gap")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   sourceConcept Concept @relation("EncompassingSource", fields: [sourceConceptId], references: [id], onDelete: Cascade)
   targetConcept Concept @relation("EncompassingTarget", fields: [targetConceptId], references: [id], onDelete: Cascade)
@@ -774,10 +797,10 @@ model Problem {
   createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz
 
-  knowledgePoint     KnowledgePoint      @relation(fields: [knowledgePointId], references: [id], onDelete: Cascade)
-  attempts           ProblemAttempt[]
+  knowledgePoint       KnowledgePoint        @relation(fields: [knowledgePointId], references: [id], onDelete: Cascade)
+  attempts             ProblemAttempt[]
   sectionExamQuestions SectionExamQuestion[]
-  diagnosticSessions DiagnosticSession[]
+  diagnosticSessions   DiagnosticSession[]
 
   @@unique([knowledgePointId, authoredId])
   @@index([knowledgePointId])
@@ -790,15 +813,15 @@ model Problem {
 // =============================================================================
 
 model CourseEnrollment {
-  id                   String    @id @default(uuid()) @db.Uuid
-  userId               String    @map("user_id") @db.Uuid
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @map("user_id") @db.Uuid
   courseId              String    @map("course_id") @db.Uuid
-  diagnosticCompleted  Boolean   @default(false) @map("diagnostic_completed")
+  diagnosticCompleted   Boolean   @default(false) @map("diagnostic_completed")
   diagnosticCompletedAt DateTime? @map("diagnostic_completed_at") @db.Timestamptz
-  dailyXPTarget        Int       @default(40) @map("daily_xp_target")
-  totalXPEarned        Int       @default(0) @map("total_xp_earned")
-  streakFreezeTokens   Int       @default(1) @map("streak_freeze_tokens")
-  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  dailyXPTarget         Int       @default(40) @map("daily_xp_target")
+  totalXPEarned         Int       @default(0) @map("total_xp_earned")
+  streakFreezeTokens    Int       @default(1) @map("streak_freeze_tokens")
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -822,17 +845,17 @@ enum CourseProgressState {
 }
 
 model StudentCourseState {
-  id                    String              @id @default(uuid()) @db.Uuid
-  userId                String              @map("user_id") @db.Uuid
-  courseId              String              @map("course_id") @db.Uuid
-  academyEnrollmentId  String?             @map("academy_enrollment_id") @db.Uuid
-  status                CourseProgressState  @default(locked)
-  createdAt             DateTime            @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt             DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+  id                  String              @id @default(uuid()) @db.Uuid
+  userId              String              @map("user_id") @db.Uuid
+  courseId            String              @map("course_id") @db.Uuid
+  academyEnrollmentId String?             @map("academy_enrollment_id") @db.Uuid
+  status              CourseProgressState @default(locked)
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz
 
-  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course              Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  academyEnrollment   AcademyEnrollment?  @relation(fields: [academyEnrollmentId], references: [id], onDelete: SetNull)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course            Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  academyEnrollment AcademyEnrollment? @relation(fields: [academyEnrollmentId], references: [id], onDelete: SetNull)
 
   @@unique([userId, courseId])
   @@index([userId])
@@ -846,23 +869,23 @@ model StudentCourseState {
 // =============================================================================
 
 model StudentConceptState {
-  id                 String         @id @default(uuid()) @db.Uuid
-  userId             String         @map("user_id") @db.Uuid
-  conceptId          String         @map("concept_id") @db.Uuid
-  masteryState       MasteryState   @default(unstarted) @map("mastery_state")
-  repNum             Float          @default(0) @map("rep_num")
-  memory             Float          @default(1.0)
-  lastPracticedAt    DateTime?      @map("last_practiced_at") @db.Timestamptz
-  interval           Float          @default(1.0)
-  speed              Float          @default(1.0)
-  abilityTheta       Float          @default(0) @map("ability_theta")
-  speedRD            Float          @default(350) @map("speed_rd")
-  observationCount   Int            @default(0) @map("observation_count")
-  implicitCreditRatio Float         @default(0) @map("implicit_credit_ratio")
-  failCount          Int            @default(0) @map("fail_count")
-  diagnosticState    DiagnosticState @default(unknown) @map("diagnostic_state")
-  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  id                  String          @id @default(uuid()) @db.Uuid
+  userId              String          @map("user_id") @db.Uuid
+  conceptId           String          @map("concept_id") @db.Uuid
+  masteryState        MasteryState    @default(unstarted) @map("mastery_state")
+  repNum              Float           @default(0) @map("rep_num")
+  memory              Float           @default(1.0)
+  lastPracticedAt     DateTime?       @map("last_practiced_at") @db.Timestamptz
+  interval            Float           @default(1.0)
+  speed               Float           @default(1.0)
+  abilityTheta        Float           @default(0) @map("ability_theta")
+  speedRD             Float           @default(350) @map("speed_rd")
+  observationCount    Int             @default(0) @map("observation_count")
+  implicitCreditRatio Float           @default(0) @map("implicit_credit_ratio")
+  failCount           Int             @default(0) @map("fail_count")
+  diagnosticState     DiagnosticState @default(unknown) @map("diagnostic_state")
+  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
@@ -933,9 +956,9 @@ model SectionExamSession {
   createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamptz
 
-  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course    Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  section   CourseSection        @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course                @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  section   CourseSection         @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   questions SectionExamQuestion[]
 
   @@index([userId, courseId, sectionId])
@@ -990,15 +1013,15 @@ model ProblemAttempt {
 // =============================================================================
 
 model Remediation {
-  id                  String    @id @default(uuid()) @db.Uuid
-  userId              String    @map("user_id") @db.Uuid
-  courseId             String    @map("course_id") @db.Uuid
-  academyId           String    @map("academy_id") @db.Uuid
-  blockedConceptId    String    @map("blocked_concept_id") @db.Uuid
-  weakPrerequisiteId  String    @map("weak_prerequisite_id") @db.Uuid
-  resolved            Boolean   @default(false)
-  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  resolvedAt          DateTime? @map("resolved_at") @db.Timestamptz
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  courseId           String    @map("course_id") @db.Uuid
+  academyId          String    @map("academy_id") @db.Uuid
+  blockedConceptId   String    @map("blocked_concept_id") @db.Uuid
+  weakPrerequisiteId String    @map("weak_prerequisite_id") @db.Uuid
+  resolved           Boolean   @default(false)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  resolvedAt         DateTime? @map("resolved_at") @db.Timestamptz
 
   academy Academy @relation(fields: [academyId], references: [id], onDelete: Cascade)
 
@@ -1025,15 +1048,15 @@ enum XPSource {
 model XPEvent {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
-  courseId   String   @map("course_id") @db.Uuid
-  academyId  String   @map("academy_id") @db.Uuid
+  courseId  String   @map("course_id") @db.Uuid
+  academyId String   @map("academy_id") @db.Uuid
   source    XPSource
   amount    Int
   conceptId String?  @map("concept_id") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
   academy Academy @relation(fields: [academyId], references: [id], onDelete: Cascade)
 
   @@index([userId, courseId, createdAt])
@@ -1057,7 +1080,7 @@ enum DiagnosticSessionStatus {
 model DiagnosticSession {
   id               String                  @id @default(uuid()) @db.Uuid
   userId           String                  @map("user_id") @db.Uuid
-  courseId          String                  @map("course_id") @db.Uuid
+  courseId         String                  @map("course_id") @db.Uuid
   academyId        String                  @map("academy_id") @db.Uuid
   orgId            String                  @map("org_id") @db.Uuid
   status           DiagnosticSessionStatus @default(in_progress)
@@ -1081,15 +1104,15 @@ model DiagnosticSession {
 }
 
 model DiagnosticMasterySnapshot {
-  id                  String  @id @default(uuid()) @db.Uuid
-  diagnosticSessionId String  @map("diagnostic_session_id") @db.Uuid
-  conceptId           String  @map("concept_id") @db.Uuid
-  pL                  Float   @map("p_l")
-  tested              Boolean @default(false)
+  id                  String   @id @default(uuid()) @db.Uuid
+  diagnosticSessionId String   @map("diagnostic_session_id") @db.Uuid
+  conceptId           String   @map("concept_id") @db.Uuid
+  pL                  Float    @map("p_l")
+  tested              Boolean  @default(false)
   updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   session DiagnosticSession @relation(fields: [diagnosticSessionId], references: [id], onDelete: Cascade)
-  concept Concept            @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  concept Concept           @relation(fields: [conceptId], references: [id], onDelete: Cascade)
 
   @@unique([diagnosticSessionId, conceptId])
   @@index([diagnosticSessionId])

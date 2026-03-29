@@ -1,5 +1,5 @@
 import {
-  Body, Controller, HttpCode, HttpStatus, Post, UseGuards, UsePipes, ValidationPipe,
+  Body, Controller, GoneException, HttpCode, HttpStatus, Post, UseGuards, UsePipes, ValidationPipe,
 } from '@nestjs/common';
 import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { IsEmail, IsString, MinLength } from 'class-validator';
@@ -30,6 +30,11 @@ export class AuthRegisterController {
   @Throttle({ default: { limit: REGISTER_LIMIT, ttl: REGISTER_TTL } })
   @UsePipes(new ValidationPipe({ whitelist: true }))
   async register(@Body() body: RegisterDto) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new GoneException(
+        'Password-based API registration has moved to browser auth. Run `graspful register` or sign up on graspful.ai.',
+      );
+    }
     return this.registration.register(body.email, body.password);
   }
 }

@@ -16,7 +16,7 @@ Graspful provides a CLI and MCP server so AI agents can scaffold, fill, validate
 npx @graspful/cli init
 
 # 2. Register to get an API key (required before import/publish)
-graspful register --email you@example.com --password your-password
+graspful register
 
 # 3. Scaffold a course from a topic
 graspful create course --topic "Linear Algebra"
@@ -41,12 +41,12 @@ graspful import course.yaml --org my-org --publish
 
 1. **CLI (recommended for first-time setup):**
    \`\`\`bash
-   graspful register --email you@example.com --password your-password
+   graspful register
    \`\`\`
-   This creates an account, an organization, and an API key. Credentials are saved to \`~/.graspful/credentials.json\`.
+   This opens browser auth, completes email verification / MFA on the web side, then saves an API key to \`~/.graspful/credentials.json\`.
 
 2. **MCP tool (for agents):**
-   Call \`graspful_register(email: "you@example.com", password: "your-password")\`. The API key is automatically active for the rest of the MCP session.
+   Set \`GRASPFUL_API_KEY=gsk_...\` before starting the MCP server.
 
 3. **Environment variable:**
    Set \`GRASPFUL_API_KEY=gsk_...\` before starting the MCP server or CLI.
@@ -64,8 +64,8 @@ graspful import course.yaml --org my-org --publish
 
 | Command | Auth? | Description | Key Flags |
 |---------|:---:|-------------|-----------|
-| \`graspful init\` | No | Initialize project, register, and auto-configure MCP | \`--email\`, \`--password\` for non-interactive |
-| \`graspful register\` | No | Create account + org + API key | \`--email <email>\`, \`--password <pw>\` |
+| \`graspful init\` | No | Initialize project, browser-auth, and auto-configure MCP | \`--email\`, \`--no-browser\` |
+| \`graspful register\` | No | Create account + API key via browser auth | \`--email <email>\`, \`--no-browser\` |
 | \`graspful create course\` | No | Scaffold a new course YAML | \`--topic <topic>\`, \`--hours <n>\`, \`--source <file>\` |
 | \`graspful fill concept <yaml> <conceptId>\` | No | Generate knowledge points and problems for a concept | \`--force\` overwrite existing |
 | \`graspful validate <yaml>\` | No | Validate course YAML against schema | — |
@@ -76,20 +76,19 @@ graspful import course.yaml --org my-org --publish
 | \`graspful publish <courseId>\` | **Yes** | Publish an imported course | \`--org <slug>\` |
 | \`graspful import-brand <yaml>\` | **Yes** | Import brand config to platform | \`--org <slug>\` |
 | \`graspful list courses\` | **Yes** | List courses in an org | \`--org <slug>\` |
-| \`graspful login\` | No | Authenticate with API key | — |
+| \`graspful login\` | No | Browser sign-in or save an API key/JWT | \`--token\`, \`--email\`, \`--no-browser\` |
 
 ---
 
 ## MCP Tools
 
-Graspful exposes 11 MCP tools for AI agents. Tools marked (AUTH REQUIRED) need authentication — call \`graspful_register\` first.
+Graspful exposes 11 MCP tools for AI agents. Tools marked (AUTH REQUIRED) need
+an API key in \`GRASPFUL_API_KEY\`.
 
-### graspful_register (call this first if you need to import/publish)
-Create a new Graspful account and organization. Returns an API key that authenticates subsequent tool calls.
-- \`email\` (string, required) — Email address
-- \`password\` (string, required) — Password (min 8 characters)
-- Returns: { userId, orgSlug, apiKey }
-- The API key is automatically active for the rest of the MCP session.
+### graspful_register
+Deprecated. Interactive registration has moved to browser auth in the CLI.
+Run \`graspful register\` in a terminal, then restart the MCP server with
+\`GRASPFUL_API_KEY\` set.
 
 ### graspful_scaffold_course
 Scaffold a new course YAML from a topic.
@@ -111,13 +110,13 @@ Run all 10 quality checks on a course.
 - \`yaml\` (string, required) — Path to the course YAML file
 
 ### graspful_import_course (AUTH REQUIRED)
-Import a course YAML to the Graspful platform. Call graspful_register first if not authenticated.
+Import a course YAML to the Graspful platform. Set \`GRASPFUL_API_KEY\` first if not authenticated.
 - \`yaml\` (string, required) — Path to the course YAML file
 - \`orgSlug\` (string, required) — Organization slug
 - \`publish\` (boolean, optional) — Publish immediately after import
 
 ### graspful_publish_course (AUTH REQUIRED)
-Publish an already-imported course. Call graspful_register first if not authenticated.
+Publish an already-imported course. Set \`GRASPFUL_API_KEY\` first if not authenticated.
 - \`courseId\` (string, required) — ID of the course to publish
 - \`orgSlug\` (string, required) — Organization slug
 
@@ -133,12 +132,12 @@ Create a new brand YAML for a white-label site.
 - \`orgSlug\` (string, optional) — Organization slug
 
 ### graspful_import_brand (AUTH REQUIRED)
-Import a brand YAML to the platform. Call graspful_register first if not authenticated.
+Import a brand YAML to the platform. Set \`GRASPFUL_API_KEY\` first if not authenticated.
 - \`yaml\` (string, required) — Path to the brand YAML file
 - \`orgSlug\` (string, required) — Organization slug
 
 ### graspful_list_courses (AUTH REQUIRED)
-List all courses in an organization. Call graspful_register first if not authenticated.
+List all courses in an organization. Set \`GRASPFUL_API_KEY\` first if not authenticated.
 - \`orgSlug\` (string, required) — Organization slug
 
 ---
@@ -363,7 +362,7 @@ Each check returns pass/fail with details. Fix failures before importing.
 
 ## Typical Agent Workflow
 
-1. **Register** — Call \`graspful_register(email, password)\` to create an account and get an API key. This is required before importing or publishing. Skip if you already have GRASPFUL_API_KEY set.
+1. **Register** — Run \`graspful register\` in a terminal to complete browser auth and get an API key. This is required before importing or publishing. Skip if you already have GRASPFUL_API_KEY set.
 2. **Scaffold** — Use \`graspful_scaffold_course(topic: "Your Topic", hours: 10)\` to generate the course skeleton.
 3. **Fill concepts** — For each concept, call \`graspful_fill_concept(yaml, conceptId)\` to generate knowledge points and problems.
 4. **Review** — Call \`graspful_review_course(yaml)\` to run quality checks. Fix any failures.

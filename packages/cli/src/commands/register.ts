@@ -1,62 +1,43 @@
 import { Command } from 'commander';
-import { saveApiKeyCredentials, getBaseUrl } from '../lib/auth';
+import { getBaseUrl } from '../lib/auth';
+import { runBrowserAuthFlow } from '../lib/browser-auth';
 import { output, outputError } from '../lib/output';
-
-interface RegisterResponse {
-  userId: string;
-  orgSlug: string;
-  apiKey: string;
-}
 
 export function registerRegisterCommand(program: Command) {
   program
     .command('register')
-    .description('Create a new Graspful account and organization')
-    .requiredOption('--email <email>', 'Email address')
-    .requiredOption('--password <password>', 'Password')
+    .description('Create a new Graspful account with browser-based authentication')
+    .option('--email <email>', 'Prefill the browser sign-up form')
+    .option('--password <password>', 'Deprecated. Password entry now happens in the browser.')
     .option('--api-url <url>', 'API base URL')
-    .action(async (opts: { email: string; password: string; apiUrl?: string }) => {
+    .option('--no-browser', 'Print the sign-up URL instead of opening it automatically')
+    .action(async (opts: { email?: string; password?: string; apiUrl?: string; browser?: boolean }) => {
       const baseUrl = (opts.apiUrl || getBaseUrl()).replace(/\/$/, '');
 
       try {
-        const res = await fetch(`${baseUrl}/api/v1/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: opts.email, password: opts.password }),
-        });
-
-        if (!res.ok) {
-          const body = await res.text();
-          let message = `Registration failed (${res.status})`;
-          try {
-            const parsed = JSON.parse(body);
-            if (parsed.message) message = parsed.message;
-          } catch {
-            if (body) message = body;
-          }
-
-          // Add actionable hints based on status code
-          if (res.status === 409) {
-            message += '\nHint: Run `graspful login` to authenticate with an existing account.';
-          } else if (res.status === 429) {
-            message += '\nHint: Too many attempts. Wait a few minutes and try again.';
-          }
-
-          outputError(message);
-          process.exit(1);
+        if (opts.password) {
+          console.log('`--password` is deprecated. Complete the password and verification steps in your browser.');
         }
 
-        const data = (await res.json()) as RegisterResponse;
-
-        saveApiKeyCredentials(data.apiKey, baseUrl);
+        const result = await runBrowserAuthFlow({
+          apiUrl: baseUrl,
+          mode: 'sign-up',
+          email: opts.email,
+          noBrowser: opts.browser === false,
+        });
 
         output(
-          { userId: data.userId, orgSlug: data.orgSlug, apiKey: data.apiKey, baseUrl },
+          {
+            userId: result.userId,
+            orgSlug: result.orgSlug,
+            apiKey: result.apiKey,
+            baseUrl,
+          },
           [
-            `Created org: ${data.orgSlug}`,
-            `API key: ${data.apiKey} (saved to ~/.graspful/credentials.json)`,
+            `Created org: ${result.orgSlug}`,
+            `API key: ${result.apiKey} (saved to ~/.graspful/credentials.json)`,
             '',
-            `You're ready. Run: graspful import course.yaml --org ${data.orgSlug}`,
+            `You're ready. Run: graspful import course.yaml --org ${result.orgSlug}`,
           ].join('\n'),
         );
       } catch (e) {

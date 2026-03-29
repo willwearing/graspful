@@ -7,8 +7,10 @@ import { JwtOrApiKeyGuard } from './guards/jwt-or-apikey.guard';
 import { OrgJoinController } from './org-join.controller';
 import { AuthRegisterController } from './auth-register.controller';
 import { AuthProvisionController } from './auth-provision.controller';
+import { CliAuthController } from './cli-auth.controller';
 import { UsersMeController } from './users-me.controller';
 import { OrgMembershipService } from './org-membership.service';
+import { CliAuthService } from './cli-auth.service';
 import { RegistrationService } from './registration.service';
 import { ProvisionService } from './provision.service';
 import { ApiKeyModule } from './api-key/api-key.module';
@@ -22,13 +24,21 @@ import { MyOrganizationsQueryService } from './queries/my-organizations.query';
     SharedApplicationModule,
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
   ],
-  controllers: [OrgJoinController, AuthRegisterController, AuthProvisionController, UsersMeController, ApiKeyController],
+  controllers: [
+    OrgJoinController,
+    AuthRegisterController,
+    AuthProvisionController,
+    CliAuthController,
+    UsersMeController,
+    ApiKeyController,
+  ],
   providers: [
     SupabaseAuthGuard,
     OrgMembershipGuard,
     GlobalAdminGuard,
     JwtOrApiKeyGuard,
     OrgMembershipService,
+    CliAuthService,
     RegistrationService,
     ProvisionService,
     MyOrganizationsQueryService,

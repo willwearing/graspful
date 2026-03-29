@@ -1,7 +1,3 @@
-jest.mock('./course-read.service', () => ({
-  CourseReadService: class CourseReadService {},
-}));
-
 import { Test, TestingModule } from '@nestjs/testing';
 import { KnowledgeGraphController } from './knowledge-graph.controller';
 import { CourseReadService } from './course-read.service';
