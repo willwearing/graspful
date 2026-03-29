@@ -48,7 +48,8 @@ describe("generateLlmsTxt", () => {
       features: [],
     });
     expect(result).toContain("register");
-    expect(result).toContain("graspful_register");
+    expect(result).toContain("CLI: graspful register");
+    expect(result).toContain("GRASPFUL_API_KEY");
   });
 
   it("formats features as bullet points", () => {
