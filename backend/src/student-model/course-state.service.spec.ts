@@ -1,6 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { CourseStateService } from './course-state.service';
-import { PrismaService } from '@/prisma/prisma.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { CourseProgressState, SectionMasteryState } from '@prisma/client';
 
@@ -8,7 +6,7 @@ describe('CourseStateService', () => {
   let service: CourseStateService;
   let mockPrisma: any;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockPrisma = {
       studentCourseState: {
         findMany: jest.fn(),
@@ -28,14 +26,7 @@ describe('CourseStateService', () => {
       },
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CourseStateService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
-    }).compile();
-
-    service = module.get(CourseStateService);
+    service = new CourseStateService(mockPrisma);
   });
 
   describe('getCourseStatesForAcademy', () => {

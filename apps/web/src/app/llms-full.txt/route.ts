@@ -45,7 +45,7 @@ graspful import course.yaml --org my-org --publish
    \`\`\`
    This opens browser auth, completes email verification / MFA on the web side, then saves an API key to \`~/.graspful/credentials.json\`.
 
-2. **MCP tool (for agents):**
+2. **MCP / agents:**
    Set \`GRASPFUL_API_KEY=gsk_...\` before starting the MCP server.
 
 3. **Environment variable:**
@@ -82,13 +82,8 @@ graspful import course.yaml --org my-org --publish
 
 ## MCP Tools
 
-Graspful exposes 11 MCP tools for AI agents. Tools marked (AUTH REQUIRED) need
+Graspful exposes 10 MCP tools for AI agents. Tools marked (AUTH REQUIRED) need
 an API key in \`GRASPFUL_API_KEY\`.
-
-### graspful_register
-Deprecated. Interactive registration has moved to browser auth in the CLI.
-Run \`graspful register\` in a terminal, then restart the MCP server with
-\`GRASPFUL_API_KEY\` set.
 
 ### graspful_scaffold_course
 Scaffold a new course YAML from a topic.

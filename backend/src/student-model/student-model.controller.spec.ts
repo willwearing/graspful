@@ -1,11 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { StudentModelController } from './student-model.controller';
 import { EnrollmentService } from './enrollment.service';
 import { StudentStateService } from './student-state.service';
 import { SectionExamService } from '@/assessment/section-exam.service';
-import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
-
-const mockGuard = { canActivate: () => true };
 
 describe('StudentModelController', () => {
   let controller: StudentModelController;
@@ -13,7 +9,7 @@ describe('StudentModelController', () => {
   let mockStudentState: any;
   let mockSectionExam: any;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockEnrollment = {
       enrollStudent: jest.fn(),
     };
@@ -30,21 +26,11 @@ describe('StudentModelController', () => {
       getSectionStates: jest.fn().mockResolvedValue([]),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [StudentModelController],
-      providers: [
-        { provide: EnrollmentService, useValue: mockEnrollment },
-        { provide: StudentStateService, useValue: mockStudentState },
-        { provide: SectionExamService, useValue: mockSectionExam },
-      ],
-    })
-      .overrideGuard(SupabaseAuthGuard)
-      .useValue(mockGuard)
-      .overrideGuard(OrgMembershipGuard)
-      .useValue(mockGuard)
-      .compile();
-
-    controller = module.get(StudentModelController);
+    controller = new StudentModelController(
+      mockEnrollment,
+      mockStudentState,
+      mockSectionExam,
+    );
   });
 
   describe('enroll', () => {

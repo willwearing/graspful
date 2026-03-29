@@ -227,7 +227,12 @@ POST   /orgs/{orgSlug}/academies/import
 POST   /brands
 ```
 
-### Agent self-signup: `POST /auth/register`
+### Agent self-signup: historical API-based plan
+
+Historical note: the implemented auth flow moved to browser-based CLI registration
+(`graspful register`) plus `GRASPFUL_API_KEY` for MCP. References in this section
+to `POST /auth/register` and email/password CLI prompts describe the original
+proposal, not the shipped flow.
 
 **Agents need to be able to create accounts without a browser.** Add a public endpoint:
 
@@ -262,36 +267,24 @@ curl -X POST https://api.graspful.ai/api/v1/orgs/agent-example/courses/import \
 
 **Rate limiting:** Apply strict rate limits to prevent abuse (e.g., 5 registrations per IP per hour).
 
-### CLI auth: `graspful register` + `graspful login`
+### CLI auth: historical proposal
 
 Agents interact via CLI. The CLI needs first-class support for the full auth flow.
 
 **New command: `graspful register`**
 ```bash
-# Register a new account — returns API key, saves it locally
-graspful register --email agent@example.com --password "..."
+# Register a new account — current implementation opens browser auth and saves the API key locally
+graspful register --email agent@example.com
 # → Created org: agent-example
 # → API key: gsk_xxxx... (saved to ~/.graspful/credentials.json)
 # → You're ready. Run: graspful import course.yaml --org agent-example
 ```
 
-Calls `POST /auth/register` under the hood. Saves the returned API key to `~/.graspful/credentials.json` automatically (same format as `graspful login`).
+Current implementation starts a browser-based auth handoff, then saves the minted API key to `~/.graspful/credentials.json` automatically (same format used by `graspful login`).
 
-**Existing command: `graspful login`** — already supports two modes:
+**Existing command: `graspful login`** — current implementation supports:
 1. `graspful login --token gsk_xxxx` — saves API key (works today)
-2. `graspful login` — interactive email/password prompt (needs updating)
-
-Update `graspful login` to also accept `--email` + `--password` flags for non-interactive use:
-```bash
-# Login with email/password (non-interactive, for agents)
-graspful login --email agent@example.com --password "..."
-
-# Login with API key (existing)
-graspful login --token gsk_xxxx
-
-# Interactive prompt (existing)
-graspful login
-```
+2. `graspful login` — browser sign-in, with optional `--email` prefill or `--no-browser` to print the URL
 
 ### MCP auth
 
@@ -377,7 +370,7 @@ The schema already supports many-to-many (User ↔ Org via `OrgMembership`). No 
 
 | Endpoint | Purpose | Auth | Method |
 |----------|---------|------|--------|
-| `POST /auth/register` | Agent self-signup → returns API key + org slug | Public (rate-limited) | POST |
+| `POST /auth/register` | Historical proposal for agent self-signup. The shipped flow uses browser-based `graspful register` plus `GRASPFUL_API_KEY` for MCP. | Public (rate-limited) | POST |
 | `GET /orgs/{orgSlug}/creator/stats` | { students, avgCompletion, totalRevenue } | JWT or API key | GET |
 | `DELETE /orgs/{orgSlug}/courses/{courseId}` | Soft-delete (set archivedAt) | JWT or API key (admin) | DELETE |
 | `GET /orgs/{orgSlug}/courses/{courseId}/yaml` | Export course as YAML (for editor pre-fill) | JWT or API key | GET |
@@ -452,7 +445,7 @@ apps/web/src/components/creator/stat-card.tsx                # Reusable stat car
 apps/web/src/components/creator/course-card.tsx              # Course card with brand URL + edit + archive
 apps/web/src/components/creator/org-switcher.tsx             # Org dropdown (hidden if single org)
 apps/web/src/components/creator/yaml-editor.tsx              # Monaco wrapper (lazy-loaded, tabbed)
-backend/src/auth/auth-register.controller.ts                 # POST /auth/register
+backend/src/auth/auth-register.controller.ts                 # Historical proposal: POST /auth/register
 packages/cli/src/commands/register.ts                        # graspful register command
 ```
 
@@ -503,7 +496,7 @@ apps/web/src/app/(marketing)/docs/mcp/page.tsx         # Add "Getting your API k
 | `creator-manage-new.spec.ts` | Navigate to /creator/manage → see Monaco editor with template → edit → import → course appears in dashboard |
 | `creator-manage-edit.spec.ts` | Click Edit on course card → /creator/manage/[id] → YAML loaded → edit → save → changes reflected |
 | `creator-api-keys.spec.ts` | Create API key → see prefix in list → copy quick-start block |
-| `agent-registration.spec.ts` | POST /auth/register → get API key → import course → brand auto-created |
+| `agent-registration.spec.ts` | Historical proposal coverage for POST /auth/register → get API key → import course → brand auto-created |
 | `creator-org-switcher.spec.ts` | User with 2+ orgs sees org switcher, switching orgs updates course list |
 
 ### Integration test
@@ -524,7 +517,7 @@ No frontend dependencies. Can be built and tested independently.
 |------|------|------------|
 | A1 | Prisma migration: add `archivedAt` to Course | — |
 | A2 | `JwtOrApiKeyGuard` composite guard | — |
-| A3 | `POST /auth/register` endpoint + rate limiting | — |
+| A3 | Historical proposal: `POST /auth/register` endpoint + rate limiting | — |
 | A4 | `GET /orgs/{orgSlug}/creator/stats` endpoint + `CreatorStatsService` | A1 |
 | A5 | `DELETE /orgs/{orgSlug}/courses/{courseId}` (soft delete) | A1, A2 |
 | A6 | `GET /users/me/orgs` endpoint | — |
@@ -544,12 +537,12 @@ Independent from Track A (shares Prisma but no code deps).
 
 ### Track C: CLI (Agent 3)
 
-Depends on `POST /auth/register` from Track A (A3), but the CLI code can be written against the API contract before the endpoint is live.
+Historical dependency note: this track originally assumed `POST /auth/register`. The shipped flow now uses browser-based `graspful register` plus `GRASPFUL_API_KEY` for MCP.
 
 | Step | Task | Depends on |
 |------|------|------------|
 | C1 | `graspful register` command | A3 (API contract) |
-| C2 | `graspful login --email --password` flags | — |
+| C2 | Browser-based `graspful login` flow | — |
 | C3 | CLI tests | C1, C2 |
 
 ### Track D: Frontend — Dashboard + Course Cards (Agent 4)
@@ -637,7 +630,7 @@ Agent 8:                                    [H1-H8 E2E ]
 
 1. **Course archive confirmation** — require typing the course slug. Prevents accidental archives.
 2. **Self-service org slug** — derived from email. `will@example.com` → `will-example`. No manual input.
-3. **Agent self-signup** — yes. `POST /auth/register` returns API key + org slug. Two API calls from zero to importing. Docs updated to show this as the primary path.
+3. **Agent self-signup** — shipped via browser-based `graspful register`, which mints the API key the CLI stores locally. MCP still consumes that key via `GRASPFUL_API_KEY`. Earlier `POST /auth/register` notes in this plan are historical only.
 4. **Multi-org** — supported out of the box. Schema already has many-to-many via `OrgMembership`. Each course import can auto-create a brand/org. Brand slug = `{username}-{courseslug}` (e.g., `will-javascript`). Org switcher in sidebar when user has multiple.
 5. **Brand auto-creation on import** — when a course is imported and no brand exists for it, auto-create one. Slug: `{username}-{courseslug}`. Domain: `{slug}.graspful.com`. Default landing page from course YAML data. If slug taken, append `-1`, `-2`, etc.
 6. **Course cards show brand URL** — each course card links to its live subdomain. Edit button opens Monaco editor with the course YAML.

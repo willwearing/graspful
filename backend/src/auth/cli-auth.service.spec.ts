@@ -14,6 +14,7 @@ describe('CliAuthService', () => {
         create: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn(),
       },
       organization: {
         findUnique: jest.fn(),
@@ -67,6 +68,7 @@ describe('CliAuthService', () => {
       orgId: null,
       encryptedApiKey: null,
       authorizedAt: null,
+      consumedAt: null,
       expiresAt: new Date(Date.now() + 60_000),
     });
 
@@ -99,11 +101,13 @@ describe('CliAuthService', () => {
       orgId: null,
       encryptedApiKey: null,
       authorizedAt: null,
+      consumedAt: null,
       expiresAt: new Date(Date.now() + 60_000),
     });
 
     await service.authorize(start.token, 'user-1', 'user@example.com');
     const encryptedApiKey = mockPrisma.cliAuthSession.update.mock.calls[0][0].data.encryptedApiKey;
+    mockPrisma.cliAuthSession.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.cliAuthSession.findUnique.mockResolvedValue({
       id: 'session-1',
       tokenHash: 'hash',
@@ -112,6 +116,7 @@ describe('CliAuthService', () => {
       orgId: 'org-1',
       encryptedApiKey,
       authorizedAt: new Date(),
+      consumedAt: null,
       expiresAt: new Date(Date.now() + 60_000),
     });
     mockPrisma.organization.findUnique.mockResolvedValue({ slug: 'alpha-org' });
@@ -135,6 +140,7 @@ describe('CliAuthService', () => {
       orgId: null,
       encryptedApiKey: null,
       authorizedAt: null,
+      consumedAt: null,
       expiresAt: new Date(Date.now() + 60_000),
     });
 
@@ -153,6 +159,7 @@ describe('CliAuthService', () => {
       orgId: null,
       encryptedApiKey: null,
       authorizedAt: null,
+      consumedAt: null,
       expiresAt: new Date(Date.now() - 1_000),
     });
     await expect(service.exchange('expired-token')).resolves.toEqual({ status: 'expired' });
@@ -172,10 +179,37 @@ describe('CliAuthService', () => {
       orgId: null,
       encryptedApiKey: null,
       authorizedAt: null,
+      consumedAt: null,
       expiresAt: new Date(Date.now() - 1_000),
     });
     await expect(service.authorize('expired-token', 'user-1', 'user@example.com')).rejects.toThrow(
       GoneException,
     );
+  });
+
+  it('consumes a completed session after the first exchange', async () => {
+    mockPrisma.cliAuthSession.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+    mockPrisma.organization.findUnique.mockResolvedValue({ slug: 'alpha-org' });
+    mockPrisma.cliAuthSession.findUnique.mockResolvedValue({
+      id: 'session-1',
+      tokenHash: 'hash',
+      mode: 'sign-in',
+      userId: 'user-1',
+      orgId: 'org-1',
+      encryptedApiKey: service['encrypt']('gsk_cli_key'),
+      authorizedAt: new Date(),
+      consumedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+
+    await expect(service.exchange('token-once')).resolves.toEqual({
+      status: 'complete',
+      apiKey: 'gsk_cli_key',
+      orgSlug: 'alpha-org',
+      userId: 'user-1',
+    });
+    await expect(service.exchange('token-once')).resolves.toEqual({ status: 'expired' });
   });
 });

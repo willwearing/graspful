@@ -941,9 +941,9 @@ A score of 10/10 is required for publishing. Run this before graspful_import_cou
     name: 'graspful_import_course',
     description: `Import a course YAML into a Graspful organization. Creates the course as a draft by default.
 
-IMPORTANT: Requires authentication. If not authenticated, run `graspful register` in a terminal first or set the GRASPFUL_API_KEY environment variable. Without auth, this tool will fail.
+IMPORTANT: Requires authentication. If not authenticated, run \`graspful register\` in a terminal first or set the \`GRASPFUL_API_KEY\` environment variable. Without auth, this tool will fail.
 
-If publish=true, the server runs the review gate first — the course must pass all 10 quality checks to be published. If review fails, the course is imported as a draft and failures are returned.
+If publish=true, the server runs the review gate first - the course must pass all 10 quality checks to be published. If review fails, the course is imported as a draft and failures are returned.
 
 Returns { courseId, url, published, reviewFailures? }.`,
     inputSchema: {
@@ -958,9 +958,9 @@ Returns { courseId, url, published, reviewFailures? }.`,
   },
   {
     name: 'graspful_publish_course',
-    description: `Publish a draft course (sets isPublished = true). The server runs the review gate — course must pass all 10 quality checks.
+    description: `Publish a draft course (sets isPublished = true). The server runs the review gate - course must pass all 10 quality checks.
 
-IMPORTANT: Requires authentication. If not authenticated, run `graspful register` in a terminal first or set the GRASPFUL_API_KEY environment variable. Without auth, this tool will fail.
+IMPORTANT: Requires authentication. If not authenticated, run \`graspful register\` in a terminal first or set the \`GRASPFUL_API_KEY\` environment variable. Without auth, this tool will fail.
 
 Returns { courseId, published }.`,
     inputSchema: {
@@ -994,7 +994,7 @@ Use this to check your progress: "How many concepts still need content?"`,
   },
   {
     name: 'graspful_create_brand',
-    description: `Generate a brand YAML scaffold for a white-label learning site. Graspful supports multi-tenant white-labeling — each brand gets its own domain, theme, landing page, and SEO config.
+    description: `Generate a brand YAML scaffold for a white-label learning site. Graspful supports multi-tenant white-labeling - each brand gets its own domain, theme, landing page, and SEO config.
 
 Niche presets: education, healthcare, finance, tech, legal. Each sets appropriate colors, taglines, and copy.
 
@@ -1004,7 +1004,7 @@ The returned YAML has the full brand structure:
 - landing: hero, features, how-it-works, FAQ
 - seo: title, description, keywords
 
-Edit the YAML to customize, then import with graspful_import_brand.`,
+Edit the YAML to customize, then import with \`graspful_import_brand\`.`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -1020,7 +1020,7 @@ Edit the YAML to customize, then import with graspful_import_brand.`,
     name: 'graspful_import_brand',
     description: `Import a brand YAML into Graspful. Creates the white-label site configuration.
 
-IMPORTANT: Requires authentication. If not authenticated, run `graspful register` in a terminal first or set the GRASPFUL_API_KEY environment variable. Without auth, this tool will fail.
+IMPORTANT: Requires authentication. If not authenticated, run \`graspful register\` in a terminal first or set the \`GRASPFUL_API_KEY\` environment variable. Without auth, this tool will fail.
 
 Returns { slug, domain, verificationStatus }.`,
     inputSchema: {
@@ -1035,7 +1035,7 @@ Returns { slug, domain, verificationStatus }.`,
     name: 'graspful_list_courses',
     description: `List all courses in a Graspful organization.
 
-IMPORTANT: Requires authentication. If not authenticated, run `graspful register` in a terminal first or set the GRASPFUL_API_KEY environment variable. Without auth, this tool will fail.
+IMPORTANT: Requires authentication. If not authenticated, run \`graspful register\` in a terminal first or set the \`GRASPFUL_API_KEY\` environment variable. Without auth, this tool will fail.
 
 Returns an array of courses with their IDs, names, published status, and stats.`,
     inputSchema: {
@@ -1044,22 +1044,6 @@ Returns an array of courses with their IDs, names, published status, and stats.`
         org: { type: 'string', description: 'Organization slug (e.g., "acme-learning")' },
       },
       required: ['org'],
-    },
-  },
-  {
-    name: 'graspful_register',
-    description: `Deprecated. Interactive registration has moved to browser auth in the CLI.
-
-Run \`graspful register\` in a terminal, then restart the MCP server with \`GRASPFUL_API_KEY\` set.
-
-You do NOT need auth to use graspful_scaffold_course, graspful_fill_concept, graspful_validate, graspful_review_course, graspful_describe_course, or graspful_create_brand — those work offline.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        email: { type: 'string', description: 'Email address for the new account' },
-        password: { type: 'string', description: 'Password (min 8 characters)' },
-      },
-      required: [],
     },
   },
 ];
@@ -1200,12 +1184,6 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
       } catch (e) {
         return errorResult(`List failed: ${e instanceof Error ? e.message : String(e)}`);
       }
-    }
-
-    case 'graspful_register': {
-      return errorResult(
-        'Interactive registration has moved to browser auth. Run `graspful register` in a terminal, then restart this MCP server with GRASPFUL_API_KEY set.',
-      );
     }
 
     default:

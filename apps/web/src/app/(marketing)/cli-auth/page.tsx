@@ -8,6 +8,7 @@ import { apiClientFetch } from "@/lib/api-client";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 
 type CliAuthState = "checking" | "redirecting" | "authorizing" | "done" | "error";
+const CLI_SIGN_UP_COMPLETE_PARAM = "cli-sign-up-complete";
 
 function getHashToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -17,12 +18,19 @@ function getHashToken(): string | null {
   return new URLSearchParams(hash).get("token");
 }
 
+function buildRedirectTarget(currentUrl: URL, mode: "sign-in" | "sign-up") {
+  const redirectUrl = new URL(currentUrl.toString());
+  if (mode === "sign-up") {
+    redirectUrl.searchParams.set(CLI_SIGN_UP_COMPLETE_PARAM, "1");
+  }
+  return `${redirectUrl.pathname}${redirectUrl.search}${redirectUrl.hash}`;
+}
+
 export default function CliAuthPage() {
   const router = useRouter();
   const [state, setState] = useState<CliAuthState>("checking");
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
-  const [email, setEmail] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -33,11 +41,11 @@ export default function CliAuthPage() {
       const currentUrl = new URL(window.location.href);
       const nextMode = currentUrl.searchParams.get("mode") === "sign-up" ? "sign-up" : "sign-in";
       const nextEmail = currentUrl.searchParams.get("email") ?? "";
-      const redirectTarget = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
+      const redirectTarget = buildRedirectTarget(currentUrl, nextMode);
+      const signUpComplete = currentUrl.searchParams.get(CLI_SIGN_UP_COMPLETE_PARAM) === "1";
 
       if (!cancelled) {
         setMode(nextMode);
-        setEmail(nextEmail);
       }
 
       const token = getHashToken();
@@ -51,9 +59,16 @@ export default function CliAuthPage() {
       const { data } = await supabase.auth.getSession();
       const accessToken = data.session?.access_token;
 
-      if (!accessToken) {
+      if (!accessToken || (nextMode === "sign-up" && !signUpComplete)) {
         if (cancelled) return;
         setState("redirecting");
+        if (accessToken && nextMode === "sign-up") {
+          try {
+            await supabase.auth.signOut();
+          } catch {
+            // Fall through to sign-up even if sign-out fails.
+          }
+        }
         const authPath = nextMode === "sign-up" ? "/sign-up" : "/sign-in";
         const redirectParams = new URLSearchParams();
         redirectParams.set("redirect", redirectTarget);

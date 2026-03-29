@@ -76,7 +76,7 @@ For **Claude Code**, add the Graspful MCP server to your `claude_desktop_config.
   "mcpServers": {
     "graspful": {
       "command": "npx",
-      "args": ["@graspful/mcp-server"]
+      "args": ["@graspful/mcp"]
     }
   }
 }
@@ -89,13 +89,13 @@ For **Cursor**, add it to `.cursor/mcp.json` in your project:
   "mcpServers": {
     "graspful": {
       "command": "npx",
-      "args": ["@graspful/mcp-server"]
+      "args": ["@graspful/mcp"]
     }
   }
 }
 ```
 
-Set your API key with `GRASPFUL_API_KEY` as an environment variable, or run `graspful login` for interactive browser-based auth. Once configured, the agent automatically discovers Graspful tools when it calls `tools/list`.
+Set your API key with `GRASPFUL_API_KEY` as an environment variable. For interactive setup, run `graspful register` to create an account or `graspful login` to attach an existing account, then restart the MCP server with that key in its environment. Once configured, the agent automatically discovers Graspful tools when it calls `tools/list`.
 
 ### What is the course creation workflow?
 

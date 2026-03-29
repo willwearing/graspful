@@ -27,13 +27,13 @@
 
 ## Getting Started
 
-1. Sign up: `npx @graspful/cli register --email you@example.com --password your-password`
+1. Authenticate: `graspful register --email you@example.com`
 2. Scaffold: `npx @graspful/cli create course --topic "Your Topic" -o course.yaml`
 3. Validate: `npx @graspful/cli validate course.yaml`
 4. Review: `npx @graspful/cli review course.yaml`
 5. Publish: `npx @graspful/cli import course.yaml --org <your-org> --publish`
 
-Steps 2-4 work offline, no account needed. Register before importing or publishing.
+Steps 2-4 work offline, no account needed. Run `graspful register` before importing or publishing, or set `GRASPFUL_API_KEY` for MCP.
 
 - MCP Server: `npx @graspful/mcp` (or run `npx @graspful/cli init` to auto-configure your editor)
 - Full agent instructions: https://graspful.ai/agents.md

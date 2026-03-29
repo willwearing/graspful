@@ -13,7 +13,7 @@ test.describe("CLI browser auth", () => {
     await expect(page.getByText("graspful register")).toBeVisible();
   });
 
-  test("sign-up flow authorizes a CLI session and exchanges an API key", async ({
+  test("sign-up handoff authorizes a CLI session and exchanges an API key", async ({
     page,
     request,
   }) => {
@@ -39,13 +39,24 @@ test.describe("CLI browser auth", () => {
     await page.waitForURL(/\/sign-up/, { timeout: 15_000 });
 
     const email = `cli-auth-${Date.now()}@test.example.com`;
+    const password = "TestPassword123!";
+    const registerRes = await request.post(`${BACKEND_URL}/auth/register`, {
+      data: { email, password },
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(registerRes.status()).toBe(201);
+
+    const redirectTarget = `/cli-auth?mode=sign-up&cli-sign-up-complete=1#token=${encodeURIComponent(startBody.token)}`;
+    await page.goto(`/sign-in?redirect=${encodeURIComponent(redirectTarget)}`);
     await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Password").fill("TestPassword123!");
-    await page.getByRole("button", { name: "Create Account" }).click();
+    await page.getByLabel("Password").fill(password);
+    await page.getByRole("button", { name: "Sign In" }).click();
 
     await expect(
       page.getByRole("heading", { name: "CLI authentication complete" })
     ).toBeVisible({ timeout: 15_000 });
+
     await expect(page.getByText("You can close this tab now.")).toBeVisible();
 
     const exchangeRes = await request.post(`${BACKEND_URL}/auth/cli/sessions/exchange`, {

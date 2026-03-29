@@ -29,14 +29,14 @@ test.describe("Agent Discovery — llms-full.txt", () => {
     expect(authIdx).toBeLessThan(cliIdx);
   });
 
-  test("Authentication section mentions graspful register and graspful_register", async () => {
+  test("Authentication section mentions graspful register and GRASPFUL_API_KEY", async () => {
     const authSection = llmsFullContent.substring(
       llmsFullContent.indexOf("## Authentication"),
       llmsFullContent.indexOf("## CLI Commands")
     );
 
     expect(authSection).toContain("graspful register");
-    expect(authSection).toContain("graspful_register");
+    expect(authSection).toContain("GRASPFUL_API_KEY");
   });
 
   test("Quick Start includes register step", async () => {
@@ -47,12 +47,12 @@ test.describe("Agent Discovery — llms-full.txt", () => {
     expect(quickStartSection).toContain("graspful register");
   });
 
-  test("MCP Tools section includes graspful_register", async () => {
+  test("MCP Tools section does not advertise a broken register tool", async () => {
     const mcpIdx = llmsFullContent.indexOf("## MCP Tools");
     const mcpSection = llmsFullContent.substring(mcpIdx);
 
-    expect(mcpSection).toContain("### graspful_register");
-    expect(mcpSection).toContain("Create a new Graspful account");
+    expect(mcpSection).not.toContain("### graspful_register");
+    expect(mcpSection).toContain("GRASPFUL_API_KEY");
   });
 
   test("auth-gated MCP tools are marked as AUTH REQUIRED", async () => {
@@ -65,12 +65,12 @@ test.describe("Agent Discovery — llms-full.txt", () => {
     expect(mcpSection).toContain("graspful_list_courses (AUTH REQUIRED)");
   });
 
-  test("Typical Agent Workflow starts with Register", async () => {
+  test("Typical Agent Workflow starts with authentication guidance", async () => {
     const workflowIdx = llmsFullContent.indexOf("## Typical Agent Workflow");
     const workflowSection = llmsFullContent.substring(workflowIdx);
 
     expect(workflowSection).toContain("1. **Register**");
-    expect(workflowSection).toContain("graspful_register");
+    expect(workflowSection).toContain("graspful register");
   });
 });
 
@@ -83,27 +83,26 @@ test.describe("Agent Discovery — /agents.md", () => {
 
     const content = await res.text();
     expect(content).toContain("Authentication");
-    expect(content).toContain("graspful_register");
+    expect(content).toContain("graspful register");
+    expect(content).toContain("GRASPFUL_API_KEY");
   });
 });
 
 // ─── /agents page (browser) ────────────────────────────────────────────────
 
 test.describe("Agent Discovery — /agents page", () => {
-  test("lists graspful_register in MCP tools", async ({ page }) => {
+  test("lists import/auth requirements without a register MCP tool", async ({ page }) => {
     await page.goto("/agents");
+    await expect(page.locator("code").getByText("import_course", { exact: true })).toBeVisible();
     await expect(
-      page.locator("code").getByText("register", { exact: true })
-    ).toBeVisible();
-    await expect(
-      page.getByText("Call this first")
+      page.getByText("Authenticate for import and publish")
     ).toBeVisible();
   });
 
   test("workflow starts with registration step", async ({ page }) => {
     await page.goto("/agents");
     await expect(
-      page.getByText("Register for an API key")
+      page.getByText("Authenticate for import and publish")
     ).toBeVisible();
   });
 });
@@ -119,9 +118,10 @@ test.describe("Agent Discovery — Full Flow", () => {
     expect(docsRes.status()).toBe(200);
     const docs = await docsRes.text();
     expect(docs).toContain("graspful register");
-    expect(docs).toContain("graspful_register");
+    expect(docs).not.toContain("graspful_register");
+    expect(docs).toContain("GRASPFUL_API_KEY");
 
-    // 2. Agent registers using the API endpoint discovered in docs
+    // 2. Agent obtains an API key using the backend registration flow available in test
     const email = `e2e-discovery-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.example.com`;
     const regRes = await request.post(`${BACKEND_URL}/auth/register`, {
       data: { email, password: "TestPassword123!" },

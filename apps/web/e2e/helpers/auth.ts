@@ -3,6 +3,7 @@ import { type Page } from "@playwright/test";
 /** The brand to use for authenticated E2E tests — must match a seeded org */
 export const TEST_BRAND_ID = "electrician";
 export const POSTHOG_TEST_BRAND_ID = "posthog";
+const BACKEND_URL = "http://localhost:3000/api/v1";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://tzftjqpnisalltnkrykg.supabase.co";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -11,25 +12,40 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
  * Admin-confirm a user's email via Supabase Admin API.
  * Required when Supabase has email confirmation enabled.
  */
-async function adminConfirmUser(email: string): Promise<void> {
+export async function adminConfirmUser(email: string): Promise<void> {
   if (!SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error(
       "SUPABASE_SERVICE_ROLE_KEY env var required for e2e tests (set in backend/.env)"
     );
   }
 
-  // Find user by email
-  const listRes = await fetch(
-    `${SUPABASE_URL}/auth/v1/admin/users?page=1&per_page=50`,
-    {
-      headers: {
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-      },
+  let user: { id: string; email: string } | undefined;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    for (let page = 1; page <= 10; page += 1) {
+      const listRes = await fetch(
+        `${SUPABASE_URL}/auth/v1/admin/users?page=${page}&per_page=200`,
+        {
+          headers: {
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+          },
+        }
+      );
+      const { users } = (await listRes.json()) as { users: Array<{ id: string; email: string }> };
+      user = users.find((candidate) => candidate.email === email);
+      if (user || users.length === 0) {
+        break;
+      }
     }
-  );
-  const { users } = (await listRes.json()) as { users: Array<{ id: string; email: string }> };
-  const user = users.find((u) => u.email === email);
+
+    if (user) {
+      break;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+
   if (!user) throw new Error(`User ${email} not found in Supabase`);
 
   // Confirm their email
@@ -68,8 +84,9 @@ async function setDevBrandCookie(
 }
 
 /**
- * Sign up a fresh test user via the UI and return the email.
- * Handles both auto-confirm (dev) and email-confirm (hosted) Supabase configs.
+ * Create a fresh test user via the backend registration endpoint, then complete
+ * the real browser sign-in flow on the requested brand so app provisioning and
+ * org join behavior still runs through the UI.
  */
 export async function signUpTestUser(page: Page): Promise<string> {
   return signUpBrandedTestUser(page, TEST_BRAND_ID);
@@ -84,20 +101,15 @@ export async function signUpBrandedTestUser(
 
   await setDevBrandCookie(page, brandId);
 
-  await page.goto("/sign-up");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Create Account" }).click();
+  const registerRes = await fetch(`${BACKEND_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
 
-  // Try fast path: auto-confirm redirects immediately
-  try {
-    await page.waitForURL(/\/(dashboard|creator)/, { timeout: 5_000 });
-    return email;
-  } catch {
-    // Email confirmation is enabled — confirm via admin API and sign in
+  if (!registerRes.ok) {
+    throw new Error(`Failed to register e2e user: ${registerRes.status} ${registerRes.statusText}`);
   }
-
-  await adminConfirmUser(email);
 
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(email);

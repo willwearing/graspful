@@ -20,7 +20,8 @@ Two YAMLs (course + brand) produce one live product with adaptive learning, spac
 
 ```bash
 npx @graspful/cli init
-graspful register --email you@example.com --password your-password
+# opens browser auth, then saves an API key locally
+graspful register --email you@example.com
 graspful create course --scaffold-only --topic "Your Topic" -o course.yaml
 ```
 
@@ -55,7 +56,7 @@ graspful/
 
 | Command | Auth? | Description |
 |---------|:---:|-------------|
-| `graspful register` | No | Create account + org + API key |
+| `graspful register` | No | Create account + API key via browser auth |
 | `graspful login` | No | Authenticate with existing credentials |
 | `graspful create course` | No | Generate course YAML skeleton |
 | `graspful create brand` | No | Generate brand YAML with theme presets |
@@ -66,7 +67,7 @@ graspful/
 | `graspful import` | **Yes** | Push YAML to Graspful instance |
 | `graspful publish` | **Yes** | Publish a draft course |
 
-Run `graspful register --email <email> --password <password>` before `import` or `publish`. Credentials are saved to `~/.graspful/credentials.json`.
+Run `graspful register [--email <email>]` before `import` or `publish`. The browser flow mints an API key and saves it to `~/.graspful/credentials.json`. For MCP, restart the server with `GRASPFUL_API_KEY` set if your client does not reuse the saved CLI credentials automatically.
 
 ## MCP Server
 
@@ -94,7 +95,6 @@ Or manually add to your MCP config:
 
 | Tool | Auth? | Description |
 |------|:---:|-------------|
-| `graspful_register` | No | Create account + org + API key (call first if you need to import/publish) |
 | `graspful_scaffold_course` | No | Generate course YAML skeleton |
 | `graspful_fill_concept` | No | Add KPs and problems to a concept |
 | `graspful_validate` | No | Validate YAML against schema |
@@ -106,7 +106,7 @@ Or manually add to your MCP config:
 | `graspful_import_brand` | **Yes** | Import brand config |
 | `graspful_list_courses` | **Yes** | List org courses |
 
-Auth-gated tools return a prescriptive error if unauthenticated, telling the agent to call `graspful_register` first. You can also set `GRASPFUL_API_KEY` as an env var in your MCP config.
+Auth-gated tools return a prescriptive error if unauthenticated, telling the agent to run `graspful register` or set `GRASPFUL_API_KEY` before starting MCP.
 
 ## Development
 

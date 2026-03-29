@@ -1,10 +1,6 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { LearningEngineController } from './learning-engine.controller';
 import { LearningEngineService } from './learning-engine.service';
 import { LessonService } from './lesson.service';
-import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
-
-const mockGuard = { canActivate: () => true };
 
 describe('LearningEngineController', () => {
   let controller: LearningEngineController;
@@ -18,7 +14,7 @@ describe('LearningEngineController', () => {
     role: 'member',
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockEngine = {
       getNextTask: jest.fn().mockResolvedValue({
         taskType: 'lesson',
@@ -56,20 +52,7 @@ describe('LearningEngineController', () => {
       }),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [LearningEngineController],
-      providers: [
-        { provide: LearningEngineService, useValue: mockEngine },
-        { provide: LessonService, useValue: mockLesson },
-      ],
-    })
-      .overrideGuard(SupabaseAuthGuard)
-      .useValue(mockGuard)
-      .overrideGuard(OrgMembershipGuard)
-      .useValue(mockGuard)
-      .compile();
-
-    controller = module.get(LearningEngineController);
+    controller = new LearningEngineController(mockEngine, mockLesson);
   });
 
   describe('GET /next-task', () => {

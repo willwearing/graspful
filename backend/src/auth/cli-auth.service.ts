@@ -21,6 +21,7 @@ type CliAuthSessionRecord = {
   orgId: string | null;
   encryptedApiKey: string | null;
   authorizedAt: Date | null;
+  consumedAt: Date | null;
   expiresAt: Date;
 };
 
@@ -87,12 +88,26 @@ export class CliAuthService {
 
   async exchange(token: string) {
     const session = await this.getSessionByToken(token);
-    if (!session || this.isExpired(session)) {
+    if (!session || this.isExpired(session) || this.isConsumed(session)) {
       return { status: 'expired' as const };
     }
 
     if (!session.encryptedApiKey || !session.userId || !session.orgId) {
       return { status: 'pending' as const };
+    }
+
+    const consumed = await this.prisma.cliAuthSession.updateMany({
+      where: {
+        id: session.id,
+        consumedAt: null,
+      },
+      data: {
+        consumedAt: new Date(),
+      },
+    });
+
+    if (consumed.count !== 1) {
+      return { status: 'expired' as const };
     }
 
     const org = await this.prisma.organization.findUnique({
@@ -130,6 +145,9 @@ export class CliAuthService {
     if (this.isExpired(session)) {
       throw new GoneException('CLI auth session expired. Start again from the terminal.');
     }
+    if (this.isConsumed(session)) {
+      throw new GoneException('CLI auth session has already been used. Start again from the terminal.');
+    }
     if (session.mode !== 'sign-in' && session.mode !== 'sign-up') {
       throw new BadRequestException('CLI auth session is invalid');
     }
@@ -149,6 +167,7 @@ export class CliAuthService {
         orgId: true,
         encryptedApiKey: true,
         authorizedAt: true,
+        consumedAt: true,
         expiresAt: true,
       },
     });
@@ -160,6 +179,10 @@ export class CliAuthService {
 
   private isExpired(session: Pick<CliAuthSessionRecord, 'expiresAt'>) {
     return session.expiresAt.getTime() <= Date.now();
+  }
+
+  private isConsumed(session: Pick<CliAuthSessionRecord, 'consumedAt'>) {
+    return session.consumedAt !== null;
   }
 
   private encrypt(value: string) {

@@ -1,13 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { EnrollmentService } from './enrollment.service';
-import { PrismaService } from '@/prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 
 describe('EnrollmentService', () => {
   let service: EnrollmentService;
   let mockPrisma: any;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockPrisma = {
       course: { findFirst: jest.fn() },
       academy: { findFirst: jest.fn() },
@@ -29,14 +27,7 @@ describe('EnrollmentService', () => {
       $transaction: jest.fn((fn: any) => fn({ ...mockPrisma })),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        EnrollmentService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
-    }).compile();
-
-    service = module.get(EnrollmentService);
+    service = new EnrollmentService(mockPrisma);
   });
 
   describe('enrollStudent', () => {

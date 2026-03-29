@@ -1,6 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { StudentStateService } from './student-state.service';
-import { PrismaService } from '@/prisma/prisma.service';
 import { activeConceptWhere } from '@/knowledge-graph/active-course-content';
 
 describe('StudentStateService', () => {
@@ -9,7 +7,7 @@ describe('StudentStateService', () => {
   const academyId = 'academy-1';
   const courseId = 'course-1';
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockPrisma = {
       course: {
         findUnique: jest.fn().mockResolvedValue({ academyId }),
@@ -37,14 +35,7 @@ describe('StudentStateService', () => {
       },
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        StudentStateService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
-    }).compile();
-
-    service = module.get(StudentStateService);
+    service = new StudentStateService(mockPrisma);
   });
 
   describe('getConceptStates', () => {

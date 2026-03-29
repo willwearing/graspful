@@ -1,30 +1,15 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { AudioController } from './audio.controller';
 import { AudioService } from './audio.service';
-import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
-
-const mockGuard = { canActivate: () => true };
 
 describe('AudioController', () => {
   let controller: AudioController;
   let mockAudioService: any;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockAudioService = {
       getSignedUrl: jest.fn(),
     };
-
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [AudioController],
-      providers: [{ provide: AudioService, useValue: mockAudioService }],
-    })
-      .overrideGuard(SupabaseAuthGuard)
-      .useValue(mockGuard)
-      .overrideGuard(OrgMembershipGuard)
-      .useValue(mockGuard)
-      .compile();
-
-    controller = module.get(AudioController);
+    controller = new AudioController(mockAudioService);
   });
 
   const org = { orgId: 'org-1', role: 'member' as const, userId: 'user-1', email: 'test@test.com' };
