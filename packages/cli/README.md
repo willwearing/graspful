@@ -8,8 +8,8 @@ CLI for creating adaptive learning courses from YAML knowledge graphs. Designed 
 ## Quick Start
 
 ```bash
-# 1. Create an account (gets you an org + API key)
-npx @graspful/cli register --email you@example.com --password your-password
+# 1. Create an account (opens browser auth, then saves an API key locally)
+npx @graspful/cli register
 
 # 2. Scaffold a course
 npx @graspful/cli create course --topic "CKA Exam" -o cka.yaml
@@ -22,7 +22,7 @@ npx @graspful/cli review cka.yaml
 npx @graspful/cli import cka.yaml --org <your-org> --publish
 ```
 
-Steps 2-3 work offline — no account needed. You only need to register before importing or publishing.
+Steps 2-3 work offline — no account needed. You only need to authenticate before importing or publishing.
 
 ## Install
 
@@ -182,10 +182,12 @@ graspful publish <courseId> --org acme-learning
 
 ### `graspful login`
 
-Authenticate with a Graspful instance.
+Authenticate with a Graspful instance. If you do not pass a token, the CLI
+opens a browser sign-in flow and saves a fresh API key locally after the
+browser session completes.
 
 ```bash
-graspful login                        # Interactive prompt
+graspful login                        # Browser sign-in
 graspful login --token gsk_abc123     # Non-interactive (for CI)
 ```
 

@@ -33,13 +33,13 @@ Or add manually to your editor's MCP config (see [Editor Configuration](#editor-
 
 ### 2. Create an account
 
-Call the `graspful_register` tool with your email and password. This creates an account, org, and API key — all in one step, no browser needed.
+Run the CLI once to complete browser auth and mint an API key, then restart the
+MCP server with `GRASPFUL_API_KEY` set.
 
+```bash
+npx @graspful/cli register
+export GRASPFUL_API_KEY="gsk_..."
 ```
-graspful_register(email: "you@example.com", password: "your-password")
-```
-
-Or via CLI: `npx @graspful/cli register --email you@example.com --password your-password`
 
 ### 3. Build a course
 

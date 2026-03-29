@@ -2,6 +2,7 @@ import { RegistrationService } from './registration.service';
 import { AuthRegisterController, RegisterDto } from './auth-register.controller';
 import {
   ConflictException,
+  GoneException,
   InternalServerErrorException,
 } from '@nestjs/common';
 
@@ -223,6 +224,12 @@ describe('RegistrationService', () => {
 });
 
 describe('AuthRegisterController', () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  afterEach(() => {
+    process.env.NODE_ENV = originalNodeEnv;
+  });
+
   it('delegates to RegistrationService', async () => {
     const mockRegistration = {
       register: jest.fn().mockResolvedValue({
@@ -243,5 +250,21 @@ describe('AuthRegisterController', () => {
 
     expect(mockRegistration.register).toHaveBeenCalledWith('test@example.com', 'password123');
     expect(result).toEqual({ userId: 'u1', orgSlug: 'test-org', apiKey: 'gsk_123' });
+  });
+
+  it('blocks password-based registration in production', async () => {
+    process.env.NODE_ENV = 'production';
+
+    const mockRegistration = {
+      register: jest.fn(),
+    };
+
+    const controller = new AuthRegisterController(mockRegistration as any);
+
+    await expect(
+      controller.register({ email: 'test@example.com', password: 'password123' }),
+    ).rejects.toThrow(GoneException);
+
+    expect(mockRegistration.register).not.toHaveBeenCalled();
   });
 });

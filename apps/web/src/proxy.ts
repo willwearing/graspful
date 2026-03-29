@@ -6,6 +6,7 @@ export const PUBLIC_ROUTES = [
   "/",
   "/sign-in",
   "/sign-up",
+  "/cli-auth",
   "/auth/callback",
   "/auth/confirm",
   "/forgot-password",

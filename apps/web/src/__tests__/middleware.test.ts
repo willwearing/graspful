@@ -23,6 +23,10 @@ describe("isPublicRoute", () => {
     expect(isPublicRoute("/sign-up")).toBe(true);
   });
 
+  it("marks /cli-auth as public", () => {
+    expect(isPublicRoute("/cli-auth")).toBe(true);
+  });
+
   it("marks /auth/callback as public", () => {
     expect(isPublicRoute("/auth/callback")).toBe(true);
   });
@@ -92,6 +96,7 @@ describe("middleware routing decisions", () => {
     expect(decideRoute("/", false)).toEqual({ action: "next" });
     expect(decideRoute("/sign-in", false)).toEqual({ action: "next" });
     expect(decideRoute("/sign-up", false)).toEqual({ action: "next" });
+    expect(decideRoute("/cli-auth", false)).toEqual({ action: "next" });
     expect(decideRoute("/auth/callback", false)).toEqual({ action: "next" });
   });
 

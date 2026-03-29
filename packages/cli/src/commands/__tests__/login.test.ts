@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, spyOn, mock } from 'bun:test';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -6,6 +6,7 @@ import * as os from 'os';
 const CREDENTIALS_PATH = path.join(os.homedir(), '.graspful', 'credentials.json');
 
 describe('graspful login', () => {
+  let originalFetch: typeof globalThis.fetch;
   let writeFileSyncSpy: ReturnType<typeof spyOn>;
   let mkdirSyncSpy: ReturnType<typeof spyOn>;
   let existsSyncSpy: ReturnType<typeof spyOn>;
@@ -14,6 +15,7 @@ describe('graspful login', () => {
   let consoleErrorSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
+    originalFetch = globalThis.fetch;
     writeFileSyncSpy = spyOn(fs, 'writeFileSync').mockImplementation(() => {});
     mkdirSyncSpy = spyOn(fs, 'mkdirSync').mockImplementation(() => '' as any);
     existsSyncSpy = spyOn(fs, 'existsSync').mockReturnValue(false);
@@ -23,6 +25,7 @@ describe('graspful login', () => {
   });
 
   afterEach(() => {
+    globalThis.fetch = originalFetch;
     writeFileSyncSpy.mockRestore();
     mkdirSyncSpy.mockRestore();
     existsSyncSpy.mockRestore();
@@ -71,27 +74,45 @@ describe('graspful login', () => {
     expect(savedContent.baseUrl).toBe('http://localhost:3000');
   });
 
-  it('does not accept --email or --password flags', async () => {
+  it('runs the browser sign-in flow when no token is provided', async () => {
     const { registerLoginCommand } = await import('../login');
     const { Command } = await import('commander');
 
+    globalThis.fetch = mock((url: string) => {
+      if (url.endsWith('/api/v1/auth/cli/sessions')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          token: 'cli-token-123',
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+          pollIntervalMs: 1,
+        }), { status: 201 }));
+      }
+
+      if (url.endsWith('/api/v1/auth/cli/sessions/exchange')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          status: 'complete',
+          userId: 'user-123',
+          orgSlug: 'test-org',
+          apiKey: 'gsk_browser_flow_key',
+        }), { status: 200 }));
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    }) as any;
+
     const program = new Command();
-    program.exitOverride(); // throw instead of process.exit on unknown options
     registerLoginCommand(program);
 
-    let threw = false;
-    try {
-      await program.parseAsync([
-        'node', 'graspful',
-        'login',
-        '--email', 'test@example.com',
-        '--password', 'mypassword',
-        '--api-url', 'http://localhost:3000',
-      ]);
-    } catch {
-      threw = true;
-    }
+    await program.parseAsync([
+      'node', 'graspful',
+      'login',
+      '--email', 'test@example.com',
+      '--no-browser',
+      '--api-url', 'http://localhost:3000',
+    ]);
 
-    expect(threw).toBe(true);
+    expect(writeFileSyncSpy).toHaveBeenCalledTimes(1);
+    const savedContent = JSON.parse(writeFileSyncSpy.mock.calls[0][1] as string);
+    expect(savedContent.apiKey).toBe('gsk_browser_flow_key');
+    expect(savedContent.baseUrl).toBe('http://localhost:3000');
   });
 });

@@ -37,18 +37,28 @@ describe('graspful register', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('saves API key credentials on successful registration', async () => {
-    const mockResponse = {
-      userId: 'user-123',
-      orgSlug: 'test-org',
-      apiKey: 'gsk_test_key_abc123',
-    };
+  it('saves API key credentials after browser sign-up completes', async () => {
+    globalThis.fetch = mock((url: string) => {
+      if (url.endsWith('/api/v1/auth/cli/sessions')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          token: 'cli-token-123',
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+          pollIntervalMs: 1,
+        }), { status: 201 }));
+      }
 
-    globalThis.fetch = mock(() =>
-      Promise.resolve(new Response(JSON.stringify(mockResponse), { status: 200 }))
-    ) as any;
+      if (url.endsWith('/api/v1/auth/cli/sessions/exchange')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          status: 'complete',
+          userId: 'user-123',
+          orgSlug: 'test-org',
+          apiKey: 'gsk_test_key_abc123',
+        }), { status: 200 }));
+      }
 
-    // Import fresh to avoid module caching issues
+      throw new Error(`Unexpected fetch: ${url}`);
+    }) as any;
+
     const { registerRegisterCommand } = await import('../register');
     const { Command } = await import('commander');
 
@@ -59,19 +69,16 @@ describe('graspful register', () => {
       'node', 'graspful',
       'register',
       '--email', 'test@example.com',
-      '--password', 'securepassword',
+      '--no-browser',
       '--api-url', 'http://localhost:3000',
     ]);
 
-    // Verify fetch was called with correct endpoint and body
-    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
     const fetchCall = (globalThis.fetch as any).mock.calls[0];
-    expect(fetchCall[0]).toBe('http://localhost:3000/api/v1/auth/register');
+    expect(fetchCall[0]).toBe('http://localhost:3000/api/v1/auth/cli/sessions');
     const fetchBody = JSON.parse(fetchCall[1].body);
-    expect(fetchBody.email).toBe('test@example.com');
-    expect(fetchBody.password).toBe('securepassword');
+    expect(fetchBody.mode).toBe('sign-up');
 
-    // Verify credentials were saved
     expect(writeFileSyncSpy).toHaveBeenCalledTimes(1);
     const savedContent = JSON.parse(writeFileSyncSpy.mock.calls[0][1] as string);
     expect(savedContent.apiKey).toBe('gsk_test_key_abc123');
@@ -79,15 +86,26 @@ describe('graspful register', () => {
   });
 
   it('prints success message with org slug', async () => {
-    const mockResponse = {
-      userId: 'user-456',
-      orgSlug: 'my-org',
-      apiKey: 'gsk_another_key',
-    };
+    globalThis.fetch = mock((url: string) => {
+      if (url.endsWith('/api/v1/auth/cli/sessions')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          token: 'cli-token-456',
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+          pollIntervalMs: 1,
+        }), { status: 201 }));
+      }
 
-    globalThis.fetch = mock(() =>
-      Promise.resolve(new Response(JSON.stringify(mockResponse), { status: 200 }))
-    ) as any;
+      if (url.endsWith('/api/v1/auth/cli/sessions/exchange')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          status: 'complete',
+          userId: 'user-456',
+          orgSlug: 'my-org',
+          apiKey: 'gsk_another_key',
+        }), { status: 200 }));
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    }) as any;
 
     const { registerRegisterCommand } = await import('../register');
     const { Command } = await import('commander');
@@ -99,19 +117,18 @@ describe('graspful register', () => {
       'node', 'graspful',
       'register',
       '--email', 'user@example.com',
-      '--password', 'pw123',
+      '--no-browser',
       '--api-url', 'http://localhost:3000',
     ]);
 
-    // Verify success output contains org slug
     const logOutput = consoleLogSpy.mock.calls.map((c: any[]) => c[0]).join('\n');
     expect(logOutput).toContain('my-org');
     expect(logOutput).toContain('gsk_another_key');
   });
 
-  it('exits with error on HTTP failure', async () => {
+  it('exits with error when starting browser auth fails', async () => {
     globalThis.fetch = mock(() =>
-      Promise.resolve(new Response(JSON.stringify({ message: 'Email already registered' }), { status: 409 }))
+      Promise.resolve(new Response(JSON.stringify({ message: 'Sign-up disabled' }), { status: 410 }))
     ) as any;
 
     const { registerRegisterCommand } = await import('../register');
@@ -124,8 +141,7 @@ describe('graspful register', () => {
       await program.parseAsync([
         'node', 'graspful',
         'register',
-        '--email', 'dupe@example.com',
-        '--password', 'pw',
+        '--no-browser',
         '--api-url', 'http://localhost:3000',
       ]);
     } catch (e: any) {
@@ -134,7 +150,7 @@ describe('graspful register', () => {
 
     expect(exitSpy).toHaveBeenCalledWith(1);
     const errorOutput = consoleErrorSpy.mock.calls.map((c: any[]) => c[0]).join('\n');
-    expect(errorOutput).toContain('Email already registered');
+    expect(errorOutput).toContain('Sign-up disabled');
   });
 
   it('exits with error on network failure', async () => {

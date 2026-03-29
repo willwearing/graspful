@@ -524,11 +524,13 @@ graspful login [options]
 | Flag | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | `--api-url <url>` | string | No | `GRASPFUL_API_URL` or `https://api.graspful.ai` | API base URL. |
-| `--token <token>` | string | No | — | API key or JWT. Skips interactive prompt. |
+| `--token <token>` | string | No | — | API key or JWT. Skips browser auth. |
+| `--email <email>` | string | No | — | Prefill the browser sign-in form. |
+| `--no-browser` | boolean | No | `false` | Print the sign-in URL instead of opening it automatically. |
 
 **Behavior:**
 - If `--token` is provided, saves it immediately.
-- If stdin is a TTY, prompts interactively for the token.
+- If stdin is a TTY and no token is provided, starts browser sign-in and waits for completion.
 - If stdin is piped, reads the token from stdin.
 - Saves to `~/.graspful/credentials.json` with mode `0600`.
 
@@ -539,11 +541,12 @@ graspful login
 ```
 
 ```
-Authenticating with https://api.graspful.ai
-Enter your API key or JWT token:
-(New user? Run "graspful register" instead.)
-> sk-abc123...
-Authenticated. Credentials saved for https://api.graspful.ai
+Complete sign-in in your browser to finish CLI setup.
+Open this URL if it did not launch automatically:
+https://graspful.ai/cli-auth?mode=sign-in#token=...
+
+Waiting for browser authentication...
+Authenticated. API key saved for https://api.graspful.ai
 ```
 
 **Example (non-interactive):**
@@ -556,29 +559,37 @@ graspful login --token sk-abc123
 
 ### `graspful register`
 
-Create a new Graspful account and organization. Saves the returned API key to `~/.graspful/credentials.json`.
+Create a new Graspful account with browser-based authentication. After the
+browser session completes, Graspful issues an API key and saves it to
+`~/.graspful/credentials.json`.
 
 **Syntax:**
 
 ```
-graspful register --email <email> --password <password> [options]
+graspful register [options]
 ```
 
 **Parameters:**
 
 | Flag | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
-| `--email <email>` | string | Yes | — | Email address. |
-| `--password <password>` | string | Yes | — | Password. |
+| `--email <email>` | string | No | — | Prefill the browser sign-up form. |
+| `--password <password>` | string | No | — | Deprecated. Password entry now happens in the browser. |
 | `--api-url <url>` | string | No | `GRASPFUL_API_URL` or `https://api.graspful.ai` | API base URL. |
+| `--no-browser` | boolean | No | `false` | Print the sign-up URL instead of opening it automatically. |
 
 **Example:**
 
 ```bash
-graspful register --email alice@example.com --password s3cret
+graspful register --email alice@example.com
 ```
 
 ```
+Complete sign-up in your browser to finish CLI setup.
+Open this URL if it did not launch automatically:
+https://graspful.ai/cli-auth?mode=sign-up&email=alice%40example.com#token=...
+
+Waiting for browser authentication...
 Created org: alice-org
 API key: sk-abc123... (saved to ~/.graspful/credentials.json)
 
@@ -1258,7 +1269,7 @@ export GRASPFUL_API_KEY=sk-your-api-key
 The API key is sent as a `Bearer` token in the `Authorization` header.
 
 **Obtaining an API key:**
-1. Run `graspful register --email you@example.com --password secret` to create an account and get an API key.
+1. Run `graspful register` to complete browser auth and get an API key.
 2. The key is saved to `~/.graspful/credentials.json` automatically.
 
 ### JWT Token (interactive sessions)
