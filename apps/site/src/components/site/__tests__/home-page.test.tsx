@@ -2,28 +2,27 @@ import { render, screen } from "@testing-library/react";
 import { HomePage } from "../home-page";
 
 describe("HomePage", () => {
-  it("renders the GOV.UK-style hero and primary sections", () => {
+  it("renders the product hero and primary sections", () => {
     render(<HomePage />);
 
+    // Hero headline is split into word spans, check the h1 contains the text
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(h1).toBeVisible();
+    expect(h1.textContent).toMatch(/build.*courses.*where.*students.*actually.*learn/i);
+
     expect(
-      screen.getByRole("heading", {
-        name: /the best place to run adaptive learning products and guidance/i,
-      }),
+      screen.getByRole("heading", { name: /what we do for you/i }),
     ).toBeVisible();
     expect(
-      screen.getByRole("heading", { name: /popular on graspful/i }),
-    ).toBeVisible();
-    expect(
-      screen.getByRole("heading", { name: /services and information/i }),
+      screen.getByRole("heading", { name: /how it works/i }),
     ).toBeVisible();
   });
 
-  it("renders the site search form", () => {
+  it("renders hero calls to action", () => {
     render(<HomePage />);
 
-    expect(screen.getByRole("searchbox", { name: /search/i })).toBeVisible();
     expect(
-      screen.getByRole("button", { name: /search graspful/i }),
-    ).toBeVisible();
+      screen.getAllByRole("link", { name: /start building free/i }).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 });

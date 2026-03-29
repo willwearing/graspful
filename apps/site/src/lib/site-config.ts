@@ -1,214 +1,118 @@
-export interface QuickLink {
-  title: string;
-  href: string;
-  description: string;
-}
-
 export interface ServiceArea {
   title: string;
   description: string;
   href: string;
-  links: QuickLink[];
 }
 
-export interface FeaturedStory {
+export interface PlatformPrinciple {
   title: string;
-  href: string;
   description: string;
-  eyebrow: string;
 }
 
 export const siteName = "Graspful";
 export const siteTagline =
-  "Services and guidance for people building adaptive courses";
+  "Turn Your Expertise Into a Course Business";
 
-export const appUrl =
-  process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
-
-export const topTasks: QuickLink[] = [
-  {
-    title: "Start building a course",
-    href: `${appUrl}/sign-up`,
-    description: "Create a Graspful account and open the creator workspace.",
-  },
-  {
-    title: "Understand how adaptive learning works",
-    href: "/how-graspful-works",
-    description: "See the mastery model, diagnostics, spacing, and review flow.",
-  },
-  {
-    title: "Review pricing and payouts",
-    href: "/pricing",
-    description: "See the 70/30 split, learner pricing, and operating costs.",
-  },
-  {
-    title: "Read the implementation guidance",
-    href: "/docs",
-    description: "Use Graspful with YAML, AI agents, and your existing materials.",
-  },
-  {
-    title: "Sign in to the creator dashboard",
-    href: `${appUrl}/sign-in`,
-    description: "Manage courses, branding, API keys, and student subscriptions.",
-  },
-  {
-    title: "Publish under your own domain",
-    href: `${appUrl}/sign-up`,
-    description: "Launch a branded academy without taking over the infrastructure.",
-  },
-];
 
 export const serviceAreas: ServiceArea[] = [
   {
-    title: "Build courses",
+    title: "Adaptive Diagnostics",
     description:
-      "Turn expertise, notes, and source material into structured adaptive courses.",
-    href: "/docs",
-    links: [
-      {
-        title: "Import a course from YAML",
-        href: "/docs",
-        description: "Use a schema-driven course definition with concepts and practice.",
-      },
-      {
-        title: "Generate content with agents",
-        href: "/docs",
-        description: "Work with Codex, Claude, Cursor, or any MCP-compatible tool.",
-      },
-    ],
-  },
-  {
-    title: "Publish and sell",
-    description:
-      "Launch a public academy with learner sign-up, billing, and brand controls already wired.",
-    href: "/pricing",
-    links: [
-      {
-        title: "Use Graspful pricing",
-        href: "/pricing",
-        description: "Operate on a simple 70/30 revenue share with no platform fee.",
-      },
-      {
-        title: "Ship under your own name",
-        href: `${appUrl}/sign-up`,
-        description: "Apply your own domain, palette, and academy configuration.",
-      },
-    ],
-  },
-  {
-    title: "Support learners",
-    description:
-      "Deliver diagnostics, adaptive sequencing, mastery gates, and spaced review.",
+      "Every student starts with a diagnostic that figures out what they already know. No wasted time on material they've mastered.",
     href: "/how-graspful-works",
-    links: [
-      {
-        title: "Run a diagnostic first",
-        href: "/how-graspful-works",
-        description: "Skip what the learner knows and focus effort on the real gaps.",
-      },
-      {
-        title: "Reinforce with review",
-        href: "/how-graspful-works",
-        description: "Schedule follow-up sessions before knowledge decays.",
-      },
-    ],
   },
   {
-    title: "Operate the platform",
+    title: "Fully Automated Learning Paths",
     description:
-      "Keep your creator workflow predictable with docs, release notes, and observability.",
+      "The system knows what each student needs next and delivers it. Different paths for different learners, zero manual intervention.",
+    href: "/how-graspful-works",
+  },
+  {
+    title: "Research-Backed Retention",
+    description:
+      "Spaced repetition, mastery gates, and retrieval practice built in. Students keep what they learned.",
+    href: "/how-graspful-works",
+  },
+  {
+    title: "Your Brand, Your Business",
+    description:
+      "Your domain. Your colors. Your pricing. The learner sees your academy, not ours.",
+    href: "/pricing",
+  },
+  {
+    title: "Free to Build. You Keep 70%.",
+    description:
+      "No upfront costs. No platform subscription. Build your course for free and earn 70% of every paid subscription.",
+    href: "/pricing",
+  },
+  {
+    title: "Quality Checks Built In",
+    description:
+      "Automated checks catch duplicate questions, missing prerequisites, and content gaps before you publish.",
     href: "/docs",
-    links: [
-      {
-        title: "Read the product guidance",
-        href: "/docs",
-        description: "Learn how the backend, frontend, and authoring flow fit together.",
-      },
-      {
-        title: "Check current platform direction",
-        href: "/how-graspful-works",
-        description: "Understand what Graspful is for and what it will not become.",
-      },
-    ],
   },
 ];
 
-export const featuredStories: FeaturedStory[] = [
+export const platformPrinciples: PlatformPrinciple[] = [
   {
-    eyebrow: "Featured guidance",
-    title: "Adaptive learning that changes the order, not just the pace",
-    href: "/how-graspful-works",
+    title: "Diagnose first",
     description:
-      "Graspful changes what each learner sees next based on what they can already prove.",
+      "Don't make everyone start at chapter one. Figure out what they already know and skip the stuff that wastes their time.",
   },
   {
-    eyebrow: "For course creators",
-    title: "A course platform that assumes you work with source material, not slide decks",
-    href: "/docs",
+    title: "Gate on mastery, not clicks",
     description:
-      "Bring notes, guides, standards, and domain expertise. The system handles the rest.",
+      "Students move forward when they prove they understand it. Not when they click 'next' enough times.",
   },
   {
-    eyebrow: "For operators",
-    title: "One product website, one platform runtime, different jobs",
-    href: "/docs",
+    title: "Bring knowledge back",
     description:
-      "The flagship site is bespoke. Customer academies stay constrained and reliable.",
-  },
-  {
-    eyebrow: "For revenue",
-    title: "You keep 70% when learners subscribe",
-    href: "/pricing",
-    description:
-      "No monthly platform subscription. Graspful makes money when creators make money.",
+      "Spaced review is built in. Students keep what they learned instead of forgetting it two weeks later.",
   },
 ];
 
-export const documentationLinks: QuickLink[] = [
+export const faqItems = [
   {
-    title: "Course authoring reference",
-    href: "/docs",
-    description: "Schemas, workflows, and publishing guidance for creator teams.",
+    question: "Do I need to know how to code?",
+    answer:
+      "No. You describe what you want to teach, and Graspful's AI builds the course structure, questions, and adaptive logic. You review and customize.",
   },
   {
-    title: "Pricing and payouts",
-    href: "/pricing",
-    description: "Revenue share, learner plans, and billing responsibilities.",
+    question: "How does the revenue share work?",
+    answer:
+      "You set your course price. When a learner subscribes, you keep 70% and Graspful keeps 30% to cover hosting, billing, the learner app, and the adaptive engine.",
   },
   {
-    title: "How Graspful works",
-    href: "/how-graspful-works",
-    description: "Platform model, learner experience, and operating boundaries.",
+    question: "Can I use my own domain and branding?",
+    answer:
+      "Yes. Your academy gets your domain, your logo, your colors. Learners see your brand, not ours.",
+  },
+  {
+    question: "What subjects can I teach?",
+    answer:
+      "Anything with structured knowledge: programming, math, science, languages, professional certifications, compliance training. If it can be broken into concepts with prerequisites, it works.",
+  },
+  {
+    question: "How is this different from Teachable or Thinkific?",
+    answer:
+      "Those platforms host videos. Graspful actually teaches. Every course gets adaptive diagnostics, mastery gating, and spaced review built in. Students don't just watch — they prove they learned.",
+  },
+  {
+    question: "What happens if I want to leave?",
+    answer:
+      "Your course content is yours. Export it anytime as YAML. No lock-in.",
   },
 ];
 
-export const searchDocuments = [
-  {
-    title: "How Graspful works",
-    href: "/how-graspful-works",
-    summary:
-      "Diagnostic-first learning, mastery gates, adaptive sequencing, and spaced repetition.",
-    tags: ["adaptive", "learning", "diagnostic", "mastery", "review"],
-  },
-  {
-    title: "Pricing",
-    href: "/pricing",
-    summary:
-      "Revenue share, launch costs, learner plans, and payout expectations.",
-    tags: ["pricing", "billing", "payout", "revenue", "stripe"],
-  },
-  {
-    title: "Documentation",
-    href: "/docs",
-    summary:
-      "YAML import, AI agents, publishing workflow, and creator operations.",
-    tags: ["docs", "yaml", "agents", "mcp", "publishing", "creator"],
-  },
-  {
-    title: "Creator dashboard",
-    href: `${appUrl}/sign-in`,
-    summary:
-      "Sign in to manage courses, API keys, brands, and subscriptions.",
-    tags: ["dashboard", "sign in", "creator", "manage"],
-  },
-];
+export const footerLinks = {
+  product: [
+    { title: "Agents", href: "/how-graspful-works" },
+    { title: "Pricing", href: "/pricing" },
+    { title: "Docs", href: "/docs" },
+  ],
+  resources: [
+    { title: "Blog", href: "/blog" },
+    { title: "CLI Reference", href: "/docs/cli" },
+    { title: "Course Schema", href: "/docs/course-schema" },
+  ],
+};

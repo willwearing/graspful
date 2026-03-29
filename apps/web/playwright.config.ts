@@ -1,7 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "node:path";
+import { config as dotenvConfig } from "dotenv";
 
 const backendDir = path.resolve(__dirname, "../../backend");
+
+// Load backend .env for SUPABASE_SERVICE_ROLE_KEY (needed by e2e auth helpers)
+dotenvConfig({ path: path.resolve(backendDir, ".env") });
+// Load web app .env.local for NEXT_PUBLIC_SUPABASE_URL
+dotenvConfig({ path: path.resolve(__dirname, ".env.local") });
 
 export default defineConfig({
   testDir: "./e2e",

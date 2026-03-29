@@ -4,6 +4,52 @@ import { type Page } from "@playwright/test";
 export const TEST_BRAND_ID = "electrician";
 export const POSTHOG_TEST_BRAND_ID = "posthog";
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://tzftjqpnisalltnkrykg.supabase.co";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
+/**
+ * Admin-confirm a user's email via Supabase Admin API.
+ * Required when Supabase has email confirmation enabled.
+ */
+async function adminConfirmUser(email: string): Promise<void> {
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY env var required for e2e tests (set in backend/.env)"
+    );
+  }
+
+  // Find user by email
+  const listRes = await fetch(
+    `${SUPABASE_URL}/auth/v1/admin/users?page=1&per_page=50`,
+    {
+      headers: {
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+      },
+    }
+  );
+  const { users } = (await listRes.json()) as { users: Array<{ id: string; email: string }> };
+  const user = users.find((u) => u.email === email);
+  if (!user) throw new Error(`User ${email} not found in Supabase`);
+
+  // Confirm their email
+  const confirmRes = await fetch(
+    `${SUPABASE_URL}/auth/v1/admin/users/${user.id}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email_confirm: true }),
+    }
+  );
+  if (!confirmRes.ok) {
+    throw new Error(`Failed to confirm user: ${confirmRes.statusText}`);
+  }
+}
+
 /**
  * Set the dev brand override cookie so the app resolves the correct org.
  */
@@ -23,7 +69,7 @@ async function setDevBrandCookie(
 
 /**
  * Sign up a fresh test user via the UI and return the email.
- * Relies on Supabase auto-confirm being enabled (dev mode).
+ * Handles both auto-confirm (dev) and email-confirm (hosted) Supabase configs.
  */
 export async function signUpTestUser(page: Page): Promise<string> {
   return signUpBrandedTestUser(page, TEST_BRAND_ID);
@@ -43,7 +89,20 @@ export async function signUpBrandedTestUser(
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Create Account" }).click();
 
-  // Wait for redirect — /dashboard for most brands, /creator for graspful brand
+  // Try fast path: auto-confirm redirects immediately
+  try {
+    await page.waitForURL(/\/(dashboard|creator)/, { timeout: 5_000 });
+    return email;
+  } catch {
+    // Email confirmation is enabled — confirm via admin API and sign in
+  }
+
+  await adminConfirmUser(email);
+
+  await page.goto("/sign-in");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Sign In" }).click();
   await page.waitForURL(/\/(dashboard|creator)/, { timeout: 15_000 });
 
   return email;
@@ -65,6 +124,20 @@ export async function signInTestUser(
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign In" }).click();
   await page.waitForURL(/\/(dashboard|creator)/, { timeout: 15_000 });
+}
+
+const GRASPFUL_BRAND = "graspful";
+
+/**
+ * Sign up on the graspful brand. Ends up on /creator.
+ */
+export async function signUpAsCreator(page: Page): Promise<string> {
+  const email = await signUpBrandedTestUser(page, GRASPFUL_BRAND);
+  // Ensure we end up on /creator (middleware redirect may be async)
+  if (page.url().includes("/dashboard")) {
+    await page.waitForURL(/\/creator/, { timeout: 10_000 });
+  }
+  return email;
 }
 
 export async function getBrowserAccessToken(page: Page): Promise<string | null> {

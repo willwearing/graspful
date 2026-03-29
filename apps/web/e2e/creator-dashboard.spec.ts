@@ -1,31 +1,5 @@
 import { test, expect } from "@playwright/test";
-
-const GRASPFUL_BRAND = "graspful";
-
-/**
- * Sign up on the graspful brand. Middleware redirects to /creator (not /dashboard).
- */
-async function signUpAsCreator(page: import("@playwright/test").Page) {
-  const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.example.com`;
-  const password = "TestPassword123!";
-
-  await page.context().addCookies([
-    { name: "dev-brand-override", value: GRASPFUL_BRAND, domain: "localhost", path: "/" },
-  ]);
-
-  await page.goto("/sign-up");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Create Account" }).click();
-
-  // Wait for auth redirect — may land on /dashboard first, then middleware redirects to /creator
-  await page.waitForURL(/\/(creator|dashboard)/, { timeout: 15_000 });
-  // Ensure we end up on /creator (middleware redirect may be async)
-  if (page.url().includes("/dashboard")) {
-    await page.waitForURL(/\/creator/, { timeout: 10_000 });
-  }
-  return email;
-}
+import { signUpAsCreator } from "./helpers/auth";
 
 test.describe("Creator Dashboard", () => {
   test.beforeEach(async ({ page }) => {

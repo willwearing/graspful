@@ -1,56 +1,45 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Graspful site", () => {
-  test("renders the new homepage and key navigation", async ({ page }) => {
+  test("renders the homepage hero and key navigation", async ({ page }) => {
     await page.goto("/");
 
+    // Hero headline (word-by-word spans)
+    const h1 = page.getByRole("heading", { level: 1 });
+    await expect(h1).toBeVisible();
+    await expect(h1).toContainText("Build courses where students actually learn");
+
     await expect(
-      page.getByRole("heading", {
-        name: /the best place to run adaptive learning products and guidance/i,
-      }),
+      page.getByText("Pricing").first(),
     ).toBeVisible();
     await expect(
-      page.getByLabel("Primary").getByRole("link", { name: "Pricing" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /popular on graspful/i }),
+      page.getByRole("heading", { name: /what we do for you/i }),
     ).toBeVisible();
   });
 
-  test("search routes to search results", async ({ page }) => {
+  test("hero CTA routes to sign-up", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("searchbox", { name: /search/i }).fill("pricing");
-    await page.getByRole("button", { name: /search graspful/i }).click();
 
-    await expect(page).toHaveURL(/\/search\?q=pricing/);
     await expect(
-      page
-        .locator(".search-result-card")
-        .getByRole("link", { name: "Pricing" })
-        .first(),
-    ).toBeVisible();
+      page.getByRole("link", { name: /start building free/i }).first(),
+    ).toHaveAttribute("href", /sign-up/);
   });
 
-  test("dark mode persists across navigation", async ({ page }) => {
+  test("navigates to pricing from homepage", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /switch to dark mode/i }).click();
-    await expect(page.locator("html")).toHaveClass(/dark/);
 
-    await page.getByRole("link", { name: /how it works/i }).click();
-    await expect(page.locator("html")).toHaveClass(/dark/);
-    await expect(
-      page.getByRole("heading", { name: /how graspful works/i }),
-    ).toBeVisible();
-  });
-
-  test("pricing page is reachable from homepage", async ({ page }) => {
-    await page.goto("/");
     await page.getByRole("link", { name: /^pricing$/i }).first().click();
-
     await expect(page).toHaveURL(/\/pricing/);
     await expect(
-      page.getByRole("heading", { name: /pricing and payouts/i }),
+      page.getByRole("heading", { name: /pricing/i }),
     ).toBeVisible();
-    await expect(page.getByText(/creator share/i)).toBeVisible();
+  });
+
+  test("theme toggle is present", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(
+      page.getByRole("button", { name: /switch to/i }),
+    ).toBeVisible();
   });
 });
