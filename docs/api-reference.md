@@ -1345,7 +1345,7 @@ Credentials file: `~/.graspful/credentials.json`
 | `File not found: {path}` | The specified YAML file does not exist. | Check the file path. |
 | `YAML parse error: {details}` | The file is not valid YAML. | Fix YAML syntax (check indentation, colons, etc). |
 | `Could not detect file type` | No `course`, `brand`, or `academy` top-level key. | Add the correct top-level key to the YAML. |
-| `Not authenticated. Set GRASPFUL_API_KEY or run: graspful login` | No credentials found for an operation that requires auth. | Set `GRASPFUL_API_KEY` or run `graspful login`. |
+| `Not authenticated. Set GRASPFUL_API_KEY or run: graspful login (existing account) / graspful register (new account)` | No credentials found for an operation that requires auth. | Set `GRASPFUL_API_KEY`, run `graspful login` if the account already exists, or run `graspful register` to create one. |
 | `--org is required for course imports` | The `--org` flag was omitted on `graspful import` for a course file. | Add `--org your-org-slug`. |
 | `Concept "{id}" not found` | The specified concept ID doesn't exist in the YAML. | Check available concept IDs with `graspful describe`. |
 | `Concept "{id}" already has {n} KP(s)` | Attempted to fill a concept that already has knowledge points. | Remove existing KPs first, or choose a different concept. |

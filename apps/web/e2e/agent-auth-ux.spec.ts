@@ -7,7 +7,7 @@ const BACKEND_URL = "http://localhost:3000/api/v1";
 /**
  * Tests for agent auth UX improvements:
  * 1. Auth-gated API endpoints return prescriptive errors when unauthenticated
- * 2. The graspful_register flow works end-to-end (register → get API key → use it)
+ * 2. An authenticated flow works end-to-end (register in test env → get API key → use it)
  * 3. MCP tool definitions contain auth prerequisite text
  */
 
@@ -105,14 +105,13 @@ test.describe("Agent Auth UX — Register → Import Flow", () => {
 });
 
 test.describe("Agent Auth UX — MCP Tool Descriptions", () => {
-  test("auth-gated tool descriptions mention graspful_register", async () => {
+  test("auth-gated tool descriptions mention terminal/browser auth and GRASPFUL_API_KEY", async () => {
     // Read the MCP source to verify tool descriptions contain auth guidance
     const mcpSource = require("fs").readFileSync(
       path.resolve(__dirname, "../../../packages/mcp/src/index.ts"),
       "utf-8"
     );
 
-    // All auth-gated tools should mention graspful_register in their descriptions
     const authGatedTools = [
       "graspful_import_course",
       "graspful_publish_course",
@@ -128,26 +127,19 @@ test.describe("Agent Auth UX — MCP Tool Descriptions", () => {
       // Extract the description (next ~500 chars should contain it)
       const descriptionBlock = mcpSource.substring(toolIdx, toolIdx + 600);
 
-      expect(descriptionBlock).toContain("graspful_register");
+      expect(descriptionBlock).toContain("graspful register");
+      expect(descriptionBlock).toContain("GRASPFUL_API_KEY");
       expect(descriptionBlock).toContain("Requires authentication");
     }
   });
 
-  test("graspful_register tool exists in MCP tool definitions", async () => {
+  test("graspful_register tool is removed from MCP tool definitions", async () => {
     const mcpSource = require("fs").readFileSync(
       path.resolve(__dirname, "../../../packages/mcp/src/index.ts"),
       "utf-8"
     );
 
-    expect(mcpSource).toContain("name: 'graspful_register'");
-
-    // Its description should explain what it does
-    const toolIdx = mcpSource.indexOf("name: 'graspful_register'");
-    const descriptionBlock = mcpSource.substring(toolIdx, toolIdx + 1000);
-    expect(descriptionBlock).toContain("Create a new Graspful account");
-    expect(descriptionBlock).toContain("graspful_import_course");
-    expect(descriptionBlock).toContain("email");
-    expect(descriptionBlock).toContain("password");
+    expect(mcpSource).not.toContain("name: 'graspful_register'");
   });
 
   test("AGENTS.md documents auth-first workflow", async () => {
@@ -162,8 +154,8 @@ test.describe("Agent Auth UX — MCP Tool Descriptions", () => {
     expect(authIdx).toBeGreaterThan(-1);
     expect(authIdx).toBeLessThan(step1Idx);
 
-    // Should mention graspful_register
-    expect(agentsMd).toContain("graspful_register");
+    expect(agentsMd).toContain("graspful register");
+    expect(agentsMd).toContain("GRASPFUL_API_KEY");
   });
 });
 

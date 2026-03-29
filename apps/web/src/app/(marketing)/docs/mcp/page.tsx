@@ -130,9 +130,10 @@ export default function MCPPage() {
               </p>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Run{" "}
-                <InlineCode>graspful register --email you@example.com --password &quot;...&quot;</InlineCode>{" "}
-                to create a new account. The API key is returned in the response
-                and saved automatically.
+                <InlineCode>graspful register --email you@example.com</InlineCode>{" "}
+                to complete browser auth and mint an API key. The CLI saves the
+                key automatically to{" "}
+                <InlineCode>~/.graspful/credentials.json</InlineCode>.
               </p>
             </div>
           </div>

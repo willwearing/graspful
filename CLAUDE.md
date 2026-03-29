@@ -4,7 +4,7 @@ Adaptive learning platform. Multi-tenant white-label SaaS.
 
 ## Critical Rules
 
-- **CLI or MCP for everything.** Never open a browser to sign up, import, or manage courses. The platform is built for programmatic agent workflows.
+- **CLI or MCP for everything.** Browser auth is only used to mint credentials for the CLI; course creation and publishing stay programmatic.
 - **Use `bun` not `npm`.**
 - **Read `docs/adding-a-course.md` before building any course.** It is the canonical agent runbook.
 
@@ -19,9 +19,8 @@ Adaptive learning platform. Multi-tenant white-label SaaS.
 **You MUST authenticate before importing or publishing.** Four tools require auth: `graspful_import_course`, `graspful_publish_course`, `graspful_import_brand`, `graspful_list_courses`.
 
 To authenticate, do ONE of:
-1. **MCP tool (recommended):** Call `graspful_register(email, password)` — creates an account + org + API key. The key is automatically active for the rest of the session.
-2. **CLI:** Run `graspful register --email <email> --password <password>` — saves credentials to `~/.graspful/credentials.json`.
-3. **Environment variable:** Set `GRASPFUL_API_KEY=gsk_...` before starting the MCP server.
+1. **CLI (recommended for first-time setup):** Run `graspful register [--email <email>]` — this opens browser auth, then saves an API key to `~/.graspful/credentials.json`.
+2. **Environment variable:** Set `GRASPFUL_API_KEY=gsk_...` before starting the MCP server.
 
 If you try an authenticated tool without auth, you'll get a clear error telling you to register first.
 
@@ -41,19 +40,18 @@ If MCP is already configured, you have these tools available — no CLI needed:
 
 | Tool | Auth? | Description |
 |------|:---:|-------------|
-| `graspful_register` | No | **Call this first if you need to import/publish.** Creates account + org + API key |
 | `graspful_scaffold_course` | No | Generate course YAML skeleton |
 | `graspful_fill_concept` | No | Add KPs and problems to a concept |
 | `graspful_validate` | No | Validate YAML against schema |
 | `graspful_review_course` | No | Run 10 quality checks |
 | `graspful_describe_course` | No | Course statistics |
 | `graspful_create_brand` | No | Generate brand YAML |
-| `graspful_import_course` | **Yes** | Import course to platform (call `graspful_register` first) |
-| `graspful_publish_course` | **Yes** | Publish a draft course (call `graspful_register` first) |
-| `graspful_import_brand` | **Yes** | Import brand config (call `graspful_register` first) |
-| `graspful_list_courses` | **Yes** | List org courses (call `graspful_register` first) |
+| `graspful_import_course` | **Yes** | Import course to platform (set `GRASPFUL_API_KEY` first) |
+| `graspful_publish_course` | **Yes** | Publish a draft course (set `GRASPFUL_API_KEY` first) |
+| `graspful_import_brand` | **Yes** | Import brand config (set `GRASPFUL_API_KEY` first) |
+| `graspful_list_courses` | **Yes** | List org courses (set `GRASPFUL_API_KEY` first) |
 
-Tools marked "No" for auth work offline — no account needed. Tools marked **Yes** will fail with a clear error if you haven't authenticated. Call `graspful_register` first.
+Tools marked "No" for auth work offline — no account needed. Tools marked **Yes** will fail with a clear error if you haven't authenticated. Run `graspful register`, then restart MCP with `GRASPFUL_API_KEY`.
 
 **MCP discovery:** To check if MCP is active, try calling `graspful_validate` with any small YAML string. If it responds, MCP is working. If you get a "tool not found" error, fall back to the CLI.
 
@@ -61,17 +59,12 @@ Tools marked "No" for auth work offline — no account needed. Tools marked **Ye
 
 If you haven't already authenticated (see "Authentication" above), do it now before proceeding to import.
 
-**MCP (recommended):**
-```
-graspful_register(email: "you@example.com", password: "your-password")
-```
-
 **CLI:**
 ```bash
-graspful register --email <email> --password <password>
+graspful register --email <email>
 ```
 
-Both create an account, org, and API key. The MCP tool auto-activates the key for the current session. The CLI saves it to `~/.graspful/credentials.json`.
+This creates an account, org, and API key through browser auth. To use MCP tools that require auth, restart the MCP server with `GRASPFUL_API_KEY` set to the saved key.
 
 ### Step 3: Build a course
 
@@ -178,7 +171,7 @@ graspful import brand.yaml
 
 ### Key rules
 
-- **CLI or MCP for everything.** Never open a browser to sign up, import, or manage courses.
+- **CLI or MCP for everything.** Browser auth is only for minting credentials; course creation, import, and publishing stay programmatic.
 - **Validate after every edit.** It's offline and fast.
 - **Fill one concept at a time.** Quality is better than filling the whole course at once.
 - **Review before import.** The server rejects courses that fail the quality gate.
@@ -265,7 +258,7 @@ The backend follows Domain-Driven Design with bounded contexts. Each NestJS modu
 1. **All pages render** — every route under `(marketing)` and `(app)` must have a smoke test verifying it returns 200 and renders its heading. See `e2e/docs-smoke.spec.ts` for the pattern.
 2. **Auth flows** — sign-up, sign-in, sign-out, email confirmation callback, org provisioning
 3. **Creator flows** — API key CRUD, course import, brand config import, course publish
-4. **API registration** — `POST /auth/register` returns userId + orgSlug + apiKey (agent onboarding)
+4. **CLI registration** — `graspful register` opens browser auth, then stores an API key locally for later CLI/MCP use
 5. **API provisioning** — `POST /auth/provision` creates personal org for web UI sign-ups
 6. **Learner flows** — browse, enroll, diagnostic, study session
 

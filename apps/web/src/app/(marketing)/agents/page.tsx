@@ -58,10 +58,6 @@ const agents = [
 
 const mcpTools = [
   {
-    name: "register",
-    description: "Create account + org + API key. Call this first — required before import or publish.",
-  },
-  {
     name: "create_course",
     description: "Scaffold a course skeleton from a topic and source document",
   },
@@ -254,9 +250,9 @@ export default function AgentsPage() {
               {
                 icon: KeyRound,
                 step: "0",
-                title: "Register for an API key",
+                title: "Authenticate for import and publish",
                 description:
-                  "The agent calls graspful_register to create an account and get an API key. This takes seconds and is required before importing or publishing. Scaffold and review work without auth.",
+                  "Run graspful register in a terminal to finish browser auth, then restart MCP with GRASPFUL_API_KEY set. Scaffold and review work without auth; import and publish do.",
               },
               {
                 icon: BookOpen,

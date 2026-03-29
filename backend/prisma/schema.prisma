@@ -437,6 +437,7 @@ model CliAuthSession {
   orgId           String?   @map("org_id") @db.Uuid
   encryptedApiKey String?   @map("encrypted_api_key")
   authorizedAt    DateTime? @map("authorized_at") @db.Timestamptz
+  consumedAt      DateTime? @map("consumed_at") @db.Timestamptz
   expiresAt       DateTime  @map("expires_at") @db.Timestamptz
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz

@@ -1,8 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { DiagnosticSessionService } from './diagnostic-session.service';
 import { StudentStateService } from '@/student-model/student-state.service';
-import { PrismaService } from '@/prisma/prisma.service';
-import { GraphQueryService } from '@/knowledge-graph/graph-query.service';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 
 describe('DiagnosticSessionService', () => {
@@ -27,7 +24,7 @@ describe('DiagnosticSessionService', () => {
     ...overrides,
   });
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockPrisma = {
       academyEnrollment: {
         findUnique: jest.fn(),
@@ -70,16 +67,7 @@ describe('DiagnosticSessionService', () => {
       getMasteryMapForAcademy: jest.fn(),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        DiagnosticSessionService,
-        GraphQueryService,
-        { provide: PrismaService, useValue: mockPrisma },
-        { provide: StudentStateService, useValue: mockStudentState },
-      ],
-    }).compile();
-
-    service = module.get(DiagnosticSessionService);
+    service = new DiagnosticSessionService(mockPrisma, mockStudentState);
   });
 
   describe('startDiagnostic', () => {

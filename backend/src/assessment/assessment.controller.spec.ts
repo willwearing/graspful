@@ -1,12 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { AssessmentController } from './assessment.controller';
 import { ProblemSubmissionService } from './problem-submission.service';
 import { ReviewService } from './review.service';
 import { QuizService } from './quiz.service';
 import { SectionExamService } from './section-exam.service';
-import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
-
-const mockGuard = { canActivate: () => true };
 
 describe('AssessmentController', () => {
   let controller: AssessmentController;
@@ -17,7 +13,7 @@ describe('AssessmentController', () => {
 
   const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockProblemSubmission = {
       submitAnswer: jest.fn().mockResolvedValue({
         correct: true,
@@ -82,22 +78,12 @@ describe('AssessmentController', () => {
       }),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [AssessmentController],
-      providers: [
-        { provide: ProblemSubmissionService, useValue: mockProblemSubmission },
-        { provide: ReviewService, useValue: mockReview },
-        { provide: QuizService, useValue: mockQuiz },
-        { provide: SectionExamService, useValue: mockSectionExam },
-      ],
-    })
-      .overrideGuard(SupabaseAuthGuard)
-      .useValue(mockGuard)
-      .overrideGuard(OrgMembershipGuard)
-      .useValue(mockGuard)
-      .compile();
-
-    controller = module.get(AssessmentController);
+    controller = new AssessmentController(
+      mockProblemSubmission,
+      mockReview,
+      mockQuiz,
+      mockSectionExam,
+    );
   });
 
   describe('submitLessonAnswer', () => {

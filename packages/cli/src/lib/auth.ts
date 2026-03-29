@@ -66,7 +66,7 @@ export function saveApiKeyCredentials(apiKey: string, baseUrl?: string): void {
 export function requireAuth(): Credentials {
   const creds = resolveCredentials();
   if (!creds.apiKey && !creds.jwt) {
-    console.error('Not authenticated. Set GRASPFUL_API_KEY or run: graspful login');
+    console.error('Not authenticated. Set GRASPFUL_API_KEY or run: graspful login (existing account) / graspful register (new account)');
     process.exit(1);
   }
   return creds;
