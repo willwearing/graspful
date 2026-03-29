@@ -34,18 +34,15 @@ export default function QuickstartPage() {
           1. Register
         </h2>
         <p className="mt-2 text-muted-foreground">
-          Create an account and get an API key. You can register via the API or
-          the CLI.
+          Create an account and get an API key. The CLI opens browser auth so
+          email verification and future MFA stay on the web side.
         </p>
         <CodeBlock language="bash">
-          {`# Via the API
-curl -X POST https://api.graspful.ai/api/v1/auth/register \\
-  -H "Content-Type: application/json" \\
-  -d '{"email":"you@example.com","password":"..."}'
-# → { "apiKey": "gsk_...", "orgSlug": "you-example" }
+          {`# Via the CLI
+graspful register --email you@example.com
 
-# Or via the CLI
-graspful register --email you@example.com --password "..."`}
+# Browser flow opens automatically and, once complete,
+# the CLI saves GRASPFUL_API_KEY locally for you.`}
         </CodeBlock>
         <p className="mt-3 text-sm text-muted-foreground">
           The CLI saves your credentials automatically so you can skip the login

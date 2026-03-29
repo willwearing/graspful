@@ -108,16 +108,16 @@ export default function CLIReferencePage() {
 
       <CommandSection
         name="graspful register"
-        synopsis={`graspful register --email <email> --password <password>`}
-        description="Create a new Graspful account and return an API key. Credentials are saved automatically to ~/.graspful/credentials.json so subsequent commands are authenticated without a separate login step."
+        synopsis={`graspful register [--email <email>] [--no-browser]`}
+        description="Create a new Graspful account with browser-based auth. Once the browser flow completes, the CLI saves an API key automatically to ~/.graspful/credentials.json."
         options={[
-          { flag: "--email <email>", description: "Account email address (required)" },
-          { flag: "--password <password>", description: "Account password (required)" },
+          { flag: "--email <email>", description: "Prefill the browser sign-up form" },
+          { flag: "--no-browser", description: "Print the sign-up URL instead of opening it automatically" },
         ]}
         examples={[
           {
             label: "Register a new account",
-            code: "graspful register --email you@example.com --password \"s3cret\"",
+            code: "graspful register --email you@example.com",
           },
         ]}
         jsonOutput={`{
@@ -128,26 +128,22 @@ export default function CLIReferencePage() {
 
       <CommandSection
         name="graspful login"
-        synopsis={`graspful login [--api-url <url>] [--token <token>] [--email <email> --password <password>]`}
-        description="Authenticate with a Graspful instance. Saves credentials locally for subsequent commands. Supports interactive prompts, API key auth, and email/password auth."
+        synopsis={`graspful login [--api-url <url>] [--token <token>] [--email <email>] [--no-browser]`}
+        description="Authenticate with a Graspful instance. Saves credentials locally for subsequent commands. Supports browser sign-in by default and API key auth for non-interactive environments."
         options={[
           { flag: "--api-url <url>", description: "API base URL (defaults to https://api.graspful.ai)" },
-          { flag: "--token <token>", description: "API key (skips interactive prompt)" },
-          { flag: "--email <email>", description: "Account email for email/password auth" },
-          { flag: "--password <password>", description: "Account password for email/password auth" },
+          { flag: "--token <token>", description: "API key or JWT (skips browser auth)" },
+          { flag: "--email <email>", description: "Prefill the browser sign-in form" },
+          { flag: "--no-browser", description: "Print the sign-in URL instead of opening it automatically" },
         ]}
         examples={[
           {
-            label: "Interactive login",
+            label: "Browser sign-in",
             code: "graspful login",
           },
           {
             label: "API key auth",
             code: "graspful login --token gsk_abc123",
-          },
-          {
-            label: "Email/password auth",
-            code: "graspful login --email you@example.com --password \"s3cret\"",
           },
           {
             label: "Pipe from a secret manager",

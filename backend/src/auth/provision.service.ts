@@ -1,11 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import * as crypto from 'crypto';
 
 /**
- * Ensures every authenticated user has a personal organization, brand,
- * and default API key.  Called by POST /auth/provision after Supabase
- * Auth sign-up (which bypasses /auth/register).
+ * Ensures every authenticated user has a personal organization and brand.
+ * Called by POST /auth/provision after Supabase Auth sign-up
+ * (which bypasses /auth/register).
  */
 @Injectable()
 export class ProvisionService {
@@ -15,7 +14,7 @@ export class ProvisionService {
 
   /**
    * Idempotent: returns the user's owned org if one already exists,
-   * otherwise creates org + brand + API key in a single transaction.
+   * otherwise creates org + brand in a single transaction.
    */
   async ensureUserOrg(
     userId: string,
@@ -74,14 +73,6 @@ export class ProvisionService {
           },
           seo: { title: orgName, description: `Adaptive learning at ${orgName}`, keywords: [] },
         },
-      });
-
-      // Default API key
-      const rawApiKey = `gsk_${crypto.randomBytes(32).toString('hex')}`;
-      const keyHash = crypto.createHash('sha256').update(rawApiKey).digest('hex');
-      const keyPrefix = rawApiKey.slice(0, 12);
-      await tx.apiKey.create({
-        data: { orgId: org.id, userId, name: 'default', keyHash, keyPrefix },
       });
 
       return { orgSlug: org.slug, orgId: org.id };

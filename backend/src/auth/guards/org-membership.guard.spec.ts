@@ -1,4 +1,5 @@
-import { OrgMembershipGuard, OrgContext, MIN_ROLE_KEY } from './org-membership.guard';
+import { OrgMembershipGuard, MIN_ROLE_KEY } from './org-membership.guard';
+import type { OrgContext } from './org-membership.guard';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 

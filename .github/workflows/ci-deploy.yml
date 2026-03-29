@@ -36,11 +36,23 @@ jobs:
       - name: Type check frontend
         run: cd apps/web && bun x tsc --noEmit
 
+      - name: Type check site
+        run: cd apps/site && bun x tsc --noEmit
+
       - name: Run backend tests
         run: cd backend && bun run test
 
       - name: Run frontend tests
         run: cd apps/web && bun run test
+
+      - name: Run site tests
+        run: cd apps/site && bun run test
+
+      - name: Build frontend
+        run: cd apps/web && bun run build
+
+      - name: Build site
+        run: cd apps/site && bun run build
 
   deploy-backend:
     name: Deploy Backend

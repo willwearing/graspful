@@ -2,8 +2,8 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import * as readline from 'readline';
-import { saveApiKeyCredentials, getBaseUrl, resolveCredentials } from '../lib/auth';
+import { getBaseUrl, resolveCredentials } from '../lib/auth';
+import { runBrowserAuthFlow } from '../lib/browser-auth';
 import { output, outputError } from '../lib/output';
 
 // ─── Editor detection ────────────────────────────────────────────────────────
@@ -70,35 +70,16 @@ function writeMcpConfig(configPath: string, apiKey: string): void {
   fs.writeFileSync(configPath, JSON.stringify(existing, null, 2) + '\n');
 }
 
-// ─── Interactive prompt ──────────────────────────────────────────────────────
-
-function prompt(question: string): Promise<string> {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
-}
-
-// ─── Command ─────────────────────────────────────────────────────────────────
-
-interface RegisterResponse {
-  userId: string;
-  orgSlug: string;
-  apiKey: string;
-}
-
 export function registerInitCommand(program: Command) {
   program
     .command('init')
-    .description('Set up Graspful: register, save credentials, configure MCP for your editor')
-    .option('--email <email>', 'Email address (skip interactive prompt)')
-    .option('--password <password>', 'Password (skip interactive prompt)')
+    .description('Set up Graspful: authenticate in the browser and configure MCP for your editor')
+    .option('--email <email>', 'Prefill the browser sign-up form')
+    .option('--password <password>', 'Deprecated. Password entry now happens in the browser.')
     .option('--api-url <url>', 'API base URL')
     .option('--no-mcp', 'Skip MCP configuration')
-    .action(async (opts: { email?: string; password?: string; apiUrl?: string; mcp: boolean }) => {
+    .option('--no-browser', 'Print the sign-up URL instead of opening it automatically')
+    .action(async (opts: { email?: string; password?: string; apiUrl?: string; mcp: boolean; browser?: boolean }) => {
       const baseUrl = (opts.apiUrl || getBaseUrl()).replace(/\/$/, '');
 
       // ── Check if already authenticated ──────────────────────────────────
@@ -119,56 +100,18 @@ export function registerInitCommand(program: Command) {
         return;
       }
 
-      // ── Get email and password ──────────────────────────────────────────
-      let email = opts.email;
-      let password = opts.password;
-
-      if (!email || !password) {
-        if (!process.stdin.isTTY) {
-          outputError('Non-interactive mode requires --email and --password flags.');
-          process.exit(1);
-        }
-
-        console.log('Welcome to Graspful! Let\'s get you set up.\n');
-
-        if (!email) {
-          email = await prompt('Email: ');
-        }
-        if (!password) {
-          password = await prompt('Password: ');
-        }
-      }
-
-      if (!email || !password) {
-        outputError('Email and password are required.');
-        process.exit(1);
-      }
-
-      // ── Register ────────────────────────────────────────────────────────
+      // ── Browser sign-up ────────────────────────────────────────────────
       try {
-        const res = await fetch(`${baseUrl}/api/v1/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
-
-        if (!res.ok) {
-          const body = await res.text();
-          let message = `Registration failed (${res.status})`;
-          try {
-            const parsed = JSON.parse(body);
-            if (parsed.message) message = parsed.message;
-          } catch {
-            if (body) message = body;
-          }
-          outputError(message);
-          process.exit(1);
+        if (opts.password) {
+          console.log('`--password` is deprecated. Complete the password and verification steps in your browser.');
         }
 
-        const data = (await res.json()) as RegisterResponse;
-
-        // Save credentials
-        saveApiKeyCredentials(data.apiKey, baseUrl);
+        const data = await runBrowserAuthFlow({
+          apiUrl: baseUrl,
+          mode: 'sign-up',
+          email: opts.email,
+          noBrowser: opts.browser === false,
+        });
 
         console.log(`\nAccount created!`);
         console.log(`  Org: ${data.orgSlug}`);

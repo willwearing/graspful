@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -19,18 +19,23 @@ export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const reason = searchParams.get("reason");
+  const presetEmail = searchParams.get("email") || "";
   const rawRedirect = searchParams.get("redirect") || "/dashboard";
   // Prevent open redirect: must be a relative path, not protocol-relative
   const redirectTo =
     rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
       ? rawRedirect
       : "/dashboard";
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(presetEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const supabase = createSupabaseBrowserClient();
+
+  useEffect(() => {
+    setEmail(presetEmail);
+  }, [presetEmail]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
