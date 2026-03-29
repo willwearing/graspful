@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { createSupabaseBrowserClient, hasSupabaseBrowserEnv } from "@/lib/supabase/client";
 import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,8 +29,6 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const supabase = createSupabaseBrowserClient();
-
   useEffect(() => {
     setEmail(presetEmail);
   }, [presetEmail]);
@@ -41,6 +39,12 @@ export function AuthForm({ mode }: AuthFormProps) {
     setLoading(true);
 
     try {
+      if (!hasSupabaseBrowserEnv()) {
+        throw new Error("Authentication is not configured for this environment");
+      }
+
+      const supabase = createSupabaseBrowserClient();
+
       if (mode === "sign-up") {
         const { data, error } = await supabase.auth.signUp({
           email,
