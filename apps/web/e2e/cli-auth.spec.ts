@@ -3,6 +3,16 @@ import { test, expect } from "@playwright/test";
 const BACKEND_URL = "http://localhost:3000/api/v1";
 
 test.describe("CLI browser auth", () => {
+  test("preserves sign-up recovery copy when the CLI token is missing", async ({ page }) => {
+    await page.goto("/cli-auth?mode=sign-up");
+
+    await expect(page.getByRole("heading", { name: "Finish sign-up" })).toBeVisible();
+    await expect(page.locator("main")).toContainText(
+      "Missing CLI auth token. Start the flow again from your terminal."
+    );
+    await expect(page.getByText("graspful register")).toBeVisible();
+  });
+
   test("sign-up flow authorizes a CLI session and exchanges an API key", async ({
     page,
     request,
