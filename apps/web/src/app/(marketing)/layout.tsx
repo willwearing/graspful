@@ -1,3 +1,4 @@
+import Script from "next/script";
 import { MarketingNav } from "@/components/marketing/nav";
 import { MarketingFooter } from "@/components/marketing/footer";
 import { MarketingThemeForcer } from "@/components/marketing/theme-forcer";
@@ -11,7 +12,7 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
-      <script dangerouslySetInnerHTML={{ __html: forceLight }} />
+      <Script id="force-light" strategy="beforeInteractive">{forceLight}</Script>
       <MarketingThemeForcer />
       <MarketingNav />
       <main className="pt-[73px]">{children}</main>

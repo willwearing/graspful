@@ -1,39 +1,42 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { SiteFooter } from "@/components/site/footer";
-import { SiteHeader } from "@/components/site/header";
-import { FeedbackBanner } from "@/components/site/feedback-banner";
+import { Inter } from "next/font/google";
+import { ThemeProvider } from "@/lib/theme";
 import { siteName } from "@/lib/site-config";
-import { ThemeProvider, themeInitScript } from "@/lib/theme";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
-    default: `${siteName} - Services and guidance`,
+    default: `${siteName}: Turn Your Expertise Into a Course Business`,
     template: `%s | ${siteName}`,
   },
   description:
-    "Graspful is the platform for serious adaptive courses, creator operations, and learner guidance.",
+    "Your expertise. AI's scaffolding. Every course gets adaptive diagnostics, mastery tracking, and spaced review. Launch a live product in minutes, not months.",
   openGraph: {
-    title: `${siteName} - Services and guidance`,
+    title: `${siteName}: Turn Your Expertise Into a Course Business`,
     description:
-      "Build, publish, and run adaptive learning products with a product site that looks like a product site.",
+      "Your expertise. AI's scaffolding. Every course gets adaptive diagnostics, mastery tracking, and spaced review.",
     type: "website",
   },
 };
 
+const preventFlash = `(function(){var t=localStorage.getItem("site-theme");if(t==="dark"){document.documentElement.classList.add("dark")}})()`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={inter.variable}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: preventFlash }} />
       </head>
       <body>
         <ThemeProvider>
-          <SiteHeader />
           {children}
-          <FeedbackBanner />
-          <SiteFooter />
         </ThemeProvider>
       </body>
     </html>

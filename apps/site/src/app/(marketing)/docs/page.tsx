@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { PageShell } from "@/components/site/page-shell";
-import { appUrl } from "@/lib/site-config";
 
 export default function DocsPage() {
   return (
@@ -24,7 +23,7 @@ export default function DocsPage() {
           <li>Use one platform runtime for learner delivery and revenue operations.</li>
           <li>Keep the flagship site separate from the white-label learner surfaces.</li>
         </ul>
-        <Link href={`${appUrl}/docs`} className="button">
+        <Link href="/docs" className="button">
           Open product docs
         </Link>
       </div>

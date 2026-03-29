@@ -1,25 +1,5 @@
 import { test, expect } from "@playwright/test";
-
-const GRASPFUL_BRAND = "graspful";
-
-async function signUpAsCreator(page: import("@playwright/test").Page) {
-  const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.example.com`;
-  const password = "TestPassword123!";
-
-  await page.context().addCookies([
-    { name: "dev-brand-override", value: GRASPFUL_BRAND, domain: "localhost", path: "/" },
-  ]);
-
-  await page.goto("/sign-up");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Create Account" }).click();
-  await page.waitForURL(/\/(creator|dashboard)/, { timeout: 15_000 });
-  if (page.url().includes("/dashboard")) {
-    await page.waitForURL(/\/creator/, { timeout: 10_000 });
-  }
-  return email;
-}
+import { signUpAsCreator } from "./helpers/auth";
 
 test.describe("Creator Billing", () => {
   test.beforeEach(async ({ page }) => {
