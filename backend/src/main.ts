@@ -12,6 +12,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { json } from 'express';
 import { LoggingInterceptor } from './telemetry/logging.interceptor';
 import { OtelExceptionFilter } from './telemetry/exception.filter';
+import { PostHogService } from './shared/application/posthog.service';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -40,7 +41,7 @@ async function bootstrap() {
     new LoggingInterceptor(app.get(Reflector, { strict: false }) ?? new Reflector()),
   );
   const httpAdapterHost = app.get(HttpAdapterHost);
-  app.useGlobalFilters(new OtelExceptionFilter(httpAdapterHost.httpAdapter));
+  app.useGlobalFilters(new OtelExceptionFilter(httpAdapterHost.httpAdapter, app.get(PostHogService)));
 
   const port = config.get<number>('PORT', 3000);
   await app.listen(port);

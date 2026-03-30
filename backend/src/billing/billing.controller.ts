@@ -2,12 +2,16 @@ import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { JwtOrApiKeyGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { MinRole } from '@/auth/decorators/min-role.decorator';
+import { PostHogService } from '@/shared/application/posthog.service';
 import { BillingService } from './billing.service';
 
 @Controller('orgs/:orgId/billing')
 @UseGuards(JwtOrApiKeyGuard, OrgMembershipGuard)
 export class BillingController {
-  constructor(private billing: BillingService) {}
+  constructor(
+    private billing: BillingService,
+    private posthog: PostHogService,
+  ) {}
 
   @Post('checkout')
   @MinRole('admin')
@@ -23,6 +27,11 @@ export class BillingController {
       `${baseUrl}/settings?billing=success`,
       `${baseUrl}/settings?billing=canceled`,
     );
+    this.posthog.capture({ distinctId: org.userId }, 'checkout started', {
+      org_id: org.orgId,
+      plan: body.plan,
+      interval: body.interval ?? 'month',
+    });
     return { url };
   }
 

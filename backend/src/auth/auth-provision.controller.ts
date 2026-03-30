@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseAuthGuard, CurrentUser } from '@/auth';
 import type { AuthUser } from '@/auth/guards/supabase-auth.guard';
+import { PostHogService } from '@/shared/application/posthog.service';
 import { ProvisionService } from './provision.service';
 
 /**
@@ -22,11 +23,19 @@ import { ProvisionService } from './provision.service';
 export class AuthProvisionController {
   private readonly logger = new Logger(AuthProvisionController.name);
 
-  constructor(private provision: ProvisionService) {}
+  constructor(
+    private provision: ProvisionService,
+    private posthog: PostHogService,
+  ) {}
 
   @Post('provision')
   async provisionUser(@CurrentUser() user: AuthUser) {
     this.logger.log(`Provisioning user ${user.userId}`);
-    return this.provision.ensureUserOrg(user.userId, user.email);
+    const result = await this.provision.ensureUserOrg(user.userId, user.email);
+    this.posthog.identify(user.userId, { email: user.email });
+    this.posthog.capture({ distinctId: user.userId }, 'user provisioned', {
+      org_id: result.orgId,
+    });
+    return result;
   }
 }

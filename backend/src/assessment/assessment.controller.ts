@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import { PostHogService } from '@/shared/application/posthog.service';
 import { ProblemSubmissionService } from './problem-submission.service';
 import { ReviewService } from './review.service';
 import { QuizService } from './quiz.service';
@@ -22,6 +23,7 @@ export class AssessmentController {
     private reviewService: ReviewService,
     private quizService: QuizService,
     private sectionExamService: SectionExamService,
+    private posthog: PostHogService,
   ) {}
 
   // --- Lesson Practice ---
@@ -120,9 +122,16 @@ export class AssessmentController {
   @Post('quizzes/:quizId/complete')
   async completeQuiz(
     @Param('quizId') quizId: string,
+    @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.quizService.completeQuiz(quizId);
+    const result = await this.quizService.completeQuiz(quizId);
+    this.posthog.capture({ distinctId: org.userId }, 'quiz completed', {
+      quiz_id: quizId,
+      course_id: courseId,
+      org_id: org.orgId,
+    });
+    return result;
   }
 
   @Post('sections/:sectionId/exam/start')
@@ -131,7 +140,13 @@ export class AssessmentController {
     @Param('sectionId') sectionId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.sectionExamService.startExam(org.userId, courseId, sectionId);
+    const result = await this.sectionExamService.startExam(org.userId, courseId, sectionId);
+    this.posthog.capture({ distinctId: org.userId }, 'section exam started', {
+      course_id: courseId,
+      section_id: sectionId,
+      org_id: org.orgId,
+    });
+    return result;
   }
 
   @Post('sections/:sectionId/exam/:sessionId/answer')
@@ -160,12 +175,19 @@ export class AssessmentController {
     @Param('sessionId') sessionId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.sectionExamService.completeExam(
+    const result = await this.sectionExamService.completeExam(
       org.userId,
       courseId,
       sectionId,
       sessionId,
     );
+    this.posthog.capture({ distinctId: org.userId }, 'section exam completed', {
+      course_id: courseId,
+      section_id: sectionId,
+      session_id: sessionId,
+      org_id: org.orgId,
+    });
+    return result;
   }
 
   @Get('sections/:sectionId/exam/status')

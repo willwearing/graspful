@@ -4,9 +4,10 @@ import { AcademyDiagnosticController } from './academy-diagnostic.controller';
 import { DiagnosticSessionService } from './diagnostic-session.service';
 import { StudentModelModule } from '@/student-model/student-model.module';
 import { KnowledgeGraphModule } from '@/knowledge-graph/knowledge-graph.module';
+import { SharedApplicationModule } from '@/shared/application/shared-application.module';
 
 @Module({
-  imports: [StudentModelModule, KnowledgeGraphModule],
+  imports: [StudentModelModule, KnowledgeGraphModule, SharedApplicationModule],
   controllers: [DiagnosticController, AcademyDiagnosticController],
   providers: [DiagnosticSessionService],
 })
