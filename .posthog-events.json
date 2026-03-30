@@ -1,0 +1,62 @@
+[
+  {
+    "event": "user provisioned",
+    "description": "Fired when a new user completes sign-up and their org/account is provisioned. Top of the conversion funnel.",
+    "file": "backend/src/auth/auth-provision.controller.ts"
+  },
+  {
+    "event": "student enrolled",
+    "description": "Fired when a student enrolls in an academy. Key activation event indicating learner intent.",
+    "file": "backend/src/student-model/academy-student-model.controller.ts"
+  },
+  {
+    "event": "diagnostic started",
+    "description": "Fired when a student starts a diagnostic session to assess their existing knowledge.",
+    "file": "backend/src/diagnostic/academy-diagnostic.controller.ts"
+  },
+  {
+    "event": "diagnostic completed",
+    "description": "Fired when a student retrieves their diagnostic result, indicating the session is done.",
+    "file": "backend/src/diagnostic/academy-diagnostic.controller.ts"
+  },
+  {
+    "event": "lesson started",
+    "description": "Fired when a student starts a lesson for a concept. Indicates active learning engagement.",
+    "file": "backend/src/learning-engine/learning-engine.controller.ts"
+  },
+  {
+    "event": "lesson completed",
+    "description": "Fired when a student completes a lesson. Key activation/retention signal.",
+    "file": "backend/src/learning-engine/learning-engine.controller.ts"
+  },
+  {
+    "event": "quiz completed",
+    "description": "Fired when a student completes a quiz. Measures ongoing knowledge assessment engagement.",
+    "file": "backend/src/assessment/assessment.controller.ts"
+  },
+  {
+    "event": "section exam started",
+    "description": "Fired when a student starts a section exam. Indicates readiness to demonstrate mastery.",
+    "file": "backend/src/assessment/assessment.controller.ts"
+  },
+  {
+    "event": "section exam completed",
+    "description": "Fired when a student completes a section exam. Key mastery and course completion signal.",
+    "file": "backend/src/assessment/assessment.controller.ts"
+  },
+  {
+    "event": "checkout started",
+    "description": "Fired when an org admin initiates a billing checkout session. Top of payment funnel.",
+    "file": "backend/src/billing/billing.controller.ts"
+  },
+  {
+    "event": "subscription activated",
+    "description": "Fired via Stripe webhook when a checkout session completes and a subscription is created.",
+    "file": "backend/src/billing/stripe-webhook.controller.ts"
+  },
+  {
+    "event": "subscription canceled",
+    "description": "Fired via Stripe webhook when a subscription is deleted. Key churn signal.",
+    "file": "backend/src/billing/stripe-webhook.controller.ts"
+  }
+]

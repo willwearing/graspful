@@ -1,6 +1,7 @@
 import { Controller, Post, Req, Res, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import Stripe from 'stripe';
+import { PostHogService } from '@/shared/application/posthog.service';
 import { BillingService } from './billing.service';
 import { ConnectService } from './connect.service';
 
@@ -11,6 +12,7 @@ export class StripeWebhookController {
   constructor(
     private billing: BillingService,
     private connect: ConnectService,
+    private posthog: PostHogService,
   ) {}
 
   @Post('stripe')
@@ -38,11 +40,38 @@ export class StripeWebhookController {
       this.logger.log(`Received Stripe event: ${event.type}`);
       await this.billing.handleWebhookEvent(event);
       await this.handleConnectEvents(event);
+      this.captureSubscriptionEvents(event);
       return res.json({ received: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.error(`Webhook processing error: ${message}`);
       return res.status(500).json({ error: 'Webhook processing failed' });
+    }
+  }
+
+  private captureSubscriptionEvents(event: Stripe.Event): void {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const orgId = session.metadata?.orgId;
+        if (orgId) {
+          this.posthog.capture({ distinctId: orgId }, 'subscription activated', {
+            org_id: orgId,
+            plan: session.metadata?.plan,
+          });
+        }
+        break;
+      }
+      case 'customer.subscription.deleted': {
+        const sub = event.data.object as Stripe.Subscription;
+        const orgId = sub.metadata?.orgId;
+        if (orgId) {
+          this.posthog.capture({ distinctId: orgId }, 'subscription canceled', {
+            org_id: orgId,
+          });
+        }
+        break;
+      }
     }
   }
 

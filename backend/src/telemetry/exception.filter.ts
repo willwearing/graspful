@@ -6,10 +6,18 @@ import {
 } from '@nestjs/common';
 import { BaseExceptionFilter } from '@nestjs/core';
 import { getLogger, SeverityNumber } from './otel-logger';
+import type { PostHogService } from '@/shared/application/posthog.service';
 
 @Catch()
 export class OtelExceptionFilter extends BaseExceptionFilter {
   private logger = getLogger('exceptions');
+
+  constructor(
+    httpAdapter: ConstructorParameters<typeof BaseExceptionFilter>[0],
+    private posthog?: PostHogService,
+  ) {
+    super(httpAdapter);
+  }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const status =
@@ -36,6 +44,9 @@ export class OtelExceptionFilter extends BaseExceptionFilter {
           ...(stack && { 'error.stack': stack }),
         },
       });
+      if (exception instanceof Error) {
+        this.posthog?.captureException(exception, 'server', { 'http.status_code': status });
+      }
     }
 
     super.catch(exception, host);

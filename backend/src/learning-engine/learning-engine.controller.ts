@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import { PostHogService } from '@/shared/application/posthog.service';
 import { LearningEngineService } from './learning-engine.service';
 import { LessonService } from './lesson.service';
 
@@ -17,6 +18,7 @@ export class LearningEngineController {
   constructor(
     private engine: LearningEngineService,
     private lessonService: LessonService,
+    private posthog: PostHogService,
   ) {}
 
   @Get('next-task')
@@ -41,12 +43,18 @@ export class LearningEngineController {
     @Param('conceptId') conceptId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.lessonService.startLesson(
+    const result = await this.lessonService.startLesson(
       org.userId,
       org.orgId,
       courseId,
       conceptId,
     );
+    this.posthog.capture({ distinctId: org.userId }, 'lesson started', {
+      course_id: courseId,
+      concept_id: conceptId,
+      org_id: org.orgId,
+    });
+    return result;
   }
 
   @Post('lessons/:conceptId/complete')
@@ -55,6 +63,12 @@ export class LearningEngineController {
     @Param('conceptId') conceptId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.lessonService.completeLesson(org.userId, courseId, conceptId);
+    const result = await this.lessonService.completeLesson(org.userId, courseId, conceptId);
+    this.posthog.capture({ distinctId: org.userId }, 'lesson completed', {
+      course_id: courseId,
+      concept_id: conceptId,
+      org_id: org.orgId,
+    });
+    return result;
   }
 }

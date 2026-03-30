@@ -43,6 +43,25 @@ export class PostHogService implements OnModuleDestroy {
     });
   }
 
+  identify(distinctId: string, properties: Record<string, unknown> = {}) {
+    if (!this.client) return;
+    this.client.identify({ distinctId, properties });
+  }
+
+  captureException(error: Error, distinctId: string, properties: Record<string, unknown> = {}) {
+    if (!this.client) return;
+    this.client.capture({
+      distinctId,
+      event: '$exception',
+      properties: {
+        $exception_message: error.message,
+        $exception_type: error.name,
+        $exception_stack_trace_raw: error.stack,
+        ...properties,
+      },
+    });
+  }
+
   async onModuleDestroy() {
     if (this.client) {
       await this.client.shutdown();
