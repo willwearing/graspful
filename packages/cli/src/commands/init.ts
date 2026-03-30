@@ -5,6 +5,7 @@ import * as os from 'os';
 import { getBaseUrl, resolveCredentials } from '../lib/auth';
 import { runBrowserAuthFlow } from '../lib/browser-auth';
 import { output, outputError } from '../lib/output';
+import { cliCapture } from '../lib/analytics';
 
 // ─── Editor detection ────────────────────────────────────────────────────────
 
@@ -165,6 +166,7 @@ function configureMcp(apiKey: string): void {
 
   for (const editor of editors) {
     writeMcpConfig(editor.configPath, apiKey);
+    cliCapture('cli initialized', { editor: editor.name });
     console.log(`\nMCP configured for ${editor.name}: ${editor.configPath}`);
   }
 }

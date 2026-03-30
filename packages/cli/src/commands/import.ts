@@ -4,6 +4,7 @@ import * as yaml from 'js-yaml';
 import { requireAuth } from '../lib/auth';
 import { ApiClient } from '../lib/api-client';
 import { output, outputError } from '../lib/output';
+import { cliCapture } from '../lib/analytics';
 
 type FileType = 'course' | 'brand';
 
@@ -59,6 +60,7 @@ export function registerImportCommand(program: Command) {
             { yaml: content, publish: opts.publish },
           );
 
+          cliCapture('course imported', { course_id: result.courseId, org: orgSlug, published: result.published });
           if (opts.publish && result.reviewFailures && result.reviewFailures.length > 0) {
             output(
               { ...result, status: 'imported_but_not_published' },
@@ -114,6 +116,7 @@ export function registerImportCommand(program: Command) {
             msg += `\n\n  Check status later: graspful domain-status ${slug}`;
           }
 
+          cliCapture('brand imported', { slug: slug, domain: domain });
           output(result, msg);
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);

@@ -4,6 +4,7 @@ import * as yaml from 'js-yaml';
 import { CourseYamlSchema } from '@graspful/shared';
 import type { CourseYaml } from '@graspful/shared';
 import { output, outputError } from '../lib/output';
+import { cliCapture } from '../lib/analytics';
 
 function computeGraphDepth(concepts: CourseYaml['concepts']): number {
   const graph = new Map<string, string[]>();
@@ -145,6 +146,7 @@ export function registerDescribeCommand(program: Command) {
         }
       }
 
+      cliCapture('course described', { concept_count: concepts.length, kp_count: kpCount, problem_count: problemCount });
       output(stats, humanLines.join('\n'));
     });
 }

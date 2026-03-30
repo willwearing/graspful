@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { output } from '../lib/output';
+import { cliCapture } from '../lib/analytics';
 
 const NICHE_PRESETS: Record<string, { preset: string; tagline: string; headline: string }> = {
   education: { preset: 'blue', tagline: 'Learn smarter, not harder', headline: 'Master any subject with adaptive learning' },
@@ -84,6 +85,7 @@ export function registerCreateBrandCommand(createCmd: Command) {
         orgSlug: opts.org,
       });
 
+      cliCapture('brand scaffolded', { niche: opts.niche });
       if (opts.output) {
         fs.writeFileSync(opts.output, yamlContent);
         output(

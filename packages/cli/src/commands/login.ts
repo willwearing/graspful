@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { saveCredentials, saveApiKeyCredentials, getBaseUrl } from '../lib/auth';
 import { runBrowserAuthFlow } from '../lib/browser-auth';
 import { output, outputError } from '../lib/output';
+import { cliCapture } from '../lib/analytics';
 
 export function registerLoginCommand(program: Command) {
   program
@@ -54,6 +55,7 @@ export function registerLoginCommand(program: Command) {
           saveCredentials(token, baseUrl);
         }
 
+        cliCapture('cli logged in', { method: isApiKey ? 'api-key' : 'jwt' });
         output(
           { authenticated: true, baseUrl, tokenType: isApiKey ? 'apiKey' : 'jwt' },
           `Authenticated${isApiKey ? ' (API key)' : ''}. Credentials saved for ${baseUrl}`,

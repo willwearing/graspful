@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { requireAuth } from '../lib/auth';
 import { ApiClient } from '../lib/api-client';
 import { output, outputError } from '../lib/output';
+import { cliCapture } from '../lib/analytics';
 
 export function registerPublishCommand(program: Command) {
   program
@@ -18,6 +19,7 @@ export function registerPublishCommand(program: Command) {
           {},
         );
 
+        cliCapture('course published', { course_id: result.courseId, org: opts.org, published: result.published });
         output(
           result,
           `Published course: ${result.courseId}`,

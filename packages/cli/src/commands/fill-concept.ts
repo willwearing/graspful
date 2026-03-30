@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { CourseYamlSchema } from '@graspful/shared';
 import { output, outputError } from '../lib/output';
+import { cliCapture } from '../lib/analytics';
 
 export function registerFillConceptCommand(program: Command) {
   const fill = program
@@ -88,6 +89,7 @@ export function registerFillConceptCommand(program: Command) {
       const updatedYaml = yaml.dump(rawObj, { lineWidth: 120, noRefs: true, schema: yaml.JSON_SCHEMA });
       fs.writeFileSync(file, updatedYaml);
 
+      cliCapture('concept filled', { concept_id: conceptId });
       output(
         { conceptId, kpsAdded: kpCount, problemsPerKp, file },
         `Added ${kpCount} KP stub(s) with ${problemsPerKp} problem(s) each to "${conceptId}" in ${file}`,

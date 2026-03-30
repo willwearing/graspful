@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { setOutputFormat, OutputFormat } from './lib/output';
+import { cliShutdown } from './lib/analytics';
 import { registerValidateCommand } from './commands/validate';
 import { registerImportCommand } from './commands/import';
 import { registerPublishCommand } from './commands/publish';
@@ -39,4 +40,4 @@ registerLoginCommand(program);
 registerRegisterCommand(program);
 registerInitCommand(program);
 
-program.parse();
+program.parseAsync().then(() => cliShutdown()).catch(() => cliShutdown());
