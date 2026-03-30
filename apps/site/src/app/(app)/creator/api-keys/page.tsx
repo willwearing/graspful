@@ -38,6 +38,7 @@ export default function ApiKeysPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [keyName, setKeyName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   // Newly created key
   const [newKey, setNewKey] = useState<string | null>(null);
@@ -57,36 +58,47 @@ export default function ApiKeysPage() {
     }
   }, [orgSlug]);
 
+  const resolveAccessToken = useCallback(async () => {
+    const supabase = createSupabaseBrowserClient();
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token ?? "";
+    setToken(accessToken);
+    return accessToken;
+  }, []);
+
   useEffect(() => {
     async function init() {
-      const supabase = createSupabaseBrowserClient();
-      const { data } = await supabase.auth.getSession();
-      const accessToken = data.session?.access_token ?? "";
-      setToken(accessToken);
+      const accessToken = await resolveAccessToken();
       await fetchKeys(accessToken);
     }
     init();
-  }, [fetchKeys]);
+  }, [fetchKeys, resolveAccessToken]);
 
-  async function handleCreate() {
-    if (!keyName.trim()) return;
+  async function handleCreate(event?: React.FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    const trimmedKeyName = keyName.trim();
+    if (!trimmedKeyName) return;
+
     setCreating(true);
+    setCreateError(null);
+
     try {
+      const accessToken = token || await resolveAccessToken();
       const result = await apiClientFetch<{ key: string; id: string }>(
         `/orgs/${orgSlug}/api-keys`,
-        token,
+        accessToken,
         {
           method: "POST",
-          body: JSON.stringify({ name: keyName.trim() }),
+          body: JSON.stringify({ name: trimmedKeyName }),
         }
       );
+
       setNewKey(result.key);
-      // Re-fetch the list since the create response only returns { key, id }
-      await fetchKeys(token);
-      setKeyName("");
       setCreateOpen(false);
+      setKeyName("");
+      void fetchKeys(accessToken);
     } catch {
-      // Creation failed — user can retry
+      setCreateError("Could not create API key. Try again.");
     } finally {
       setCreating(false);
     }
@@ -130,7 +142,16 @@ export default function ApiKeysPage() {
           </p>
         </div>
 
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <Dialog
+          open={createOpen}
+          onOpenChange={(open) => {
+            setCreateOpen(open);
+            if (!open) {
+              setCreateError(null);
+              setKeyName("");
+            }
+          }}
+        >
           <DialogTrigger render={<Button />}>
             <Plus className="h-4 w-4" />
             Create API Key
@@ -144,20 +165,28 @@ export default function ApiKeysPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <Input
-              placeholder="e.g. My Laptop CLI"
-              value={keyName}
-              onChange={(e) => setKeyName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleCreate();
-              }}
-            />
+            <form onSubmit={handleCreate} className="space-y-4">
+              <Input
+                placeholder="e.g. My Laptop CLI"
+                value={keyName}
+                onChange={(e) => {
+                  setKeyName(e.target.value);
+                  if (createError) {
+                    setCreateError(null);
+                  }
+                }}
+              />
 
-            <DialogFooter>
-              <Button onClick={handleCreate} disabled={!keyName.trim() || creating}>
-                {creating ? "Creating..." : "Create Key"}
-              </Button>
-            </DialogFooter>
+              {createError && (
+                <p className="text-sm text-destructive">{createError}</p>
+              )}
+
+              <DialogFooter>
+                <Button type="submit" disabled={!keyName.trim() || creating}>
+                  {creating ? "Creating..." : "Create Key"}
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
