@@ -78,11 +78,13 @@ describe('AssessmentController', () => {
       }),
     };
 
+    const mockPosthog = { capture: jest.fn() };
     controller = new AssessmentController(
       mockProblemSubmission,
       mockReview,
       mockQuiz,
       mockSectionExam,
+      mockPosthog as any,
     );
   });
 
@@ -152,7 +154,7 @@ describe('AssessmentController', () => {
 
   describe('completeQuiz', () => {
     it('should complete quiz', async () => {
-      const result = await controller.completeQuiz('quiz-1', orgCtx as any);
+      const result = await controller.completeQuiz('quiz-1', 'course-1', orgCtx as any);
 
       expect(result.score).toBe(0.8);
       expect(mockQuiz.completeQuiz).toHaveBeenCalledWith('quiz-1');

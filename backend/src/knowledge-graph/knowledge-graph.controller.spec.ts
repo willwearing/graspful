@@ -3,6 +3,7 @@ import { KnowledgeGraphController } from './knowledge-graph.controller';
 import { CourseReadService } from './course-read.service';
 import { CourseYamlExportService } from './course-yaml-export.service';
 import { CourseManagementService } from './application/course-management.service';
+import { PostHogService } from '@/shared/application/posthog.service';
 import { OrgMembershipGuard, JwtOrApiKeyGuard } from '@/auth';
 
 const mockGuard = { canActivate: () => true };
@@ -40,6 +41,7 @@ describe('KnowledgeGraphController', () => {
         { provide: CourseReadService, useValue: mockCourseReads },
         { provide: CourseYamlExportService, useValue: mockCourseYamlExport },
         { provide: CourseManagementService, useValue: mockCourseManagement },
+        { provide: PostHogService, useValue: { capture: jest.fn(), extractContext: jest.fn().mockReturnValue({ distinctId: 'u1' }) } },
       ],
     })
       .overrideGuard(OrgMembershipGuard)
@@ -89,7 +91,8 @@ describe('KnowledgeGraphController', () => {
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
       const body = { yaml: 'course:\n  id: test', replace: true, archiveMissing: true };
-      const result = await controller.importCourse(body as any, orgCtx as any);
+      const mockReq = { headers: {} } as any;
+      const result = await controller.importCourse(body as any, orgCtx as any, mockReq);
 
       expect(result).toEqual(response);
       expect(mockCourseManagement.importCourse).toHaveBeenCalledWith(orgCtx, body);
@@ -107,7 +110,9 @@ describe('KnowledgeGraphController', () => {
       };
       mockCourseManagement.reviewCourseYaml.mockResolvedValue(reviewResult);
 
-      const result = await controller.reviewCourse({ yaml: 'course:\n  id: test' } as any);
+      const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
+      const mockReq = { headers: {} } as any;
+      const result = await controller.reviewCourse({ yaml: 'course:\n  id: test' } as any, orgCtx as any, mockReq);
 
       expect(result).toEqual(reviewResult);
     });
@@ -118,7 +123,8 @@ describe('KnowledgeGraphController', () => {
       mockCourseManagement.archiveCourse.mockResolvedValue({ id: 'c1', archivedAt: new Date() });
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
-      await controller.archiveCourse('c1', orgCtx as any);
+      const mockReq = { headers: {} } as any;
+      await controller.archiveCourse('c1', orgCtx as any, mockReq);
 
       expect(mockCourseManagement.archiveCourse).toHaveBeenCalledWith('org-1', 'c1');
     });
@@ -142,7 +148,8 @@ describe('KnowledgeGraphController', () => {
       mockCourseManagement.publishCourse.mockResolvedValue(response);
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'admin' };
-      const result = await controller.publishCourse('c1', orgCtx as any);
+      const mockReq = { headers: {} } as any;
+      const result = await controller.publishCourse('c1', orgCtx as any, mockReq);
 
       expect(result).toEqual(response);
     });

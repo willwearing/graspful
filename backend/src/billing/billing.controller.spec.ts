@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BillingController } from './billing.controller';
 import { BillingService } from './billing.service';
+import { PostHogService } from '@/shared/application/posthog.service';
 import { JwtOrApiKeyGuard, OrgMembershipGuard } from '@/auth';
 
 const mockGuard = { canActivate: () => true };
@@ -18,7 +19,10 @@ describe('BillingController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BillingController],
-      providers: [{ provide: BillingService, useValue: mockBillingService }],
+      providers: [
+        { provide: BillingService, useValue: mockBillingService },
+        { provide: PostHogService, useValue: { capture: jest.fn() } },
+      ],
     })
       .overrideGuard(JwtOrApiKeyGuard)
       .useValue(mockGuard)

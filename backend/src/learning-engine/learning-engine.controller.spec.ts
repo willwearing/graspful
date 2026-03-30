@@ -52,7 +52,8 @@ describe('LearningEngineController', () => {
       }),
     };
 
-    controller = new LearningEngineController(mockEngine, mockLesson);
+    const mockPosthog = { capture: jest.fn() };
+    controller = new LearningEngineController(mockEngine, mockLesson, mockPosthog as any);
   });
 
   describe('GET /next-task', () => {
