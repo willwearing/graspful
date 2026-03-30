@@ -25,6 +25,7 @@
     "chalk": "^5.4.0",
     "commander": "^13.0.0",
     "js-yaml": "^4.1.0",
+    "posthog-node": "^5.28.8",
     "zod": "^3.24.0"
   },
   "devDependencies": {

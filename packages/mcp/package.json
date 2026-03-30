@@ -22,6 +22,7 @@
     "@graspful/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "js-yaml": "^4.1.0",
+    "posthog-node": "^5.28.8",
     "zod": "^3.24.0"
   },
   "devDependencies": {

@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { CourseYamlSchema, BrandYamlSchema, AcademyManifestSchema } from '@graspful/shared';
 import { output, outputError } from '../lib/output';
+import { cliCapture } from '../lib/analytics';
 
 type FileType = 'course' | 'brand' | 'academy';
 
@@ -151,6 +152,7 @@ export function registerValidateCommand(program: Command) {
         process.exit(1);
       }
 
+      cliCapture('course validated', { valid: true, error_count: 0, file_type: fileType });
       output(
         { valid: true, fileType, errors: [], stats },
         `PASS  ${fileType} validation\n${Object.entries(stats).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`,

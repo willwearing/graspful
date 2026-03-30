@@ -5,12 +5,15 @@ import {
   Get,
   Param,
   Post,
+  Req,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { OrgMembershipGuard, CurrentOrg, MinRole, JwtOrApiKeyGuard } from '@/auth';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import { PostHogService } from '@/shared/application/posthog.service';
 import { CourseReadService } from './course-read.service';
 import { CourseYamlExportService } from './course-yaml-export.service';
 import type { ValidationResult } from './graph-validation.service';
@@ -24,6 +27,7 @@ export class KnowledgeGraphController {
     private readonly courseReads: CourseReadService,
     private readonly courseYamlExport: CourseYamlExportService,
     private readonly courseManagement: CourseManagementService,
+    private readonly posthog: PostHogService,
   ) {}
 
   @Get()
@@ -61,8 +65,16 @@ export class KnowledgeGraphController {
   async archiveCourse(
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
+    @Req() req: Request,
   ) {
-    return this.courseManagement.archiveCourse(org.orgId, courseId);
+    const result = await this.courseManagement.archiveCourse(org.orgId, courseId);
+    const ctx = this.posthog.extractContext(req, org.userId);
+    this.posthog.capture(ctx, 'course archived', {
+      course_id: courseId,
+      org_id: org.orgId,
+      source: 'api',
+    });
+    return result;
   }
 
   @Get(':courseId/yaml')
@@ -77,15 +89,32 @@ export class KnowledgeGraphController {
   @Post('import')
   @MinRole('admin')
   @UsePipes(new ValidationPipe({ whitelist: true }))
-  async importCourse(@Body() body: ImportCourseDto, @CurrentOrg() org: OrgContext) {
-    return this.courseManagement.importCourse(org, body);
+  async importCourse(@Body() body: ImportCourseDto, @CurrentOrg() org: OrgContext, @Req() req: Request) {
+    const result = await this.courseManagement.importCourse(org, body);
+    const ctx = this.posthog.extractContext(req, org.userId);
+    this.posthog.capture(ctx, 'course imported', {
+      course_id: result.courseId,
+      org_id: org.orgId,
+      published: result.published,
+      concept_count: result.conceptCount,
+      source: 'api',
+    });
+    return result;
   }
 
   @Post('review')
   @MinRole('admin')
   @UsePipes(new ValidationPipe({ whitelist: true }))
-  async reviewCourse(@Body() body: ReviewCourseDto) {
-    return this.courseManagement.reviewCourseYaml(body.yaml);
+  async reviewCourse(@Body() body: ReviewCourseDto, @CurrentOrg() org: OrgContext, @Req() req: Request) {
+    const result = await this.courseManagement.reviewCourseYaml(body.yaml);
+    const ctx = this.posthog.extractContext(req, org.userId);
+    this.posthog.capture(ctx, 'course reviewed', {
+      score: result.score,
+      passed: result.passed,
+      org_id: org.orgId,
+      source: 'api',
+    });
+    return result;
   }
 
   @Post(':courseId/publish')
@@ -93,8 +122,17 @@ export class KnowledgeGraphController {
   async publishCourse(
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
+    @Req() req: Request,
   ) {
-    return this.courseManagement.publishCourse(org.orgId, courseId);
+    const result = await this.courseManagement.publishCourse(org.orgId, courseId);
+    const ctx = this.posthog.extractContext(req, org.userId);
+    this.posthog.capture(ctx, 'course published', {
+      course_id: courseId,
+      org_id: org.orgId,
+      published: result.published,
+      source: 'api',
+    });
+    return result;
   }
 
   @Post(':courseId/validate')

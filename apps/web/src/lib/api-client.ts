@@ -1,4 +1,5 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import posthog from "posthog-js";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
 
@@ -26,12 +27,19 @@ export async function apiClientFetch<T>(
   token: string,
   options?: RequestInit
 ): Promise<T> {
+  const posthogHeaders: Record<string, string> = {};
+  const distinctId = posthog.get_distinct_id?.();
+  if (distinctId) posthogHeaders["x-posthog-distinct-id"] = distinctId;
+  const sessionId = posthog.get_session_id?.();
+  if (sessionId) posthogHeaders["x-posthog-session-id"] = sessionId;
+
   const doFetch = (t: string) =>
     fetch(`${BACKEND_URL}${path}`, {
       ...options,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${t}`,
+        ...posthogHeaders,
         ...options?.headers,
       },
     });

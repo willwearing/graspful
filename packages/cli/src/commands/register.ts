@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { getBaseUrl } from '../lib/auth';
 import { runBrowserAuthFlow } from '../lib/browser-auth';
 import { output, outputError } from '../lib/output';
+import { cliCapture } from '../lib/analytics';
 
 export function registerRegisterCommand(program: Command) {
   program
@@ -26,6 +27,7 @@ export function registerRegisterCommand(program: Command) {
           noBrowser: opts.browser === false,
         });
 
+        cliCapture('cli registered', { method: 'browser-auth' });
         output(
           {
             userId: result.userId,

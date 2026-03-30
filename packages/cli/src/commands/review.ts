@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { runQualityGate } from '@graspful/shared';
 import { output, outputError } from '../lib/output';
+import { cliCapture } from '../lib/analytics';
 
 export function registerReviewCommand(program: Command) {
   program
@@ -38,6 +39,7 @@ export function registerReviewCommand(program: Command) {
         }
       }
 
+      cliCapture('course reviewed', { score: result.score, passed: result.passed });
       output(result, lines.join('\n'));
 
       if (!result.passed) {

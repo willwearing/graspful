@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { output, outputError } from '../lib/output';
+import { cliCapture } from '../lib/analytics';
 
 export function scaffoldCourse(topic: string, options: { hours?: number; source?: string }): string {
   const slug = topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -51,6 +52,8 @@ export function registerCreateCourseCommand(program: Command) {
         hours: parseInt(opts.hours, 10),
         source: opts.source,
       });
+
+      cliCapture('course scaffolded', { topic: opts.topic, estimated_hours: parseInt(opts.hours, 10) });
 
       if (opts.output) {
         fs.writeFileSync(opts.output, yamlContent);

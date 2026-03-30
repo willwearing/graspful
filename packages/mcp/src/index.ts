@@ -8,11 +8,35 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import * as yaml from 'js-yaml';
 import * as crypto from 'crypto';
+import { PostHog } from 'posthog-node';
 import {
   CourseYamlSchema,
   BrandYamlSchema,
   AcademyManifestSchema,
 } from '@graspful/shared';
+
+// ─── PostHog analytics ──────────────────────────────────────────────────────
+
+const posthogKey = process.env.POSTHOG_API_KEY || process.env.NEXT_PUBLIC_POSTHOG_KEY;
+const posthogClient = posthogKey
+  ? new PostHog(posthogKey, {
+      host: process.env.POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+      flushAt: 1,
+      flushInterval: 0,
+    })
+  : null;
+
+function mcpDistinctId(): string {
+  return process.env.GRASPFUL_USER_ID || process.env.GRASPFUL_API_KEY || 'anonymous-mcp';
+}
+
+function mcpCapture(event: string, properties: Record<string, unknown> = {}) {
+  posthogClient?.capture({
+    distinctId: mcpDistinctId(),
+    event,
+    properties: { ...properties, source: 'mcp' },
+  });
+}
 import type { CourseYaml, QualityCheckResult, QualityGateResult } from '@graspful/shared';
 
 // ─── Auth guard ─────────────────────────────────────────────────────────────
@@ -1070,16 +1094,19 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
       const estimatedHours = args.estimatedHours as number | undefined;
       const sourceDocument = args.sourceDocument as string | undefined;
       const yamlContent = scaffoldCourse(topic, { hours: estimatedHours, source: sourceDocument });
+      mcpCapture('course scaffolded', { topic, estimated_hours: estimatedHours });
       return textResult(yamlContent);
     }
 
     case 'graspful_fill_concept': {
       try {
+        const conceptId = args.conceptId as string;
         const updatedYaml = fillConcept(
           args.yaml as string,
-          args.conceptId as string,
+          conceptId,
           { kps: args.kps as number | undefined, problemsPerKp: args.problemsPerKp as number | undefined },
         );
+        mcpCapture('concept filled', { concept_id: conceptId });
         return textResult(updatedYaml);
       } catch (e) {
         return errorResult(e instanceof Error ? e.message : String(e));
@@ -1088,11 +1115,13 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
 
     case 'graspful_validate': {
       const result = validateYaml(args.yaml as string);
+      mcpCapture('course validated', { valid: result.valid, error_count: result.errors.length, file_type: result.fileType });
       return textResult(JSON.stringify(result, null, 2));
     }
 
     case 'graspful_review_course': {
       const result = runReview(args.yaml as string);
+      mcpCapture('course reviewed', { score: result.score, passed: result.passed });
       return textResult(JSON.stringify(result, null, 2));
     }
 
@@ -1103,6 +1132,7 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
           `/api/v1/orgs/${args.org}/courses/import`,
           { yaml: args.yaml, publish: args.publish ?? false },
         );
+        mcpCapture('course imported', { course_id: result.courseId, org: args.org, published: result.published });
         return textResult(JSON.stringify(result, null, 2));
       } catch (e) {
         return errorResult(`Import failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -1116,6 +1146,7 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
           `/api/v1/orgs/${args.org}/courses/${args.courseId}/publish`,
           {},
         );
+        mcpCapture('course published', { course_id: result.courseId, org: args.org, published: result.published });
         return textResult(JSON.stringify(result, null, 2));
       } catch (e) {
         return errorResult(`Publish failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -1125,6 +1156,7 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
     case 'graspful_describe_course': {
       try {
         const stats = describeCourse(args.yaml as string);
+        mcpCapture('course described', stats);
         return textResult(JSON.stringify(stats, null, 2));
       } catch (e) {
         return errorResult(e instanceof Error ? e.message : String(e));
@@ -1132,11 +1164,13 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
     }
 
     case 'graspful_create_brand': {
-      const yamlContent = scaffoldBrand(args.niche as string, {
+      const niche = args.niche as string;
+      const yamlContent = scaffoldBrand(niche, {
         name: args.name as string | undefined,
         domain: args.domain as string | undefined,
         orgSlug: args.orgSlug as string | undefined,
       });
+      mcpCapture('brand scaffolded', { niche });
       return textResult(yamlContent);
     }
 
@@ -1168,6 +1202,7 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
           '/api/v1/brands',
           dto,
         );
+        mcpCapture('brand imported', { slug: result.slug, domain: result.domain });
         return textResult(JSON.stringify(result, null, 2));
       } catch (e) {
         return errorResult(`Brand import failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -1180,6 +1215,7 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
         const result = await apiGet<unknown[]>(
           `/api/v1/orgs/${args.org}/courses`,
         );
+        mcpCapture('courses listed', { org: args.org, count: result.length });
         return textResult(JSON.stringify(result, null, 2));
       } catch (e) {
         return errorResult(`List failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -1225,3 +1261,11 @@ main().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });
+
+async function shutdown() {
+  if (posthogClient) await posthogClient.shutdown();
+  process.exit(0);
+}
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
