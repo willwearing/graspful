@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import { requireLearnSession, resolveCourseBySlug } from "@/lib/learn-server";
+import { requireLearnAccess, resolveCourseBySlug } from "@/lib/learn-server";
 import { getLearnCourseStudyHref } from "@/lib/learn-routes";
 import { QuizFlow } from "@/components/app/quiz-flow";
 
@@ -10,8 +10,8 @@ export default async function LearnQuizPage({
   params: Promise<{ orgSlug: string; courseSlug: string }>;
 }) {
   const { orgSlug, courseSlug } = await params;
-  const { token } = await requireLearnSession();
-  const course = await resolveCourseBySlug(orgSlug, courseSlug);
+  const { token, serverApiFetch } = await requireLearnAccess(orgSlug);
+  const course = await resolveCourseBySlug(orgSlug, courseSlug, serverApiFetch);
 
   let quizData: any;
   try {

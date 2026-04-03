@@ -1,4 +1,4 @@
-import { requireLearnSession, resolveAcademyBySlug } from "@/lib/learn-server";
+import { requireLearnAccess, resolveAcademyBySlug } from "@/lib/learn-server";
 import { getLearnAcademyHref, getLearnTaskHref } from "@/lib/learn-routes";
 import { StudyRouter } from "@/components/app/study-router";
 import type { NextTask } from "@/lib/types";
@@ -9,7 +9,7 @@ export default async function LearnAcademyStudyPage({
   params: Promise<{ orgSlug: string; academySlug: string }>;
 }) {
   const { orgSlug, academySlug } = await params;
-  const { serverApiFetch } = await requireLearnSession();
+  const { serverApiFetch } = await requireLearnAccess(orgSlug);
 
   const academy = await resolveAcademyBySlug(orgSlug, academySlug, serverApiFetch);
   const courses = await serverApiFetch<Array<{ id: string; slug: string }>>(

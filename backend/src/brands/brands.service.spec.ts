@@ -12,6 +12,9 @@ describe('BrandsService', () => {
       create: jest.Mock;
       update: jest.Mock;
     };
+    academy: {
+      findMany: jest.Mock;
+    };
   };
 
   beforeEach(async () => {
@@ -22,6 +25,9 @@ describe('BrandsService', () => {
         findMany: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
+      },
+      academy: {
+        findMany: jest.fn(),
       },
     };
 
@@ -96,6 +102,145 @@ describe('BrandsService', () => {
         where: { isActive: true },
         orderBy: { name: 'asc' },
       });
+    });
+  });
+
+  describe('getPublicAcademyCatalog', () => {
+    it('prefers explicitly scoped brands and excludes default org brands', async () => {
+      prisma.brand.findMany.mockResolvedValue([
+        {
+          slug: 'deer-id-academy',
+          name: 'Deer ID Academy',
+          domain: 'deer-id-academy.graspful.com',
+          orgSlug: 'graspful-gmail',
+          contentScope: { courseIds: ['mule-deer-vs-whitetail'] },
+        },
+        {
+          slug: 'graspful-gmail',
+          name: 'graspful gmail',
+          domain: 'graspful-gmail.graspful.ai',
+          orgSlug: 'graspful-gmail',
+          contentScope: {},
+        },
+      ]);
+      prisma.academy.findMany.mockResolvedValue([
+        {
+          slug: 'mule-deer-vs-whitetail',
+          name: 'Mule Deer vs White-Tailed Deer',
+          description: 'Field identification',
+          org: { slug: 'graspful-gmail' },
+          courses: [
+            {
+              slug: 'mule-deer-vs-whitetail',
+              name: 'Mule Deer vs White-Tailed Deer',
+              description: 'Field identification',
+              sortOrder: 0,
+              isPublished: true,
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.getPublicAcademyCatalog();
+
+      expect(result).toEqual([
+        {
+          slug: 'deer-id-academy',
+          name: 'Deer ID Academy',
+          domain: 'deer-id-academy.graspful.com',
+          orgSlug: 'graspful-gmail',
+          academies: [
+            {
+              slug: 'mule-deer-vs-whitetail',
+              name: 'Mule Deer vs White-Tailed Deer',
+              description: 'Field identification',
+              courseCount: 1,
+              publishedCourseCount: 1,
+              courses: [
+                {
+                  slug: 'mule-deer-vs-whitetail',
+                  name: 'Mule Deer vs White-Tailed Deer',
+                  description: 'Field identification',
+                  sortOrder: 0,
+                  isPublished: true,
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('filters out likely test brands and only exposes published fallback courses', async () => {
+      prisma.brand.findMany.mockResolvedValue([
+        {
+          slug: 'js-fundamentals',
+          name: 'JS Fundamentals',
+          domain: 'js-fundamentals.graspful.com',
+          orgSlug: 'test-example',
+          contentScope: {},
+        },
+        {
+          slug: 'firefighter-prep',
+          name: 'FirefighterPrep',
+          domain: 'firefighterprep.graspful.com',
+          orgSlug: 'firefighter-prep',
+          contentScope: {},
+        },
+      ]);
+      prisma.academy.findMany.mockResolvedValue([
+        {
+          slug: 'nfpa-1001',
+          name: 'NFPA 1001',
+          description: null,
+          org: { slug: 'firefighter-prep' },
+          courses: [
+            {
+              slug: 'nfpa-1001',
+              name: 'NFPA 1001',
+              description: null,
+              sortOrder: 0,
+              isPublished: true,
+            },
+            {
+              slug: 'ab-nfpa-1001-ff1',
+              name: 'AB NFPA 1001 FF1',
+              description: null,
+              sortOrder: 1,
+              isPublished: false,
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.getPublicAcademyCatalog();
+
+      expect(result).toEqual([
+        {
+          slug: 'firefighter-prep',
+          name: 'FirefighterPrep',
+          domain: 'firefighterprep.graspful.com',
+          orgSlug: 'firefighter-prep',
+          academies: [
+            {
+              slug: 'nfpa-1001',
+              name: 'NFPA 1001',
+              description: null,
+              courseCount: 2,
+              publishedCourseCount: 1,
+              courses: [
+                {
+                  slug: 'nfpa-1001',
+                  name: 'NFPA 1001',
+                  description: null,
+                  sortOrder: 0,
+                  isPublished: true,
+                },
+              ],
+            },
+          ],
+        },
+      ]);
     });
   });
 });

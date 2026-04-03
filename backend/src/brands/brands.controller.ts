@@ -32,6 +32,11 @@ export class BrandsController {
     return this.brandsService.findAll();
   }
 
+  @Get('catalog/academies')
+  async getPublicAcademyCatalog() {
+    return this.brandsService.getPublicAcademyCatalog();
+  }
+
   @Get('by-domain/:domain')
   async getByDomain(@Param('domain') domain: string) {
     const brand = await this.brandsService.findByDomain(domain);

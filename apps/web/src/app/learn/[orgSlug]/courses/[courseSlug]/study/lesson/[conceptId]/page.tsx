@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { ApiError, apiFetch } from "@/lib/api";
-import { requireLearnSession, resolveCourseBySlug } from "@/lib/learn-server";
+import { requireLearnAccess, resolveCourseBySlug } from "@/lib/learn-server";
 import { getLearnCourseHref, getLearnCourseStudyHref } from "@/lib/learn-routes";
 import { LessonFlow } from "@/components/app/lesson-flow";
 
@@ -11,8 +11,8 @@ export default async function LearnLessonPage({
   params: Promise<{ orgSlug: string; courseSlug: string; conceptId: string }>;
 }) {
   const { orgSlug, courseSlug, conceptId } = await params;
-  const { token } = await requireLearnSession();
-  const course = await resolveCourseBySlug(orgSlug, courseSlug);
+  const { token, serverApiFetch } = await requireLearnAccess(orgSlug);
+  const course = await resolveCourseBySlug(orgSlug, courseSlug, serverApiFetch);
 
   let lesson: any = null;
   let errorMessage: string | null = null;

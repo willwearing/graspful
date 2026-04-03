@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import { requireLearnSession, resolveCourseBySlug } from "@/lib/learn-server";
+import { requireLearnAccess, resolveCourseBySlug } from "@/lib/learn-server";
 import {
   getLearnCourseHref,
   getLearnCourseStudyHref,
@@ -13,8 +13,8 @@ export default async function LearnSectionExamPage({
   params: Promise<{ orgSlug: string; courseSlug: string; sectionId: string }>;
 }) {
   const { orgSlug, courseSlug, sectionId } = await params;
-  const { token } = await requireLearnSession();
-  const course = await resolveCourseBySlug(orgSlug, courseSlug);
+  const { token, serverApiFetch } = await requireLearnAccess(orgSlug);
+  const course = await resolveCourseBySlug(orgSlug, courseSlug, serverApiFetch);
 
   let examData: any;
   try {

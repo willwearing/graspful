@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Home, BookOpen, Settings, LayoutDashboard, FolderCog, KeyRound } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Home, BookOpen, Settings, LayoutDashboard, FolderCog, KeyRound, LogOut } from "lucide-react";
 import { useBrand } from "@/lib/brand/context";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { extractOrgSlugFromLearnPath, getLearnOrgHref } from "@/lib/learn-routes";
 
 const learnerNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -19,6 +21,18 @@ const creatorNavItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
+function getNavItems(brandId: string, pathname: string) {
+  const learnOrgSlug = extractOrgSlugFromLearnPath(pathname);
+  if (learnOrgSlug) {
+    return [
+      { href: getLearnOrgHref(learnOrgSlug), label: "Learning Hub", icon: BookOpen },
+      { href: "/settings", label: "Settings", icon: Settings },
+    ];
+  }
+
+  return brandId === "graspful" ? creatorNavItems : learnerNavItems;
+}
+
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,12 +41,10 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const brand = useBrand();
   const pathname = usePathname();
+  const router = useRouter();
   const [pendingPath, setPendingPath] = useState<string | null>(null);
 
-  const navItems = useMemo(
-    () => (brand.id === "graspful" ? creatorNavItems : learnerNavItems),
-    [brand.id]
-  );
+  const navItems = useMemo(() => getNavItems(brand.id, pathname), [brand.id, pathname]);
 
   useEffect(() => {
     setPendingPath(null);
@@ -49,6 +61,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   }, [isOpen, onClose]);
 
   const activePath = pendingPath ?? pathname;
+
+  async function handleSignOut() {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <>
@@ -102,6 +121,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             );
           })}
         </nav>
+
+        <div className="border-t border-border p-2.5">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:bg-accent hover:text-accent-foreground"
+            aria-label="Log out"
+          >
+            <LogOut className="h-5 w-5" />
+            Log out
+          </button>
+        </div>
       </aside>
     </>
   );

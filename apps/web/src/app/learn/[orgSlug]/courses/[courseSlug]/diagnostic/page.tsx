@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { ApiError, apiFetch } from "@/lib/api";
-import { requireLearnSession, resolveCourseBySlug } from "@/lib/learn-server";
+import { requireLearnAccess, resolveCourseBySlug } from "@/lib/learn-server";
 import { getLearnCourseHref } from "@/lib/learn-routes";
 import { DiagnosticFlow } from "@/components/app/diagnostic-flow";
 
@@ -11,15 +11,22 @@ export default async function LearnCourseDiagnosticPage({
   params: Promise<{ orgSlug: string; courseSlug: string }>;
 }) {
   const { orgSlug, courseSlug } = await params;
-  const { token } = await requireLearnSession();
-  const course = await resolveCourseBySlug(orgSlug, courseSlug);
+  const { token, serverApiFetch } = await requireLearnAccess(orgSlug);
+  const course = await resolveCourseBySlug(orgSlug, courseSlug, serverApiFetch);
   const courseHref = getLearnCourseHref(orgSlug, courseSlug);
+  const basePath = `/orgs/${orgSlug}/courses/${course.id}`;
+
+  try {
+    await apiFetch(`${basePath}/enroll`, { method: "POST" });
+  } catch {
+    // Idempotent.
+  }
 
   let startData: any = null;
   let errorMessage: string | null = null;
 
   try {
-    startData = await apiFetch<any>(`/orgs/${orgSlug}/courses/${course.id}/diagnostic/start`, {
+    startData = await apiFetch<any>(`${basePath}/diagnostic/start`, {
       method: "POST",
     });
   } catch (err) {

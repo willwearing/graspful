@@ -66,6 +66,40 @@ export async function adminConfirmUser(email: string): Promise<void> {
   }
 }
 
+export async function getSupabaseUserIdByEmail(email: string): Promise<string> {
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY env var required for e2e tests (set in backend/.env)"
+    );
+  }
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    for (let page = 1; page <= 10; page += 1) {
+      const listRes = await fetch(
+        `${SUPABASE_URL}/auth/v1/admin/users?page=${page}&per_page=200`,
+        {
+          headers: {
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+          },
+        }
+      );
+      const { users } = (await listRes.json()) as { users: Array<{ id: string; email: string }> };
+      const user = users.find((candidate) => candidate.email === email);
+      if (user) {
+        return user.id;
+      }
+      if (users.length === 0) {
+        break;
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+
+  throw new Error(`User ${email} not found in Supabase`);
+}
+
 /**
  * Set the dev brand override cookie so the app resolves the correct org.
  */

@@ -1,5 +1,5 @@
-import { NotFoundException } from '@nestjs/common';
-import { OrgMembershipService } from './org-membership.service';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { OrgMembershipService, PLATFORM_ORG_SLUG } from './org-membership.service';
 
 describe('OrgMembershipService', () => {
   let service: OrgMembershipService;
@@ -9,6 +9,7 @@ describe('OrgMembershipService', () => {
     mockPrisma = {
       organization: {
         findUnique: jest.fn(),
+        create: jest.fn(),
       },
       orgMembership: {
         upsert: jest.fn(),
@@ -18,39 +19,31 @@ describe('OrgMembershipService', () => {
     service = new OrgMembershipService(mockPrisma);
   });
 
-  it('joins an active organization by slug', async () => {
-    mockPrisma.organization.findUnique.mockResolvedValue({
-      id: 'org-1',
+  it('rejects direct self-enrollment for learner organizations', async () => {
+    await expect(
+      service.joinOrganizationBySlug('firefighter-prep', 'user-1'),
+    ).rejects.toThrow(ForbiddenException);
+
+    expect(mockPrisma.organization.findUnique).not.toHaveBeenCalled();
+    expect(mockPrisma.orgMembership.upsert).not.toHaveBeenCalled();
+  });
+
+  it('auto-creates the platform org when it does not exist', async () => {
+    mockPrisma.organization.findUnique.mockResolvedValue(null);
+    mockPrisma.organization.create.mockResolvedValue({
+      id: 'org-graspful',
       isActive: true,
     });
     mockPrisma.orgMembership.upsert.mockResolvedValue({
-      role: 'member',
+      role: 'owner',
     });
 
     await expect(
-      service.joinOrganizationBySlug('firefighter-prep', 'user-1'),
+      service.joinOrganizationBySlug(PLATFORM_ORG_SLUG, 'user-1'),
     ).resolves.toEqual({
-      orgId: 'org-1',
-      role: 'member',
+      orgId: 'org-graspful',
+      role: 'owner',
     });
-
-    expect(mockPrisma.orgMembership.upsert).toHaveBeenCalledWith({
-      where: { orgId_userId: { orgId: 'org-1', userId: 'user-1' } },
-      update: {},
-      create: {
-        orgId: 'org-1',
-        userId: 'user-1',
-        role: 'member',
-      },
-    });
-  });
-
-  it('throws when the organization does not exist', async () => {
-    mockPrisma.organization.findUnique.mockResolvedValue(null);
-
-    await expect(
-      service.joinOrganizationBySlug('missing-org', 'user-1'),
-    ).rejects.toThrow(NotFoundException);
   });
 
   it('assigns owner role when joining the graspful platform org', async () => {
@@ -63,7 +56,7 @@ describe('OrgMembershipService', () => {
     });
 
     await expect(
-      service.joinOrganizationBySlug('graspful', 'user-1'),
+      service.joinOrganizationBySlug(PLATFORM_ORG_SLUG, 'user-1'),
     ).resolves.toEqual({
       orgId: 'org-graspful',
       role: 'owner',
@@ -87,7 +80,7 @@ describe('OrgMembershipService', () => {
     });
 
     await expect(
-      service.joinOrganizationBySlug('firefighter-prep', 'user-1'),
+      service.joinOrganizationBySlug(PLATFORM_ORG_SLUG, 'user-1'),
     ).rejects.toThrow(NotFoundException);
   });
 });

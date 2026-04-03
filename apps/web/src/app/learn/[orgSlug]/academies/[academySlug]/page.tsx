@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { fetchCourseProfiles } from "@/lib/course-profiles";
 import { createApiFetcher } from "@/lib/api";
-import { requireLearnSession, resolveAcademyBySlug } from "@/lib/learn-server";
+import { requireLearnAccess, resolveAcademyBySlug } from "@/lib/learn-server";
 import {
   getLearnAcademyDiagnosticHref,
   getLearnAcademyStudyHref,
@@ -25,7 +25,7 @@ export default async function LearnAcademyPage({
   params: Promise<{ orgSlug: string; academySlug: string }>;
 }) {
   const { orgSlug, academySlug } = await params;
-  const { serverApiFetch } = await requireLearnSession();
+  const { serverApiFetch } = await requireLearnAccess(orgSlug);
 
   const academyRecord = await resolveAcademyBySlug(orgSlug, academySlug, serverApiFetch).catch(
     () => null,

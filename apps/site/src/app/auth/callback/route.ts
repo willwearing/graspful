@@ -43,12 +43,6 @@ export async function GET(request: NextRequest) {
             headers: { Authorization: `Bearer ${token}` },
           });
         } catch {}
-        try {
-          await fetch(`${backendUrl}/orgs/graspful/join`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-          });
-        } catch {}
       }
 
       return NextResponse.redirect(new URL(redirect, origin));
