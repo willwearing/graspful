@@ -67,9 +67,10 @@ export class EnrollmentService {
     academyId: string,
   ) {
     const academy = await tx.academy.findFirst({
-      where: { id: academyId, orgId },
+      where: { id: academyId, orgId, archivedAt: null },
       include: {
         courses: {
+          where: { archivedAt: null },
           orderBy: { sortOrder: 'asc' },
           include: {
             sections: {

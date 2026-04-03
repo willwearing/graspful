@@ -75,6 +75,7 @@ export class BrandsService {
 
     const academies = await this.prisma.academy.findMany({
       where: {
+        archivedAt: null,
         org: {
           slug: {
             in: orgSlugs,

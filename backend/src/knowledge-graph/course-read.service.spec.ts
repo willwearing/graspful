@@ -144,7 +144,7 @@ describe('CourseReadService', () => {
 
     await expect(service.getAcademyBySlug('org-1', 'posthog-tam')).resolves.toEqual(academy);
     expect(mockPrisma.academy.findFirst).toHaveBeenCalledWith({
-      where: { slug: 'posthog-tam', orgId: 'org-1' },
+      where: { slug: 'posthog-tam', orgId: 'org-1', archivedAt: null },
     });
   });
 
