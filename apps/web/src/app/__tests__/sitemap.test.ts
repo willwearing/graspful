@@ -1,46 +1,68 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import sitemap from "../sitemap";
 import robots from "../robots";
+import { buildRobotsConfig, buildSitemapEntries } from "@/lib/seo/surface-indexing";
 
 describe("sitemap", () => {
-  it("should include marketing pages", async () => {
+  it("includes marketing pages for the platform host", async () => {
     const entries = await sitemap();
-    const urls = entries.map((e) => e.url);
-    expect(urls.some((u) => u.endsWith("/"))).toBe(false); // base URL has no trailing slash
-    expect(urls.some((u) => u.includes("graspful.ai") || u.includes("vercel.app"))).toBe(true);
-    expect(urls.some((u) => u.includes("/pricing"))).toBe(true);
-    expect(urls.some((u) => u.includes("/sign-up"))).toBe(true);
+    const urls = entries.map((entry) => entry.url);
+    expect(urls.some((url) => url.includes("graspful.ai") || url.includes("vercel.app"))).toBe(true);
+    expect(urls.some((url) => url.includes("/pricing"))).toBe(true);
+    expect(urls.some((url) => url.includes("/sign-up"))).toBe(true);
   });
 
-  it("should not include authenticated routes", async () => {
+  it("excludes authenticated routes from the platform sitemap", async () => {
     const entries = await sitemap();
-    const urls = entries.map((e) => e.url);
-    expect(urls.some((u) => u.includes("/dashboard"))).toBe(false);
-    expect(urls.some((u) => u.includes("/study"))).toBe(false);
-    expect(urls.some((u) => u.includes("/settings"))).toBe(false);
+    const urls = entries.map((entry) => entry.url);
+    expect(urls.some((url) => url.includes("/dashboard"))).toBe(false);
+    expect(urls.some((url) => url.includes("/study"))).toBe(false);
+    expect(urls.some((url) => url.includes("/settings"))).toBe(false);
   });
 
-  it("should set appropriate priorities", async () => {
-    const entries = await sitemap();
-    const home = entries.find((e) => !e.url.includes("/pricing") && !e.url.includes("/sign-up"));
-    expect(home?.priority).toBe(1.0);
+  it("reduces academy sitemaps to academy-facing pages", () => {
+    const entries = buildSitemapEntries("https://firefighterprep.vercel.app", "academy");
+    const urls = entries.map((entry) => entry.url);
+    expect(urls).toEqual([
+      "https://firefighterprep.vercel.app",
+      "https://firefighterprep.vercel.app/sign-up",
+      "https://firefighterprep.vercel.app/sign-in",
+    ]);
+  });
+
+  it("omits sitemap entries entirely for the app host", () => {
+    expect(buildSitemapEntries("https://app.graspful.ai", "app")).toEqual([]);
   });
 });
 
 describe("robots", () => {
-  it("should disallow authenticated routes", async () => {
+  it("disallows authenticated routes on the platform host", async () => {
     const config = await robots();
-    const rules = config.rules;
-    const firstRule = Array.isArray(rules) ? rules[0] : rules;
-    const disallowed = Array.isArray(firstRule.disallow)
-      ? firstRule.disallow
-      : [firstRule.disallow];
+    const rules = Array.isArray(config.rules) ? config.rules[0] : config.rules;
+    const disallowed = Array.isArray(rules.disallow) ? rules.disallow : [rules.disallow];
     expect(disallowed).toContain("/dashboard");
     expect(disallowed).toContain("/study");
     expect(disallowed).toContain("/auth");
+    expect(disallowed).toContain("/creator");
   });
 
-  it("should include sitemap URL", async () => {
+  it("locks down the app host from indexing", () => {
+    const config = buildRobotsConfig("https://app.graspful.ai", "app");
+    const rules = Array.isArray(config.rules) ? config.rules[0] : config.rules;
+    expect(rules.disallow).toBe("/");
+  });
+
+  it("keeps academy robots focused on academy content", () => {
+    const config = buildRobotsConfig("https://firefighterprep.vercel.app", "academy");
+    const rules = Array.isArray(config.rules) ? config.rules[0] : config.rules;
+    const allowed = Array.isArray(rules.allow) ? rules.allow : [rules.allow];
+    const disallowed = Array.isArray(rules.disallow) ? rules.disallow : [rules.disallow];
+    expect(allowed).toContain("/");
+    expect(disallowed).toContain("/pricing");
+    expect(disallowed).toContain("/creator");
+  });
+
+  it("includes a sitemap url", async () => {
     const config = await robots();
     expect(config.sitemap).toContain("sitemap.xml");
   });

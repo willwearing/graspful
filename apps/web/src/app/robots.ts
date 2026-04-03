@@ -1,74 +1,32 @@
 import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
 import { resolveBrand } from "@/lib/brand/resolve";
+import { getHostSurface, getRequestHost, isLocalHost } from "@/lib/hosts";
+import { buildRobotsConfig } from "@/lib/seo/surface-indexing";
 
-async function getBaseUrl(): Promise<string> {
+async function getBaseUrlAndSurface(): Promise<{ baseUrl: string; surface: ReturnType<typeof getHostSurface> }> {
   try {
     const headersList = await headers();
-    const hostname = headersList.get("host") || "";
-    if (hostname && hostname !== "localhost") {
+    const hostname = getRequestHost(headersList);
+    const surface = getHostSurface(hostname);
+    if (hostname && !isLocalHost(hostname)) {
       const cookieHeader = headersList.get("cookie");
       const brand = await resolveBrand(hostname, cookieHeader);
-      return `https://${brand.domain}`;
+      if (surface === "app") {
+        return { baseUrl: `https://${hostname}`, surface };
+      }
+      return { baseUrl: `https://${brand.domain}`, surface };
     }
   } catch {
     // static export or build time
   }
-  return process.env.NEXT_PUBLIC_SITE_URL || "https://graspful.ai";
+  return {
+    baseUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://graspful.ai",
+    surface: "platform",
+  };
 }
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
-  const BASE_URL = await getBaseUrl();
-  return {
-    rules: [
-      // Default: allow all public marketing pages
-      {
-        userAgent: "*",
-        allow: ["/", "/docs/", "/pricing", "/agents", "/sign-up"],
-        disallow: [
-          "/dashboard",
-          "/study",
-          "/browse",
-          "/settings",
-          "/diagnostic",
-          "/auth",
-          "/academy",
-        ],
-      },
-      // Explicitly allow AI crawlers for discoverability
-      {
-        userAgent: "GPTBot",
-        allow: ["/", "/docs/", "/pricing", "/agents", "/llms.txt"],
-      },
-      {
-        userAgent: "ChatGPT-User",
-        allow: ["/", "/docs/", "/pricing", "/agents", "/llms.txt"],
-      },
-      {
-        userAgent: "Google-Extended",
-        allow: ["/", "/docs/", "/pricing", "/agents"],
-      },
-      {
-        userAgent: "anthropic-ai",
-        allow: ["/", "/docs/", "/pricing", "/agents", "/llms.txt"],
-      },
-      {
-        userAgent: "Claude-Web",
-        allow: ["/", "/docs/", "/pricing", "/agents", "/llms.txt"],
-      },
-      {
-        userAgent: "PerplexityBot",
-        allow: ["/", "/docs/", "/pricing", "/agents"],
-      },
-      {
-        userAgent: "Bytespider",
-        allow: ["/", "/docs/", "/pricing", "/agents"],
-      },
-      {
-        userAgent: "CCBot",
-        allow: ["/", "/docs/", "/pricing", "/agents"],
-      },
-    ],
-    sitemap: `${BASE_URL}/sitemap.xml`,
-  };
+  const { baseUrl, surface } = await getBaseUrlAndSurface();
+  return buildRobotsConfig(baseUrl, surface);
 }

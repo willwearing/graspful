@@ -3,11 +3,15 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { getServerPostHog } from "@/lib/posthog/server";
 import { resolveBrand } from "@/lib/brand/resolve";
+import { getDefaultAuthRedirectPath, getHostSurface, getRequestHost } from "@/lib/hosts";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const rawRedirect = searchParams.get("redirect") || "/dashboard";
+  const hostname = getRequestHost(request.headers);
+  const surface = getHostSurface(hostname);
+  const rawRedirect =
+    searchParams.get("redirect") || getDefaultAuthRedirectPath(surface);
   // Prevent open redirect: must be a relative path, not protocol-relative
   const redirect =
     rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
@@ -55,7 +59,6 @@ export async function GET(request: NextRequest) {
       // Provision personal org + join the brand's org
       const token = data?.session?.access_token;
       if (token) {
-        const hostname = request.headers.get("host") || "localhost";
         const cookieHeader = request.headers.get("cookie");
         const brand = await resolveBrand(hostname, cookieHeader);
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";

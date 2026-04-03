@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useBrand } from "@/lib/brand/context";
+import { useHostSurface } from "@/lib/host-context";
+import { getDefaultAuthRedirectPath } from "@/lib/hosts";
 import { trackSignUp, trackSignIn } from "@/lib/posthog/events";
 import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
@@ -16,11 +18,13 @@ interface AuthFormProps {
 
 export function AuthForm({ mode }: AuthFormProps) {
   const brand = useBrand();
+  const hostSurface = useHostSurface();
   const router = useRouter();
   const searchParams = useSearchParams();
   const reason = searchParams.get("reason");
   const presetEmail = searchParams.get("email") || "";
-  const rawRedirect = searchParams.get("redirect") || "/dashboard";
+  const rawRedirect =
+    searchParams.get("redirect") || getDefaultAuthRedirectPath(hostSurface);
   // Prevent open redirect: must be a relative path, not protocol-relative
   const redirectTo =
     rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")

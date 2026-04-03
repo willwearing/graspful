@@ -1,13 +1,19 @@
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getDefaultAuthRedirectPath, getHostSurface, getRequestHost } from "@/lib/hosts";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const rawNext = searchParams.get("next") ?? "/dashboard";
-  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/dashboard";
+  const surface = getHostSurface(getRequestHost(request.headers));
+  const fallbackPath = getDefaultAuthRedirectPath(surface);
+  const rawNext = searchParams.get("next") ?? fallbackPath;
+  const next =
+    rawNext.startsWith("/") && !rawNext.startsWith("//")
+      ? rawNext
+      : fallbackPath;
 
   if (tokenHash && type) {
     const supabase = await createSupabaseServerClient();

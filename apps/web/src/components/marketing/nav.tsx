@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Sun, Moon } from "lucide-react";
 import { useBrand } from "@/lib/brand/context";
+import { useHostSurface } from "@/lib/host-context";
 import { useTheme } from "@/lib/theme/theme-provider";
 
 const platformLinks = [
@@ -17,8 +18,14 @@ const learnerLinks = [
 
 export function MarketingNav() {
   const brand = useBrand();
+  const hostSurface = useHostSurface();
   const { theme, toggleTheme } = useTheme();
-  const navLinks = brand.id === "graspful" ? platformLinks : learnerLinks;
+  const navLinks =
+    hostSurface === "academy"
+      ? []
+      : brand.id === "graspful"
+        ? platformLinks
+        : learnerLinks;
 
   return (
     <nav className="absolute top-0 left-0 right-0 z-20 border-b border-[#0F172A]/[0.06] dark:border-white/[0.06] bg-transparent">
@@ -59,7 +66,7 @@ export function MarketingNav() {
             href="/sign-up"
             className="btn-gradient px-5 py-2 text-sm font-medium"
           >
-            Get Started
+            {hostSurface === "academy" ? "Enroll" : "Get Started"}
           </Link>
         </div>
       </div>

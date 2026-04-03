@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useBrand } from "@/lib/brand/context";
+import { useHostSurface } from "@/lib/host-context";
 
 const platformProductLinks = [
   { href: "/agents", label: "AI Agents" },
@@ -23,10 +24,17 @@ const platformResourceLinks = [
 
 export function MarketingFooter() {
   const brand = useBrand();
+  const hostSurface = useHostSurface();
   const year = new Date().getFullYear();
   const isGraspful = brand.id === "graspful";
-  const productLinks = isGraspful ? platformProductLinks : learnerProductLinks;
-  const resourceLinks = isGraspful ? platformResourceLinks : null;
+  const productLinks =
+    hostSurface === "academy"
+      ? [{ href: "/sign-up", label: "Enroll" }, { href: "/sign-in", label: "Sign In" }]
+      : isGraspful
+        ? platformProductLinks
+        : learnerProductLinks;
+  const resourceLinks =
+    hostSurface === "academy" ? null : isGraspful ? platformResourceLinks : null;
 
   return (
     <footer className="border-t border-border/30 bg-background">
