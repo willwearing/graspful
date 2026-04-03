@@ -5,12 +5,30 @@ import { BrandProvider } from "@/lib/brand/context";
 import { ThemeProvider } from "@/lib/theme/theme-provider";
 import { firefighterBrand } from "@/lib/brand/defaults";
 
+const mockPush = vi.fn();
+const mockRefresh = vi.fn();
+const mockSignOut = vi.fn();
+let mockPathname = "/dashboard";
+
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/dashboard",
+  usePathname: () => mockPathname,
+  useRouter: () => ({ push: mockPush, refresh: mockRefresh }),
+}));
+
+vi.mock("@/lib/supabase/client", () => ({
+  createSupabaseBrowserClient: () => ({
+    auth: {
+      signOut: mockSignOut,
+    },
+  }),
 }));
 
 describe("Sidebar", () => {
   beforeEach(() => {
+    mockPathname = "/dashboard";
+    mockPush.mockReset();
+    mockRefresh.mockReset();
+    mockSignOut.mockReset();
     Object.defineProperty(window, "localStorage", {
       value: {
         getItem: () => null,
@@ -22,7 +40,7 @@ describe("Sidebar", () => {
     });
   });
 
-  it("renders course navigation without account controls in the footer", () => {
+  it("renders learner navigation with logout controls", () => {
     render(
       <ThemeProvider>
         <BrandProvider brand={firefighterBrand}>
@@ -34,7 +52,7 @@ describe("Sidebar", () => {
     expect(screen.getByRole("link", { name: /dashboard/i })).toBeTruthy();
     expect(screen.getByRole("link", { name: /browse/i })).toBeTruthy();
     expect(screen.getByRole("link", { name: /settings/i })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /log out/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /log out/i })).toBeTruthy();
   });
 
   it("updates the active nav item immediately when a new route is clicked", () => {
@@ -52,5 +70,23 @@ describe("Sidebar", () => {
 
     expect(browseLink.className).toContain("bg-primary/10");
     expect(browseLink.className).toContain("text-primary");
+  });
+
+  it("shows learn-specific navigation on platform learner routes", () => {
+    mockPathname = "/learn/posthog-tam/academies/posthog-tam";
+
+    render(
+      <ThemeProvider>
+        <BrandProvider brand={firefighterBrand}>
+          <Sidebar isOpen={false} onClose={() => {}} />
+        </BrandProvider>
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByRole("link", { name: /learning hub/i })).toHaveAttribute(
+      "href",
+      "/learn/posthog-tam",
+    );
+    expect(screen.queryByRole("link", { name: /dashboard/i })).toBeNull();
   });
 });

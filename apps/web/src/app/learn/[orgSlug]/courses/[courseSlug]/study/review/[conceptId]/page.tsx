@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import { requireLearnSession, resolveCourseBySlug } from "@/lib/learn-server";
+import { requireLearnAccess, resolveCourseBySlug } from "@/lib/learn-server";
 import { getLearnCourseStudyHref } from "@/lib/learn-routes";
 import { ReviewFlow } from "@/components/app/review-flow";
 
@@ -10,8 +10,8 @@ export default async function LearnReviewPage({
   params: Promise<{ orgSlug: string; courseSlug: string; conceptId: string }>;
 }) {
   const { orgSlug, courseSlug, conceptId } = await params;
-  const { token } = await requireLearnSession();
-  const course = await resolveCourseBySlug(orgSlug, courseSlug);
+  const { token, serverApiFetch } = await requireLearnAccess(orgSlug);
+  const course = await resolveCourseBySlug(orgSlug, courseSlug, serverApiFetch);
 
   let reviewData: any;
   try {

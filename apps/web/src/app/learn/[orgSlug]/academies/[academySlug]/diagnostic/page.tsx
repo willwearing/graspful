@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { ApiError, apiFetch } from "@/lib/api";
-import { requireLearnSession, resolveAcademyBySlug } from "@/lib/learn-server";
+import { requireLearnAccess, resolveAcademyBySlug } from "@/lib/learn-server";
 import { getLearnAcademyHref } from "@/lib/learn-routes";
 import { DiagnosticFlow } from "@/components/app/diagnostic-flow";
 import { AcademyEnrollTracker } from "@/components/app/page-view-tracker";
@@ -12,7 +12,7 @@ export default async function LearnAcademyDiagnosticPage({
   params: Promise<{ orgSlug: string; academySlug: string }>;
 }) {
   const { orgSlug, academySlug } = await params;
-  const { token, serverApiFetch } = await requireLearnSession();
+  const { token, serverApiFetch } = await requireLearnAccess(orgSlug);
 
   const academy = await resolveAcademyBySlug(orgSlug, academySlug, serverApiFetch);
   const academyHref = getLearnAcademyHref(orgSlug, academySlug);

@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api";
-import { requireLearnSession, resolveCourseBySlug } from "@/lib/learn-server";
+import { requireLearnAccess, resolveCourseBySlug } from "@/lib/learn-server";
 import {
   getLearnCourseHref,
   getLearnTaskHref,
@@ -13,9 +13,9 @@ export default async function LearnCourseStudyPage({
   params: Promise<{ orgSlug: string; courseSlug: string }>;
 }) {
   const { orgSlug, courseSlug } = await params;
-  await requireLearnSession();
+  const { serverApiFetch } = await requireLearnAccess(orgSlug);
 
-  const course = await resolveCourseBySlug(orgSlug, courseSlug);
+  const course = await resolveCourseBySlug(orgSlug, courseSlug, serverApiFetch);
 
   let task: NextTask | null = null;
   try {

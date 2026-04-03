@@ -7,7 +7,6 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useBrand } from "@/lib/brand/context";
 import { useHostSurface } from "@/lib/host-context";
 import { getDefaultAuthRedirectPath } from "@/lib/hosts";
-import { extractOrgSlugFromLearnPath } from "@/lib/learn-routes";
 import { trackSignUp, trackSignIn } from "@/lib/posthog/events";
 import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,6 @@ export function AuthForm({ mode }: AuthFormProps) {
     rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
       ? rawRedirect
       : "/dashboard";
-  const joinOrgSlug = extractOrgSlugFromLearnPath(redirectTo) || brand.orgSlug;
   const [email, setEmail] = useState(presetEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -62,14 +60,10 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (data.session) {
           // Auto-confirm is on (dev) — redirect immediately
           trackSignUp(data.session.user.id);
-          // Provision personal org + join the brand's org
+          // Provision the user's personal org. Learner org access must come
+          // from an explicit entitlement flow.
           try {
             await apiClientFetch(`/auth/provision`, data.session.access_token, { method: "POST" });
-          } catch {
-            // Non-fatal
-          }
-          try {
-            await apiClientFetch(`/orgs/${joinOrgSlug}/join`, data.session.access_token, { method: "POST" });
           } catch {
             // Non-fatal
           }
@@ -88,15 +82,11 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (data.session) {
           trackSignIn(data.session.user.id);
         }
-        // Provision personal org (idempotent) + join the brand's org on sign-in
+        // Provision the user's personal org (idempotent). Learner org access
+        // must come from an explicit entitlement flow.
         if (data.session) {
           try {
             await apiClientFetch(`/auth/provision`, data.session.access_token, { method: "POST" });
-          } catch {
-            // Non-fatal
-          }
-          try {
-            await apiClientFetch(`/orgs/${joinOrgSlug}/join`, data.session.access_token, { method: "POST" });
           } catch {
             // Non-fatal
           }

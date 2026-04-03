@@ -7,6 +7,7 @@ Adaptive learning platform. Multi-tenant white-label SaaS.
 - **CLI or MCP for everything.** Browser auth is only used to mint credentials for the CLI; course creation and publishing stay programmatic.
 - **Use `bun` not `npm`.**
 - **Read `docs/adding-a-course.md` before building any course.** It is the canonical agent runbook.
+- **Auth, routing, and entitlement changes require regression proof.** Verify anonymous access, signed-in but non-entitled access, and entitled access, and cover shell/chrome expectations on the affected route with automated tests. For user-facing access control changes, run the relevant e2e path before considering the work done.
 
 ## Course Creation — Agent Workflow
 

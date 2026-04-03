@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useBrand } from "@/lib/brand/context";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const BRANDS = [
   { id: "firefighter", name: "FirefighterPrep", emoji: "🔥", orgSlug: "firefighter-prep" },
@@ -14,7 +13,7 @@ const BRANDS = [
 /**
  * Floating brand switcher for local development only.
  * Sets a cookie that the middleware/layout reads to override the active brand,
- * auto-joins the org (so the user has access), then reloads.
+ * then reloads. Access still depends on actual entitlements.
  */
 export function DevBrandSwitcher() {
   const brand = useBrand();
@@ -30,24 +29,6 @@ export function DevBrandSwitcher() {
     }
 
     setSwitching(true);
-
-    // Auto-join the target org so the user has access
-    const targetBrand = BRANDS.find((b) => b.id === brandId);
-    if (targetBrand) {
-      try {
-        const supabase = createSupabaseBrowserClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
-          await fetch(`${backendUrl}/orgs/${targetBrand.orgSlug}/join`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${session.access_token}` },
-          });
-        }
-      } catch {
-        // Non-fatal — user may not be logged in
-      }
-    }
 
     document.cookie = `dev-brand-override=${brandId}; path=/; max-age=31536000`;
     window.location.reload();

@@ -10,13 +10,9 @@ import type { AuthUser } from '@/auth/guards/supabase-auth.guard';
 import { OrgMembershipService } from './org-membership.service';
 
 /**
- * Allows authenticated users to join an organization.
- * Only SupabaseAuthGuard is used — no OrgMembershipGuard (the user isn't a member yet).
- * Idempotent: if already a member, returns existing membership.
- *
- * TODO: Add invite-based or approval-based enrollment before opening to public.
- * Currently any authenticated user can join any active org by slug.
- * Consider: rate limiting, invite tokens, or org-level allowOpenEnrollment flag.
+ * Allows authenticated users to join the platform org.
+ * Learner organizations must be joined through an explicit entitlement flow
+ * (invite, purchase, admin assignment, etc.), not by self-service sign-in.
  */
 @Controller('orgs/:orgSlug/join')
 @UseGuards(SupabaseAuthGuard)

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { requireLearnSession, resolveCourseBySlug } from "@/lib/learn-server";
+import { requireLearnAccess, resolveCourseBySlug } from "@/lib/learn-server";
 import {
   getLearnAcademyDiagnosticHref,
   getLearnAcademyHref,
@@ -52,7 +52,7 @@ export default async function LearnCoursePage({
   params: Promise<{ orgSlug: string; courseSlug: string }>;
 }) {
   const { orgSlug, courseSlug } = await params;
-  const { serverApiFetch } = await requireLearnSession();
+  const { serverApiFetch } = await requireLearnAccess(orgSlug);
 
   const course = await resolveCourseBySlug(orgSlug, courseSlug, serverApiFetch).catch(() => null);
   if (!course) notFound();

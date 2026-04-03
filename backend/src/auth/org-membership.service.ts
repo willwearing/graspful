@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 
 /** The platform org slug — creators signing up here own their account */
@@ -11,6 +16,12 @@ export class OrgMembershipService {
   constructor(private prisma: PrismaService) {}
 
   async joinOrganizationBySlug(orgSlug: string, userId: string) {
+    if (orgSlug !== PLATFORM_ORG_SLUG) {
+      throw new ForbiddenException(
+        'Direct self-enrollment is disabled for learner organizations',
+      );
+    }
+
     let org = await this.prisma.organization.findUnique({
       where: { slug: orgSlug },
       select: { id: true, isActive: true },
@@ -36,16 +47,13 @@ export class OrgMembershipService {
       throw new NotFoundException('Organization not found');
     }
 
-    // Platform org members get owner role; brand-specific org members get member role
-    const role = orgSlug === PLATFORM_ORG_SLUG ? 'owner' : 'member';
-
     const membership = await this.prisma.orgMembership.upsert({
       where: { orgId_userId: { orgId: org.id, userId } },
       update: {},
       create: {
         orgId: org.id,
         userId,
-        role,
+        role: 'owner',
       },
     });
 

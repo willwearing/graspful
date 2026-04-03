@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CourseCard } from "@/components/app/course-card";
 import { getLearnAcademyHref, getLearnCourseHref } from "@/lib/learn-routes";
-import { requireLearnSession } from "@/lib/learn-server";
+import { requireLearnAccess } from "@/lib/learn-server";
 
 interface Academy {
   id: string;
@@ -33,7 +33,7 @@ export default async function LearnOrgPage({
   params: Promise<{ orgSlug: string }>;
 }) {
   const { orgSlug } = await params;
-  const { serverApiFetch } = await requireLearnSession();
+  const { serverApiFetch } = await requireLearnAccess(orgSlug);
 
   const [academies, courses] = await Promise.all([
     serverApiFetch<Academy[]>(`/orgs/${orgSlug}/academies`).catch(() => []),

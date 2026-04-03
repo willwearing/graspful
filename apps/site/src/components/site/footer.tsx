@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { footerLinks, siteName } from "@/lib/site-config";
+import { getPublicAcademyCatalog } from "@/lib/public-academies";
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const brands = await getPublicAcademyCatalog();
+  const hasAcademies = brands.length > 0;
+
   return (
     <footer className="border-t border-border/30 bg-background">
       <div className="mx-auto max-w-6xl px-6 py-12">
-        <div className="grid gap-8 sm:grid-cols-3">
+        <div className={`grid gap-8 ${hasAcademies ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
           <div>
             <span className="text-lg font-bold text-foreground tracking-tight">
               {siteName}
@@ -32,6 +36,28 @@ export function SiteFooter() {
               ))}
             </ul>
           </div>
+          {hasAcademies ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                Academies
+              </p>
+              <ul className="space-y-3 list-none p-0 m-0">
+                {brands.map((brand) => (
+                  <li key={brand.slug}>
+                    <Link
+                      href={`https://${brand.domain}`}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors no-underline"
+                    >
+                      {brand.name}
+                    </Link>
+                    <p className="mt-1 text-xs text-muted-foreground/70">
+                      {brand.domain}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
               Resources

@@ -13,7 +13,7 @@ interface AuthFormProps {
 }
 
 export function AuthForm({ mode }: AuthFormProps) {
-  const brand = { name: "Graspful", orgSlug: "graspful" };
+  const brand = { name: "Graspful" };
   const router = useRouter();
   const searchParams = useSearchParams();
   const reason = searchParams.get("reason");
@@ -58,9 +58,6 @@ export function AuthForm({ mode }: AuthFormProps) {
           try {
             await apiClientFetch(`/auth/provision`, data.session.access_token, { method: "POST" });
           } catch {}
-          try {
-            await apiClientFetch(`/orgs/${brand.orgSlug}/join`, data.session.access_token, { method: "POST" });
-          } catch {}
           router.push(redirectTo);
           router.refresh();
         } else {
@@ -75,9 +72,6 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (data.session) {
           try {
             await apiClientFetch(`/auth/provision`, data.session.access_token, { method: "POST" });
-          } catch {}
-          try {
-            await apiClientFetch(`/orgs/${brand.orgSlug}/join`, data.session.access_token, { method: "POST" });
           } catch {}
         }
         router.push(redirectTo);
