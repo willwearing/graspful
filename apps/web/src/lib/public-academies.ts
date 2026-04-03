@@ -1,5 +1,3 @@
-import { createApiFetcher } from "@/lib/api";
-
 export interface PublicCatalogCourse {
   slug: string;
   name: string;
@@ -26,9 +24,18 @@ export interface PublicCatalogBrand {
 }
 
 export async function getPublicAcademyCatalog(): Promise<PublicCatalogBrand[]> {
-  const apiFetch = createApiFetcher();
   try {
-    return await apiFetch<PublicCatalogBrand[]>("/brands/catalog/academies");
+    const backendUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
+    const res = await fetch(`${backendUrl}/brands/catalog/academies`, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      return [];
+    }
+
+    return (await res.json()) as PublicCatalogBrand[];
   } catch {
     return [];
   }
