@@ -2,14 +2,17 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MarketingFooter } from "../footer";
 import { BrandProvider } from "@/lib/brand/context";
-import { firefighterBrand } from "@/lib/brand/defaults";
+import { HostSurfaceProvider } from "@/lib/host-context";
+import { defaultBrand, firefighterBrand } from "@/lib/brand/defaults";
 
 describe("MarketingFooter", () => {
   it("renders brand name and tagline", () => {
     render(
-      <BrandProvider brand={firefighterBrand}>
-        <MarketingFooter />
-      </BrandProvider>,
+      <HostSurfaceProvider surface="local">
+        <BrandProvider brand={firefighterBrand}>
+          <MarketingFooter />
+        </BrandProvider>
+      </HostSurfaceProvider>,
     );
     expect(screen.getByText("FirefighterPrep")).toBeTruthy();
     expect(screen.getByText(firefighterBrand.tagline)).toBeTruthy();
@@ -17,11 +20,27 @@ describe("MarketingFooter", () => {
 
   it("renders copyright with current year", () => {
     render(
-      <BrandProvider brand={firefighterBrand}>
-        <MarketingFooter />
-      </BrandProvider>,
+      <HostSurfaceProvider surface="local">
+        <BrandProvider brand={firefighterBrand}>
+          <MarketingFooter />
+        </BrandProvider>
+      </HostSurfaceProvider>,
     );
     const year = new Date().getFullYear();
     expect(screen.getByText(new RegExp(`${year}`))).toBeTruthy();
+  });
+
+  it("uses direct platform links on the app surface", () => {
+    render(
+      <HostSurfaceProvider surface="app">
+        <BrandProvider brand={defaultBrand}>
+          <MarketingFooter />
+        </BrandProvider>
+      </HostSurfaceProvider>,
+    );
+
+    expect(screen.getByRole("link", { name: /ai agents/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /^pricing$/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /documentation/i })).toBeTruthy();
   });
 });

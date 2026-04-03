@@ -26,7 +26,12 @@ function getNavItems(brandId: string, pathname: string) {
   if (learnOrgSlug) {
     return [
       { href: getLearnOrgHref(learnOrgSlug), label: "Learning Hub", icon: BookOpen },
-      { href: "/settings", label: "Settings", icon: Settings },
+      {
+        href: "/settings",
+        label: "Settings",
+        icon: Settings,
+        prefetch: false,
+      },
     ];
   }
 
@@ -44,7 +49,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const router = useRouter();
   const [pendingPath, setPendingPath] = useState<string | null>(null);
 
-  const navItems = useMemo(() => getNavItems(brand.id, pathname), [brand.id, pathname]);
+  const navItems = useMemo(
+    () => getNavItems(brand.id, pathname),
+    [brand.id, pathname],
+  );
 
   useEffect(() => {
     setPendingPath(null);
@@ -101,6 +109,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={item.prefetch}
                 onClick={() => {
                   setPendingPath(item.href === pathname ? null : item.href);
                   onClose();

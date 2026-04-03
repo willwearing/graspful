@@ -2,16 +2,19 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MarketingNav } from "../nav";
 import { BrandProvider } from "@/lib/brand/context";
+import { HostSurfaceProvider } from "@/lib/host-context";
 import { ThemeProvider } from "@/lib/theme/theme-provider";
-import { firefighterBrand } from "@/lib/brand/defaults";
+import { defaultBrand, firefighterBrand } from "@/lib/brand/defaults";
 
 function renderNav() {
   return render(
-    <ThemeProvider>
-      <BrandProvider brand={firefighterBrand}>
-        <MarketingNav />
-      </BrandProvider>
-    </ThemeProvider>,
+      <ThemeProvider>
+        <HostSurfaceProvider surface="local">
+          <BrandProvider brand={firefighterBrand}>
+            <MarketingNav />
+          </BrandProvider>
+        </HostSurfaceProvider>
+      </ThemeProvider>,
   );
 }
 
@@ -34,5 +37,21 @@ describe("MarketingNav", () => {
     expect(cta).toBeTruthy();
     expect(cta.getAttribute("href")).toBe("/sign-up");
     expect(cta.className).toContain("btn-gradient");
+  });
+
+  it("uses direct platform links on the app surface", () => {
+    render(
+      <ThemeProvider>
+        <HostSurfaceProvider surface="app">
+          <BrandProvider brand={defaultBrand}>
+            <MarketingNav />
+          </BrandProvider>
+        </HostSurfaceProvider>
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByRole("link", { name: /agents/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /^pricing$/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /docs/i })).toBeTruthy();
   });
 });
