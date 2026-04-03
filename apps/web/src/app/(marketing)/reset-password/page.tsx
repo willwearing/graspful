@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useHostSurface } from "@/lib/host-context";
+import { getDefaultAuthRedirectPath } from "@/lib/hosts";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +16,7 @@ import {
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const hostSurface = useHostSurface();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +38,7 @@ export default function ResetPasswordPage() {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      router.push("/dashboard");
+      router.push(getDefaultAuthRedirectPath(hostSurface));
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");

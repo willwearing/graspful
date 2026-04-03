@@ -1,10 +1,12 @@
 import type { BrandConfig } from "./config";
 import { defaultBrand, firefighterBrand, electricianBrand, javascriptBrand, posthogBrand, graspfulBrand } from "./defaults";
 import { fetchBrandByDomain, fetchBrandBySlug } from "./resolve-db";
+import { getRequestHost } from "@/lib/hosts";
 
 /** In-memory brand registry. Phase 7 uses hardcoded brands; future phases fetch from DB. */
 const brandsByDomain = new Map<string, BrandConfig>([
   ["graspful.ai", graspfulBrand],
+  ["app.graspful.ai", graspfulBrand],
   ["graspful.vercel.app", graspfulBrand],
   ["firefighterprep.vercel.app", firefighterBrand],
   ["electricianprep.vercel.app", electricianBrand],
@@ -69,7 +71,7 @@ export async function resolveBrand(
 export async function resolvePageBrand(): Promise<BrandConfig> {
   const { headers } = await import("next/headers");
   const headersList = await headers();
-  const hostname = headersList.get("host") || "localhost";
+  const hostname = getRequestHost(headersList);
   const cookieHeader = headersList.get("cookie");
   return resolveBrand(hostname, cookieHeader);
 }

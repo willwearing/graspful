@@ -1,53 +1,29 @@
-import { describe, it, expect } from "vitest";
-import { decideRoute, isPublicRoute } from "@/proxy";
-
-/**
- * The proxy itself relies on Next.js request/response objects and Supabase
- * server client, which are difficult to instantiate in vitest without heavy mocking.
- *
- * Instead, we extract and test the pure-logic pieces:
- * - PUBLIC_ROUTES matching
- * - Routing decision matrix (unauthenticated + protected → redirect, etc.)
- */
+import { describe, expect, it } from "vitest";
+import { decideRoute, isPublicRoute } from "@/lib/hosts";
 
 describe("isPublicRoute", () => {
   it("marks / as public", () => {
     expect(isPublicRoute("/")).toBe(true);
   });
 
-  it("marks /sign-in as public", () => {
+  it("marks auth and marketing routes as public on local/platform hosts", () => {
     expect(isPublicRoute("/sign-in")).toBe(true);
-  });
-
-  it("marks /sign-up as public", () => {
     expect(isPublicRoute("/sign-up")).toBe(true);
-  });
-
-  it("marks /cli-auth as public", () => {
     expect(isPublicRoute("/cli-auth")).toBe(true);
-  });
-
-  it("marks /auth/callback as public", () => {
     expect(isPublicRoute("/auth/callback")).toBe(true);
-  });
-
-  it("marks /pricing as public", () => {
     expect(isPublicRoute("/pricing")).toBe(true);
-  });
-
-  it("marks /agents as public", () => {
     expect(isPublicRoute("/agents")).toBe(true);
-  });
-
-  it("marks /docs as public", () => {
     expect(isPublicRoute("/docs")).toBe(true);
   });
 
-  it("marks /dashboard as NOT public", () => {
-    expect(isPublicRoute("/dashboard")).toBe(false);
+  it("treats academy hosts as learner-only public surfaces", () => {
+    expect(isPublicRoute("/pricing", "academy")).toBe(false);
+    expect(isPublicRoute("/docs", "academy")).toBe(false);
+    expect(isPublicRoute("/sign-in", "academy")).toBe(true);
   });
 
-  it("marks /settings as NOT public", () => {
+  it("marks protected routes as non-public", () => {
+    expect(isPublicRoute("/dashboard")).toBe(false);
     expect(isPublicRoute("/settings")).toBe(false);
   });
 
@@ -56,52 +32,93 @@ describe("isPublicRoute", () => {
   });
 });
 
-describe("middleware routing decisions", () => {
-  it("redirects unauthenticated user on protected route to /sign-in", () => {
-    const result = decideRoute("/dashboard", false);
-    expect(result).toEqual({ action: "redirect", to: "/sign-in" });
+describe("routing decisions", () => {
+  it("redirects unauthenticated local users on protected routes to sign-in with a return url", () => {
+    expect(decideRoute("/dashboard", false)).toEqual({
+      action: "redirect",
+      to: "/sign-in?redirect=%2Fdashboard",
+    });
+    expect(decideRoute("/settings", false)).toEqual({
+      action: "redirect",
+      to: "/sign-in?redirect=%2Fsettings",
+    });
   });
 
-  it("redirects unauthenticated user on /settings to /sign-in", () => {
-    const result = decideRoute("/settings", false);
-    expect(result).toEqual({ action: "redirect", to: "/sign-in" });
+  it("preserves the existing local behavior for learner vs creator brands", () => {
+    expect(decideRoute("/", true)).toEqual({ action: "redirect", to: "/dashboard" });
+    expect(decideRoute("/sign-in", true, { brandId: "student-brand" })).toEqual({
+      action: "redirect",
+      to: "/dashboard",
+    });
+    expect(decideRoute("/dashboard", true, { brandId: "graspful" })).toEqual({
+      action: "redirect",
+      to: "/creator",
+    });
+    expect(decideRoute("/creator", true, { brandId: "student-brand" })).toEqual({
+      action: "redirect",
+      to: "/dashboard",
+    });
   });
 
-  it("redirects authenticated user on / to /dashboard", () => {
-    const result = decideRoute("/", true);
-    expect(result).toEqual({ action: "redirect", to: "/dashboard" });
+  it("keeps signed-in users on platform marketing home", () => {
+    expect(
+      decideRoute("/", true, {
+        surface: "platform",
+        currentUrl: new URL("https://graspful.ai/"),
+      }),
+    ).toEqual({ action: "next" });
   });
 
-  it("redirects authenticated user on /sign-in to /dashboard", () => {
-    const result = decideRoute("/sign-in", true, "student-brand");
-    expect(result).toEqual({ action: "redirect", to: "/dashboard" });
+  it("sends platform product routes to the app host", () => {
+    expect(
+      decideRoute("/dashboard", false, {
+        surface: "platform",
+        currentUrl: new URL("https://graspful.ai/dashboard"),
+      }),
+    ).toEqual({
+      action: "redirect",
+      to: "https://app.graspful.ai/sign-in?redirect=%2Fdashboard",
+    });
   });
 
-  it("redirects authenticated user on /sign-up to /dashboard", () => {
-    const result = decideRoute("/sign-up", true, "student-brand");
-    expect(result).toEqual({ action: "redirect", to: "/dashboard" });
+  it("uses app.graspful.ai as a control-plane-only surface", () => {
+    expect(
+      decideRoute("/", false, {
+        surface: "app",
+        currentUrl: new URL("https://app.graspful.ai/"),
+      }),
+    ).toEqual({ action: "redirect", to: "/sign-in" });
+
+    expect(
+      decideRoute("/pricing", false, {
+        surface: "app",
+        currentUrl: new URL("https://app.graspful.ai/pricing"),
+      }),
+    ).toEqual({
+      action: "redirect",
+      to: "https://graspful.ai/pricing",
+    });
   });
 
-  it("redirects graspful authenticated users from /dashboard to /creator", () => {
-    const result = decideRoute("/dashboard", true, "graspful");
-    expect(result).toEqual({ action: "redirect", to: "/creator" });
-  });
+  it("keeps academy hosts learner-only and bounces creator routes to the app host", () => {
+    expect(
+      decideRoute("/creator", false, {
+        surface: "academy",
+        currentUrl: new URL("https://firefighterprep.vercel.app/creator"),
+      }),
+    ).toEqual({
+      action: "redirect",
+      to: "https://app.graspful.ai/sign-in?redirect=%2Fcreator",
+    });
 
-  it("redirects non-graspful authenticated users from /creator to /dashboard", () => {
-    const result = decideRoute("/creator", true, "student-brand");
-    expect(result).toEqual({ action: "redirect", to: "/dashboard" });
-  });
-
-  it("allows unauthenticated user on public routes", () => {
-    expect(decideRoute("/", false)).toEqual({ action: "next" });
-    expect(decideRoute("/sign-in", false)).toEqual({ action: "next" });
-    expect(decideRoute("/sign-up", false)).toEqual({ action: "next" });
-    expect(decideRoute("/cli-auth", false)).toEqual({ action: "next" });
-    expect(decideRoute("/auth/callback", false)).toEqual({ action: "next" });
-  });
-
-  it("allows authenticated user on protected routes", () => {
-    expect(decideRoute("/dashboard", true)).toEqual({ action: "next" });
-    expect(decideRoute("/settings", true)).toEqual({ action: "next" });
+    expect(
+      decideRoute("/pricing", false, {
+        surface: "academy",
+        currentUrl: new URL("https://firefighterprep.vercel.app/pricing"),
+      }),
+    ).toEqual({
+      action: "redirect",
+      to: "https://graspful.ai/pricing",
+    });
   });
 });

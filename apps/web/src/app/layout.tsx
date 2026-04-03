@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { BrandProvider } from "@/lib/brand/context";
 import { BrandThemeStyle } from "@/lib/brand/theme-style";
 import { resolveBrand } from "@/lib/brand/resolve";
+import { HostSurfaceProvider } from "@/lib/host-context";
+import { getHostSurface, getRequestHost, isLocalHost } from "@/lib/hosts";
 import { PostHogProvider } from "@/lib/posthog/provider";
 import { DevBrandSwitcher } from "@/components/dev/brand-switcher";
 import { ThemeProvider, themeInitScript } from "@/lib/theme/theme-provider";
@@ -17,12 +19,13 @@ const inter = Inter({
 
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = await headers();
-  const hostname = headersList.get("host") || "localhost";
+  const hostname = getRequestHost(headersList);
   const cookieHeader = headersList.get("cookie");
   const brand = await resolveBrand(hostname, cookieHeader);
+  const canonicalHost = isLocalHost(hostname) ? brand.domain : hostname;
 
   return {
-    metadataBase: new URL(`https://${brand.domain}`),
+    metadataBase: new URL(`https://${canonicalHost}`),
     title: {
       default: brand.seo.title,
       template: `%s | ${brand.name}`,
@@ -35,7 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       type: "website",
       locale: "en_US",
-      url: `https://${brand.domain}`,
+      url: `https://${canonicalHost}`,
       siteName: brand.name,
       title: brand.seo.title,
       description: brand.seo.description,
@@ -70,7 +73,7 @@ export async function generateMetadata(): Promise<Metadata> {
       },
     },
     alternates: {
-      canonical: `https://${brand.domain}`,
+      canonical: `https://${canonicalHost}`,
     },
   };
 }
@@ -81,9 +84,11 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const headersList = await headers();
-  const hostname = headersList.get("host") || "localhost";
+  const hostname = getRequestHost(headersList);
   const cookieHeader = headersList.get("cookie");
   const brand = await resolveBrand(hostname, cookieHeader);
+  const hostSurface = getHostSurface(hostname);
+  const canonicalHost = isLocalHost(hostname) ? brand.domain : hostname;
 
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
@@ -104,7 +109,7 @@ export default async function RootLayout({
               applicationCategory: "EducationalApplication",
               operatingSystem: "Web",
               description: brand.seo.description,
-              url: `https://${brand.domain}`,
+              url: `https://${canonicalHost}`,
               offers: {
                 "@type": "Offer",
                 price: "0",
@@ -131,10 +136,12 @@ export default async function RootLayout({
       </head>
       <body className="min-h-screen bg-background text-foreground">
         <ThemeProvider>
-          <BrandProvider brand={brand}>
-            <PostHogProvider>{children}</PostHogProvider>
-            <DevBrandSwitcher />
-          </BrandProvider>
+          <HostSurfaceProvider surface={hostSurface}>
+            <BrandProvider brand={brand}>
+              <PostHogProvider>{children}</PostHogProvider>
+              <DevBrandSwitcher />
+            </BrandProvider>
+          </HostSurfaceProvider>
         </ThemeProvider>
       </body>
     </html>

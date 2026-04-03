@@ -1,26 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveBrand } from "@/lib/brand/resolve";
-
-export const PUBLIC_ROUTES = [
-  "/",
-  "/sign-in",
-  "/sign-up",
-  "/cli-auth",
-  "/auth/callback",
-  "/auth/confirm",
-  "/forgot-password",
-  "/reset-password",
-  "/pricing",
-  "/agents",
-  "/docs",
-];
-
-export const AUTH_PAGES = ["/", "/sign-in", "/sign-up"] as const;
-
-export type RoutingDecision =
-  | { action: "redirect"; to: string }
-  | { action: "next" };
+import { decideRoute, getHostSurface, getRequestHost, isPublicRoute } from "@/lib/hosts";
 
 function createBrandResponse(request: NextRequest, brandId: string) {
   const response = NextResponse.next({ request });
@@ -34,44 +15,10 @@ function createBrandResponse(request: NextRequest, brandId: string) {
   return response;
 }
 
-export function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  );
-}
-
-export function decideRoute(
-  pathname: string,
-  user: boolean,
-  brandId = "student-brand",
-): RoutingDecision {
-  if (!user && !isPublicRoute(pathname)) {
-    return { action: "redirect", to: "/sign-in" };
-  }
-
-  if (user && AUTH_PAGES.includes(pathname as (typeof AUTH_PAGES)[number])) {
-    return {
-      action: "redirect",
-      to: brandId === "graspful" ? "/creator" : "/dashboard",
-    };
-  }
-
-  if (user) {
-    const isGraspful = brandId === "graspful";
-    if (isGraspful && pathname === "/dashboard") {
-      return { action: "redirect", to: "/creator" };
-    }
-    if (!isGraspful && pathname.startsWith("/creator")) {
-      return { action: "redirect", to: "/dashboard" };
-    }
-  }
-
-  return { action: "next" };
-}
-
 export async function proxy(request: NextRequest) {
   try {
-    const hostname = request.headers.get("host") || "localhost";
+    const hostname = getRequestHost(request.headers);
+    const surface = getHostSurface(hostname);
     const cookieHeader = request.headers.get("cookie");
 
     const brand = await resolveBrand(hostname, cookieHeader);
@@ -105,14 +52,13 @@ export async function proxy(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const decision = decideRoute(request.nextUrl.pathname, !!user, brand.id);
+    const decision = decideRoute(request.nextUrl.pathname, !!user, {
+      brandId: brand.id,
+      currentUrl: request.nextUrl,
+      surface,
+    });
     if (decision.action === "redirect") {
-      const url = request.nextUrl.clone();
-      url.pathname = decision.to;
-      if (!user && !isPublicRoute(request.nextUrl.pathname)) {
-        url.searchParams.set("redirect", request.nextUrl.pathname);
-      }
-      return NextResponse.redirect(url);
+      return NextResponse.redirect(new URL(decision.to, request.url));
     }
 
     return response;
