@@ -34,11 +34,12 @@ interface LessonFlowProps {
   courseId: string;
   token: string;
   lesson: LessonData;
+  continueHref?: string;
 }
 
 type KPPhase = "instruction" | "worked-example" | "practice";
 
-export function LessonFlow({ orgSlug, courseId, token, lesson }: LessonFlowProps) {
+export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: LessonFlowProps) {
   const router = useRouter();
   const [currentKP, setCurrentKP] = useState(0);
   const [phase, setPhase] = useState<KPPhase>("instruction");
@@ -150,7 +151,7 @@ export function LessonFlow({ orgSlug, courseId, token, lesson }: LessonFlowProps
       const durationSeconds = Math.round((Date.now() - lessonStartRef.current) / 1000);
       trackLessonComplete(lesson.conceptId, lesson.conceptName, durationSeconds);
       completedRef.current = true;
-      router.push(`/study/${courseId}`);
+      router.push(continueHref ?? `/study/${courseId}`);
     } catch {
       setCompleting(false);
     }

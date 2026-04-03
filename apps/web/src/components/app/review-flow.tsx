@@ -23,6 +23,7 @@ interface ReviewFlowProps {
   conceptId: string;
   token: string;
   initialData: ReviewData;
+  continueHref?: string;
 }
 
 interface ReviewResult {
@@ -34,7 +35,14 @@ interface ReviewResult {
   updatedMasteryState: string;
 }
 
-export function ReviewFlow({ orgSlug, courseId, conceptId, token, initialData }: ReviewFlowProps) {
+export function ReviewFlow({
+  orgSlug,
+  courseId,
+  conceptId,
+  token,
+  initialData,
+  continueHref,
+}: ReviewFlowProps) {
   const [sessionId] = useState(initialData.sessionId);
   const [problem, setProblem] = useState<Problem>(initialData.currentProblem);
   const [problemNumber, setProblemNumber] = useState(initialData.problemNumber);
@@ -149,7 +157,7 @@ export function ReviewFlow({ orgSlug, courseId, conceptId, token, initialData }:
               Retry
             </Button>
           )}
-          <Button render={<Link href={`/study/${courseId}`} />}>
+          <Button render={<Link href={continueHref ?? `/study/${courseId}`} />}>
             Continue Studying
           </Button>
         </div>

@@ -36,6 +36,7 @@ interface ConceptListProps {
   sections?: CourseSection[];
   courseId: string;
   locked?: boolean;
+  getConceptHref?: (conceptId: string) => string;
 }
 
 function ConceptRow({
@@ -43,11 +44,13 @@ function ConceptRow({
   courseId,
   locked,
   index,
+  getConceptHref,
 }: {
   concept: ConceptWithMastery;
   courseId: string;
   locked?: boolean;
   index: number;
+  getConceptHref?: (conceptId: string) => string;
 }) {
   const isLocked = locked && concept.masteryState === "unstarted";
 
@@ -86,7 +89,7 @@ function ConceptRow({
   }
 
   return (
-    <Link href={`/study/${courseId}/lesson/${concept.id}`}>
+    <Link href={getConceptHref?.(concept.id) ?? `/study/${courseId}/lesson/${concept.id}`}>
       <Card className="border-border hover:border-primary/30 transition-colors cursor-pointer">
         <CardContent className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -114,7 +117,13 @@ function ConceptRow({
   );
 }
 
-export function ConceptList({ concepts, sections, courseId, locked }: ConceptListProps) {
+export function ConceptList({
+  concepts,
+  sections,
+  courseId,
+  locked,
+  getConceptHref,
+}: ConceptListProps) {
   if (concepts.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border p-8 text-center">
@@ -136,6 +145,7 @@ export function ConceptList({ concepts, sections, courseId, locked }: ConceptLis
               courseId={courseId}
               locked={locked}
               index={i}
+              getConceptHref={getConceptHref}
             />
           ))}
         </div>
@@ -191,6 +201,7 @@ export function ConceptList({ concepts, sections, courseId, locked }: ConceptLis
                     courseId={courseId}
                     locked={locked}
                     index={startIndex + i}
+                    getConceptHref={getConceptHref}
                   />
                 ))}
               </div>
@@ -210,6 +221,7 @@ export function ConceptList({ concepts, sections, courseId, locked }: ConceptLis
                     courseId={courseId}
                     locked={locked}
                     index={idx}
+                    getConceptHref={getConceptHref}
                   />
                 );
               })}

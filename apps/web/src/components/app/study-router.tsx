@@ -13,9 +13,19 @@ interface StudyRouterProps {
   academyId?: string;
   courseId?: string;
   task: NextTask | null;
+  resolveTaskHref?: (courseId: string, task: NextTask) => string | null;
+  emptyStateHref?: string;
+  emptyStateLabel?: string;
 }
 
-export function StudyRouter({ academyId, courseId, task }: StudyRouterProps) {
+export function StudyRouter({
+  academyId,
+  courseId,
+  task,
+  resolveTaskHref = getCourseTaskHref,
+  emptyStateHref,
+  emptyStateLabel,
+}: StudyRouterProps) {
   const router = useRouter();
 
   useEffect(() => {
@@ -23,12 +33,15 @@ export function StudyRouter({ academyId, courseId, task }: StudyRouterProps) {
     const resolvedCourseId = task.courseId ?? courseId;
     if (!resolvedCourseId) return;
 
-    const href = getCourseTaskHref(resolvedCourseId, task);
+    const href = resolveTaskHref(resolvedCourseId, task);
     if (href) {
       trackStudyTaskDispatched(resolvedCourseId, task.taskType);
       router.push(href);
     }
-  }, [task, courseId, router]);
+  }, [task, courseId, resolveTaskHref, router]);
+
+  const fallbackHref = emptyStateHref ?? (academyId ? `/academy/${academyId}` : "/dashboard");
+  const fallbackLabel = emptyStateLabel ?? (academyId ? "Back to Academy" : "Back to Dashboard");
 
   if (!task) {
     return (
@@ -38,8 +51,8 @@ export function StudyRouter({ academyId, courseId, task }: StudyRouterProps) {
       <p className="text-muted-foreground">
           Great work! You have completed all recommended tasks for now. Check back later for more.
         </p>
-        <Button render={<Link href={academyId ? `/academy/${academyId}` : "/dashboard"} />}>
-          {academyId ? "Back to Academy" : "Back to Dashboard"}
+        <Button render={<Link href={fallbackHref} />}>
+          {fallbackLabel}
         </Button>
       </div>
     );

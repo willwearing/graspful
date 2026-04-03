@@ -70,6 +70,7 @@ const AUTH_PAGES = ["/sign-in", "/sign-up"] as const;
 const MARKETING_ROUTES = ["/", "/pricing", "/agents", "/docs", "/cli-auth"];
 const CREATOR_ROUTES = ["/creator"];
 const LEARNER_ROUTES = ["/dashboard", "/browse", "/study", "/diagnostic", "/academy"];
+const PLATFORM_LEARNER_ROUTES = ["/learn"];
 
 export interface RoutingContext {
   brandId?: string;
@@ -157,6 +158,10 @@ export function isLearnerRoute(pathname: string): boolean {
   return LEARNER_ROUTES.some((route) => routeMatches(pathname, route));
 }
 
+export function isPlatformLearnerRoute(pathname: string): boolean {
+  return PLATFORM_LEARNER_ROUTES.some((route) => routeMatches(pathname, route));
+}
+
 export function isAuthPage(pathname: string): boolean {
   return AUTH_PAGES.some((route) => routeMatches(pathname, route));
 }
@@ -237,6 +242,13 @@ export function decideRoute(
   }
 
   if (surface === "platform") {
+    if (isPlatformLearnerRoute(pathname)) {
+      if (!user) {
+        return { action: "redirect", to: signInPath };
+      }
+      return { action: "next" };
+    }
+
     if (user && isAuthPage(pathname)) {
       return {
         action: "redirect",
@@ -255,6 +267,13 @@ export function decideRoute(
   }
 
   if (surface === "app") {
+    if (isPlatformLearnerRoute(pathname)) {
+      return {
+        action: "redirect",
+        to: redirectToHost(currentUrl, platformHost, pathname),
+      };
+    }
+
     if (isMarketingRoute(pathname) && pathname !== "/") {
       return {
         action: "redirect",
@@ -289,6 +308,13 @@ export function decideRoute(
     return {
       action: "redirect",
       to: redirectToHost(currentUrl, platformHost, pathname),
+    };
+  }
+
+  if (isPlatformLearnerRoute(pathname)) {
+    return {
+      action: "redirect",
+      to: redirectToHost(currentUrl, platformHost, user ? pathname : signInPath),
     };
   }
 

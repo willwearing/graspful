@@ -8,6 +8,7 @@ export class MyOrganizationsQueryService {
   async listMyOrganizations(userId: string) {
     const memberships = await this.prisma.orgMembership.findMany({
       where: { userId },
+      orderBy: { joinedAt: 'asc' },
       include: {
         org: {
           select: {

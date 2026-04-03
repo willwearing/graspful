@@ -51,6 +51,10 @@ export class CourseReadService {
     return this.findAcademyOrThrow(orgId, academyId);
   }
 
+  async getAcademyBySlug(orgId: string, academySlug: string) {
+    return this.findAcademyBySlugOrThrow(orgId, academySlug);
+  }
+
   async listAcademyCourses(orgId: string, academyId: string) {
     await this.findAcademyOrThrow(orgId, academyId);
 
@@ -139,6 +143,14 @@ export class CourseReadService {
     ]);
 
     return { course, sections, concepts, prerequisiteEdges, encompassingEdges };
+  }
+
+  async getCourse(orgId: string, courseId: string) {
+    return this.findCourseOrThrow(orgId, courseId);
+  }
+
+  async getCourseBySlug(orgId: string, courseSlug: string) {
+    return this.findCourseBySlugOrThrow(orgId, courseSlug);
   }
 
   async listConcepts(orgId: string, courseId: string) {
@@ -427,9 +439,33 @@ export class CourseReadService {
     return course;
   }
 
+  private async findCourseBySlugOrThrow(orgId: string, courseSlug: string) {
+    const course = await this.prisma.course.findFirst({
+      where: { slug: courseSlug, orgId, archivedAt: null },
+    });
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
+    return course;
+  }
+
   private async findAcademyOrThrow(orgId: string, academyId: string) {
     const academy = await this.prisma.academy.findFirst({
       where: { id: academyId, orgId },
+    });
+
+    if (!academy) {
+      throw new NotFoundException('Academy not found');
+    }
+
+    return academy;
+  }
+
+  private async findAcademyBySlugOrThrow(orgId: string, academySlug: string) {
+    const academy = await this.prisma.academy.findFirst({
+      where: { slug: academySlug, orgId },
     });
 
     if (!academy) {

@@ -7,12 +7,14 @@ interface ContinueStudyingProps {
   academyId?: string | null;
   courseId: string;
   courseName: string;
+  href?: string;
 }
 
 export function ContinueStudying({
   academyId,
   courseId,
   courseName,
+  href,
 }: ContinueStudyingProps) {
   return (
     <div className="rounded-lg border border-primary/30 bg-primary/5 p-6 flex items-center justify-between gap-4">
@@ -21,7 +23,7 @@ export function ContinueStudying({
         <p className="text-lg font-semibold text-foreground">{courseName}</p>
       </div>
       <Button
-        render={<Link href={getContinueStudyingHref(courseId, academyId)} />}
+        render={<Link href={href ?? getContinueStudyingHref(courseId, academyId)} />}
         className="shrink-0 gap-2"
       >
         <Play className="h-4 w-4" />
