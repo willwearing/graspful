@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getServerPostHog } from "@/lib/posthog/server";
 import { resolveBrand } from "@/lib/brand/resolve";
 import { getDefaultAuthRedirectPath, getHostSurface, getRequestHost } from "@/lib/hosts";
+import { extractOrgSlugFromLearnPath } from "@/lib/learn-routes";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -61,6 +62,7 @@ export async function GET(request: NextRequest) {
       if (token) {
         const cookieHeader = request.headers.get("cookie");
         const brand = await resolveBrand(hostname, cookieHeader);
+        const joinOrgSlug = extractOrgSlugFromLearnPath(redirect) || brand.orgSlug;
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
         // Create personal org if first time (idempotent)
         try {
@@ -73,7 +75,7 @@ export async function GET(request: NextRequest) {
         }
         // Join the brand's org for content access
         try {
-          await fetch(`${backendUrl}/orgs/${brand.orgSlug}/join`, {
+          await fetch(`${backendUrl}/orgs/${joinOrgSlug}/join`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
           });

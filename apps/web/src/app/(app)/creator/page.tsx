@@ -4,17 +4,10 @@ import { Plus } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createApiFetcher } from "@/lib/api";
 import { resolvePageBrand } from "@/lib/brand/resolve";
+import { resolveCreatorOrgSlug } from "@/lib/creator-org";
 import { StatCard } from "@/components/creator/stat-card";
 import { CourseList } from "@/components/creator/course-list";
 import { Button } from "@/components/ui/button";
-
-interface OrgMembership {
-  orgId: string;
-  slug: string;
-  name: string;
-  role: string;
-  isActive: boolean;
-}
 
 interface CreatorStats {
   students: number;
@@ -58,22 +51,7 @@ export default async function CreatorDashboardPage() {
   const serverApiFetch = createApiFetcher(session?.access_token);
 
   const brand = await resolvePageBrand();
-
-  // Resolve the user's own org (owner/admin), falling back to the brand's org.
-  // Prefer the user's non-brand org (from API registration) over the brand org.
-  let orgSlug = brand.orgSlug;
-  try {
-    const orgs = await serverApiFetch<OrgMembership[]>("/users/me/orgs");
-    const ownedOrgs = orgs.filter((o) => o.role === "owner" || o.role === "admin");
-    const ownOrg = ownedOrgs.find((o) => o.slug !== brand.orgSlug);
-    if (ownOrg) {
-      orgSlug = ownOrg.slug;
-    } else if (ownedOrgs.length > 0) {
-      orgSlug = ownedOrgs[0].slug;
-    }
-  } catch {
-    // Fall back to brand org
-  }
+  const orgSlug = await resolveCreatorOrgSlug(session?.access_token, brand.orgSlug);
 
   // Fetch creator stats and courses in parallel
   let stats: CreatorStats = { students: 0, avgCompletion: 0, totalRevenue: 0 };

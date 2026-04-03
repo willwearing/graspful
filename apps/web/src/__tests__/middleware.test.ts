@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decideRoute, isPublicRoute } from "@/lib/hosts";
+import { decideRoute, isPlatformLearnerRoute, isPublicRoute } from "@/lib/hosts";
 
 describe("isPublicRoute", () => {
   it("marks / as public", () => {
@@ -25,6 +25,11 @@ describe("isPublicRoute", () => {
   it("marks protected routes as non-public", () => {
     expect(isPublicRoute("/dashboard")).toBe(false);
     expect(isPublicRoute("/settings")).toBe(false);
+  });
+
+  it("treats /learn as a protected platform learner route", () => {
+    expect(isPlatformLearnerRoute("/learn/posthog-tam")).toBe(true);
+    expect(isPublicRoute("/learn/posthog-tam", "platform")).toBe(false);
   });
 
   it("marks sub-routes of public routes as public", () => {
@@ -79,6 +84,25 @@ describe("routing decisions", () => {
       action: "redirect",
       to: "https://app.graspful.ai/sign-in?redirect=%2Fdashboard",
     });
+  });
+
+  it("keeps platform learner routes on graspful.ai and requires auth there", () => {
+    expect(
+      decideRoute("/learn/posthog-tam", false, {
+        surface: "platform",
+        currentUrl: new URL("https://graspful.ai/learn/posthog-tam"),
+      }),
+    ).toEqual({
+      action: "redirect",
+      to: "/sign-in?redirect=%2Flearn%2Fposthog-tam",
+    });
+
+    expect(
+      decideRoute("/learn/posthog-tam", true, {
+        surface: "platform",
+        currentUrl: new URL("https://graspful.ai/learn/posthog-tam"),
+      }),
+    ).toEqual({ action: "next" });
   });
 
   it("uses app.graspful.ai as a control-plane-only surface", () => {

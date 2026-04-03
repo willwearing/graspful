@@ -128,6 +128,26 @@ describe('CourseReadService', () => {
     ).rejects.toThrow(NotFoundException);
   });
 
+  it('resolves a course by org-scoped slug', async () => {
+    const course = { id: 'course-1', slug: 'posthog-data-model' };
+    mockPrisma.course.findFirst.mockResolvedValue(course);
+
+    await expect(service.getCourseBySlug('org-1', 'posthog-data-model')).resolves.toEqual(course);
+    expect(mockPrisma.course.findFirst).toHaveBeenCalledWith({
+      where: { slug: 'posthog-data-model', orgId: 'org-1', archivedAt: null },
+    });
+  });
+
+  it('resolves an academy by org-scoped slug', async () => {
+    const academy = { id: 'academy-1', slug: 'posthog-tam' };
+    mockPrisma.academy.findFirst.mockResolvedValue(academy);
+
+    await expect(service.getAcademyBySlug('org-1', 'posthog-tam')).resolves.toEqual(academy);
+    expect(mockPrisma.academy.findFirst).toHaveBeenCalledWith({
+      where: { slug: 'posthog-tam', orgId: 'org-1' },
+    });
+  });
+
   it('validates an academy graph across all persisted academy concepts', async () => {
     mockPrisma.academy.findFirst.mockResolvedValue({ id: 'academy-1' });
     mockPrisma.course.findMany.mockResolvedValue([

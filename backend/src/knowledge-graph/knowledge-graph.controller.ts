@@ -35,6 +35,14 @@ export class KnowledgeGraphController {
     return this.courseReads.listCourses(org.orgId);
   }
 
+  @Get('slug/:courseSlug')
+  async getCourseBySlug(
+    @Param('courseSlug') courseSlug: string,
+    @CurrentOrg() org: OrgContext,
+  ) {
+    return this.courseReads.getCourseBySlug(org.orgId, courseSlug);
+  }
+
   @Get(':courseId/graph')
   async getCourseGraph(
     @Param('courseId') courseId: string,

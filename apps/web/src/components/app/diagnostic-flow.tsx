@@ -36,9 +36,19 @@ interface DiagnosticFlowProps {
   academyId?: string;
   token: string;
   initialData: DiagnosticState;
+  completionHref?: string;
+  completionLabel?: string;
 }
 
-export function DiagnosticFlow({ orgSlug, courseId, academyId, token, initialData }: DiagnosticFlowProps) {
+export function DiagnosticFlow({
+  orgSlug,
+  courseId,
+  academyId,
+  token,
+  initialData,
+  completionHref,
+  completionLabel,
+}: DiagnosticFlowProps) {
   const router = useRouter();
   const [state, setState] = useState<DiagnosticState>(initialData);
   const [feedback, setFeedback] = useState<ProblemFeedback | null>(null);
@@ -181,8 +191,11 @@ export function DiagnosticFlow({ orgSlug, courseId, academyId, token, initialDat
               </div>
             </div>
 
-            <Button onClick={() => router.push(academyId ? `/academy/${academyId}` : "/dashboard")} className="mt-4">
-              {academyId ? "Go to Academy" : "Go to Dashboard"}
+            <Button
+              onClick={() => router.push(completionHref ?? (academyId ? `/academy/${academyId}` : "/dashboard"))}
+              className="mt-4"
+            >
+              {completionLabel ?? (academyId ? "Go to Academy" : "Go to Dashboard")}
             </Button>
           </>
         ) : (

@@ -7,6 +7,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useBrand } from "@/lib/brand/context";
 import { useHostSurface } from "@/lib/host-context";
 import { getDefaultAuthRedirectPath } from "@/lib/hosts";
+import { extractOrgSlugFromLearnPath } from "@/lib/learn-routes";
 import { trackSignUp, trackSignIn } from "@/lib/posthog/events";
 import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
       ? rawRedirect
       : "/dashboard";
+  const joinOrgSlug = extractOrgSlugFromLearnPath(redirectTo) || brand.orgSlug;
   const [email, setEmail] = useState(presetEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +69,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             // Non-fatal
           }
           try {
-            await apiClientFetch(`/orgs/${brand.orgSlug}/join`, data.session.access_token, { method: "POST" });
+            await apiClientFetch(`/orgs/${joinOrgSlug}/join`, data.session.access_token, { method: "POST" });
           } catch {
             // Non-fatal
           }
@@ -94,7 +96,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             // Non-fatal
           }
           try {
-            await apiClientFetch(`/orgs/${brand.orgSlug}/join`, data.session.access_token, { method: "POST" });
+            await apiClientFetch(`/orgs/${joinOrgSlug}/join`, data.session.access_token, { method: "POST" });
           } catch {
             // Non-fatal
           }

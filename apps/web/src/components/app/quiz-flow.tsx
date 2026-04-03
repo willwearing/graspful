@@ -34,9 +34,16 @@ interface QuizFlowProps {
   courseId: string;
   token: string;
   quizData: QuizData;
+  continueHref?: string;
 }
 
-export function QuizFlow({ orgSlug, courseId, token, quizData }: QuizFlowProps) {
+export function QuizFlow({
+  orgSlug,
+  courseId,
+  token,
+  quizData,
+  continueHref,
+}: QuizFlowProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -163,7 +170,7 @@ export function QuizFlow({ orgSlug, courseId, token, quizData }: QuizFlowProps) 
           </div>
         )}
 
-        <Button render={<Link href={`/study/${courseId}`} />}>
+        <Button render={<Link href={continueHref ?? `/study/${courseId}`} />}>
           Continue Studying
         </Button>
       </div>

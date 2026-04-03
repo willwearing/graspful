@@ -44,6 +44,8 @@ interface SectionExamFlowProps {
   sectionId: string;
   token: string;
   examData: SectionExamData;
+  backToCourseHref?: string;
+  continueHref?: string;
 }
 
 export function SectionExamFlow({
@@ -52,6 +54,8 @@ export function SectionExamFlow({
   sectionId,
   token,
   examData,
+  backToCourseHref,
+  continueHref,
 }: SectionExamFlowProps) {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -168,13 +172,13 @@ export function SectionExamFlow({
         </div>
 
         <div className="flex gap-3">
-          <Button className="flex-1" render={<Link href={`/browse/${courseId}`} />}>
+          <Button className="flex-1" render={<Link href={backToCourseHref ?? `/browse/${courseId}`} />}>
             Back to Course
           </Button>
           <Button
             className="flex-1"
             variant={result.passed ? "default" : "secondary"}
-            onClick={() => router.push(`/study/${courseId}`)}
+            onClick={() => router.push(continueHref ?? `/study/${courseId}`)}
           >
             {result.passed ? "Continue Studying" : "Start Review"}
           </Button>

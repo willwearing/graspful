@@ -15,6 +15,7 @@ describe('AcademyGraphController', () => {
     mockCourseReads = {
       listAcademies: jest.fn(),
       getAcademy: jest.fn(),
+      getAcademyBySlug: jest.fn(),
       getAcademyGraph: jest.fn(),
       validateAcademyGraph: jest.fn(),
       listAcademyCourses: jest.fn(),
@@ -100,5 +101,22 @@ describe('AcademyGraphController', () => {
       'org-1',
       'academy-1',
     );
+  });
+
+  it('resolves an academy by slug within the org', async () => {
+    const academy = { id: 'academy-1', slug: 'posthog-tam' };
+    mockCourseReads.getAcademyBySlug.mockResolvedValue(academy);
+
+    const orgCtx = {
+      orgId: 'org-1',
+      userId: 'u1',
+      email: 'a@b.com',
+      role: 'member',
+    };
+
+    await expect(
+      controller.getAcademyBySlug('posthog-tam', orgCtx as any),
+    ).resolves.toEqual(academy);
+    expect(mockCourseReads.getAcademyBySlug).toHaveBeenCalledWith('org-1', 'posthog-tam');
   });
 });

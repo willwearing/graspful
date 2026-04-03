@@ -52,6 +52,14 @@ export class AcademyGraphController {
     return this.courseReads.listAcademies(org.orgId);
   }
 
+  @Get('slug/:academySlug')
+  async getAcademyBySlug(
+    @Param('academySlug') academySlug: string,
+    @CurrentOrg() org: OrgContext,
+  ) {
+    return this.courseReads.getAcademyBySlug(org.orgId, academySlug);
+  }
+
   @Get(':academyId')
   async getAcademy(
     @Param('academyId') academyId: string,
