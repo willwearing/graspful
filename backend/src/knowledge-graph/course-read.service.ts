@@ -29,9 +29,10 @@ export class CourseReadService {
 
   async listAcademies(orgId: string) {
     return this.prisma.academy.findMany({
-      where: { orgId },
+      where: { orgId, archivedAt: null },
       include: {
         courses: {
+          where: { archivedAt: null },
           orderBy: { sortOrder: 'asc' },
           select: {
             id: true,
@@ -74,7 +75,7 @@ export class CourseReadService {
           orderBy: { sortOrder: 'asc' },
         }),
         this.prisma.course.findMany({
-          where: { academyId },
+          where: { academyId, archivedAt: null },
           orderBy: { sortOrder: 'asc' },
         }),
         this.prisma.courseSection.findMany({
@@ -238,7 +239,7 @@ export class CourseReadService {
 
     const [courses, concepts, prereqEdges, encompEdges] = await Promise.all([
       this.prisma.course.findMany({
-        where: { academyId },
+        where: { academyId, archivedAt: null },
         select: { slug: true },
         orderBy: { sortOrder: 'asc' },
       }),
@@ -420,7 +421,7 @@ export class CourseReadService {
 
   async getCourseIdsForAcademy(academyId: string) {
     const courses = await this.prisma.course.findMany({
-      where: { academyId },
+      where: { academyId, archivedAt: null },
       select: { id: true },
       orderBy: { sortOrder: 'asc' },
     });
@@ -453,7 +454,7 @@ export class CourseReadService {
 
   private async findAcademyOrThrow(orgId: string, academyId: string) {
     const academy = await this.prisma.academy.findFirst({
-      where: { id: academyId, orgId },
+      where: { id: academyId, orgId, archivedAt: null },
     });
 
     if (!academy) {
@@ -465,7 +466,7 @@ export class CourseReadService {
 
   private async findAcademyBySlugOrThrow(orgId: string, academySlug: string) {
     const academy = await this.prisma.academy.findFirst({
-      where: { slug: academySlug, orgId },
+      where: { slug: academySlug, orgId, archivedAt: null },
     });
 
     if (!academy) {
