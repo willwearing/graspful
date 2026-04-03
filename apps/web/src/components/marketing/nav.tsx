@@ -41,6 +41,7 @@ export function MarketingNav() {
               <Link
                 key={link.href}
                 href={link.href}
+                prefetch={hostSurface === "app" ? false : undefined}
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 {link.label}
