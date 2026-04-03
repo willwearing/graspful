@@ -1,11 +1,20 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MarketingFooter } from "../footer";
 import { BrandProvider } from "@/lib/brand/context";
 import { HostSurfaceProvider } from "@/lib/host-context";
 import { defaultBrand, firefighterBrand } from "@/lib/brand/defaults";
+import { getPublicAcademyCatalog } from "@/lib/public-academies";
+
+vi.mock("@/lib/public-academies", () => ({
+  getPublicAcademyCatalog: vi.fn(),
+}));
 
 describe("MarketingFooter", () => {
+  beforeEach(() => {
+    vi.mocked(getPublicAcademyCatalog).mockResolvedValue([]);
+  });
+
   it("renders brand name and tagline", () => {
     render(
       <HostSurfaceProvider surface="local">
@@ -42,5 +51,35 @@ describe("MarketingFooter", () => {
     expect(screen.getByRole("link", { name: /ai agents/i })).toBeTruthy();
     expect(screen.getByRole("link", { name: /^pricing$/i })).toBeTruthy();
     expect(screen.getByRole("link", { name: /documentation/i })).toBeTruthy();
+  });
+
+  it("renders academy links for the graspful marketing surface", async () => {
+    vi.mocked(getPublicAcademyCatalog).mockResolvedValue([
+      {
+        slug: "posthog-tam",
+        name: "PostHog TAM Academy",
+        domain: "posthog-tam.vercel.app",
+        orgSlug: "posthog-tam",
+        academies: [],
+      },
+    ]);
+
+    render(
+      <HostSurfaceProvider surface="local">
+        <BrandProvider brand={defaultBrand}>
+          <MarketingFooter />
+        </BrandProvider>
+      </HostSurfaceProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Academies")).toBeTruthy();
+    });
+
+    expect(screen.getByRole("link", { name: /posthog tam academy/i })).toHaveAttribute(
+      "href",
+      "https://posthog-tam.vercel.app",
+    );
+    expect(screen.getByText("posthog-tam.vercel.app")).toBeTruthy();
   });
 });

@@ -1,8 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useBrand } from "@/lib/brand/context";
 import { useHostSurface } from "@/lib/host-context";
+import {
+  getPublicAcademyCatalog,
+  type PublicCatalogBrand,
+} from "@/lib/public-academies";
 
 const platformProductLinks = [
   { href: "/agents", label: "AI Agents" },
@@ -27,6 +32,7 @@ export function MarketingFooter() {
   const hostSurface = useHostSurface();
   const year = new Date().getFullYear();
   const isGraspful = brand.id === "graspful";
+  const [academyBrands, setAcademyBrands] = useState<PublicCatalogBrand[]>([]);
   const productLinks =
     hostSurface === "academy"
       ? [{ href: "/sign-up", label: "Enroll" }, { href: "/sign-in", label: "Sign In" }]
@@ -35,11 +41,35 @@ export function MarketingFooter() {
         : learnerProductLinks;
   const resourceLinks =
     hostSurface === "academy" ? null : isGraspful ? platformResourceLinks : null;
+  const shouldShowAcademies = hostSurface !== "academy" && isGraspful && academyBrands.length > 0;
+
+  useEffect(() => {
+    if (hostSurface === "academy" || !isGraspful) {
+      setAcademyBrands([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    void getPublicAcademyCatalog().then((brands) => {
+      if (!cancelled) {
+        setAcademyBrands(brands);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hostSurface, isGraspful]);
 
   return (
     <footer className="border-t border-border/30 bg-background">
       <div className="mx-auto max-w-6xl px-6 py-12">
-        <div className={`grid gap-8 ${resourceLinks ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+        <div
+          className={`grid gap-8 ${
+            resourceLinks ? (shouldShowAcademies ? "sm:grid-cols-4" : "sm:grid-cols-3") : "sm:grid-cols-2"
+          }`}
+        >
           {/* Brand */}
           <div>
             <span className="text-lg font-bold text-foreground tracking-tight">
@@ -69,6 +99,29 @@ export function MarketingFooter() {
               ))}
             </ul>
           </div>
+
+          {shouldShowAcademies && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                Academies
+              </p>
+              <ul className="space-y-3">
+                {academyBrands.map((academyBrand) => (
+                  <li key={academyBrand.slug}>
+                    <Link
+                      href={`https://${academyBrand.domain}`}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {academyBrand.name}
+                    </Link>
+                    <p className="mt-1 text-xs text-muted-foreground/70">
+                      {academyBrand.domain}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Resource links (graspful only) */}
           {resourceLinks && (
