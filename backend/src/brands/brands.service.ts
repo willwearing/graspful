@@ -185,7 +185,7 @@ export class BrandsService {
       data: {
         slug: dto.slug,
         name: dto.name,
-        domain: dto.domain,
+        domain: this.normalizeDomain(dto.domain),
         tagline: dto.tagline,
         logoUrl: dto.logoUrl || '/icon.svg',
         faviconUrl: dto.faviconUrl || '/favicon.ico',
@@ -203,7 +203,7 @@ export class BrandsService {
   async upsert(dto: CreateBrandDto) {
     const data = {
       name: dto.name,
-      domain: dto.domain,
+      domain: this.normalizeDomain(dto.domain),
       tagline: dto.tagline,
       logoUrl: dto.logoUrl || '/icon.svg',
       faviconUrl: dto.faviconUrl || '/favicon.ico',
@@ -245,6 +245,15 @@ export class BrandsService {
       where: { slug },
       data: { isActive: false },
     });
+  }
+
+  /**
+   * Normalizes brand domains so that the legacy `.graspful.com` suffix
+   * is rewritten to the canonical `.graspful.ai`.  Custom domains
+   * (e.g. `prep.yourdomain.com`) are left untouched.
+   */
+  private normalizeDomain(domain: string): string {
+    return domain.replace(/\.graspful\.com$/, '.graspful.ai');
   }
 
   private getScopedCourseIds(contentScope: Prisma.JsonValue | null | undefined): string[] {

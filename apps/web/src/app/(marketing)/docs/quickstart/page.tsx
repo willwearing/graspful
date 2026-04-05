@@ -80,7 +80,7 @@ graspful import course.yaml --org you-example`}
         </p>
         <CodeBlock language="bash">
           {`# Your course is live at:
-https://you-example.graspful.com`}
+https://you-example.graspful.ai`}
         </CodeBlock>
       </section>
 
@@ -238,7 +238,7 @@ graspful import aws-saa-c03.yaml --org my-org --publish`}
 graspful create brand \\
   --niche tech \\
   --name "AWS Prep Academy" \\
-  --domain aws-prep.graspful.com \\
+  --domain aws-prep.graspful.ai \\
   --org my-org \\
   -o aws-prep-brand.yaml
 

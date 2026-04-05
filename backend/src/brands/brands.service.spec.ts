@@ -111,7 +111,7 @@ describe('BrandsService', () => {
         {
           slug: 'deer-id-academy',
           name: 'Deer ID Academy',
-          domain: 'deer-id-academy.graspful.com',
+          domain: 'deer-id-academy.graspful.ai',
           orgSlug: 'graspful-gmail',
           contentScope: { courseIds: ['mule-deer-vs-whitetail'] },
         },
@@ -147,7 +147,7 @@ describe('BrandsService', () => {
         {
           slug: 'deer-id-academy',
           name: 'Deer ID Academy',
-          domain: 'deer-id-academy.graspful.com',
+          domain: 'deer-id-academy.graspful.ai',
           orgSlug: 'graspful-gmail',
           academies: [
             {
@@ -176,14 +176,14 @@ describe('BrandsService', () => {
         {
           slug: 'js-fundamentals',
           name: 'JS Fundamentals',
-          domain: 'js-fundamentals.graspful.com',
+          domain: 'js-fundamentals.graspful.ai',
           orgSlug: 'test-example',
           contentScope: {},
         },
         {
           slug: 'firefighter-prep',
           name: 'FirefighterPrep',
-          domain: 'firefighterprep.graspful.com',
+          domain: 'firefighterprep.graspful.ai',
           orgSlug: 'firefighter-prep',
           contentScope: {},
         },
@@ -219,7 +219,7 @@ describe('BrandsService', () => {
         {
           slug: 'firefighter-prep',
           name: 'FirefighterPrep',
-          domain: 'firefighterprep.graspful.com',
+          domain: 'firefighterprep.graspful.ai',
           orgSlug: 'firefighter-prep',
           academies: [
             {
@@ -241,6 +241,54 @@ describe('BrandsService', () => {
           ],
         },
       ]);
+    });
+  });
+
+  describe('domain normalization', () => {
+    it('rewrites .graspful.com to .graspful.ai on create', async () => {
+      prisma.brand.create.mockResolvedValue({});
+
+      await service.create({
+        slug: 'my-brand',
+        name: 'My Brand',
+        domain: 'my-brand.graspful.com',
+        tagline: 'Learn',
+        orgSlug: 'my-org',
+        theme: {},
+        landing: {},
+        seo: {},
+      } as any);
+
+      expect(prisma.brand.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            domain: 'my-brand.graspful.ai',
+          }),
+        }),
+      );
+    });
+
+    it('leaves custom domains untouched', async () => {
+      prisma.brand.create.mockResolvedValue({});
+
+      await service.create({
+        slug: 'my-brand',
+        name: 'My Brand',
+        domain: 'learn.mycustomdomain.com',
+        tagline: 'Learn',
+        orgSlug: 'my-org',
+        theme: {},
+        landing: {},
+        seo: {},
+      } as any);
+
+      expect(prisma.brand.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            domain: 'learn.mycustomdomain.com',
+          }),
+        }),
+      );
     });
   });
 });
