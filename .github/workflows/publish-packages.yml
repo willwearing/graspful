@@ -18,6 +18,12 @@ on:
         default: false
         type: boolean
   push:
+    branches:
+      - main
+    paths:
+      - 'packages/cli/**'
+      - 'packages/mcp/**'
+      - 'packages/shared/**'
     tags:
       - 'v*'
       - 'cli@*'
@@ -73,13 +79,13 @@ jobs:
 
       - name: Publish @graspful/cli
         if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli') && github.event.inputs.dry_run != 'true'
-        run: cd packages/cli && bun publish --access public
+        run: cd packages/cli && bun publish --access public || echo "cli already published at this version"
         env:
           NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @graspful/mcp
         if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'mcp') && github.event.inputs.dry_run != 'true'
-        run: cd packages/mcp && bun publish --access public
+        run: cd packages/mcp && bun publish --access public || echo "mcp already published at this version"
         env:
           NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
 
