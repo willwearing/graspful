@@ -6,8 +6,6 @@ import {
   Param,
   Post,
   UseGuards,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { JwtOrApiKeyGuard, OrgMembershipGuard, CurrentOrg, MinRole } from '@/auth';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
@@ -21,7 +19,6 @@ export class ApiKeyController {
 
   @Post()
   @MinRole('admin')
-  @UsePipes(new ValidationPipe({ whitelist: true }))
   async createKey(
     @Body() body: CreateApiKeyDto,
     @CurrentOrg() org: OrgContext,

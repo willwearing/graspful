@@ -26,11 +26,19 @@ const BrandThemeColorsSchema = z.object({
   ring: HslColorSchema.optional(),
 });
 
+const GradientSchema = z.object({
+  start: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Must be hex color e.g. "#FF6600"'),
+  mid: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Must be hex color e.g. "#FF6600"'),
+  end: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Must be hex color e.g. "#FF6600"'),
+  accent: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Must be hex color e.g. "#FF6600"'),
+}).optional();
+
 const ThemeSchema = z.object({
   preset: z.enum(THEME_PRESETS).optional(),
   radius: z.string().default('0.5rem'),
   light: BrandThemeColorsSchema.optional(),
   dark: BrandThemeColorsSchema.optional(),
+  gradient: GradientSchema,
 });
 
 const FeatureItemSchema = z.object({

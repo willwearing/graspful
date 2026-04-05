@@ -15,6 +15,7 @@ import {
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { CourseReadService } from './course-read.service';
 import { AcademyImporterService } from './academy-importer.service';
+import { ImportAcademyDto } from './dto/import-academy.dto';
 
 @Controller('orgs/:orgId/academies')
 @UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
@@ -27,13 +28,7 @@ export class AcademyGraphController {
   @Post('import')
   @MinRole('admin')
   async importAcademy(
-    @Body()
-    body: {
-      manifestYaml: string;
-      courseYamls: Record<string, string>;
-      replace?: boolean;
-      archiveMissing?: boolean;
-    },
+    @Body() body: ImportAcademyDto,
     @CurrentOrg() org: OrgContext,
   ) {
     return this.academyImporter.importFromManifest(

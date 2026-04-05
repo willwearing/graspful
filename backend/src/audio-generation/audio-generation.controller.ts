@@ -2,12 +2,7 @@ import { Body, Controller, Get, Logger, Post, UseGuards } from '@nestjs/common';
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, MinRole } from '@/auth';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { AudioGenerationService } from './audio-generation.service';
-
-interface GenerateBody {
-  voices?: string[];
-  examId?: string;
-  concurrency?: number;
-}
+import { GenerateAudioDto } from './dto/generate-audio.dto';
 
 @Controller('orgs/:orgId/content')
 @UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
@@ -20,7 +15,7 @@ export class AudioGenerationController {
   @MinRole('admin')
   async generate(
     @CurrentOrg() org: OrgContext,
-    @Body() body: GenerateBody,
+    @Body() body: GenerateAudioDto,
   ) {
     const voices = body.voices ?? ['af_heart'];
     const concurrency = body.concurrency ?? 5;

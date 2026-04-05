@@ -13,15 +13,21 @@ export function BrandThemeStyle({ brand }: { brand: BrandConfig }) {
     .map(([key, value]) => `--${camelToKebab(key)}: hsl(${value});`)
     .join("\n    ");
 
-  const { gradient } = brand.theme;
+  const gradient = brand.theme.gradient;
+  const radius = brand.theme.radius ?? "0.5rem";
+  const gradientStart = gradient?.start ?? "#6366F1";
+  const gradientMid = gradient?.mid ?? "#8B5CF6";
+  const gradientEnd = gradient?.end ?? "#A855F7";
+  const gradientAccent = gradient?.accent ?? "#22D3EE";
+
   const css = `
     :root {
       ${lightVars}
-      --radius: ${brand.theme.radius};
-      --gradient-start: ${gradient.start};
-      --gradient-mid: ${gradient.mid};
-      --gradient-end: ${gradient.end};
-      --gradient-accent: ${gradient.accent};
+      --radius: ${radius};
+      --gradient-start: ${gradientStart};
+      --gradient-mid: ${gradientMid};
+      --gradient-end: ${gradientEnd};
+      --gradient-accent: ${gradientAccent};
     }
     .dark {
       ${darkVars}

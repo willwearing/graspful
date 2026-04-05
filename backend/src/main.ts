@@ -4,12 +4,13 @@ import { initOtel } from './telemetry/otel-logger';
 initOtel();
 
 import { NestFactory } from '@nestjs/core';
-import { HttpAdapterHost } from '@nestjs/core';
+import { HttpAdapterHost, Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { Reflector } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { json } from 'express';
+import helmet from 'helmet';
 import { LoggingInterceptor } from './telemetry/logging.interceptor';
 import { OtelExceptionFilter } from './telemetry/exception.filter';
 import { PostHogService } from './shared/application/posthog.service';
@@ -29,8 +30,17 @@ async function bootstrap() {
     }),
   );
 
+  app.use(helmet());
+
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }));
+
+  const allowedOrigins = config.get<string>('ALLOWED_ORIGINS')?.split(',');
   app.enableCors({
-    origin: config.get<string>('ALLOWED_ORIGINS')?.split(',') ?? true,
+    origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : false,
     credentials: true,
   });
 

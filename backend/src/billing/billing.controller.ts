@@ -4,6 +4,8 @@ import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { MinRole } from '@/auth/decorators/min-role.decorator';
 import { PostHogService } from '@/shared/application/posthog.service';
 import { BillingService } from './billing.service';
+import { CreateCheckoutDto } from './dto/create-checkout.dto';
+import { CreatePortalDto } from './dto/create-portal.dto';
 
 @Controller('orgs/:orgId/billing')
 @UseGuards(JwtOrApiKeyGuard, OrgMembershipGuard)
@@ -17,7 +19,7 @@ export class BillingController {
   @MinRole('admin')
   async createCheckout(
     @CurrentOrg() org: OrgContext,
-    @Body() body: { plan: 'individual' | 'team'; interval?: 'month' | 'year'; returnUrl?: string },
+    @Body() body: CreateCheckoutDto,
   ) {
     const baseUrl = this.sanitizeReturnUrl(body.returnUrl) || 'http://localhost:3001';
     const url = await this.billing.createCheckoutSession(
@@ -39,7 +41,7 @@ export class BillingController {
   @MinRole('admin')
   async createPortal(
     @CurrentOrg() org: OrgContext,
-    @Body() body: { returnUrl?: string },
+    @Body() body: CreatePortalDto,
   ) {
     const returnUrl = this.sanitizeReturnUrl(body.returnUrl) || 'http://localhost:3001/settings';
     const url = await this.billing.createPortalSession(org.orgId, returnUrl);

@@ -5,8 +5,6 @@ import {
   HttpStatus,
   Post,
   UseGuards,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { IsIn, IsString } from 'class-validator';
@@ -34,7 +32,6 @@ export class CliAuthController {
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
-  @UsePipes(new ValidationPipe({ whitelist: true }))
   async start(@Body() body: StartCliAuthDto) {
     return this.cliAuthService.start(body.mode);
   }
@@ -43,7 +40,6 @@ export class CliAuthController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 600, ttl: 60_000 } })
-  @UsePipes(new ValidationPipe({ whitelist: true }))
   async exchange(@Body() body: ExchangeCliAuthDto) {
     return this.cliAuthService.exchange(body.token);
   }
@@ -51,7 +47,6 @@ export class CliAuthController {
   @Post('sessions/authorize')
   @HttpCode(HttpStatus.OK)
   @UseGuards(SupabaseAuthGuard)
-  @UsePipes(new ValidationPipe({ whitelist: true }))
   async authorize(
     @Body() body: ExchangeCliAuthDto,
     @CurrentUser() user: AuthUser,

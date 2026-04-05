@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveBrand } from "@/lib/brand/resolve";
-import { decideRoute, getHostSurface, getRequestHost, isPublicRoute } from "@/lib/hosts";
+import { decideRoute, getHostSurface, getRequestHost } from "@/lib/hosts";
 
 function createBrandResponse(request: NextRequest, brandId: string) {
   const response = NextResponse.next({ request });

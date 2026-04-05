@@ -11,9 +11,9 @@ describe("SiteFooter", () => {
   it("renders the academies column with academy domains", async () => {
     vi.mocked(getPublicAcademyCatalog).mockResolvedValue([
       {
-        slug: "deer-id-academy",
-        name: "Deer ID Academy",
-        domain: "deer-id-academy.graspful.ai",
+        slug: "deer-academy",
+        name: "Deer Academy",
+        domain: "deer-academy.graspful.ai",
         orgSlug: "graspful-gmail",
         academies: [],
       },
@@ -29,9 +29,9 @@ describe("SiteFooter", () => {
     render(await SiteFooter());
 
     expect(screen.getByText("Academies")).toBeVisible();
-    expect(screen.getByRole("link", { name: "Deer ID Academy" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Deer Academy" })).toHaveAttribute(
       "href",
-      "https://deer-id-academy.graspful.ai"
+      "https://deer-academy.graspful.ai"
     );
     expect(screen.getByText("firefighterprep.graspful.ai")).toBeVisible();
   });

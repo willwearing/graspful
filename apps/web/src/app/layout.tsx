@@ -9,6 +9,7 @@ import { getHostSurface, getRequestHost, isLocalHost } from "@/lib/hosts";
 import { PostHogProvider } from "@/lib/posthog/provider";
 import { DevBrandSwitcher } from "@/components/dev/brand-switcher";
 import { ThemeProvider, themeInitScript } from "@/lib/theme/theme-provider";
+import { safeJsonLd } from "@/lib/sanitize-json-ld";
 import "./globals.css";
 
 const inter = Inter({
@@ -102,7 +103,7 @@ export default async function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: safeJsonLd({
               "@context": "https://schema.org",
               "@type": "SoftwareApplication",
               name: brand.name,

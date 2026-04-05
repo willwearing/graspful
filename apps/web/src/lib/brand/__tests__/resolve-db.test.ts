@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { fetchBrandByDomain, clearBrandCache } from "../resolve-db";
+import { defaultBrand } from "../defaults";
 
 const makeMockApiResponse = (overrides: Record<string, unknown> = {}) => ({
   slug: "firefighter",
@@ -89,5 +90,94 @@ describe("fetchBrandByDomain", () => {
     const result = await fetchBrandByDomain("firefighterprep.vercel.app");
     expect(result!.id).toBe("firefighter");
     expect(result!.ogImageUrl).toBe("");
+  });
+
+  describe("theme merge with defaults", () => {
+    it("fills entire default theme when theme has preset only (no light/dark)", async () => {
+      const mockBrand = makeMockApiResponse({
+        theme: { preset: "blue" },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockBrand),
+      });
+      const result = await fetchBrandByDomain("test-preset.com");
+      expect(result!.theme.light.primary).toBe(defaultBrand.theme.light.primary);
+      expect(result!.theme.dark.primary).toBe(defaultBrand.theme.dark.primary);
+      expect(result!.theme.gradient).toEqual(defaultBrand.theme.gradient);
+      expect(result!.theme.radius).toBe(defaultBrand.theme.radius);
+    });
+
+    it("fills gradient from defaults when theme has light/dark but no gradient", async () => {
+      const mockBrand = makeMockApiResponse({
+        theme: {
+          light: { primary: "200 80% 50%" },
+          dark: { primary: "200 80% 60%" },
+          radius: "0.75rem",
+        },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockBrand),
+      });
+      const result = await fetchBrandByDomain("test-no-gradient.com");
+      expect(result!.theme.gradient).toEqual(defaultBrand.theme.gradient);
+      expect(result!.theme.light.primary).toBe("200 80% 50%");
+      expect(result!.theme.radius).toBe("0.75rem");
+    });
+
+    it("fills missing color fields in light/dark from defaults", async () => {
+      const mockBrand = makeMockApiResponse({
+        theme: {
+          light: { primary: "200 80% 50%", foreground: "0 0% 10%" },
+          dark: { primary: "200 80% 60%" },
+        },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockBrand),
+      });
+      const result = await fetchBrandByDomain("test-partial-colors.com");
+      expect(result!.theme.light.primary).toBe("200 80% 50%");
+      expect(result!.theme.light.foreground).toBe("0 0% 10%");
+      expect(result!.theme.light.popover).toBe(defaultBrand.theme.light.popover);
+      expect(result!.theme.light.destructive).toBe(defaultBrand.theme.light.destructive);
+      expect(result!.theme.dark.foreground).toBe(defaultBrand.theme.dark.foreground);
+    });
+
+    it("uses full custom theme as-is when all fields present", async () => {
+      const fullTheme = {
+        light: { ...defaultBrand.theme.light, primary: "120 60% 40%" },
+        dark: { ...defaultBrand.theme.dark, primary: "120 60% 50%" },
+        radius: "1rem",
+        gradient: { start: "#FF0000", mid: "#00FF00", end: "#0000FF", accent: "#FFFF00" },
+      };
+      const mockBrand = makeMockApiResponse({ theme: fullTheme });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockBrand),
+      });
+      const result = await fetchBrandByDomain("test-full-theme.com");
+      expect(result!.theme.gradient).toEqual(fullTheme.gradient);
+      expect(result!.theme.radius).toBe("1rem");
+      expect(result!.theme.light.primary).toBe("120 60% 40%");
+    });
+  });
+
+  describe("pricing merge with defaults", () => {
+    it("fills missing pricing fields from defaults", async () => {
+      const mockBrand = makeMockApiResponse({
+        pricing: { monthly: 9.99, currency: "EUR" },
+      });
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockBrand),
+      });
+      const result = await fetchBrandByDomain("test-pricing.com");
+      expect(result!.pricing.monthly).toBe(9.99);
+      expect(result!.pricing.currency).toBe("EUR");
+      expect(result!.pricing.yearly).toBe(defaultBrand.pricing.yearly);
+      expect(result!.pricing.trialDays).toBe(defaultBrand.pricing.trialDays);
+    });
   });
 });
