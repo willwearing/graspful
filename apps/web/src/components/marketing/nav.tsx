@@ -59,12 +59,14 @@ export function MarketingNav() {
           </button>
           <Link
             href="/sign-in"
+            prefetch={false}
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Sign in
           </Link>
           <Link
             href="/sign-up"
+            prefetch={false}
             className="btn-gradient px-5 py-2 text-sm font-medium"
           >
             {hostSurface === "academy" ? "Enroll" : "Get Started"}

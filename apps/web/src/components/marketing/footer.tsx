@@ -65,7 +65,7 @@ export function MarketingFooter() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    prefetch={hostSurface === "app" && link.href !== "/sign-up" ? false : undefined}
+                    prefetch={false}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {link.label}
