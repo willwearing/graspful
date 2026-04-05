@@ -13,6 +13,7 @@ describe("isPublicRoute", () => {
     expect(isPublicRoute("/auth/callback")).toBe(true);
     expect(isPublicRoute("/pricing")).toBe(true);
     expect(isPublicRoute("/agents")).toBe(true);
+    expect(isPublicRoute("/academies")).toBe(true);
     expect(isPublicRoute("/docs")).toBe(true);
   });
 
@@ -121,6 +122,16 @@ describe("routing decisions", () => {
     ).toEqual({
       action: "redirect",
       to: "https://graspful.ai/pricing",
+    });
+
+    expect(
+      decideRoute("/academies", false, {
+        surface: "app",
+        currentUrl: new URL("https://app.graspful.ai/academies"),
+      }),
+    ).toEqual({
+      action: "redirect",
+      to: "https://graspful.ai/academies",
     });
   });
 
