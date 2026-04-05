@@ -317,7 +317,7 @@ export default function CLIReferencePage() {
         ]}
         jsonOutput={`{
   "courseId": "abc-123",
-  "url": "https://app.graspful.com/courses/abc-123",
+  "url": "https://app.graspful.ai/courses/abc-123",
   "published": true
 }`}
       />
@@ -388,7 +388,7 @@ export default function CLIReferencePage() {
         options={[
           { flag: "--niche <niche>", description: "Brand niche: education, healthcare, finance, tech, or legal (required)" },
           { flag: "--name <name>", description: 'Brand name (default: "{Niche} Academy")' },
-          { flag: "--domain <domain>", description: 'Custom domain (default: "{slug}.graspful.com")' },
+          { flag: "--domain <domain>", description: 'Custom domain (default: "{slug}.graspful.ai")' },
           { flag: "--org <slug>", description: "Organization slug to associate with" },
           { flag: "-o, --output <file>", description: "Output file path (defaults to stdout)" },
         ]}
@@ -398,7 +398,7 @@ export default function CLIReferencePage() {
             code: `graspful create brand \\
   --niche tech \\
   --name "AWS Prep Academy" \\
-  --domain aws-prep.graspful.com \\
+  --domain aws-prep.graspful.ai \\
   --org my-org \\
   -o aws-prep-brand.yaml`,
           },

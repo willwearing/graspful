@@ -13,14 +13,14 @@ describe("SiteFooter", () => {
       {
         slug: "deer-id-academy",
         name: "Deer ID Academy",
-        domain: "deer-id-academy.graspful.com",
+        domain: "deer-id-academy.graspful.ai",
         orgSlug: "graspful-gmail",
         academies: [],
       },
       {
         slug: "firefighter-prep",
         name: "FirefighterPrep",
-        domain: "firefighterprep.graspful.com",
+        domain: "firefighterprep.graspful.ai",
         orgSlug: "firefighter-prep",
         academies: [],
       },
@@ -31,8 +31,8 @@ describe("SiteFooter", () => {
     expect(screen.getByText("Academies")).toBeVisible();
     expect(screen.getByRole("link", { name: "Deer ID Academy" })).toHaveAttribute(
       "href",
-      "https://deer-id-academy.graspful.com"
+      "https://deer-id-academy.graspful.ai"
     );
-    expect(screen.getByText("firefighterprep.graspful.com")).toBeVisible();
+    expect(screen.getByText("firefighterprep.graspful.ai")).toBeVisible();
   });
 });
