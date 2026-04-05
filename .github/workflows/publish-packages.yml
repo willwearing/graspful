@@ -43,6 +43,11 @@ jobs:
         with:
           bun-version: latest
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
       - run: bun install
 
       - name: Determine target
@@ -65,9 +70,9 @@ jobs:
 
       - name: Publish @graspful/shared
         if: github.event.inputs.dry_run != 'true'
-        run: cd packages/shared && bun publish --access public || echo "shared already published at this version"
+        run: cd packages/shared && npm publish --access public || echo "shared already published at this version"
         env:
-          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Build CLI
         if: steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli'
@@ -79,20 +84,20 @@ jobs:
 
       - name: Publish @graspful/cli
         if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli') && github.event.inputs.dry_run != 'true'
-        run: cd packages/cli && bun publish --access public || echo "cli already published at this version"
+        run: cd packages/cli && npm publish --access public || echo "cli already published at this version"
         env:
-          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @graspful/mcp
         if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'mcp') && github.event.inputs.dry_run != 'true'
-        run: cd packages/mcp && bun publish --access public || echo "mcp already published at this version"
+        run: cd packages/mcp && npm publish --access public || echo "mcp already published at this version"
         env:
-          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Dry run — CLI
         if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli') && github.event.inputs.dry_run == 'true'
-        run: cd packages/cli && bun publish --access public --dry-run
+        run: cd packages/cli && npm publish --access public --dry-run
 
       - name: Dry run — MCP
         if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'mcp') && github.event.inputs.dry_run == 'true'
-        run: cd packages/mcp && bun publish --access public --dry-run
+        run: cd packages/mcp && npm publish --access public --dry-run
