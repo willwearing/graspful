@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { PrismaClient } from "../../../backend/node_modules/@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { getSupabaseUserIdByEmail, signUpAsCreator } from "./helpers/auth";
 
 const prisma = new PrismaClient();
