@@ -60,9 +60,9 @@ test.describe("Branded subdomain sign-up", () => {
 
     // Production flow: email confirmation is required, so the UI shows
     // "Check your email" instead of redirecting to the dashboard.
-    await expect(page.getByText("Check your email")).toBeVisible({
-      timeout: 10_000,
-    });
+    await expect(
+      page.getByText("Check your email", { exact: true })
+    ).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(email)).toBeVisible();
   });
 
@@ -87,9 +87,9 @@ test.describe("Branded subdomain sign-up", () => {
     await page.getByLabel("Password").fill("TestPassword123!");
     await page.getByRole("button", { name: "Create Account" }).click();
 
-    await expect(page.getByText("Check your email")).toBeVisible({
-      timeout: 10_000,
-    });
+    await expect(
+      page.getByText("Check your email", { exact: true })
+    ).toBeVisible({ timeout: 10_000 });
 
     // Verify Supabase created the user and dispatched a confirmation email
     const user = await findSupabaseUser(email);
@@ -123,12 +123,12 @@ test.describe("Branded subdomain sign-up", () => {
     await page.getByRole("button", { name: "Create Account" }).click();
 
     const signUpReq = await signUpPromise;
-    const body = signUpReq.postDataJSON();
+    const reqUrl = signUpReq.url();
 
-    // The emailRedirectTo should point to /auth/callback so the
-    // confirmation link lands on the correct page.
-    const redirectTo =
-      body?.options?.emailRedirectTo ?? body?.email_redirect_to ?? "";
+    // The Supabase SDK sends emailRedirectTo as a query parameter
+    // (redirect_to) on the signup URL. Verify it points to /auth/callback.
+    const url = new URL(reqUrl);
+    const redirectTo = url.searchParams.get("redirect_to") ?? "";
     expect(redirectTo).toContain("/auth/callback");
   });
 });

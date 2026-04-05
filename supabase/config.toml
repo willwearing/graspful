@@ -1,0 +1,16 @@
+# Supabase Auth configuration — pushed to remote via `supabase config push`
+# This is the source of truth for auth redirect URLs.
+
+[auth]
+enabled = true
+site_url = "https://graspful.ai"
+
+# Wildcard covers ALL brand subdomains (deer-academy.graspful.ai, etc.)
+# No manual updates needed when new brands are created.
+additional_redirect_urls = [
+  "http://localhost:3000/**",
+  "http://localhost:3001/**",
+  "https://graspful.ai/**",
+  "https://graspful.vercel.app/**",
+  "https://*.graspful.ai/**",
+]
