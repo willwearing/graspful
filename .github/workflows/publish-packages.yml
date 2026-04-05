@@ -65,6 +65,13 @@ jobs:
             echo "target=all" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Resolve workspace protocol for npm publish
+        run: |
+          SHARED_VERSION=$(node -p "require('./packages/shared/package.json').version")
+          for pkg in packages/cli/package.json packages/mcp/package.json; do
+            sed -i "s|\"workspace:\\*\"|\"^${SHARED_VERSION}\"|g" "$pkg"
+          done
+
       - name: Build and publish @graspful/shared
         run: cd packages/shared && bun run build
 
