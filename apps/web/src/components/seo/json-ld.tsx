@@ -1,3 +1,5 @@
+import { safeJsonLd } from "@/lib/sanitize-json-ld";
+
 interface CourseJsonLdProps {
   name: string;
   description: string;
@@ -31,7 +33,7 @@ export function CourseJsonLd({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
     />
   );
 }
@@ -64,7 +66,7 @@ export function CredentialJsonLd({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
     />
   );
 }
@@ -96,7 +98,7 @@ export function OrganizationJsonLd({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
     />
   );
 }
@@ -131,7 +133,7 @@ export function WebSiteJsonLd({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
     />
   );
 }
@@ -174,7 +176,7 @@ export function SoftwareApplicationJsonLd({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
     />
   );
 }
@@ -205,7 +207,7 @@ export function FAQPageJsonLd({ items }: FAQPageJsonLdProps) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
     />
   );
 }

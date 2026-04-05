@@ -7,8 +7,6 @@ import {
   Post,
   Req,
   UseGuards,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { OrgMembershipGuard, CurrentOrg, MinRole, JwtOrApiKeyGuard } from '@/auth';
@@ -96,7 +94,6 @@ export class KnowledgeGraphController {
 
   @Post('import')
   @MinRole('admin')
-  @UsePipes(new ValidationPipe({ whitelist: true }))
   async importCourse(@Body() body: ImportCourseDto, @CurrentOrg() org: OrgContext, @Req() req: Request) {
     const result = await this.courseManagement.importCourse(org, body);
     const ctx = this.posthog.extractContext(req, org.userId);
@@ -112,7 +109,6 @@ export class KnowledgeGraphController {
 
   @Post('review')
   @MinRole('admin')
-  @UsePipes(new ValidationPipe({ whitelist: true }))
   async reviewCourse(@Body() body: ReviewCourseDto, @CurrentOrg() org: OrgContext, @Req() req: Request) {
     const result = await this.courseManagement.reviewCourseYaml(body.yaml);
     const ctx = this.posthog.extractContext(req, org.userId);

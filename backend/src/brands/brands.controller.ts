@@ -9,8 +9,6 @@ import {
   NotFoundException,
   Logger,
   UseGuards,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { SupabaseAuthGuard, JwtOrApiKeyGuard } from '@/auth';
 import { BrandsService } from './brands.service';
@@ -54,7 +52,6 @@ export class BrandsController {
 
   @Post()
   @UseGuards(JwtOrApiKeyGuard)
-  @UsePipes(new ValidationPipe({ whitelist: true }))
   async create(@Body() dto: CreateBrandDto) {
     const brand = await this.brandsService.upsert(dto);
 

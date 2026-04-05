@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -14,6 +13,9 @@ import { ProblemSubmissionService } from './problem-submission.service';
 import { ReviewService } from './review.service';
 import { QuizService } from './quiz.service';
 import { SectionExamService } from './section-exam.service';
+import { SubmitAnswerDto } from './dto/submit-answer.dto';
+import { SubmitReviewAnswerDto } from './dto/submit-review-answer.dto';
+import { CompleteReviewDto } from './dto/complete-review.dto';
 
 @Controller('orgs/:orgId/courses/:courseId')
 @UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
@@ -31,12 +33,9 @@ export class AssessmentController {
   @Post('lessons/:conceptId/answer')
   async submitLessonAnswer(
     @Param('conceptId') conceptId: string,
-    @Body() body: { problemId: string; answer: unknown; responseTimeMs: number },
+    @Body() body: SubmitAnswerDto,
     @CurrentOrg() org: OrgContext,
   ) {
-    if (!body.problemId || body.answer === undefined || body.responseTimeMs === undefined) {
-      throw new BadRequestException('problemId, answer, and responseTimeMs are required');
-    }
     return this.problemSubmission.submitAnswer({
       userId: org.userId,
       problemId: body.problemId,
@@ -59,18 +58,9 @@ export class AssessmentController {
   @Post('reviews/:conceptId/answer')
   async submitReviewAnswer(
     @Param('conceptId') conceptId: string,
-    @Body()
-    body: {
-      sessionId: string;
-      problemId: string;
-      answer: unknown;
-      responseTimeMs: number;
-    },
+    @Body() body: SubmitReviewAnswerDto,
     @CurrentOrg() org: OrgContext,
   ) {
-    if (!body.sessionId || !body.problemId || body.answer === undefined || body.responseTimeMs === undefined) {
-      throw new BadRequestException('sessionId, problemId, answer, and responseTimeMs are required');
-    }
     return this.reviewService.submitReviewAnswer(
       body.sessionId,
       body.problemId,
@@ -82,12 +72,9 @@ export class AssessmentController {
   @Post('reviews/:conceptId/complete')
   async completeReview(
     @Param('conceptId') conceptId: string,
-    @Body() body: { sessionId: string },
+    @Body() body: CompleteReviewDto,
     @CurrentOrg() org: OrgContext,
   ) {
-    if (!body.sessionId) {
-      throw new BadRequestException('sessionId is required');
-    }
     return this.reviewService.completeReview(body.sessionId);
   }
 
@@ -104,13 +91,9 @@ export class AssessmentController {
   @Post('quizzes/:quizId/answer')
   async submitQuizAnswer(
     @Param('quizId') quizId: string,
-    @Body()
-    body: { problemId: string; answer: unknown; responseTimeMs: number },
+    @Body() body: SubmitAnswerDto,
     @CurrentOrg() org: OrgContext,
   ) {
-    if (!body.problemId || body.answer === undefined || body.responseTimeMs === undefined) {
-      throw new BadRequestException('problemId, answer, and responseTimeMs are required');
-    }
     return this.quizService.submitQuizAnswer(
       quizId,
       body.problemId,
@@ -152,13 +135,9 @@ export class AssessmentController {
   @Post('sections/:sectionId/exam/:sessionId/answer')
   async submitSectionExamAnswer(
     @Param('sessionId') sessionId: string,
-    @Body()
-    body: { problemId: string; answer: unknown; responseTimeMs: number },
+    @Body() body: SubmitAnswerDto,
     @CurrentOrg() org: OrgContext,
   ) {
-    if (!body.problemId || body.answer === undefined || body.responseTimeMs === undefined) {
-      throw new BadRequestException('problemId, answer, and responseTimeMs are required');
-    }
     return this.sectionExamService.submitAnswer(
       org.userId,
       sessionId,

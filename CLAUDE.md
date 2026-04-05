@@ -169,6 +169,16 @@ graspful create brand --niche tech --name "My Academy" --org my-org -o brand.yam
 graspful import brand.yaml
 ```
 
+**Brand theme requirements:** When creating a brand with custom `light`/`dark` theme colors (not using a preset), you **must** also include:
+- A `gradient` object with hex colors: `start`, `mid`, `end`, `accent` — used for CTA buttons, text gradients, and decorative orbs on marketing pages.
+- All 18 color fields in both `light` and `dark`: `primary`, `primaryForeground`, `secondary`, `secondaryForeground`, `accent`, `accentForeground`, `background`, `foreground`, `card`, `cardForeground`, `popover`, `popoverForeground`, `muted`, `mutedForeground`, `destructive`, `border`, `input`, `ring`.
+
+Missing fields will fall back to defaults, but providing them all ensures visual consistency. **After importing a brand, run the brand resilience tests:**
+
+```bash
+cd apps/web && bunx vitest run src/lib/brand/__tests__/resolve-db.test.ts src/__tests__/brand/theme-style.test.tsx
+```
+
 ### Key rules
 
 - **CLI or MCP for everything.** Browser auth is only for minting credentials; course creation, import, and publishing stay programmatic.

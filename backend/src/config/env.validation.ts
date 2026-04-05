@@ -11,7 +11,10 @@ export const envSchema = z.object({
   MODAL_AUTH_KEY: z.string().optional(),
   MODAL_AUTH_SECRET: z.string().optional(),
   APP_URL: z.string().url().optional(),
-  ALLOWED_ORIGINS: z.string().optional(),
+  ALLOWED_ORIGINS: z.string().optional().refine(
+    (val) => process.env.NODE_ENV !== 'production' || (val && val.length > 0),
+    { message: 'ALLOWED_ORIGINS is required in production' },
+  ),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   POSTHOG_API_KEY: z.string().optional(),

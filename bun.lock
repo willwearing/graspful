@@ -105,6 +105,7 @@
         "class-transformer": "^0.5.1",
         "class-validator": "^0.15.1",
         "express": "^4.21.0",
+        "helmet": "^8.1.0",
         "jose": "^6.2.1",
         "js-yaml": "^4.1.1",
         "posthog-node": "^5.28.8",
@@ -133,7 +134,7 @@
     },
     "packages/cli": {
       "name": "@graspful/cli",
-      "version": "0.2.3",
+      "version": "0.2.5",
       "bin": {
         "graspful": "./dist/index.js",
       },
@@ -1558,6 +1559,8 @@
     "hasown": ["hasown@2.0.2", "", { "dependencies": { "function-bind": "^1.1.2" } }, "sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ=="],
 
     "headers-polyfill": ["headers-polyfill@4.0.3", "", {}, "sha512-IScLbePpkvO846sIwOtOTDjutRMWdXdJmXdMvk6gCBHxFO8d+QKOQedyZSxFTTFYRSmlgSTDtXqqq4pcenBXLQ=="],
+
+    "helmet": ["helmet@8.1.0", "", {}, "sha512-jOiHyAZsmnr8LqoPGmCjYAaiuWwjAPLgY8ZX2XrmHawt99/u1y6RgrZMTeoPfpUbV96HOalYgz1qzkRbw54Pmg=="],
 
     "hermes-estree": ["hermes-estree@0.25.1", "", {}, "sha512-0wUoCcLp+5Ev5pDW2OriHC2MJCbwLwuRx+gAqMTOkGKJJiBCLjtrvy4PWUGn6MIVefecRpzoOZ/UV6iGdOr+Cw=="],
 

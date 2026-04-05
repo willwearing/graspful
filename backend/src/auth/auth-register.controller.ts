@@ -1,5 +1,5 @@
 import {
-  Body, Controller, GoneException, HttpCode, HttpStatus, Post, UseGuards, UsePipes, ValidationPipe,
+  Body, Controller, GoneException, HttpCode, HttpStatus, Post, UseGuards,
 } from '@nestjs/common';
 import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { IsEmail, IsString, MinLength } from 'class-validator';
@@ -28,7 +28,6 @@ export class AuthRegisterController {
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: REGISTER_LIMIT, ttl: REGISTER_TTL } })
-  @UsePipes(new ValidationPipe({ whitelist: true }))
   async register(@Body() body: RegisterDto) {
     if (process.env.NODE_ENV === 'production') {
       throw new GoneException(

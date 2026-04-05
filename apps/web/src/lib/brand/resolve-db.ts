@@ -1,4 +1,4 @@
-import type { BrandConfig } from "./config";
+import type { BrandConfig, BrandThemeColors } from "./config";
 import { defaultBrand } from "./defaults";
 
 // Ensure the base URL always includes the /api/v1 prefix.
@@ -26,6 +26,50 @@ export function clearBrandCache() {
   cache.clear();
 }
 
+/** Deep-merge a partial theme from the API with defaults so no field is ever missing. */
+function mergeTheme(
+  partial: Record<string, unknown>,
+  defaults: BrandConfig["theme"],
+): BrandConfig["theme"] {
+  const partialLight =
+    partial.light && typeof partial.light === "object"
+      ? (partial.light as Record<string, string>)
+      : {};
+  const partialDark =
+    partial.dark && typeof partial.dark === "object"
+      ? (partial.dark as Record<string, string>)
+      : {};
+  const partialGradient =
+    partial.gradient && typeof partial.gradient === "object"
+      ? (partial.gradient as Record<string, string>)
+      : {};
+
+  return {
+    light: { ...defaults.light, ...partialLight } as BrandThemeColors,
+    dark: { ...defaults.dark, ...partialDark } as BrandThemeColors,
+    radius: typeof partial.radius === "string" ? partial.radius : defaults.radius,
+    gradient: {
+      start: partialGradient.start ?? defaults.gradient.start,
+      mid: partialGradient.mid ?? defaults.gradient.mid,
+      end: partialGradient.end ?? defaults.gradient.end,
+      accent: partialGradient.accent ?? defaults.gradient.accent,
+    },
+  };
+}
+
+/** Merge partial pricing from the API with defaults so no field is ever missing. */
+function mergePricing(
+  partial: Record<string, unknown>,
+  defaults: BrandConfig["pricing"],
+): BrandConfig["pricing"] {
+  return {
+    monthly: typeof partial.monthly === "number" ? partial.monthly : defaults.monthly,
+    yearly: typeof partial.yearly === "number" ? partial.yearly : defaults.yearly,
+    currency: typeof partial.currency === "string" ? partial.currency : defaults.currency,
+    trialDays: typeof partial.trialDays === "number" ? partial.trialDays : defaults.trialDays,
+  };
+}
+
 /** Map raw API response to BrandConfig, filling defaults for missing nested fields. */
 function mapToBrandConfig(data: Record<string, unknown>): BrandConfig {
   const landing = (data.landing || {}) as Record<string, unknown>;
@@ -43,8 +87,8 @@ function mapToBrandConfig(data: Record<string, unknown>): BrandConfig {
     faviconUrl: (data.faviconUrl as string) || "/favicon.ico",
     ogImageUrl: (data.ogImageUrl as string) || "",
     orgSlug: (data.orgSlug as string) || "",
-    theme: data.theme && typeof data.theme === "object" && "light" in (data.theme as object)
-      ? data.theme as BrandConfig["theme"]
+    theme: data.theme && typeof data.theme === "object"
+      ? mergeTheme(data.theme as Record<string, unknown>, defaultBrand.theme)
       : defaultBrand.theme,
     landing: {
       hero: {
@@ -72,8 +116,8 @@ function mapToBrandConfig(data: Record<string, unknown>): BrandConfig {
       description: ((data.seo as Record<string, unknown>)?.description as string) || "",
       keywords: ((data.seo as Record<string, unknown>)?.keywords as string[]) || [],
     },
-    pricing: data.pricing && typeof data.pricing === "object" && "monthly" in (data.pricing as object)
-      ? data.pricing as BrandConfig["pricing"]
+    pricing: data.pricing && typeof data.pricing === "object"
+      ? mergePricing(data.pricing as Record<string, unknown>, defaultBrand.pricing)
       : defaultBrand.pricing,
     contentScope: data.contentScope && typeof data.contentScope === "object" && "courseIds" in (data.contentScope as object)
       ? data.contentScope as BrandConfig["contentScope"]
