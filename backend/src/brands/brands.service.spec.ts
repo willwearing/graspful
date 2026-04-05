@@ -109,9 +109,9 @@ describe('BrandsService', () => {
     it('prefers explicitly scoped brands and excludes default org brands', async () => {
       prisma.brand.findMany.mockResolvedValue([
         {
-          slug: 'deer-id-academy',
-          name: 'Deer ID Academy',
-          domain: 'deer-id-academy.graspful.ai',
+          slug: 'deer-academy',
+          name: 'Deer Academy',
+          domain: 'deer-academy.graspful.ai',
           orgSlug: 'graspful-gmail',
           contentScope: { courseIds: ['mule-deer-vs-whitetail'] },
         },
@@ -145,9 +145,9 @@ describe('BrandsService', () => {
 
       expect(result).toEqual([
         {
-          slug: 'deer-id-academy',
-          name: 'Deer ID Academy',
-          domain: 'deer-id-academy.graspful.ai',
+          slug: 'deer-academy',
+          name: 'Deer Academy',
+          domain: 'deer-academy.graspful.ai',
           orgSlug: 'graspful-gmail',
           academies: [
             {
