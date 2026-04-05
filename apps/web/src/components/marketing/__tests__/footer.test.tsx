@@ -1,18 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MarketingFooter } from "../footer";
 import { BrandProvider } from "@/lib/brand/context";
 import { HostSurfaceProvider } from "@/lib/host-context";
 import { defaultBrand, firefighterBrand } from "@/lib/brand/defaults";
-import { getPublicAcademyCatalog } from "@/lib/public-academies";
-
-vi.mock("@/lib/public-academies", () => ({
-  getPublicAcademyCatalog: vi.fn(),
-}));
 
 describe("MarketingFooter", () => {
   beforeEach(() => {
-    vi.mocked(getPublicAcademyCatalog).mockResolvedValue([]);
+    vi.clearAllMocks();
   });
 
   it("renders brand name and tagline", () => {
@@ -53,17 +48,7 @@ describe("MarketingFooter", () => {
     expect(screen.getByRole("link", { name: /documentation/i })).toBeTruthy();
   });
 
-  it("renders academy links for the graspful marketing surface", async () => {
-    vi.mocked(getPublicAcademyCatalog).mockResolvedValue([
-      {
-        slug: "posthog-tam",
-        name: "PostHog TAM Academy",
-        domain: "posthog-tam.vercel.app",
-        orgSlug: "posthog-tam",
-        academies: [],
-      },
-    ]);
-
+  it("renders an academies directory link for the graspful marketing surface", () => {
     render(
       <HostSurfaceProvider surface="local">
         <BrandProvider brand={defaultBrand}>
@@ -72,14 +57,9 @@ describe("MarketingFooter", () => {
       </HostSurfaceProvider>,
     );
 
-    await waitFor(() => {
-      expect(screen.getByText("Academies")).toBeTruthy();
-    });
-
-    expect(screen.getByRole("link", { name: /posthog tam academy/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /^academies$/i })).toHaveAttribute(
       "href",
-      "https://posthog-tam.vercel.app",
+      "/academies",
     );
-    expect(screen.getByText("posthog-tam.vercel.app")).toBeTruthy();
   });
 });
