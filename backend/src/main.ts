@@ -38,7 +38,10 @@ async function bootstrap() {
     transform: true,
   }));
 
-  const allowedOrigins = config.get<string>('ALLOWED_ORIGINS')?.split(',');
+  const allowedOrigins = config.get<string>('ALLOWED_ORIGINS')?.split(',').filter(Boolean);
+  if (config.get('NODE_ENV') === 'production' && (!allowedOrigins || allowedOrigins.length === 0)) {
+    console.warn('⚠ ALLOWED_ORIGINS is not set — CORS will reject all cross-origin requests');
+  }
   app.enableCors({
     origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : false,
     credentials: true,
