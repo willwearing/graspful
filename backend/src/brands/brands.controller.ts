@@ -58,13 +58,15 @@ export class BrandsController {
   async create(@Body() dto: CreateBrandDto) {
     const brand = await this.brandsService.upsert(dto);
 
-    // Provision domain on Vercel
+    // Provision the normalized domain on Vercel (brand.domain has the
+    // canonical suffix applied by BrandsService, so always use that).
+    const normalizedDomain = brand.domain;
     try {
       const vercelResult = await this.vercelDomainsService.addDomain(
-        dto.domain,
+        normalizedDomain,
       );
       const dnsInstructions =
-        await this.vercelDomainsService.getDnsInstructions(dto.domain);
+        await this.vercelDomainsService.getDnsInstructions(normalizedDomain);
       return {
         brand,
         domain: {
@@ -75,10 +77,10 @@ export class BrandsController {
       };
     } catch (error) {
       this.logger.warn(
-        `Domain provisioning failed for ${dto.domain}, brand created without domain: ${error}`,
+        `Domain provisioning failed for ${normalizedDomain}, brand created without domain: ${error}`,
       );
       const dnsInstructions =
-        await this.vercelDomainsService.getDnsInstructions(dto.domain);
+        await this.vercelDomainsService.getDnsInstructions(normalizedDomain);
       return {
         brand,
         domain: {
