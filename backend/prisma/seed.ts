@@ -49,12 +49,26 @@ async function main() {
   });
   console.log(`Membership: ${user.email} is owner of ${org.name}`);
 
+  // Create academy
+  const academy = await prisma.academy.upsert({
+    where: { orgId_slug: { orgId: org.id, slug: 'nfpa-1001' } },
+    update: {},
+    create: {
+      orgId: org.id,
+      slug: 'nfpa-1001',
+      name: 'NFPA 1001 — Firefighter I & II',
+      description: 'Complete audio-first exam prep covering all NFPA 1001 certification requirements for Firefighter I and II.',
+    },
+  });
+  console.log(`Academy: ${academy.name} (${academy.id})`);
+
   // Create course (knowledge-graph model used by browse page)
   const course = await prisma.course.upsert({
     where: { orgId_slug: { orgId: org.id, slug: 'nfpa-1001' } },
     update: {},
     create: {
       orgId: org.id,
+      academyId: academy.id,
       slug: 'nfpa-1001',
       name: 'NFPA 1001 — Firefighter I & II',
       description: 'Complete audio-first exam prep covering all NFPA 1001 certification requirements for Firefighter I and II.',
