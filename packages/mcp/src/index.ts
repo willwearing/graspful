@@ -7,12 +7,15 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import * as yaml from 'js-yaml';
-import * as crypto from 'crypto';
 import { PostHog } from 'posthog-node';
 import {
   CourseYamlSchema,
-  BrandYamlSchema,
-  AcademyManifestSchema,
+  validateParsedYaml,
+  runQualityGate,
+  describeCourse,
+  scaffoldCourseObject,
+  scaffoldBrandObject,
+  fillConceptInRaw,
 } from '@graspful/shared';
 
 // ─── PostHog analytics ──────────────────────────────────────────────────────
@@ -37,7 +40,6 @@ function mcpCapture(event: string, properties: Record<string, unknown> = {}) {
     properties: { ...properties, source: 'mcp' },
   });
 }
-import type { CourseYaml, QualityCheckResult, QualityGateResult } from '@graspful/shared';
 
 // ─── Auth guard ─────────────────────────────────────────────────────────────
 
@@ -55,7 +57,7 @@ function requireApiAuth(): void {
   }
 }
 
-// ─── API Client (mirrors packages/cli/src/lib/api-client.ts) ──────────────
+// ─── API Client ─────────────────────────────────────────────────────────────
 
 function getApiCredentials(): { baseUrl: string; authHeader?: string } {
   const baseUrl = (process.env.GRASPFUL_API_URL || 'https://api.graspful.ai').replace(/\/$/, '');
@@ -66,15 +68,15 @@ function getApiCredentials(): { baseUrl: string; authHeader?: string } {
   return { baseUrl };
 }
 
-async function apiPost<T = unknown>(path: string, body: unknown): Promise<T> {
+async function apiFetch<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
   const { baseUrl, authHeader } = getApiCredentials();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (authHeader) headers['Authorization'] = authHeader;
 
   const res = await fetch(`${baseUrl}${path}`, {
-    method: 'POST',
+    method,
     headers,
-    body: JSON.stringify(body),
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
     const text = await res.text();
@@ -83,777 +85,19 @@ async function apiPost<T = unknown>(path: string, body: unknown): Promise<T> {
   return res.json() as T;
 }
 
-async function apiGet<T = unknown>(path: string): Promise<T> {
-  const { baseUrl, authHeader } = getApiCredentials();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (authHeader) headers['Authorization'] = authHeader;
+// ─── YAML helpers ───────────────────────────────────────────────────────────
 
-  const res = await fetch(`${baseUrl}${path}`, {
-    method: 'GET',
-    headers,
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`API error ${res.status}: ${text}`);
-  }
-  return res.json() as T;
+const YAML_DUMP_OPTS = { lineWidth: 120, noRefs: true };
+
+function parseYaml(yamlStr: string): unknown {
+  return yaml.load(yamlStr);
 }
 
-// ─── Scaffold helpers (mirrors packages/cli/src/commands/create-course.ts) ──
-
-function scaffoldCourse(topic: string, options: { hours?: number; source?: string }): string {
-  const slug = topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  return yaml.dump({
-    course: {
-      id: slug,
-      name: topic,
-      description: `Adaptive course on ${topic}`,
-      estimatedHours: options.hours || 10,
-      version: '2026.1',
-      sourceDocument: options.source || 'TODO: Add source document',
-    },
-    sections: [
-      { id: 'foundations', name: 'Foundations', description: 'Core concepts' },
-      { id: 'application', name: 'Application', description: 'Applied concepts' },
-    ],
-    concepts: [
-      {
-        id: `${slug}-intro`,
-        name: `Introduction to ${topic}`,
-        section: 'foundations',
-        difficulty: 2,
-        estimatedMinutes: 15,
-        tags: ['foundational'],
-        prerequisites: [],
-        knowledgePoints: [],
-      },
-    ],
-  }, { lineWidth: 120, noRefs: true });
+function dumpYaml(obj: unknown): string {
+  return yaml.dump(obj, YAML_DUMP_OPTS);
 }
 
-function scaffoldBrand(niche: string, options: { name?: string; domain?: string; orgSlug?: string }): string {
-  const NICHE_PRESETS: Record<string, { preset: string; tagline: string; headline: string }> = {
-    education: { preset: 'blue', tagline: 'Learn smarter, not harder', headline: 'Master any subject with adaptive learning' },
-    healthcare: { preset: 'emerald', tagline: 'Training that saves lives', headline: 'Adaptive healthcare education for professionals' },
-    finance: { preset: 'slate', tagline: 'Build financial expertise', headline: 'Master finance with adaptive learning' },
-    tech: { preset: 'indigo', tagline: 'Level up your skills', headline: 'Adaptive tech training that meets you where you are' },
-    legal: { preset: 'amber', tagline: 'Know the law, pass the exam', headline: 'Adaptive legal education for exam success' },
-    default: { preset: 'blue', tagline: 'Learn adaptively', headline: 'Personalized learning that works' },
-  };
-
-  const config = NICHE_PRESETS[niche] || NICHE_PRESETS['default'];
-  const slug = (options.name || niche).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  const name = options.name || `${niche.charAt(0).toUpperCase() + niche.slice(1)} Academy`;
-  const domain = options.domain || `${slug}.graspful.ai`;
-
-  return yaml.dump({
-    brand: {
-      id: slug,
-      name,
-      domain,
-      tagline: config.tagline,
-      orgSlug: options.orgSlug || 'TODO: your-org-slug',
-    },
-    theme: {
-      preset: config.preset,
-      radius: '0.5rem',
-    },
-    landing: {
-      hero: {
-        headline: config.headline,
-        subheadline: `${name} uses adaptive learning to help you master concepts faster.`,
-        ctaText: 'Start Learning',
-      },
-      features: {
-        heading: 'Why choose us?',
-        items: [
-          { title: 'Adaptive Learning', description: 'Content adapts to your knowledge level', icon: 'brain' },
-          { title: 'Spaced Repetition', description: 'Review at optimal intervals for lasting memory', icon: 'clock' },
-          { title: 'Progress Tracking', description: 'See exactly where you stand', icon: 'chart' },
-        ],
-      },
-      howItWorks: {
-        heading: 'How it works',
-        items: [
-          { title: 'Take a diagnostic', description: 'We assess what you already know' },
-          { title: 'Learn adaptively', description: 'Focus on gaps, skip what you know' },
-          { title: 'Master the material', description: 'Prove mastery through progressive challenges' },
-        ],
-      },
-      faq: [],
-    },
-    seo: {
-      title: `${name} — Adaptive Learning`,
-      description: config.tagline,
-      keywords: [niche, 'learning', 'adaptive', 'education'],
-    },
-  }, { lineWidth: 120, noRefs: true });
-}
-
-// ─── Validate helpers (mirrors packages/cli/src/commands/validate.ts) ───────
-
-type FileType = 'course' | 'brand' | 'academy';
-
-function detectFileType(data: unknown): FileType | null {
-  if (typeof data !== 'object' || data === null) return null;
-  const obj = data as Record<string, unknown>;
-  if ('course' in obj) return 'course';
-  if ('brand' in obj) return 'brand';
-  if ('academy' in obj) return 'academy';
-  return null;
-}
-
-function detectCycles(concepts: Array<{ id: string; prerequisites: string[] }>): string[] {
-  const graph = new Map<string, string[]>();
-  for (const c of concepts) {
-    graph.set(c.id, c.prerequisites);
-  }
-
-  const visited = new Set<string>();
-  const inStack = new Set<string>();
-  const cycles: string[] = [];
-
-  function dfs(node: string, path: string[]): boolean {
-    if (inStack.has(node)) {
-      const cycleStart = path.indexOf(node);
-      const cycle = path.slice(cycleStart).concat(node);
-      cycles.push(`Cycle: ${cycle.join(' -> ')}`);
-      return true;
-    }
-    if (visited.has(node)) return false;
-
-    visited.add(node);
-    inStack.add(node);
-    path.push(node);
-
-    for (const dep of graph.get(node) ?? []) {
-      dfs(dep, path);
-    }
-
-    path.pop();
-    inStack.delete(node);
-    return false;
-  }
-
-  for (const id of graph.keys()) {
-    if (!visited.has(id)) {
-      dfs(id, []);
-    }
-  }
-
-  return cycles;
-}
-
-function validateYaml(yamlStr: string): { valid: boolean; fileType?: string; errors: string[]; stats: Record<string, unknown> } {
-  let raw: unknown;
-  try {
-    raw = yaml.load(yamlStr);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return { valid: false, errors: [`YAML parse error: ${msg}`], stats: {} };
-  }
-
-  const fileType = detectFileType(raw);
-  if (!fileType) {
-    return { valid: false, errors: ['Could not detect file type. Expected top-level key: course, brand, or academy'], stats: {} };
-  }
-
-  const schemaMap = {
-    course: CourseYamlSchema,
-    brand: BrandYamlSchema,
-    academy: AcademyManifestSchema,
-  };
-
-  const result = schemaMap[fileType].safeParse(raw);
-
-  if (!result.success) {
-    const errors = result.error.issues.map(
-      (i) => `${i.path.join('.')}: ${i.message}`,
-    );
-    return { valid: false, fileType, errors, stats: {} };
-  }
-
-  // For courses, also check DAG
-  const dagErrors: string[] = [];
-  let stats: Record<string, unknown> = { fileType };
-
-  if (fileType === 'course') {
-    const data = result.data as { concepts: Array<{ id: string; prerequisites: string[]; knowledgePoints: Array<{ problems: unknown[] }> }> };
-    const conceptIds = new Set(data.concepts.map((c) => c.id));
-
-    for (const concept of data.concepts) {
-      for (const prereq of concept.prerequisites) {
-        if (!conceptIds.has(prereq)) {
-          dagErrors.push(`Concept "${concept.id}" has unknown prerequisite "${prereq}"`);
-        }
-      }
-    }
-
-    const cycles = detectCycles(
-      data.concepts.map((c) => ({ id: c.id, prerequisites: c.prerequisites })),
-    );
-    dagErrors.push(...cycles);
-
-    const kpCount = data.concepts.reduce((sum, c) => sum + c.knowledgePoints.length, 0);
-    const problemCount = data.concepts.reduce(
-      (sum, c) => sum + c.knowledgePoints.reduce((s, kp) => s + kp.problems.length, 0),
-      0,
-    );
-
-    stats = { fileType, concepts: data.concepts.length, knowledgePoints: kpCount, problems: problemCount };
-  }
-
-  if (dagErrors.length > 0) {
-    return { valid: false, fileType, errors: dagErrors, stats };
-  }
-
-  return { valid: true, fileType, errors: [], stats };
-}
-
-// ─── Review helpers (mirrors packages/cli/src/commands/review.ts) ───────────
-
-function checkYamlParses(raw: unknown): QualityCheckResult {
-  const result = CourseYamlSchema.safeParse(raw);
-  if (result.success) {
-    return { check: 'yaml_parses', passed: true };
-  }
-  const errors = result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
-  return {
-    check: 'yaml_parses',
-    passed: false,
-    details: `${errors.length} schema error(s): ${errors.slice(0, 5).join('; ')}${errors.length > 5 ? ` (+${errors.length - 5} more)` : ''}`,
-  };
-}
-
-function checkUniqueProblemIds(data: CourseYaml): QualityCheckResult {
-  const duplicates: string[] = [];
-  const seen = new Set<string>();
-
-  for (const concept of data.concepts) {
-    for (const kp of concept.knowledgePoints) {
-      for (const problem of kp.problems) {
-        if (seen.has(problem.id)) {
-          duplicates.push(problem.id);
-        }
-        seen.add(problem.id);
-      }
-    }
-  }
-
-  if (duplicates.length === 0) {
-    return { check: 'unique_problem_ids', passed: true };
-  }
-  return {
-    check: 'unique_problem_ids',
-    passed: false,
-    details: `Duplicate problem IDs: ${duplicates.join(', ')}`,
-  };
-}
-
-function checkPrerequisitesValid(data: CourseYaml): QualityCheckResult {
-  const conceptIds = new Set(data.concepts.map((c) => c.id));
-  const invalid: string[] = [];
-
-  for (const concept of data.concepts) {
-    for (const prereq of concept.prerequisites) {
-      if (!conceptIds.has(prereq)) {
-        invalid.push(`${concept.id} -> ${prereq}`);
-      }
-    }
-  }
-
-  if (invalid.length === 0) {
-    return { check: 'prerequisites_valid', passed: true };
-  }
-  return {
-    check: 'prerequisites_valid',
-    passed: false,
-    details: `Unknown prerequisites: ${invalid.join(', ')}`,
-  };
-}
-
-function normalizeText(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
-}
-
-function checkQuestionDeduplication(data: CourseYaml): QualityCheckResult {
-  const seen = new Map<string, { problemId: string }>();
-  const collisions: string[] = [];
-
-  for (const concept of data.concepts) {
-    for (const kp of concept.knowledgePoints) {
-      for (const problem of kp.problems) {
-        const normalized = normalizeText(problem.question);
-        const hash = crypto.createHash('md5').update(normalized).digest('hex').substring(0, 12);
-        const key = `${hash}-d${problem.difficulty ?? 'none'}`;
-
-        const existing = seen.get(key);
-        if (existing) {
-          collisions.push(`"${problem.id}" collides with "${existing.problemId}" (same question text at same difficulty)`);
-        } else {
-          seen.set(key, { problemId: problem.id });
-        }
-      }
-    }
-  }
-
-  if (collisions.length === 0) {
-    return { check: 'question_deduplication', passed: true };
-  }
-  return {
-    check: 'question_deduplication',
-    passed: false,
-    details: collisions.slice(0, 5).join('; ') + (collisions.length > 5 ? ` (+${collisions.length - 5} more)` : ''),
-  };
-}
-
-function checkDifficultyStaircase(data: CourseYaml): QualityCheckResult {
-  const failures: string[] = [];
-
-  for (const concept of data.concepts) {
-    if (concept.knowledgePoints.length === 0) continue;
-
-    const difficulties = new Set<number>();
-    for (const kp of concept.knowledgePoints) {
-      for (const problem of kp.problems) {
-        if (problem.difficulty != null) {
-          difficulties.add(problem.difficulty);
-        }
-      }
-    }
-
-    if (difficulties.size > 0 && difficulties.size < 2) {
-      failures.push(`"${concept.id}" has problems at only ${difficulties.size} difficulty level(s) — need 2+`);
-    }
-  }
-
-  if (failures.length === 0) {
-    return { check: 'difficulty_staircase', passed: true };
-  }
-  return {
-    check: 'difficulty_staircase',
-    passed: false,
-    details: failures.slice(0, 5).join('; ') + (failures.length > 5 ? ` (+${failures.length - 5} more)` : ''),
-  };
-}
-
-function extractStems(text: string): string[] {
-  return text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter((w) => w.length > 4);
-}
-
-function checkCrossConceptCoverage(data: CourseYaml): QualityCheckResult {
-  const stemConceptCount = new Map<string, Set<string>>();
-
-  for (const concept of data.concepts) {
-    for (const kp of concept.knowledgePoints) {
-      for (const problem of kp.problems) {
-        const stems = extractStems(problem.question);
-        for (const stem of stems) {
-          if (!stemConceptCount.has(stem)) {
-            stemConceptCount.set(stem, new Set());
-          }
-          stemConceptCount.get(stem)!.add(concept.id);
-        }
-      }
-    }
-  }
-
-  const overused: string[] = [];
-  for (const [stem, concepts] of stemConceptCount) {
-    if (concepts.size > 3) {
-      overused.push(`"${stem}" appears across ${concepts.size} concepts`);
-    }
-  }
-
-  const commonWords = new Set([
-    'which', 'would', 'should', 'could', 'about', 'their', 'there', 'these', 'those',
-    'being', 'between', 'through', 'during', 'before', 'after', 'above', 'below',
-    'following', 'statement', 'answer', 'question', 'correct', 'incorrect',
-    'agent', 'property', 'owner', 'buyer', 'seller',
-  ]);
-
-  const meaningfulOverused = overused.filter((entry) => {
-    const stem = entry.match(/"([^"]+)"/)?.[1] ?? '';
-    return !commonWords.has(stem);
-  });
-
-  if (meaningfulOverused.length === 0) {
-    return { check: 'cross_concept_coverage', passed: true };
-  }
-  return {
-    check: 'cross_concept_coverage',
-    passed: meaningfulOverused.length <= 5,
-    details: meaningfulOverused.slice(0, 5).join('; ') + (meaningfulOverused.length > 5 ? ` (+${meaningfulOverused.length - 5} more)` : ''),
-  };
-}
-
-function checkProblemVariantDepth(data: CourseYaml): QualityCheckResult {
-  const failures: string[] = [];
-
-  for (const concept of data.concepts) {
-    if (concept.knowledgePoints.length === 0) continue;
-
-    for (const kp of concept.knowledgePoints) {
-      if (kp.problems.length < 3) {
-        failures.push(`"${concept.id}/${kp.id}" has ${kp.problems.length} problem(s) — need 3+`);
-      }
-    }
-  }
-
-  if (failures.length === 0) {
-    return { check: 'problem_variant_depth', passed: true };
-  }
-  return {
-    check: 'problem_variant_depth',
-    passed: false,
-    details: failures.slice(0, 5).join('; ') + (failures.length > 5 ? ` (+${failures.length - 5} more)` : ''),
-  };
-}
-
-function checkInstructionFormatting(data: CourseYaml): QualityCheckResult {
-  const warnings: string[] = [];
-
-  for (const concept of data.concepts) {
-    for (const kp of concept.knowledgePoints) {
-      if (!kp.instruction) continue;
-      if (kp.instruction.match(/^[\w\-./]+\.(md|txt|html)$/)) continue;
-
-      const wordCount = kp.instruction.split(/\s+/).filter(Boolean).length;
-      const hasContentBlocks = kp.instructionContent && kp.instructionContent.length > 0;
-
-      if (wordCount > 100 && !hasContentBlocks) {
-        warnings.push(`"${concept.id}/${kp.id}" instruction is ${wordCount} words with no content blocks`);
-      }
-    }
-  }
-
-  if (warnings.length === 0) {
-    return { check: 'instruction_formatting', passed: true };
-  }
-  return {
-    check: 'instruction_formatting',
-    passed: false,
-    details: warnings.slice(0, 5).join('; ') + (warnings.length > 5 ? ` (+${warnings.length - 5} more)` : ''),
-  };
-}
-
-function checkWorkedExampleCoverage(data: CourseYaml): QualityCheckResult {
-  const authoredConcepts = data.concepts.filter((c) => c.knowledgePoints.length > 0);
-  if (authoredConcepts.length === 0) {
-    return { check: 'worked_example_coverage', passed: true };
-  }
-
-  const withExamples = authoredConcepts.filter((c) =>
-    c.knowledgePoints.some((kp) => kp.workedExample && kp.workedExample.trim().length > 0),
-  );
-
-  const coverage = withExamples.length / authoredConcepts.length;
-  if (coverage >= 0.5) {
-    return { check: 'worked_example_coverage', passed: true };
-  }
-  return {
-    check: 'worked_example_coverage',
-    passed: false,
-    details: `${withExamples.length}/${authoredConcepts.length} authored concepts have worked examples (${Math.round(coverage * 100)}%) — need 50%+`,
-  };
-}
-
-function checkImportDryRun(data: CourseYaml): QualityCheckResult {
-  const conceptIds = new Set(data.concepts.map((c) => c.id));
-  const errors: string[] = [];
-
-  for (const concept of data.concepts) {
-    for (const prereq of concept.prerequisites) {
-      if (!conceptIds.has(prereq)) {
-        errors.push(`Unknown prerequisite: ${concept.id} -> ${prereq}`);
-      }
-    }
-  }
-
-  const graph = new Map<string, string[]>();
-  for (const c of data.concepts) {
-    graph.set(c.id, [...c.prerequisites]);
-  }
-
-  const visited = new Set<string>();
-  const inStack = new Set<string>();
-
-  function hasCycle(node: string, path: string[]): boolean {
-    if (inStack.has(node)) {
-      const cycleStart = path.indexOf(node);
-      const cycle = path.slice(cycleStart).concat(node);
-      errors.push(`Cycle detected: ${cycle.join(' -> ')}`);
-      return true;
-    }
-    if (visited.has(node)) return false;
-
-    visited.add(node);
-    inStack.add(node);
-    path.push(node);
-
-    let foundCycle = false;
-    for (const dep of graph.get(node) ?? []) {
-      if (hasCycle(dep, path)) {
-        foundCycle = true;
-      }
-    }
-
-    path.pop();
-    inStack.delete(node);
-    return foundCycle;
-  }
-
-  for (const id of graph.keys()) {
-    if (!visited.has(id)) {
-      hasCycle(id, []);
-    }
-  }
-
-  if (errors.length === 0) {
-    return { check: 'import_dry_run', passed: true };
-  }
-  return {
-    check: 'import_dry_run',
-    passed: false,
-    details: errors.join('; '),
-  };
-}
-
-function runReview(yamlStr: string): QualityGateResult {
-  let raw: unknown;
-  try {
-    raw = yaml.load(yamlStr);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return {
-      passed: false,
-      score: '0/10',
-      failures: [{ check: 'yaml_parses', passed: false, details: `YAML parse error: ${msg}` }],
-      warnings: [],
-      stats: { concepts: 0, kps: 0, problems: 0, authoredConcepts: 0, stubConcepts: 0 },
-    };
-  }
-
-  const checks: QualityCheckResult[] = [];
-  const parseCheck = checkYamlParses(raw);
-  checks.push(parseCheck);
-
-  if (!parseCheck.passed) {
-    return {
-      passed: false,
-      score: '0/10',
-      failures: checks.filter((c) => !c.passed),
-      warnings: [],
-      stats: { concepts: 0, kps: 0, problems: 0, authoredConcepts: 0, stubConcepts: 0 },
-    };
-  }
-
-  const data = CourseYamlSchema.parse(raw);
-
-  const authoredConcepts = data.concepts.filter((c) => c.knowledgePoints.length > 0);
-  const stubConcepts = data.concepts.filter((c) => c.knowledgePoints.length === 0);
-  const kps = data.concepts.reduce((sum, c) => sum + c.knowledgePoints.length, 0);
-  const problems = data.concepts.reduce(
-    (sum, c) => sum + c.knowledgePoints.reduce((s, kp) => s + kp.problems.length, 0),
-    0,
-  );
-
-  const stats = {
-    concepts: data.concepts.length,
-    kps,
-    problems,
-    authoredConcepts: authoredConcepts.length,
-    stubConcepts: stubConcepts.length,
-  };
-
-  checks.push(checkUniqueProblemIds(data));
-  checks.push(checkPrerequisitesValid(data));
-  checks.push(checkQuestionDeduplication(data));
-  checks.push(checkDifficultyStaircase(data));
-  checks.push(checkCrossConceptCoverage(data));
-  checks.push(checkProblemVariantDepth(data));
-  checks.push(checkInstructionFormatting(data));
-  checks.push(checkWorkedExampleCoverage(data));
-  checks.push(checkImportDryRun(data));
-
-  const passedCount = checks.filter((c) => c.passed).length;
-  const failures = checks.filter((c) => !c.passed);
-
-  return {
-    passed: failures.length === 0,
-    score: `${passedCount}/10`,
-    failures,
-    warnings: [],
-    stats,
-  };
-}
-
-// ─── Describe helper (mirrors packages/cli/src/commands/describe.ts) ────────
-
-function computeGraphDepth(concepts: CourseYaml['concepts']): number {
-  const graph = new Map<string, string[]>();
-  for (const c of concepts) {
-    graph.set(c.id, c.prerequisites);
-  }
-
-  const memo = new Map<string, number>();
-
-  function depth(id: string, visited: Set<string>): number {
-    if (memo.has(id)) return memo.get(id)!;
-    if (visited.has(id)) return 0;
-    visited.add(id);
-
-    const prereqs = graph.get(id) ?? [];
-    let maxPrereqDepth = 0;
-    for (const prereq of prereqs) {
-      if (graph.has(prereq)) {
-        maxPrereqDepth = Math.max(maxPrereqDepth, depth(prereq, visited));
-      }
-    }
-
-    const d = maxPrereqDepth + 1;
-    memo.set(id, d);
-    return d;
-  }
-
-  let maxDepth = 0;
-  for (const c of concepts) {
-    maxDepth = Math.max(maxDepth, depth(c.id, new Set()));
-  }
-  return maxDepth;
-}
-
-function describeCourse(yamlStr: string): Record<string, unknown> {
-  const raw = yaml.load(yamlStr);
-  const result = CourseYamlSchema.safeParse(raw);
-  if (!result.success) {
-    throw new Error(`Invalid course YAML: ${result.error.issues[0]?.message ?? 'unknown error'}`);
-  }
-
-  const data = result.data;
-  const concepts = data.concepts;
-  const sections = data.sections;
-
-  const authoredConcepts = concepts.filter((c) => c.knowledgePoints.length > 0);
-  const stubConcepts = concepts.filter((c) => c.knowledgePoints.length === 0);
-
-  const kpCount = concepts.reduce((sum, c) => sum + c.knowledgePoints.length, 0);
-  const problemCount = concepts.reduce(
-    (sum, c) => sum + c.knowledgePoints.reduce((s, kp) => s + kp.problems.length, 0),
-    0,
-  );
-
-  const graphDepth = computeGraphDepth(concepts);
-
-  const conceptsWithoutKps = stubConcepts.map((c) => c.id);
-  const kpsWithoutProblems: string[] = [];
-  for (const c of concepts) {
-    for (const kp of c.knowledgePoints) {
-      if (kp.problems.length === 0) {
-        kpsWithoutProblems.push(`${c.id}/${kp.id}`);
-      }
-    }
-  }
-
-  const sectionBreakdown: Array<{ section: string; concepts: number; kps: number; problems: number }> = [];
-  if (sections.length > 0) {
-    for (const section of sections) {
-      const sectionConcepts = concepts.filter((c) => c.section === section.id);
-      const sKps = sectionConcepts.reduce((sum, c) => sum + c.knowledgePoints.length, 0);
-      const sProblems = sectionConcepts.reduce(
-        (sum, c) => sum + c.knowledgePoints.reduce((s, kp) => s + kp.problems.length, 0),
-        0,
-      );
-      sectionBreakdown.push({ section: section.id, concepts: sectionConcepts.length, kps: sKps, problems: sProblems });
-    }
-
-    const unsectioned = concepts.filter((c) => !c.section);
-    if (unsectioned.length > 0) {
-      const uKps = unsectioned.reduce((sum, c) => sum + c.knowledgePoints.length, 0);
-      const uProblems = unsectioned.reduce(
-        (sum, c) => sum + c.knowledgePoints.reduce((s, kp) => s + kp.problems.length, 0),
-        0,
-      );
-      sectionBreakdown.push({ section: '(unsectioned)', concepts: unsectioned.length, kps: uKps, problems: uProblems });
-    }
-  }
-
-  return {
-    courseName: data.course.name,
-    courseId: data.course.id,
-    version: data.course.version,
-    estimatedHours: data.course.estimatedHours,
-    concepts: concepts.length,
-    authoredConcepts: authoredConcepts.length,
-    stubConcepts: stubConcepts.length,
-    knowledgePoints: kpCount,
-    problems: problemCount,
-    graphDepth,
-    conceptsWithoutKps: conceptsWithoutKps.length,
-    conceptsWithoutKpsList: conceptsWithoutKps,
-    kpsWithoutProblems: kpsWithoutProblems.length,
-    kpsWithoutProblemsList: kpsWithoutProblems,
-    sections: sectionBreakdown,
-  };
-}
-
-// ─── Fill concept helper (mirrors packages/cli/src/commands/fill-concept.ts) ─
-
-function fillConcept(yamlStr: string, conceptId: string, options: { kps?: number; problemsPerKp?: number }): string {
-  const raw = yaml.load(yamlStr);
-  const parsed = CourseYamlSchema.safeParse(raw);
-  if (!parsed.success) {
-    throw new Error(`Invalid course YAML: ${parsed.error.issues[0]?.message ?? 'unknown error'}`);
-  }
-
-  const data = parsed.data;
-  const concept = data.concepts.find((c) => c.id === conceptId);
-  if (!concept) {
-    throw new Error(`Concept "${conceptId}" not found. Available: ${data.concepts.map((c) => c.id).join(', ')}`);
-  }
-
-  if (concept.knowledgePoints.length > 0) {
-    throw new Error(`Concept "${conceptId}" already has ${concept.knowledgePoints.length} KP(s). Remove them first to regenerate.`);
-  }
-
-  const kpCount = options.kps ?? 2;
-  const problemsPerKp = options.problemsPerKp ?? 3;
-
-  const newKps = [];
-  for (let i = 1; i <= kpCount; i++) {
-    const problems = [];
-    for (let j = 1; j <= problemsPerKp; j++) {
-      problems.push({
-        id: `${conceptId}-kp${i}-p${j}`,
-        type: 'multiple_choice',
-        question: `TODO: Write question ${j} for ${conceptId} KP${i}`,
-        options: ['Option A', 'Option B', 'Option C', 'Option D'],
-        correct: 0,
-        explanation: 'TODO: Explain the correct answer',
-        difficulty: Math.min(j + 1, 5),
-      });
-    }
-
-    newKps.push({
-      id: `${conceptId}-kp${i}`,
-      instruction: `TODO: Write instruction for ${concept.name} — knowledge point ${i}`,
-      workedExample: `TODO: Write a worked example for ${concept.name} — knowledge point ${i}`,
-      problems,
-    });
-  }
-
-  // Rebuild the raw object to preserve structure
-  const rawObj = raw as Record<string, unknown>;
-  const concepts = rawObj['concepts'] as Array<Record<string, unknown>>;
-  const targetConcept = concepts.find((c) => c['id'] === conceptId);
-  if (targetConcept) {
-    targetConcept['knowledgePoints'] = newKps;
-  }
-
-  return yaml.dump(rawObj, { lineWidth: 120, noRefs: true });
-}
-
-// ─── Tool definitions (JSON Schema) ─────────────────────────────────────────
+// ─── Tool definitions ───────────────────────────────────────────────────────
 
 interface ToolDef {
   name: string;
@@ -1091,36 +335,57 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
   switch (name) {
     case 'graspful_scaffold_course': {
       const topic = args.topic as string;
-      const estimatedHours = args.estimatedHours as number | undefined;
-      const sourceDocument = args.sourceDocument as string | undefined;
-      const yamlContent = scaffoldCourse(topic, { hours: estimatedHours, source: sourceDocument });
-      mcpCapture('course scaffolded', { topic, estimated_hours: estimatedHours });
-      return textResult(yamlContent);
+      const obj = scaffoldCourseObject(topic, {
+        hours: args.estimatedHours as number | undefined,
+        source: args.sourceDocument as string | undefined,
+      });
+      mcpCapture('course scaffolded', { topic, estimated_hours: args.estimatedHours });
+      return textResult(dumpYaml(obj));
     }
 
     case 'graspful_fill_concept': {
       try {
         const conceptId = args.conceptId as string;
-        const updatedYaml = fillConcept(
-          args.yaml as string,
-          conceptId,
-          { kps: args.kps as number | undefined, problemsPerKp: args.problemsPerKp as number | undefined },
-        );
+        const raw = parseYaml(args.yaml as string);
+        const updated = fillConceptInRaw(raw, conceptId, {
+          kps: args.kps as number | undefined,
+          problemsPerKp: args.problemsPerKp as number | undefined,
+        });
         mcpCapture('concept filled', { concept_id: conceptId });
-        return textResult(updatedYaml);
+        return textResult(dumpYaml(updated));
       } catch (e) {
         return errorResult(e instanceof Error ? e.message : String(e));
       }
     }
 
     case 'graspful_validate': {
-      const result = validateYaml(args.yaml as string);
+      let raw: unknown;
+      try {
+        raw = parseYaml(args.yaml as string);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return textResult(JSON.stringify({ valid: false, errors: [`YAML parse error: ${msg}`], stats: {} }, null, 2));
+      }
+      const result = validateParsedYaml(raw);
       mcpCapture('course validated', { valid: result.valid, error_count: result.errors.length, file_type: result.fileType });
       return textResult(JSON.stringify(result, null, 2));
     }
 
     case 'graspful_review_course': {
-      const result = runReview(args.yaml as string);
+      let raw: unknown;
+      try {
+        raw = parseYaml(args.yaml as string);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return textResult(JSON.stringify({
+          passed: false,
+          score: '0/10',
+          failures: [{ check: 'yaml_parses', passed: false, details: `YAML parse error: ${msg}` }],
+          warnings: [],
+          stats: { concepts: 0, kps: 0, problems: 0, authoredConcepts: 0, stubConcepts: 0 },
+        }, null, 2));
+      }
+      const result = runQualityGate(raw);
       mcpCapture('course reviewed', { score: result.score, passed: result.passed });
       return textResult(JSON.stringify(result, null, 2));
     }
@@ -1128,7 +393,8 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
     case 'graspful_import_course': {
       try {
         requireApiAuth();
-        const result = await apiPost<{ courseId: string; url: string; published: boolean; reviewFailures?: string[] }>(
+        const result = await apiFetch<{ courseId: string; url: string; published: boolean; reviewFailures?: string[] }>(
+          'POST',
           `/api/v1/orgs/${args.org}/courses/import`,
           { yaml: args.yaml, publish: args.publish ?? false },
         );
@@ -1142,7 +408,8 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
     case 'graspful_publish_course': {
       try {
         requireApiAuth();
-        const result = await apiPost<{ courseId: string; published: boolean }>(
+        const result = await apiFetch<{ courseId: string; published: boolean }>(
+          'POST',
           `/api/v1/orgs/${args.org}/courses/${args.courseId}/publish`,
           {},
         );
@@ -1155,8 +422,10 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
 
     case 'graspful_describe_course': {
       try {
-        const stats = describeCourse(args.yaml as string);
-        mcpCapture('course described', stats);
+        const raw = parseYaml(args.yaml as string);
+        const parsed = CourseYamlSchema.parse(raw);
+        const stats = describeCourse(parsed);
+        mcpCapture('course described', stats as unknown as Record<string, unknown>);
         return textResult(JSON.stringify(stats, null, 2));
       } catch (e) {
         return errorResult(e instanceof Error ? e.message : String(e));
@@ -1165,13 +434,13 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
 
     case 'graspful_create_brand': {
       const niche = args.niche as string;
-      const yamlContent = scaffoldBrand(niche, {
+      const obj = scaffoldBrandObject(niche, {
         name: args.name as string | undefined,
         domain: args.domain as string | undefined,
         orgSlug: args.orgSlug as string | undefined,
       });
       mcpCapture('brand scaffolded', { niche });
-      return textResult(yamlContent);
+      return textResult(dumpYaml(obj));
     }
 
     case 'graspful_import_brand': {
@@ -1179,11 +448,10 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
         requireApiAuth();
         let raw: unknown;
         try {
-          raw = yaml.load(args.yaml as string);
+          raw = parseYaml(args.yaml as string);
         } catch (e) {
           throw new Error(`YAML parse error: ${e instanceof Error ? e.message : String(e)}`);
         }
-        // Unwrap YAML structure to flat DTO (brand YAML has nested brand: key)
         const parsed = raw as Record<string, unknown>;
         const brandSection = (parsed.brand || {}) as Record<string, unknown>;
         const dto = {
@@ -1198,7 +466,8 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
           seo: parsed.seo || {},
           pricing: parsed.pricing || {},
         };
-        const result = await apiPost<{ slug: string; domain: string; verificationStatus: string }>(
+        const result = await apiFetch<{ slug: string; domain: string; verificationStatus: string }>(
+          'POST',
           '/api/v1/brands',
           dto,
         );
@@ -1212,7 +481,8 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
     case 'graspful_list_courses': {
       try {
         requireApiAuth();
-        const result = await apiGet<unknown[]>(
+        const result = await apiFetch<unknown[]>(
+          'GET',
           `/api/v1/orgs/${args.org}/courses`,
         );
         mcpCapture('courses listed', { org: args.org, count: result.length });
@@ -1232,7 +502,7 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
 const server = new Server(
   {
     name: 'graspful',
-    version: '0.1.0',
+    version: '0.2.4',
   },
   {
     capabilities: {

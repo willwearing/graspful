@@ -1,6 +1,6 @@
 {
   "name": "@graspful/shared",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Shared schemas and types for the Graspful platform",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
