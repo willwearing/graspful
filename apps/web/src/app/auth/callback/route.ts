@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { getServerPostHog } from "@/lib/posthog/server";
 import { getDefaultAuthRedirectPath, getHostSurface, getRequestHost } from "@/lib/hosts";
+import { resolveBrand } from "@/lib/brand/resolve";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -55,15 +56,20 @@ export async function GET(request: NextRequest) {
           await ph.shutdown();
         }
       }
-      // Provision the user's personal org. Learner org access must come from an
-      // explicit entitlement flow, not from auth redirects.
+      // Provision the user's personal org and auto-join the brand's org
+      // so the learner can browse academies on this branded site.
       const token = data?.session?.access_token;
       if (token) {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
         try {
+          const brand = await resolveBrand(hostname, request.headers.get("cookie"));
           await fetch(`${backendUrl}/auth/provision`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ brandOrgSlug: brand.orgSlug }),
           });
         } catch {
           // Non-fatal

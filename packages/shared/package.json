@@ -12,7 +12,7 @@
   },
   "homepage": "https://graspful.ai",
   "scripts": {
-    "build": "bun x tsc",
+    "build": "bun x tsc -p tsconfig.json",
     "dev": "bun x tsc --watch",
     "test": "bun test"
   },

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
 
 /**
  * Ensures every authenticated user has a personal organization and brand.
@@ -10,7 +11,10 @@ import { PrismaService } from '@/prisma/prisma.service';
 export class ProvisionService {
   private readonly logger = new Logger(ProvisionService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private vercelDomains: VercelDomainsService,
+  ) {}
 
   /**
    * Idempotent: returns the user's owned org if one already exists,
@@ -79,7 +83,37 @@ export class ProvisionService {
     });
 
     this.logger.log(`Created org ${result.orgSlug} for user ${userId}`);
+
+    // Provision the subdomain on Vercel (non-blocking)
+    const domain = `${result.orgSlug}.graspful.ai`;
+    this.vercelDomains.addDomain(domain).catch((err) => {
+      this.logger.warn(`Failed to provision domain ${domain} on Vercel: ${err}`);
+    });
+
     return { ...result, created: true };
+  }
+
+  /**
+   * Adds the user as a member of the given org if not already a member.
+   * Used to auto-enroll learners when they sign up on a branded academy site.
+   */
+  async ensureLearnerMembership(userId: string, orgSlug: string): Promise<void> {
+    const org = await this.prisma.organization.findUnique({
+      where: { slug: orgSlug },
+      select: { id: true },
+    });
+    if (!org) {
+      this.logger.warn(`Cannot add learner to non-existent org: ${orgSlug}`);
+      return;
+    }
+
+    await this.prisma.orgMembership.upsert({
+      where: { orgId_userId: { orgId: org.id, userId } },
+      update: {},
+      create: { orgId: org.id, userId, role: 'member' },
+    });
+
+    this.logger.log(`Added user ${userId} as learner member of org ${orgSlug}`);
   }
 
   private emailToOrgSlug(email: string): string {
