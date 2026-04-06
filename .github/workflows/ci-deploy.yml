@@ -86,7 +86,11 @@ jobs:
           version: latest
 
       - name: Start local Supabase
-        run: supabase start
+        run: |
+          # Move RLS migration aside — it references Prisma tables that don't exist yet
+          mv supabase/migrations/00002_rls_policies.sql /tmp/00002_rls_policies.sql
+          supabase start
+          # Will apply RLS after Prisma migrations
 
       - name: Extract Supabase keys
         id: supabase
@@ -109,6 +113,9 @@ jobs:
         run: cd backend && bun x prisma migrate deploy
         env:
           DATABASE_URL: ${{ steps.supabase.outputs.DB_URL }}
+
+      - name: Apply RLS policies
+        run: psql "${{ steps.supabase.outputs.DB_URL }}" -f /tmp/00002_rls_policies.sql
 
       - name: Seed database
         run: cd backend && bun x prisma db seed
