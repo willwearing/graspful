@@ -12,7 +12,8 @@ describe('graspful login', () => {
   let existsSyncSpy: ReturnType<typeof spyOn>;
   let exitSpy: ReturnType<typeof spyOn>;
   let consoleLogSpy: ReturnType<typeof spyOn>;
-  let consoleErrorSpy: ReturnType<typeof spyOn>;
+  let originalConsoleError: typeof console.error;
+  const errorCalls: unknown[][] = [];
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
@@ -21,7 +22,9 @@ describe('graspful login', () => {
     existsSyncSpy = spyOn(fs, 'existsSync').mockReturnValue(false);
     exitSpy = spyOn(process, 'exit').mockImplementation(() => { throw new Error('process.exit'); });
     consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {});
-    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
+    originalConsoleError = console.error;
+    errorCalls.length = 0;
+    console.error = (...args: unknown[]) => { errorCalls.push(args); };
   });
 
   afterEach(() => {
@@ -31,7 +34,7 @@ describe('graspful login', () => {
     existsSyncSpy.mockRestore();
     exitSpy.mockRestore();
     consoleLogSpy.mockRestore();
-    consoleErrorSpy.mockRestore();
+    console.error = originalConsoleError;
   });
 
   it('saves API key credentials when token starts with gsk_', async () => {

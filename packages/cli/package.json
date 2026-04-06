@@ -18,6 +18,7 @@
   "scripts": {
     "build": "bun x tsc",
     "dev": "bun x tsc --watch",
+    "test": "bun test src",
     "lint": "echo 'no lint configured yet'"
   },
   "dependencies": {

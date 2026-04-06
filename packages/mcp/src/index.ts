@@ -497,45 +497,47 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
   }
 }
 
-// ─── MCP Server ─────────────────────────────────────────────────────────────
+export { TOOLS, handleToolCall };
 
-const server = new Server(
-  {
-    name: 'graspful',
-    version: '0.2.4',
-  },
-  {
-    capabilities: {
-      tools: {},
+// ─── MCP Server (only when run directly) ────────────────────────────────────
+
+if (require.main === module) {
+  const server = new Server(
+    {
+      name: 'graspful',
+      version: '0.2.4',
     },
-  },
-);
+    {
+      capabilities: {
+        tools: {},
+      },
+    },
+  );
 
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return { tools: TOOLS };
-});
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    return { tools: TOOLS };
+  });
 
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-  return handleToolCall(name, args ?? {});
-});
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+    return handleToolCall(name, args ?? {});
+  });
 
-// ─── Start server ───────────────────────────────────────────────────────────
+  async function main() {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+  }
 
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  main().catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+
+  async function shutdown() {
+    if (posthogClient) await posthogClient.shutdown();
+    process.exit(0);
+  }
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
-
-main().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
-
-async function shutdown() {
-  if (posthogClient) await posthogClient.shutdown();
-  process.exit(0);
-}
-
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);

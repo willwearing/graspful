@@ -16,7 +16,8 @@
   "files": ["dist"],
   "scripts": {
     "build": "bun x tsc",
-    "dev": "bun x tsc --watch"
+    "dev": "bun x tsc --watch",
+    "test": "bun test src/__tests__"
   },
   "dependencies": {
     "@graspful/shared": "workspace:*",

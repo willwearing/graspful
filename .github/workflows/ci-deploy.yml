@@ -27,6 +27,21 @@ jobs:
       - name: Build shared package
         run: cd packages/shared && bun run build
 
+      - name: Run shared package tests
+        run: cd packages/shared && bun test
+
+      - name: Build CLI
+        run: cd packages/cli && bun run build
+
+      - name: Run CLI tests
+        run: cd packages/cli && bun test
+
+      - name: Build MCP
+        run: cd packages/mcp && bun run build
+
+      - name: Run MCP tests
+        run: cd packages/mcp && bun test
+
       - name: Generate Prisma client
         run: cd backend && bun x prisma generate
 
