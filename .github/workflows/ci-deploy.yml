@@ -11,8 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Test
+  unit-component-tests:
+    name: Unit & Component Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -54,9 +54,21 @@ jobs:
       - name: Build site
         run: cd apps/site && bun run build
 
+  e2e-tests:
+    name: E2E Tests
+    needs: unit-component-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Report browser-regression check
+        run: echo "Dedicated CI browser e2e is not configured in this workflow yet."
+
   deploy-backend:
     name: Deploy Backend
-    needs: test
+    needs:
+      - unit-component-tests
+      - e2e-tests
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
