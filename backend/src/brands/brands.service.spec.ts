@@ -242,6 +242,64 @@ describe('BrandsService', () => {
         },
       ]);
     });
+
+    it('shows default org brand when it is the only brand for an org with published courses', async () => {
+      prisma.brand.findMany.mockResolvedValue([
+        {
+          slug: 'my-org',
+          name: 'my org',
+          domain: 'my-org.graspful.ai',
+          orgSlug: 'my-org',
+          contentScope: {},
+        },
+      ]);
+      prisma.academy.findMany.mockResolvedValue([
+        {
+          slug: 'my-academy',
+          name: 'My Academy',
+          description: null,
+          org: { slug: 'my-org' },
+          courses: [
+            {
+              slug: 'my-course',
+              name: 'My Course',
+              description: null,
+              sortOrder: 0,
+              isPublished: true,
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.getPublicAcademyCatalog();
+
+      expect(result).toEqual([
+        {
+          slug: 'my-org',
+          name: 'my org',
+          domain: 'my-org.graspful.ai',
+          orgSlug: 'my-org',
+          academies: [
+            {
+              slug: 'my-academy',
+              name: 'My Academy',
+              description: null,
+              courseCount: 1,
+              publishedCourseCount: 1,
+              courses: [
+                {
+                  slug: 'my-course',
+                  name: 'My Course',
+                  description: null,
+                  sortOrder: 0,
+                  isPublished: true,
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('domain normalization', () => {
