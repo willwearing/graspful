@@ -658,6 +658,344 @@ const brands = [
       courseIds: [],
     },
   },
+  {
+    slug: "graspful",
+    name: "Graspful",
+    domain: "graspful.ai",
+    tagline: "Turn Your Expertise Into a Course Business",
+    logoUrl: "/images/logo-graspful.svg",
+    faviconUrl: "/favicon.ico",
+    ogImageUrl: "/images/og-graspful.png",
+    orgSlug: "graspful",
+    theme: {
+      light: {
+        primary: "199 89% 48%",
+        primaryForeground: "0 0% 100%",
+        secondary: "210 80% 55%",
+        secondaryForeground: "0 0% 100%",
+        accent: "186 94% 42%",
+        accentForeground: "0 0% 100%",
+        background: "0 0% 100%",
+        foreground: "222 47% 11%",
+        card: "0 0% 100%",
+        cardForeground: "222 47% 11%",
+        popover: "0 0% 100%",
+        popoverForeground: "222 47% 11%",
+        muted: "200 10% 96%",
+        mutedForeground: "200 5% 46%",
+        destructive: "0 84% 60%",
+        border: "200 10% 90%",
+        input: "200 10% 90%",
+        ring: "199 89% 48%",
+      },
+      dark: {
+        primary: "199 89% 58%",
+        primaryForeground: "0 0% 100%",
+        secondary: "210 80% 62%",
+        secondaryForeground: "0 0% 100%",
+        accent: "186 94% 50%",
+        accentForeground: "0 0% 100%",
+        background: "210 25% 4%",
+        foreground: "210 40% 98%",
+        card: "210 25% 6%",
+        cardForeground: "210 40% 98%",
+        popover: "210 25% 6%",
+        popoverForeground: "210 40% 98%",
+        muted: "210 20% 17%",
+        mutedForeground: "210 15% 65%",
+        destructive: "0 63% 31%",
+        border: "210 20% 17%",
+        input: "210 20% 17%",
+        ring: "199 89% 58%",
+      },
+      radius: "0.625rem",
+    },
+    landing: {
+      hero: {
+        headline: "Build courses where students actually learn.",
+        subheadline:
+          "Your expertise. AI's scaffolding. Every course gets adaptive diagnostics, mastery tracking, and spaced review. Launch a live product in minutes, not months.",
+        ctaText: "Start Building Free",
+      },
+      features: {
+        heading: "What we do for you",
+        subheading:
+          "You know what to teach. We make sure students actually learn it.",
+        items: [
+          {
+            title: "Adaptive Diagnostics",
+            description:
+              "Every student starts with a diagnostic that maps what they already know. No wasted time. The course reshapes itself around their gaps.",
+            icon: "Brain",
+            wide: true,
+          },
+          {
+            title: "Fully Automated Learning Paths",
+            description:
+              "The system knows what each student needs and when. No guesswork, no manual sequencing. You build the content once. The algorithm does the rest.",
+            icon: "Bot",
+          },
+          {
+            title: "Research-Backed Retention",
+            description:
+              "Spaced repetition, mastery gates, prerequisite enforcement. Students retain what they learn instead of cramming and forgetting.",
+            icon: "Network",
+          },
+          {
+            title: "Your Brand, Your Business",
+            description:
+              "Your domain. Your colors. Your pricing. Learners see your brand, not ours.",
+            icon: "Palette",
+            wide: true,
+          },
+          {
+            title: "Free to Build. You Keep 70%.",
+            description:
+              "No upfront costs. No monthly fees. When learners subscribe, you keep 70%. We only make money when you do.",
+            icon: "DollarSign",
+          },
+          {
+            title: "Quality Checks Built In",
+            description:
+              "Automated checks catch duplicate questions, missing explanations, and difficulty gaps before your course goes live.",
+            icon: "ShieldCheck",
+          },
+        ],
+      },
+      howItWorks: {
+        heading: "How It Works",
+        items: [
+          {
+            title: "Describe What You Want to Teach",
+            description:
+              "Pick your topic. Upload your notes, study guide, or exam outline. AI turns it into a structured course with practice problems.",
+          },
+          {
+            title: "Review and Customize",
+            description:
+              "Check the content. Edit anything. Quality checks run automatically to catch issues before launch.",
+          },
+          {
+            title: "Publish and Earn",
+            description:
+              "Your course goes live with its own landing page and billing. Learners subscribe. You get paid.",
+          },
+        ],
+      },
+      faq: [
+        {
+          question: "What is Graspful?",
+          answer:
+            "Graspful is a course creation platform. You describe what you want to teach, AI builds the course, and you get a live product with its own landing page, billing, and adaptive learning. You earn 70% of every subscription.",
+        },
+        {
+          question: "Do I need to be technical?",
+          answer:
+            "No. If you can use ChatGPT, you can use Graspful. Describe your topic, review what AI creates, and publish. No coding, no design skills required.",
+        },
+        {
+          question: "How does billing work?",
+          answer:
+            "Free to create courses. When learners subscribe on your landing page, Graspful collects payment and sends you 70%. No upfront costs, no monthly fees.",
+        },
+        {
+          question: "What makes this different from Udemy or Teachable?",
+          answer:
+            "Adaptive learning. Students get personalized paths, spaced review, and mastery tracking. Not just a video playlist. Plus AI builds the course for you, so you can launch in minutes instead of months.",
+        },
+        {
+          question: "Can I use my own domain?",
+          answer:
+            "Yes. Your learners see your brand, your domain, your colors. Graspful is invisible.",
+        },
+        {
+          question: "How do students learn on Graspful courses?",
+          answer:
+            "Every course uses adaptive diagnostics, prerequisite tracking, and spaced repetition. Students focus on what they don't know yet, and the system schedules reviews so they don't forget.",
+        },
+      ],
+      bottomCta: {
+        headline: "Build your first course today",
+        subheadline: "Free to create. You earn 70% when learners subscribe.",
+      },
+    },
+    seo: {
+      title: "Graspful: Turn Your Expertise Into a Course Business",
+      description:
+        "Create and sell adaptive online courses with AI. You describe what to teach, AI builds the course. Learners get personalized paths, spaced review, and mastery tracking. Free to create. You earn 70%.",
+      keywords: [
+        "create online course",
+        "sell courses online",
+        "course creation platform",
+        "adaptive learning",
+        "monetize expertise",
+        "build a course business",
+        "online course platform",
+        "certification prep",
+        "ai course builder",
+        "spaced repetition",
+      ],
+    },
+    pricing: {
+      monthly: 0,
+      yearly: 0,
+      currency: "USD",
+      trialDays: 0,
+    },
+    contentScope: {
+      courseIds: [],
+    },
+  },
+  {
+    slug: "graspful-app",
+    name: "Graspful",
+    domain: "app.graspful.ai",
+    tagline: "Turn Your Expertise Into a Course Business",
+    logoUrl: "/images/logo-graspful.svg",
+    faviconUrl: "/favicon.ico",
+    ogImageUrl: "/images/og-graspful.png",
+    orgSlug: "graspful",
+    theme: {
+      light: {
+        primary: "199 89% 48%",
+        primaryForeground: "0 0% 100%",
+        secondary: "210 80% 55%",
+        secondaryForeground: "0 0% 100%",
+        accent: "186 94% 42%",
+        accentForeground: "0 0% 100%",
+        background: "0 0% 100%",
+        foreground: "222 47% 11%",
+        card: "0 0% 100%",
+        cardForeground: "222 47% 11%",
+        popover: "0 0% 100%",
+        popoverForeground: "222 47% 11%",
+        muted: "200 10% 96%",
+        mutedForeground: "200 5% 46%",
+        destructive: "0 84% 60%",
+        border: "200 10% 90%",
+        input: "200 10% 90%",
+        ring: "199 89% 48%",
+      },
+      dark: {
+        primary: "199 89% 58%",
+        primaryForeground: "0 0% 100%",
+        secondary: "210 80% 62%",
+        secondaryForeground: "0 0% 100%",
+        accent: "186 94% 50%",
+        accentForeground: "0 0% 100%",
+        background: "210 25% 4%",
+        foreground: "210 40% 98%",
+        card: "210 25% 6%",
+        cardForeground: "210 40% 98%",
+        popover: "210 25% 6%",
+        popoverForeground: "210 40% 98%",
+        muted: "210 20% 17%",
+        mutedForeground: "210 15% 65%",
+        destructive: "0 63% 31%",
+        border: "210 20% 17%",
+        input: "210 20% 17%",
+        ring: "199 89% 58%",
+      },
+      radius: "0.625rem",
+    },
+    landing: {
+      hero: {
+        headline: "Build courses where students actually learn.",
+        subheadline:
+          "Your expertise. AI's scaffolding. Every course gets adaptive diagnostics, mastery tracking, and spaced review. Launch a live product in minutes, not months.",
+        ctaText: "Start Building Free",
+      },
+      features: {
+        heading: "What we do for you",
+        subheading:
+          "You know what to teach. We make sure students actually learn it.",
+        items: [
+          {
+            title: "Adaptive Diagnostics",
+            description:
+              "Every student starts with a diagnostic that maps what they already know. No wasted time. The course reshapes itself around their gaps.",
+            icon: "Brain",
+            wide: true,
+          },
+          {
+            title: "Fully Automated Learning Paths",
+            description:
+              "The system knows what each student needs and when. No guesswork, no manual sequencing. You build the content once. The algorithm does the rest.",
+            icon: "Bot",
+          },
+          {
+            title: "Research-Backed Retention",
+            description:
+              "Spaced repetition, mastery gates, prerequisite enforcement. Students retain what they learn instead of cramming and forgetting.",
+            icon: "Network",
+          },
+          {
+            title: "Your Brand, Your Business",
+            description:
+              "Your domain. Your colors. Your pricing. Learners see your brand, not ours.",
+            icon: "Palette",
+            wide: true,
+          },
+          {
+            title: "Free to Build. You Keep 70%.",
+            description:
+              "No upfront costs. No monthly fees. When learners subscribe, you keep 70%. We only make money when you do.",
+            icon: "DollarSign",
+          },
+          {
+            title: "Quality Checks Built In",
+            description:
+              "Automated checks catch duplicate questions, missing explanations, and difficulty gaps before your course goes live.",
+            icon: "ShieldCheck",
+          },
+        ],
+      },
+      howItWorks: {
+        heading: "How It Works",
+        items: [
+          {
+            title: "Describe What You Want to Teach",
+            description:
+              "Pick your topic. Upload your notes, study guide, or exam outline. AI turns it into a structured course with practice problems.",
+          },
+          {
+            title: "Review and Customize",
+            description:
+              "Check the content. Edit anything. Quality checks run automatically to catch issues before launch.",
+          },
+          {
+            title: "Publish and Earn",
+            description:
+              "Your course goes live with its own landing page and billing. Learners subscribe. You get paid.",
+          },
+        ],
+      },
+      faq: [],
+      bottomCta: {
+        headline: "Build your first course today",
+        subheadline: "Free to create. You earn 70% when learners subscribe.",
+      },
+    },
+    seo: {
+      title: "Graspful: Turn Your Expertise Into a Course Business",
+      description:
+        "Create and sell adaptive online courses with AI. Free to create. You earn 70%.",
+      keywords: [
+        "create online course",
+        "adaptive learning",
+        "course creation platform",
+      ],
+    },
+    pricing: {
+      monthly: 0,
+      yearly: 0,
+      currency: "USD",
+      trialDays: 0,
+    },
+    contentScope: {
+      courseIds: [],
+    },
+  },
 ];
 
 async function seed() {
