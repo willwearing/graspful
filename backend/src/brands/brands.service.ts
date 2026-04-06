@@ -136,9 +136,12 @@ export class BrandsService {
       if (orgAcademies.length === 0) continue;
 
       const scopedBrands = orgBrands.filter((brand) => this.getScopedCourseIds(brand.contentScope).length > 0);
+      const nonDefaultBrands = orgBrands.filter((brand) => !this.isDefaultOrgBrand(brand));
       const candidateBrands = scopedBrands.length > 0
         ? scopedBrands
-        : orgBrands.filter((brand) => !this.isDefaultOrgBrand(brand));
+        : nonDefaultBrands.length > 0
+          ? nonDefaultBrands
+          : orgBrands.slice(0, 1);
 
       for (const brand of candidateBrands) {
         const scopedCourseIds = new Set(this.getScopedCourseIds(brand.contentScope));
