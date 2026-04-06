@@ -14,6 +14,7 @@ import helmet from 'helmet';
 import { LoggingInterceptor } from './telemetry/logging.interceptor';
 import { OtelExceptionFilter } from './telemetry/exception.filter';
 import { PostHogService } from './shared/application/posthog.service';
+import { PrismaService } from './prisma/prisma.service';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -38,12 +39,48 @@ async function bootstrap() {
     transform: true,
   }));
 
-  const allowedOrigins = config.get<string>('ALLOWED_ORIGINS')?.split(',').filter(Boolean);
-  if (config.get('NODE_ENV') === 'production' && (!allowedOrigins || allowedOrigins.length === 0)) {
-    console.warn('⚠ ALLOWED_ORIGINS is not set — CORS will reject all cross-origin requests');
+  // Static origins from env var (platform hosts, localhost, etc.)
+  const staticOrigins = new Set(
+    config.get<string>('ALLOWED_ORIGINS')?.split(',').filter(Boolean) ?? [],
+  );
+
+  // Dynamic CORS: static origins are checked first, then brand domains from DB (cached 5 min)
+  const prisma = app.get(PrismaService);
+  let brandDomainCache: Set<string> = new Set();
+  let cacheExpiresAt = 0;
+  const CACHE_TTL_MS = 5 * 60 * 1000;
+
+  async function loadBrandDomains(): Promise<Set<string>> {
+    const now = Date.now();
+    if (now < cacheExpiresAt) return brandDomainCache;
+    try {
+      const brands = await prisma.brand.findMany({
+        where: { isActive: true },
+        select: { domain: true },
+      });
+      brandDomainCache = new Set(
+        brands.map((b) => `https://${b.domain}`),
+      );
+      cacheExpiresAt = now + CACHE_TTL_MS;
+    } catch (err) {
+      console.error('Failed to load brand domains for CORS:', err);
+      // Keep stale cache on error
+      cacheExpiresAt = now + 30_000;
+    }
+    return brandDomainCache;
   }
+
   app.enableCors({
-    origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : false,
+    origin: async (origin, callback) => {
+      // Allow requests with no origin (server-to-server, curl, etc.)
+      if (!origin) return callback(null, true);
+      if (staticOrigins.has(origin)) return callback(null, true);
+
+      const domains = await loadBrandDomains();
+      if (domains.has(origin)) return callback(null, true);
+
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
     credentials: true,
   });
 
