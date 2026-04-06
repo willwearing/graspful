@@ -1,81 +1,64 @@
 import { test, expect, type Page } from "@playwright/test";
-import { POSTHOG_TEST_BRAND_ID, signUpBrandedTestUser } from "./helpers/auth";
+import { PrismaClient } from "@prisma/client";
+import {
+  getSupabaseUserIdByEmail,
+  POSTHOG_TEST_BRAND_ID,
+  signUpBrandedTestUser,
+} from "./helpers/auth";
 
-/**
- * Navigate to the PostHog TAM Technical Onboarding course detail page.
- *
- * Strategy: from the dashboard, find any course card and extract the course ID.
- * Then navigate directly to the course detail page. If the specific PostHog TAM
- * course card is visible, click it. Otherwise, fall back to browsing.
- */
+const ORG_SLUG = "posthog-tam";
+const prisma = new PrismaClient();
+
+async function grantLearnerMembership(email: string) {
+  const userId = await getSupabaseUserIdByEmail(email);
+  const org = await prisma.organization.findUnique({
+    where: { slug: ORG_SLUG },
+    select: { id: true },
+  });
+
+  if (!org) {
+    throw new Error(`Organization ${ORG_SLUG} not found`);
+  }
+
+  await prisma.orgMembership.upsert({
+    where: { orgId_userId: { orgId: org.id, userId } },
+    update: {},
+    create: {
+      orgId: org.id,
+      userId,
+      role: "member",
+    },
+  });
+}
+
 async function navigateToPosthogCourse(page: Page) {
-  // Dashboard already loaded after sign-up — find any course card
-  const courseCards = page.locator("a[href^='/browse/']");
-  await expect(courseCards.first()).toBeVisible({ timeout: 10_000 });
+  const org = await prisma.organization.findUnique({
+    where: { slug: ORG_SLUG },
+    select: {
+      courses: {
+        where: { name: "PostHog TAM Technical Onboarding" },
+        select: { id: true },
+        take: 1,
+      },
+    },
+  });
 
-  // Look for the PostHog TAM Technical Onboarding card specifically
-  const tamCard = courseCards.filter({ hasText: "PostHog TAM Technical Onboarding" });
-  if (await tamCard.first().isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await tamCard.first().click();
-    return;
+  const courseId = org?.courses[0]?.id;
+  if (!courseId) {
+    throw new Error("Could not find PostHog TAM Technical Onboarding course");
   }
 
-  // If the specific card isn't on the dashboard, the course might be nested
-  // inside an academy. Click any course card to get to a browse page, then
-  // look for the TAM course from there.
-  const firstHref = await courseCards.first().getAttribute("href");
-  const firstCourseId = firstHref?.replace("/browse/", "");
-
-  // Check if the first course IS the TAM onboarding (the dashboard might
-  // show it but with a truncated name)
-  await courseCards.first().click();
-
-  // If we're on the course detail page for the right course, we're done
-  const heading = page.getByRole("heading", { level: 1 });
-  await expect(heading).toBeVisible({ timeout: 10_000 });
-  const headingText = await heading.textContent();
-
-  if (headingText?.includes("PostHog TAM Technical Onboarding")) {
-    return;
-  }
-
-  // Not the right course — go back and look at other options
-  // The TAM course might be accessible from the academy page
-  const backLink = page.getByText(/Back to (Academy|Academies|Courses)/);
-  if (await backLink.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await backLink.click();
-    await page.waitForTimeout(1_000);
-  }
-
-  // Try navigating to browse and looking at all academies
-  await page.goto("/browse");
-  const academyLinks = page.locator("a[href^='/academy/']");
-  await expect(academyLinks.first()).toBeVisible({ timeout: 10_000 });
-
-  // Visit each academy page to find the TAM onboarding course
-  const linkCount = await academyLinks.count();
-  for (let i = 0; i < linkCount; i++) {
-    const href = await academyLinks.nth(i).getAttribute("href");
-    await page.goto(href!);
-
-    const tamCourseCard = page
-      .locator("a[href^='/browse/']")
-      .filter({ hasText: /Technical Onboarding/ });
-
-    if (await tamCourseCard.first().isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await tamCourseCard.first().click();
-      return;
-    }
-  }
-
-  // Last resort: the course might be directly accessible by looking at all
-  // course cards across the page
-  throw new Error("Could not find PostHog TAM Technical Onboarding course");
+  await page.goto(`/browse/${courseId}`);
 }
 
 test.describe("Course sections display", () => {
   test.beforeEach(async ({ page }) => {
-    await signUpBrandedTestUser(page, POSTHOG_TEST_BRAND_ID);
+    const email = await signUpBrandedTestUser(page, POSTHOG_TEST_BRAND_ID);
+    await grantLearnerMembership(email);
+  });
+
+  test.afterAll(async () => {
+    await prisma.$disconnect();
   });
 
   test("PostHog course detail page shows section headings", async ({

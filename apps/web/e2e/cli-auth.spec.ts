@@ -70,4 +70,60 @@ test.describe("CLI browser auth", () => {
     expect(exchangeBody.apiKey).toMatch(/^gsk_/);
     expect(exchangeBody.orgSlug).toBeTruthy();
   });
+
+  test("sign-in handoff authorizes an existing CLI session and exchanges an API key", async ({
+    page,
+    request,
+  }) => {
+    const email = `cli-login-${Date.now()}@test.example.com`;
+    const password = "TestPassword123!";
+
+    const registerRes = await request.post(`${BACKEND_URL}/auth/register`, {
+      data: { email, password },
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(registerRes.status()).toBe(201);
+
+    const startRes = await request.post(`${BACKEND_URL}/auth/cli/sessions`, {
+      data: { mode: "sign-in" },
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(startRes.status()).toBe(201);
+    const startBody = await startRes.json();
+    expect(startBody.token).toBeTruthy();
+
+    await page.context().addCookies([
+      {
+        name: "dev-brand-override",
+        value: "graspful",
+        domain: "localhost",
+        path: "/",
+      },
+    ]);
+
+    await page.goto(`/cli-auth?mode=sign-in&email=${encodeURIComponent(email)}#token=${encodeURIComponent(startBody.token)}`);
+    await page.waitForURL(/\/sign-in/, { timeout: 15_000 });
+
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill(password);
+    await page.getByRole("button", { name: "Sign In" }).click();
+
+    await expect(
+      page.getByRole("heading", { name: "CLI authentication complete" })
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("You can close this tab now.")).toBeVisible();
+
+    const exchangeRes = await request.post(`${BACKEND_URL}/auth/cli/sessions/exchange`, {
+      data: { token: startBody.token },
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(exchangeRes.status()).toBe(200);
+    const exchangeBody = await exchangeRes.json();
+    expect(exchangeBody.status).toBe("complete");
+    expect(exchangeBody.apiKey).toMatch(/^gsk_/);
+    expect(exchangeBody.orgSlug).toBeTruthy();
+  });
 });

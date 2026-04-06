@@ -66,15 +66,15 @@ test.describe("Auth recovery", () => {
   test("forgot password page renders and links back to sign-in", async ({ page }) => {
     await page.goto("/forgot-password");
 
-    await expect(
-      page.getByRole("heading", { name: "Reset your password" }),
-    ).toBeVisible();
+    await expect(page.getByText("Reset your password")).toBeVisible();
     await expect(page.getByLabel("Email")).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Send reset link" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "Back to sign in" }),
+      page.getByText("Remember your password?")
+        .locator("..")
+        .getByRole("link", { name: "Sign in" }),
     ).toHaveAttribute("href", "/sign-in");
   });
 
@@ -123,6 +123,7 @@ test.describe("Auth recovery", () => {
 
   test("recovery link allows setting a new password and signing in with it", async ({
     page,
+    browser,
   }) => {
     test.skip(!SERVICE_KEY, "SUPABASE_SERVICE_ROLE_KEY not set");
 
@@ -142,13 +143,16 @@ test.describe("Auth recovery", () => {
     await page.getByLabel("Confirm password").fill(newPassword);
     await page.getByRole("button", { name: "Update password" }).click();
 
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
-
-    await page.goto("/sign-in");
-    await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Password").fill(newPassword);
-    await page.getByRole("button", { name: "Sign In" }).click();
-
     await expect(page).toHaveURL(/\/(dashboard|creator)/, { timeout: 15_000 });
+    const freshContext = await browser.newContext({ baseURL: "http://localhost:3001" });
+    const freshPage = await freshContext.newPage();
+
+    await freshPage.goto("/sign-in");
+    await freshPage.getByLabel("Email").fill(email);
+    await freshPage.getByLabel("Password").fill(newPassword);
+    await freshPage.getByRole("button", { name: "Sign In" }).click();
+
+    await expect(freshPage).toHaveURL(/\/(dashboard|creator)/, { timeout: 15_000 });
+    await freshContext.close();
   });
 });
