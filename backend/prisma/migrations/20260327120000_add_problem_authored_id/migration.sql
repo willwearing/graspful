@@ -1,4 +1,4 @@
-ALTER TABLE "problems" ADD COLUMN "authored_id" TEXT;
+ALTER TABLE "problems" ADD COLUMN IF NOT EXISTS "authored_id" TEXT;
 
 UPDATE "problems"
 SET "authored_id" = "id"
