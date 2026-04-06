@@ -13,7 +13,8 @@
   "homepage": "https://graspful.ai",
   "scripts": {
     "build": "bun x tsc",
-    "dev": "bun x tsc --watch"
+    "dev": "bun x tsc --watch",
+    "test": "bun test"
   },
   "dependencies": {
     "zod": "^3.24.0"
