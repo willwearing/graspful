@@ -501,7 +501,7 @@ const brands = [
     },
   },
   {
-    slug: "posthog",
+    slug: "posthog-tam",
     name: "PostHog TAM",
     domain: "posthog-tam.vercel.app",
     tagline: "Master PostHog. Technically.",
