@@ -113,6 +113,7 @@ jobs:
         run: cd backend && bun x prisma migrate deploy
         env:
           DATABASE_URL: ${{ steps.supabase.outputs.DB_URL }}
+          DIRECT_URL: ${{ steps.supabase.outputs.DB_URL }}
 
       - name: Apply RLS policies
         run: psql "${{ steps.supabase.outputs.DB_URL }}" -f /tmp/00002_rls_policies.sql
@@ -121,11 +122,13 @@ jobs:
         run: cd backend && bun x prisma db seed
         env:
           DATABASE_URL: ${{ steps.supabase.outputs.DB_URL }}
+          DIRECT_URL: ${{ steps.supabase.outputs.DB_URL }}
 
       - name: Seed brands
         run: cd backend && bun x ts-node prisma/seeds/brands.ts
         env:
           DATABASE_URL: ${{ steps.supabase.outputs.DB_URL }}
+          DIRECT_URL: ${{ steps.supabase.outputs.DB_URL }}
 
       - name: Build backend
         run: cd backend && bun run build
