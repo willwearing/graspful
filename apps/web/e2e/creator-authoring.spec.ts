@@ -125,6 +125,7 @@ test.describe("Creator authoring flow", () => {
     const { courseId } = (await importRes.json()) as { courseId: string };
 
     await page.goto(`/creator/manage/${courseId}`);
+    await page.getByRole("tab", { name: "Course Content" }).click();
     await setMonacoModelValue(page, originalDescription, updatedYaml);
     await page.getByRole("button", { name: "Save Changes" }).click();
 
@@ -133,6 +134,7 @@ test.describe("Creator authoring flow", () => {
     });
 
     await page.reload();
+    await page.getByRole("tab", { name: "Course Content" }).click();
     await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 20_000 });
 
     const persisted = await page.evaluate(() => {

@@ -91,6 +91,31 @@ test.afterAll(async () => {
 });
 
 test.describe("Branded learn deep routes", () => {
+  test("academy study route loads on the branded /learn surface", async ({ page }) => {
+    const email = await signUpAsCreator(page);
+    await grantLearnerMembership(email);
+
+    await page.goto(`/learn/${ORG_SLUG}`);
+    const academyLink = page.locator(`a[href^="/learn/${ORG_SLUG}/academies/"]`).first();
+    await expect(academyLink).toBeVisible({ timeout: 15_000 });
+
+    const academyHref = await academyLink.getAttribute("href");
+    expect(academyHref).toBeTruthy();
+
+    await page.goto(academyHref!);
+    await expect(
+      page.getByRole("button", { name: "Continue Academy" }),
+    ).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole("button", { name: "Continue Academy" }).click();
+    await expect(page).toHaveURL(/\/learn\/posthog-tam\/academies\/.+\/study/, {
+      timeout: 15_000,
+    });
+    await expect(page.locator("main")).toContainText(
+      /Study Session|Continue Studying|Take Quiz|Take Section Exam|Back to Academy|No task available/i,
+    );
+  });
+
   test("review route loads on the branded /learn surface", async ({
     page,
     request,

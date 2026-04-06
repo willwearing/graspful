@@ -1,6 +1,6 @@
+import { createServerClient } from "@supabase/ssr";
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getDefaultAuthRedirectPath, getHostSurface, getRequestHost } from "@/lib/hosts";
 
 export async function GET(request: NextRequest) {
@@ -14,21 +14,47 @@ export async function GET(request: NextRequest) {
     rawNext.startsWith("/") && !rawNext.startsWith("//")
       ? rawNext
       : fallbackPath;
+  const cookiesToSet: Array<{
+    name: string;
+    value: string;
+    options?: Parameters<NextResponse["cookies"]["set"]>[2];
+  }> = [];
 
   if (tokenHash && type) {
-    const supabase = await createSupabaseServerClient();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(nextCookies) {
+            cookiesToSet.push(...nextCookies);
+          },
+        },
+      },
+    );
     const { error } = await supabase.auth.verifyOtp({
       type,
       token_hash: tokenHash,
     });
 
     if (!error) {
-      return NextResponse.redirect(new URL(next, origin));
+      const response = NextResponse.redirect(new URL(next, origin));
+      for (const cookie of cookiesToSet) {
+        response.cookies.set(cookie.name, cookie.value, cookie.options);
+      }
+      return response;
     }
   }
 
   // Verification failed — redirect to sign-in with error context
-  return NextResponse.redirect(
+  const response = NextResponse.redirect(
     new URL("/sign-in?reason=invalid_reset_link", origin)
   );
+  for (const cookie of cookiesToSet) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+  return response;
 }

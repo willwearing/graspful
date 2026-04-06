@@ -59,6 +59,7 @@ export default function EditCoursePage() {
           method: "POST",
           body: JSON.stringify({
             yaml: courseContent,
+            replace: true,
           }),
         }
       );
