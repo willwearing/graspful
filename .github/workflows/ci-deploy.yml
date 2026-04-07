@@ -145,18 +145,16 @@ jobs:
 
       - name: Start services and run E2E tests
         run: |
-          # Start backend
-          cd backend && bun run start:prod &
-          cd ..
+          # Start backend (subshell so cd doesn't affect parent)
+          (cd backend && bun run start:prod) &
 
           # Start frontend on port 3001
-          cd apps/web && PORT=3001 bun run start &
-          cd ../..
+          (cd apps/web && PORT=3001 bun run start) &
 
           # Wait for both
-          timeout 60 bash -c 'until curl -sf http://localhost:3000/api/v1/health; do sleep 2; done'
+          timeout 60 bash -c 'until curl -sf http://localhost:3000/api/v1/health 2>/dev/null; do sleep 2; done'
           echo "Backend ready"
-          timeout 60 bash -c 'until curl -sf http://localhost:3001; do sleep 2; done'
+          timeout 120 bash -c 'until curl -sf http://localhost:3001 2>/dev/null; do sleep 2; done'
           echo "Frontend ready"
 
           # Run Playwright
