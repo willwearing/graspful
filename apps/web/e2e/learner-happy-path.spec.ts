@@ -90,17 +90,18 @@ test.describe("Learner happy path", () => {
     await page.getByRole("button", { name: "Take Diagnostic" }).click();
 
     await expect(page).toHaveURL(/\/diagnostic/, { timeout: 10_000 });
-    const hasDiagnostic = await page
-      .getByText("Diagnostic Assessment")
-      .isVisible({ timeout: 5_000 })
-      .catch(() => false);
+
+    const diagnosticText = page.getByText("Diagnostic Assessment");
+    const unavailableText = page.getByText("Diagnostic Unavailable");
+    await expect(diagnosticText.or(unavailableText)).toBeVisible({ timeout: 15_000 });
+
+    const hasDiagnostic = await diagnosticText.isVisible().catch(() => false);
 
     if (hasDiagnostic) {
       await expect(page.getByText("Question 1 of")).toBeVisible({ timeout: 10_000 });
       await answerCurrentQuestion(page);
       await expect(page.getByText("Question 2 of")).toBeVisible({ timeout: 10_000 });
     } else {
-      await expect(page.getByText("Diagnostic Unavailable")).toBeVisible();
       expect(academyId).toBeTruthy();
     }
 
