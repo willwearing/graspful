@@ -10,6 +10,20 @@ function sha256(text: string): string {
 async function main() {
   console.log('Seeding database...');
 
+  // Create graspful org (needed for graspful.ai and app.graspful.ai brands)
+  await prisma.organization.upsert({
+    where: { slug: 'graspful' },
+    update: {},
+    create: {
+      slug: 'graspful',
+      name: 'Graspful',
+      niche: 'general',
+      isActive: true,
+      settings: {},
+    },
+  });
+  console.log('Organization: Graspful');
+
   // Create org
   const org = await prisma.organization.upsert({
     where: { slug: 'firefighter-prep' },
