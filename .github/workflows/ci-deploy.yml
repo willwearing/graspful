@@ -143,33 +143,31 @@ jobs:
       - name: Install Playwright browsers
         run: cd apps/web && bun x playwright install --with-deps chromium
 
-      - name: Start backend
-        run: cd backend && bun run start:prod &
+      - name: Start services and run E2E tests
+        run: |
+          # Start backend
+          cd backend && bun run start:prod &
+          cd ..
+
+          # Start frontend on port 3001
+          cd apps/web && PORT=3001 bun run start &
+          cd ../..
+
+          # Wait for both
+          timeout 60 bash -c 'until curl -sf http://localhost:3000/api/v1/health; do sleep 2; done'
+          echo "Backend ready"
+          timeout 60 bash -c 'until curl -sf http://localhost:3001; do sleep 2; done'
+          echo "Frontend ready"
+
+          # Run Playwright
+          cd apps/web && bun run test:e2e
         env:
+          CI: "true"
           DATABASE_URL: ${{ steps.supabase.outputs.DB_URL }}
           DIRECT_URL: ${{ steps.supabase.outputs.DB_URL }}
           SUPABASE_URL: ${{ steps.supabase.outputs.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ steps.supabase.outputs.SERVICE_ROLE_KEY }}
           ALLOWED_ORIGINS: http://localhost:3001
-
-      - name: Start frontend
-        run: cd apps/web && bun run start &
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ steps.supabase.outputs.SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.supabase.outputs.ANON_KEY }}
-          NEXT_PUBLIC_BACKEND_URL: http://localhost:3000/api/v1
-
-      - name: Wait for services
-        run: |
-          timeout 60 bash -c 'until curl -sf http://localhost:3000/api/v1/health; do sleep 2; done'
-          timeout 30 bash -c 'until curl -sf http://localhost:3001; do sleep 2; done'
-
-      - name: Run E2E tests
-        run: cd apps/web && bun run test:e2e
-        env:
-          CI: "true"
-          SUPABASE_URL: ${{ steps.supabase.outputs.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ steps.supabase.outputs.SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ steps.supabase.outputs.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.supabase.outputs.ANON_KEY }}
           NEXT_PUBLIC_BACKEND_URL: http://localhost:3000/api/v1
