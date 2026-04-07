@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Logger,
   Post,
@@ -17,6 +18,9 @@ import { ProvisionService } from './provision.service';
  * flow would have created.
  *
  * Idempotent: if the user already has an org, returns it unchanged.
+ *
+ * If `brandOrgSlug` is provided, the user is also added as a member
+ * of that org so they can browse its academies and courses.
  */
 @Controller('auth')
 @UseGuards(SupabaseAuthGuard)
@@ -29,9 +33,17 @@ export class AuthProvisionController {
   ) {}
 
   @Post('provision')
-  async provisionUser(@CurrentUser() user: AuthUser) {
+  async provisionUser(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { brandOrgSlug?: string },
+  ) {
     this.logger.log(`Provisioning user ${user.userId}`);
     const result = await this.provision.ensureUserOrg(user.userId, user.email);
+
+    if (body.brandOrgSlug) {
+      await this.provision.ensureLearnerMembership(user.userId, body.brandOrgSlug);
+    }
+
     this.posthog.identify(user.userId, { email: user.email });
     this.posthog.capture({ distinctId: user.userId }, 'user provisioned', {
       org_id: result.orgId,

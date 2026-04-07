@@ -1,11 +1,3 @@
-ALTER TABLE "problems" ADD COLUMN "authored_id" TEXT;
-
-UPDATE "problems"
-SET "authored_id" = "id"
-WHERE "authored_id" IS NULL;
-
-ALTER TABLE "problems"
-ALTER COLUMN "authored_id" SET NOT NULL;
-
-ALTER TABLE "problems"
-ADD CONSTRAINT "problems_knowledge_point_id_authored_id_key" UNIQUE ("knowledge_point_id", "authored_id");
+-- No-op: this migration is superseded by 20260327111500_add_problem_authored_identity
+-- which already adds authored_id, the unique constraint, and is_archived with IF NOT EXISTS guards.
+SELECT 1;

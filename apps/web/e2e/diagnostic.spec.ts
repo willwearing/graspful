@@ -81,17 +81,13 @@ async function answerCurrentQuestion(page: import("@playwright/test").Page) {
 async function expectDiagnosticOrUnavailable(
   page: import("@playwright/test").Page,
 ): Promise<boolean> {
-  const hasDiagnostic = await page
-    .getByText("Diagnostic Assessment")
-    .isVisible({ timeout: 5_000 })
-    .catch(() => false);
+  // Wait for either "Diagnostic Assessment" or "Diagnostic Unavailable" to appear
+  const diagnosticText = page.getByText("Diagnostic Assessment");
+  const unavailableText = page.getByText("Diagnostic Unavailable");
 
-  if (!hasDiagnostic) {
-    await expect(page.getByText("Diagnostic Unavailable")).toBeVisible();
-    return false;
-  }
+  await expect(diagnosticText.or(unavailableText)).toBeVisible({ timeout: 15_000 });
 
-  return true;
+  return diagnosticText.isVisible().catch(() => false);
 }
 
 test.describe("Diagnostic flow", () => {

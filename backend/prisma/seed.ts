@@ -10,6 +10,20 @@ function sha256(text: string): string {
 async function main() {
   console.log('Seeding database...');
 
+  // Create graspful org (needed for graspful.ai and app.graspful.ai brands)
+  await prisma.organization.upsert({
+    where: { slug: 'graspful' },
+    update: {},
+    create: {
+      slug: 'graspful',
+      name: 'Graspful',
+      niche: 'general',
+      isActive: true,
+      settings: {},
+    },
+  });
+  console.log('Organization: Graspful');
+
   // Create org
   const org = await prisma.organization.upsert({
     where: { slug: 'firefighter-prep' },
@@ -49,12 +63,26 @@ async function main() {
   });
   console.log(`Membership: ${user.email} is owner of ${org.name}`);
 
+  // Create academy
+  const academy = await prisma.academy.upsert({
+    where: { orgId_slug: { orgId: org.id, slug: 'nfpa-1001' } },
+    update: {},
+    create: {
+      orgId: org.id,
+      slug: 'nfpa-1001',
+      name: 'NFPA 1001 — Firefighter I & II',
+      description: 'Complete audio-first exam prep covering all NFPA 1001 certification requirements for Firefighter I and II.',
+    },
+  });
+  console.log(`Academy: ${academy.name} (${academy.id})`);
+
   // Create course (knowledge-graph model used by browse page)
   const course = await prisma.course.upsert({
     where: { orgId_slug: { orgId: org.id, slug: 'nfpa-1001' } },
     update: {},
     create: {
       orgId: org.id,
+      academyId: academy.id,
       slug: 'nfpa-1001',
       name: 'NFPA 1001 — Firefighter I & II',
       description: 'Complete audio-first exam prep covering all NFPA 1001 certification requirements for Firefighter I and II.',
@@ -155,6 +183,191 @@ async function main() {
     });
     console.log(`Study Item: ${item.title}`);
   }
+
+  // ---------------------------------------------------------------------------
+  // PostHog TAM org — needed by e2e tests that reference posthog-tam
+  // ---------------------------------------------------------------------------
+  const phOrg = await prisma.organization.upsert({
+    where: { slug: 'posthog-tam' },
+    update: {},
+    create: {
+      slug: 'posthog-tam',
+      name: 'PostHog TAM',
+      niche: 'analytics',
+      isActive: true,
+      settings: {},
+    },
+  });
+  console.log(`Organization: ${phOrg.name} (${phOrg.id})`);
+
+  const phAcademy = await prisma.academy.upsert({
+    where: { orgId_slug: { orgId: phOrg.id, slug: 'posthog-tam-onboarding' } },
+    update: {},
+    create: {
+      orgId: phOrg.id,
+      slug: 'posthog-tam-onboarding',
+      name: 'PostHog TAM Academy',
+      description: 'Technical onboarding for PostHog TAMs.',
+    },
+  });
+  console.log(`Academy: ${phAcademy.name}`);
+
+  const phCourse = await prisma.course.upsert({
+    where: { orgId_slug: { orgId: phOrg.id, slug: 'posthog-tam-onboarding' } },
+    update: {},
+    create: {
+      orgId: phOrg.id,
+      academyId: phAcademy.id,
+      slug: 'posthog-tam-onboarding',
+      name: 'PostHog TAM Technical Onboarding',
+      description: 'Comprehensive technical onboarding for PostHog TAMs.',
+      version: '1.0',
+      estimatedHours: 12,
+      isPublished: true,
+    },
+  });
+  console.log(`Course: ${phCourse.name}`);
+
+  const phSection = await prisma.courseSection.upsert({
+    where: { courseId_slug: { courseId: phCourse.id, slug: 'posthog-data-model' } },
+    update: {},
+    create: {
+      courseId: phCourse.id,
+      slug: 'posthog-data-model',
+      name: 'PostHog Data Model',
+      description: 'PostHog entities — events, persons, properties, sessions, and actions.',
+      sortOrder: 0,
+    },
+  });
+
+  // Seed 3 concepts with KPs and problems for diagnostic tests
+  const phConcepts = [
+    {
+      slug: 'ph-events',
+      name: 'PostHog Events — The Atomic Unit',
+      instruction: 'Every interaction in PostHog is captured as an event. Events have a name, timestamp, distinct_id, and properties.',
+      question: 'What is the atomic unit of data in PostHog?',
+      options: ['Event', 'Person', 'Session', 'Action'],
+      correctAnswer: 0,
+    },
+    {
+      slug: 'ph-persons',
+      name: 'Persons & Person Profiles',
+      instruction: 'A person in PostHog is identified by one or more distinct_ids. Person profiles store properties set via $set and $set_once.',
+      question: 'How are persons identified in PostHog?',
+      options: ['By email only', 'By one or more distinct_ids', 'By IP address', 'By session cookie'],
+      correctAnswer: 1,
+    },
+    {
+      slug: 'ph-sessions',
+      name: 'Sessions — Grouping Events by Visit',
+      instruction: 'Sessions group events by visit. A session starts when a user arrives and ends after 30 minutes of inactivity.',
+      question: 'What triggers the end of a PostHog session?',
+      options: ['Closing the browser', '30 minutes of inactivity', 'Navigating away', 'Midnight rollover'],
+      correctAnswer: 1,
+    },
+  ];
+
+  for (let ci = 0; ci < phConcepts.length; ci++) {
+    const c = phConcepts[ci];
+    const concept = await prisma.concept.upsert({
+      where: { courseId_slug: { courseId: phCourse.id, slug: c.slug } },
+      update: {},
+      create: {
+        courseId: phCourse.id,
+        orgId: phOrg.id,
+        sectionId: phSection.id,
+        slug: c.slug,
+        name: c.name,
+        difficulty: 3,
+        sortOrder: ci,
+      },
+    });
+
+    const kp = await prisma.knowledgePoint.upsert({
+      where: { conceptId_slug: { conceptId: concept.id, slug: `${c.slug}-kp1` } },
+      update: {},
+      create: {
+        conceptId: concept.id,
+        slug: `${c.slug}-kp1`,
+        sortOrder: 0,
+        instructionText: c.instruction,
+      },
+    });
+
+    await prisma.problem.upsert({
+      where: { knowledgePointId_authoredId: { knowledgePointId: kp.id, authoredId: `${c.slug}-kp1-p1` } },
+      update: {},
+      create: {
+        knowledgePointId: kp.id,
+        authoredId: `${c.slug}-kp1-p1`,
+        type: 'multiple_choice',
+        questionText: c.question,
+        options: c.options.map((text, i) => ({ id: `opt-${i}`, text })),
+        correctAnswer: { optionId: `opt-${c.correctAnswer}` },
+        explanation: 'See the lesson above for details.',
+        difficulty: 3,
+      },
+    });
+  }
+  console.log(`Seeded ${phConcepts.length} concepts with KPs and problems for PostHog TAM course`);
+
+  // ---------------------------------------------------------------------------
+  // Electrician-Prep org — needed for electrician brand's orgSlug
+  // ---------------------------------------------------------------------------
+  const elecOrg = await prisma.organization.upsert({
+    where: { slug: 'electrician-prep' },
+    update: {},
+    create: {
+      slug: 'electrician-prep',
+      name: 'ElectricianPrep',
+      niche: 'electrician',
+      isActive: true,
+      settings: {},
+    },
+  });
+  console.log(`Organization: ${elecOrg.name}`);
+
+  const elecAcademy = await prisma.academy.upsert({
+    where: { orgId_slug: { orgId: elecOrg.id, slug: 'nec-2023' } },
+    update: {},
+    create: {
+      orgId: elecOrg.id,
+      slug: 'nec-2023',
+      name: 'NEC 2023 Electrician Exam Prep',
+      description: 'Audio-first NEC exam preparation.',
+    },
+  });
+
+  await prisma.course.upsert({
+    where: { orgId_slug: { orgId: elecOrg.id, slug: 'nec-2023' } },
+    update: {},
+    create: {
+      orgId: elecOrg.id,
+      academyId: elecAcademy.id,
+      slug: 'nec-2023',
+      name: 'NEC 2023 Electrician Exam Prep',
+      description: 'Audio-first NEC exam preparation.',
+      version: '1.0',
+      estimatedHours: 20,
+      isPublished: true,
+    },
+  });
+  console.log(`Academy + Course for ElectricianPrep`);
+
+  // JavaScript-Prep org — needed for javascript brand's orgSlug
+  await prisma.organization.upsert({
+    where: { slug: 'javascript-prep' },
+    update: {},
+    create: {
+      slug: 'javascript-prep',
+      name: 'JSPrep',
+      niche: 'programming',
+      isActive: true,
+      settings: {},
+    },
+  });
+  console.log(`Organization: JSPrep`);
 
   console.log('\nSeed complete!');
 }

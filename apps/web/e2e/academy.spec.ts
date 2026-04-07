@@ -96,16 +96,9 @@ test.describe("Academy features", () => {
     );
 
     // Should show either diagnostic or unavailable message
-    const hasDiagnostic = await page
-      .getByText("Diagnostic Assessment")
-      .isVisible({ timeout: 5_000 })
-      .catch(() => false);
-
-    if (!hasDiagnostic) {
-      await expect(
-        page.getByText(/Diagnostic Unavailable/)
-      ).toBeVisible();
-    }
+    const diagnosticText = page.getByText("Diagnostic Assessment");
+    const unavailableText = page.getByText(/Diagnostic Unavailable/);
+    await expect(diagnosticText.or(unavailableText)).toBeVisible({ timeout: 15_000 });
   });
 
   test("academy page shows knowledge graph section", async ({ page }) => {
