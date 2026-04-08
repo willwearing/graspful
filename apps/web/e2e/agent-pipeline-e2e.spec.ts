@@ -762,11 +762,13 @@ test.describe.serial("Agent Pipeline E2E — scaffold, fill, validate, review, i
         expect(problem.questionText).not.toContain("TODO");
 
         // Options (if MC) should have real text
+        // The concept detail API returns options as a flat string array
         if (problem.type === "multiple_choice" && problem.options) {
           for (const option of problem.options) {
-            expect(option.text).toBeTruthy();
-            expect(option.text.length).toBeGreaterThan(1);
-            expect(option.text).not.toMatch(/^Option [A-D]$/);
+            const text = typeof option === "string" ? option : option.text;
+            expect(text).toBeTruthy();
+            expect(text.length).toBeGreaterThan(1);
+            expect(text).not.toMatch(/^Option [A-D]$/);
           }
         }
       }
