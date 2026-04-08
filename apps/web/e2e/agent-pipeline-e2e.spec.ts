@@ -94,7 +94,7 @@ concepts:
   - id: caching-basics
     name: "Caching Basics"
     section: headers-and-caching
-    difficulty: 6
+    difficulty: 5
     estimatedMinutes: 25
     tags: [caching, http]
     prerequisites: [common-headers, status-codes]
@@ -436,7 +436,7 @@ concepts:
   - id: caching-basics
     name: "Caching Basics"
     section: headers-and-caching
-    difficulty: 6
+    difficulty: 5
     estimatedMinutes: 25
     tags: [caching, http]
     prerequisites: [common-headers, status-codes]
