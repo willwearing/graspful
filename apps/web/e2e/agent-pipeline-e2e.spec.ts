@@ -488,7 +488,7 @@ concepts:
             question: "The request header used to send a cached ETag back to the server is ___."
             correct: "If-None-Match"
             explanation: "If-None-Match sends the cached ETag. If it matches the server's current ETag, the server responds 304 Not Modified."
-            difficulty: 6
+            difficulty: 5
 `.trim();
 }
 
