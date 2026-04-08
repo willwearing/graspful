@@ -25,6 +25,7 @@ async function bootstrap() {
   // Preserve raw body for Stripe webhook signature verification
   app.use(
     json({
+      limit: '2mb',
       verify: (req: any, _res, buf) => {
         req.rawBody = buf;
       },

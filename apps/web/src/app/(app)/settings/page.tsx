@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolvePageBrand } from "@/lib/brand/resolve";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BillingSettings } from "@/components/app/billing-settings";
+import { ApiKeysSettings } from "@/components/app/api-keys-settings";
 
 export default async function SettingsPage() {
   const supabase = await createSupabaseServerClient();
@@ -35,6 +36,8 @@ export default async function SettingsPage() {
         </Card>
 
         <BillingSettings orgId={brand.orgSlug} />
+
+        <ApiKeysSettings orgId={brand.orgSlug} />
 
         <Card>
           <CardHeader>
