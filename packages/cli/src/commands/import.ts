@@ -22,7 +22,9 @@ export function registerImportCommand(program: Command) {
     .description('Import a course or brand YAML into a Graspful instance')
     .option('--org <slug>', 'Organization slug')
     .option('--publish', 'Publish immediately (runs review gate)', false)
-    .action(async (file: string, opts: { org?: string; publish: boolean }) => {
+    .option('--replace', 'Replace existing course content on re-import', false)
+    .option('--archive-missing', 'Archive concepts/KPs removed from the YAML', false)
+    .action(async (file: string, opts: { org?: string; publish: boolean; replace: boolean; archiveMissing: boolean }) => {
       if (!fs.existsSync(file)) {
         outputError(`File not found: ${file}`);
         process.exit(1);
@@ -57,7 +59,7 @@ export function registerImportCommand(program: Command) {
         try {
           const result = await api.post<{ courseId: string; url: string; published: boolean; reviewFailures?: string[] }>(
             `/api/v1/orgs/${orgSlug}/courses/import`,
-            { yaml: content, publish: opts.publish },
+            { yaml: content, publish: opts.publish, replace: opts.replace, archiveMissing: opts.archiveMissing },
           );
 
           cliCapture('course imported', { course_id: result.courseId, org: orgSlug, published: result.published });
