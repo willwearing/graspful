@@ -142,7 +142,7 @@ concepts:
 
       - id: rep-kp2
         instruction: "JSON is the dominant format for modern REST APIs. When designing responses, include the resource's own URI as a self-link so clients can reference it. Avoid exposing internal database IDs directly; prefer opaque or UUID-based identifiers."
-        workedExample: "A good response for GET /api/products/15: { \"id\": \"prod_xk9v2\", \"name\": \"Widget\", \"price\": 29.99, \"_links\": { \"self\": \"/api/products/15\" } }. The opaque ID and self-link make the API more robust."
+        workedExample: "A good response for GET /api/products/15 includes fields like id (prod_xk9v2), name (Widget), price (29.99), and a self-link (/api/products/15). The opaque ID and self-link make the API more robust."
         problems:
           - id: rep-kp2-p1
             type: multiple_choice
@@ -175,7 +175,7 @@ concepts:
     knowledgePoints:
       - id: hmc-kp1
         instruction: "REST maps CRUD operations to HTTP methods. POST creates a new resource in a collection. GET reads a resource or collection. PUT replaces a resource entirely. PATCH updates specific fields. DELETE removes a resource. POST targets the collection URI; PUT and PATCH target the specific resource URI."
-        workedExample: "Create: POST /api/users with {name: 'Alice'}. Read: GET /api/users/42. Update name only: PATCH /api/users/42 with {name: 'Bob'}. Replace entirely: PUT /api/users/42 with full object. Delete: DELETE /api/users/42."
+        workedExample: "Create: POST /api/users with a body containing name Alice. Read: GET /api/users/42. Update name only: PATCH /api/users/42 with name Bob. Replace entirely: PUT /api/users/42 with full object. Delete: DELETE /api/users/42."
         problems:
           - id: hmc-kp1-p1
             type: multiple_choice
@@ -259,7 +259,7 @@ concepts:
 
       - id: sce-kp2
         instruction: "Error responses should be structured and machine-readable. Include a consistent error object with fields like 'error', 'message', and optionally 'details' for field-level validation errors. Never return raw stack traces to clients — they leak implementation details."
-        workedExample: "A well-structured 400 response: { \"error\": \"validation_error\", \"message\": \"Invalid request body\", \"details\": [{ \"field\": \"email\", \"issue\": \"must be a valid email address\" }] }. This tells the client exactly what went wrong and where."
+        workedExample: "A well-structured 400 response includes an error code (validation_error), a message (Invalid request body), and details listing each field issue (e.g. email must be a valid email address). This tells the client exactly what went wrong and where."
         problems:
           - id: sce-kp2-p1
             type: multiple_choice
