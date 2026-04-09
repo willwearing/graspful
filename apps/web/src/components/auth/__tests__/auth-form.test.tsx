@@ -89,7 +89,7 @@ describe("AuthForm", () => {
     });
   });
 
-  it("provisions the personal org without auto-joining the learner org on learn redirects", async () => {
+  it("provisions the personal org and auto-joins the brand org on sign-in", async () => {
     mockSearchParams = "redirect=%2Flearn%2Fposthog-tam";
     mockSignIn.mockResolvedValue({
       data: {
@@ -122,6 +122,7 @@ describe("AuthForm", () => {
 
     expect(mockApiClientFetch).toHaveBeenCalledWith("/auth/provision", "token-1", {
       method: "POST",
+      body: JSON.stringify({ brandOrgSlug: defaultBrand.orgSlug }),
     });
     expect(mockPush).toHaveBeenCalledWith("/learn/posthog-tam");
   });
