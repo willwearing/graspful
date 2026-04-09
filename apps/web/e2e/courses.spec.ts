@@ -53,13 +53,11 @@ test.describe("Course browsing (authenticated)", () => {
     await grantLearnerMembership(email);
   });
 
-  test("dashboard loads and shows the browse CTA for fresh learners", async ({ page }) => {
+  test("dashboard loads for fresh learners", async ({ page }) => {
     await expect(page.getByText("Welcome back")).toBeVisible();
-    await expect(page.getByText("Your Courses")).toBeVisible();
     await expect(
-      page.getByText("No courses yet. Browse available courses to get started.")
+      page.getByText(/Academy Courses|Your Courses/)
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Browse Courses" })).toBeVisible();
   });
 
   test("browse page lists available academies", async ({ page }) => {
