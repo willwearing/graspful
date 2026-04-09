@@ -120,11 +120,19 @@ export class CliAuthService {
       return { status: 'expired' as const };
     }
 
+    // Look up the default brand domain for this org
+    const brand = await this.prisma.brand.findFirst({
+      where: { orgSlug: org.slug, isActive: true },
+      select: { domain: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
     return {
       status: 'complete' as const,
       apiKey: this.decrypt(session.encryptedApiKey),
       orgSlug: org.slug,
       userId: session.userId,
+      brandDomain: brand?.domain ?? `${org.slug}.graspful.ai`,
     };
   }
 

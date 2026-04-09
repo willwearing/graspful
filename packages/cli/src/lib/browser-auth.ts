@@ -22,6 +22,7 @@ interface ExchangeCompleteResponse {
   apiKey: string;
   orgSlug: string;
   userId: string;
+  brandDomain?: string;
 }
 
 type ExchangeBrowserAuthResponse =
@@ -45,6 +46,7 @@ export interface BrowserAuthResult {
   orgSlug: string;
   userId: string;
   baseUrl: string;
+  brandDomain?: string;
 }
 
 export function deriveWebUrl(apiUrl: string): string {
@@ -160,6 +162,7 @@ export async function runBrowserAuthFlow(options: BrowserAuthOptions): Promise<B
       orgSlug: exchangeData.orgSlug,
       userId: exchangeData.userId,
       baseUrl,
+      brandDomain: exchangeData.brandDomain,
     };
   }
 

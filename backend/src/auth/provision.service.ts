@@ -58,24 +58,41 @@ export class ProvisionService {
         data: { orgId: org.id, userId, role: 'owner' },
       });
 
-      // Default brand so the org is accessible via the web UI
+      // Default brand so the org is accessible via the web UI.
+      // Uses upsert for idempotency in case a brand with this slug already exists.
       const domain = `${orgSlug}.graspful.ai`;
-      await tx.brand.create({
-        data: {
-          slug: orgSlug,
+      await tx.brand.upsert({
+        where: { slug: orgSlug },
+        update: {
           name: orgName,
           domain,
-          tagline: 'Learn adaptively',
+          tagline: 'Adaptive learning',
           logoUrl: '/icon.svg',
           orgSlug,
-          theme: {},
+          theme: { preset: 'indigo', radius: '0.5rem' },
           landing: {
             hero: { headline: orgName, subheadline: 'Adaptive learning', ctaText: 'Start Learning' },
             features: { heading: 'Features', items: [] },
             howItWorks: { heading: 'How it works', items: [] },
             faq: [],
           },
-          seo: { title: orgName, description: `Adaptive learning at ${orgName}`, keywords: [] },
+          seo: { title: orgName, description: 'Adaptive learning', keywords: [] },
+        },
+        create: {
+          slug: orgSlug,
+          name: orgName,
+          domain,
+          tagline: 'Adaptive learning',
+          logoUrl: '/icon.svg',
+          orgSlug,
+          theme: { preset: 'indigo', radius: '0.5rem' },
+          landing: {
+            hero: { headline: orgName, subheadline: 'Adaptive learning', ctaText: 'Start Learning' },
+            features: { heading: 'Features', items: [] },
+            howItWorks: { heading: 'How it works', items: [] },
+            faq: [],
+          },
+          seo: { title: orgName, description: 'Adaptive learning', keywords: [] },
         },
       });
 

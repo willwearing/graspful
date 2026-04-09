@@ -33,6 +33,7 @@ describe('RegistrationService', () => {
       },
       brand: {
         create: jest.fn().mockResolvedValue({}),
+        upsert: jest.fn().mockResolvedValue({}),
       },
       apiKey: {
         create: jest.fn().mockResolvedValue({}),
@@ -130,12 +131,15 @@ describe('RegistrationService', () => {
       },
     });
 
-    expect(mockTx.brand.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        slug: 'will-example',
-        orgSlug: 'will-example',
+    expect(mockTx.brand.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { slug: 'will-example' },
+        create: expect.objectContaining({
+          slug: 'will-example',
+          orgSlug: 'will-example',
+        }),
       }),
-    });
+    );
 
     expect(mockTx.apiKey.create).toHaveBeenCalledWith({
       data: expect.objectContaining({

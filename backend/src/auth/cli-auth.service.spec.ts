@@ -19,6 +19,9 @@ describe('CliAuthService', () => {
       organization: {
         findUnique: jest.fn(),
       },
+      brand: {
+        findFirst: jest.fn().mockResolvedValue({ domain: 'alpha-org.graspful.ai' }),
+      },
     };
 
     mockApiKeyService = {
@@ -128,6 +131,7 @@ describe('CliAuthService', () => {
       apiKey: 'gsk_cli_key',
       orgSlug: 'alpha-org',
       userId: 'user-1',
+      brandDomain: 'alpha-org.graspful.ai',
     });
   });
 
@@ -209,6 +213,7 @@ describe('CliAuthService', () => {
       apiKey: 'gsk_cli_key',
       orgSlug: 'alpha-org',
       userId: 'user-1',
+      brandDomain: 'alpha-org.graspful.ai',
     });
     await expect(service.exchange('token-once')).resolves.toEqual({ status: 'expired' });
   });

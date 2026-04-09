@@ -60,10 +60,12 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (data.session) {
           // Auto-confirm is on (dev) — redirect immediately
           trackSignUp(data.session.user.id);
-          // Provision the user's personal org. Learner org access must come
-          // from an explicit entitlement flow.
+          // Provision the user's personal org and join the current brand's org
           try {
-            await apiClientFetch(`/auth/provision`, data.session.access_token, { method: "POST" });
+            await apiClientFetch(`/auth/provision`, data.session.access_token, {
+              method: "POST",
+              body: JSON.stringify({ brandOrgSlug: brand.orgSlug }),
+            });
           } catch {
             // Non-fatal
           }
@@ -82,11 +84,13 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (data.session) {
           trackSignIn(data.session.user.id);
         }
-        // Provision the user's personal org (idempotent). Learner org access
-        // must come from an explicit entitlement flow.
+        // Provision the user's personal org and join the current brand's org
         if (data.session) {
           try {
-            await apiClientFetch(`/auth/provision`, data.session.access_token, { method: "POST" });
+            await apiClientFetch(`/auth/provision`, data.session.access_token, {
+              method: "POST",
+              body: JSON.stringify({ brandOrgSlug: brand.orgSlug }),
+            });
           } catch {
             // Non-fatal
           }

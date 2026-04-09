@@ -74,10 +74,15 @@ export class BrandsController {
       };
     } catch (error) {
       this.logger.warn(
-        `Domain provisioning failed for ${normalizedDomain}, brand created without domain: ${error}`,
+        `Domain provisioning failed for ${normalizedDomain}: ${error}`,
       );
-      const dnsInstructions =
-        await this.vercelDomainsService.getDnsInstructions(normalizedDomain);
+      let dnsInstructions: { type: string; name: string; value: string } | null = null;
+      try {
+        dnsInstructions =
+          await this.vercelDomainsService.getDnsInstructions(normalizedDomain);
+      } catch {
+        // DNS lookup also failed — return empty instructions
+      }
       return {
         brand,
         domain: {

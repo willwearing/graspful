@@ -23,7 +23,7 @@ export class RegistrationService {
     );
   }
 
-  async register(email: string, password: string): Promise<{ userId: string; orgSlug: string; apiKey: string }> {
+  async register(email: string, password: string): Promise<{ userId: string; orgSlug: string; apiKey: string; brandDomain: string }> {
     // 1. Create Supabase user
     const { data: authData, error: authError } =
       await this.supabase.auth.admin.createUser({
@@ -79,38 +79,40 @@ export class RegistrationService {
 
         // Create a default brand so the org is accessible via the web UI.
         // This is a placeholder — it gets replaced when the user imports a brand YAML.
+        // Uses upsert for idempotency in case a brand with this slug already exists.
         const domain = `${orgSlug}.graspful.ai`;
-        await tx.brand.create({
-          data: {
+        await tx.brand.upsert({
+          where: { slug: orgSlug },
+          update: {
+            name: orgName,
+            domain,
+            tagline: 'Adaptive learning',
+            logoUrl: '/icon.svg',
+            orgSlug,
+            theme: { preset: 'indigo', radius: '0.5rem' },
+            landing: {
+              hero: { headline: orgName, subheadline: 'Adaptive learning', ctaText: 'Start Learning' },
+              features: { heading: 'Features', items: [] },
+              howItWorks: { heading: 'How it works', items: [] },
+              faq: [],
+            },
+            seo: { title: orgName, description: 'Adaptive learning', keywords: [] },
+          },
+          create: {
             slug: orgSlug,
             name: orgName,
             domain,
-            tagline: 'Learn adaptively',
+            tagline: 'Adaptive learning',
             logoUrl: '/icon.svg',
             orgSlug,
-            theme: {},
+            theme: { preset: 'indigo', radius: '0.5rem' },
             landing: {
               hero: { headline: orgName, subheadline: 'Adaptive learning', ctaText: 'Start Learning' },
-              features: {
-                heading: 'Why choose us?',
-                items: [
-                  { title: 'Adaptive Learning', description: 'Content adapts to your knowledge level', icon: 'Brain' },
-                  { title: 'Spaced Repetition', description: 'Review at optimal intervals for lasting memory', icon: 'Timer' },
-                  { title: 'Progress Tracking', description: 'See exactly where you stand', icon: 'Workflow' },
-                ],
-              },
-              howItWorks: {
-                heading: 'How it works',
-                items: [
-                  { title: 'Take a diagnostic', description: 'We assess what you already know' },
-                  { title: 'Learn adaptively', description: 'Focus on gaps, skip what you know' },
-                  { title: 'Master the material', description: 'Prove mastery through progressive challenges' },
-                ],
-              },
+              features: { heading: 'Features', items: [] },
+              howItWorks: { heading: 'How it works', items: [] },
               faq: [],
-              bottomCta: { headline: 'Ready to start learning?', subheadline: 'Begin your adaptive learning journey today.' },
             },
-            seo: { title: orgName, description: `Adaptive learning at ${orgName}`, keywords: [] },
+            seo: { title: orgName, description: 'Adaptive learning', keywords: [] },
           },
         });
 
@@ -132,7 +134,7 @@ export class RegistrationService {
         this.logger.warn(`Failed to provision domain ${txResult.domain} on Vercel: ${err}`);
       }
 
-      return { userId: txResult.userId, orgSlug: txResult.orgSlug, apiKey: txResult.apiKey };
+      return { userId: txResult.userId, orgSlug: txResult.orgSlug, apiKey: txResult.apiKey, brandDomain: txResult.domain };
     } catch (error) {
       this.logger.error('Prisma transaction failed during registration', {
         message: (error as Error).message,

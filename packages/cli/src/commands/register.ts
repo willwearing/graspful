@@ -28,15 +28,18 @@ export function registerRegisterCommand(program: Command) {
         });
 
         cliCapture('cli registered', { method: 'browser-auth' });
+        const brandDomain = result.brandDomain ?? `${result.orgSlug}.graspful.ai`;
         output(
           {
             userId: result.userId,
             orgSlug: result.orgSlug,
             apiKey: result.apiKey,
+            brandDomain,
             baseUrl,
           },
           [
             `Created org: ${result.orgSlug}`,
+            `Brand: ${brandDomain}`,
             `API key: ${result.apiKey} (saved to ~/.graspful/credentials.json)`,
             '',
             `You're ready. Run: graspful import course.yaml --org ${result.orgSlug}`,
