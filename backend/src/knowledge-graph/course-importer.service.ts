@@ -74,8 +74,14 @@ export class CourseImporterService {
 
   parseCourseYaml(yamlContent: string, scope?: CourseImportScope): CourseYaml {
     let raw: unknown = yamlContent;
-    for (let depth = 0; depth < 3 && typeof raw === 'string'; depth++) {
-      raw = yaml.load(raw);
+    try {
+      for (let depth = 0; depth < 3 && typeof raw === 'string'; depth++) {
+        raw = yaml.load(raw);
+      }
+    } catch (err) {
+      throw new BadRequestException(
+        `Invalid YAML syntax: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
     const parseResult = CourseYamlSchema.safeParse(raw);
 

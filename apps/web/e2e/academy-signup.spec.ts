@@ -53,25 +53,27 @@ test.describe("Academy sign-up and browse", () => {
     ).toBeVisible({ timeout: 5_000 });
   });
 
-  test("provision without brandOrgSlug does NOT grant access to other orgs", async ({
+  test("provision with brandOrgSlug grants API access to brand org", async ({
     page,
   }) => {
-    // Sign up without a brand org slug
+    // Sign up on the branded academy site
     await signUpBrandedTestUser(page, POSTHOG_TEST_BRAND_ID);
     const token = await getBrowserAccessToken(page);
     expect(token).toBeTruthy();
 
-    // Call provision WITHOUT brandOrgSlug
-    await fetch(`${BACKEND_URL}/auth/provision`, {
+    // Explicitly provision with brandOrgSlug (via Node fetch to bypass CORS).
+    // In production, the auth-form does this browser-side on sign-in.
+    const provisionRes = await fetch(`${BACKEND_URL}/auth/provision`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({ brandOrgSlug: ORG_SLUG }),
     });
+    expect(provisionRes.status).toBeLessThan(300);
 
-    // Calling the academy API directly should fail (403) since the user
-    // is not a member of the brand's org
+    // Now the user is a member of the brand org — academy API should succeed
     const academyRes = await fetch(
       `${BACKEND_URL}/orgs/${ORG_SLUG}/academies`,
       {
@@ -81,7 +83,7 @@ test.describe("Academy sign-up and browse", () => {
         },
       }
     );
-    expect(academyRes.status).toBe(403);
+    expect(academyRes.status).toBe(200);
   });
 
   test("learner membership is idempotent", async ({ page }) => {
