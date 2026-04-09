@@ -111,8 +111,8 @@ concepts:
           - id: ucvp-kp1-p1
             type: multiple_choice
             question: >-
-              A client is using funnels and trends. You want to grow them into
-              replay. Which framing best follows the use case selling approach?
+              A client is using Product Analytics. You want to upsell them on
+              watching what users actually do. Which framing best follows the use case selling approach?
             options:
               - '"Session Replay is a great product — you should add it to your plan."'
               - '"You see a 40% drop at checkout step 3. Want to watch what users are actually doing at that step?"'
@@ -341,7 +341,7 @@ concepts:
           - id: pucm-kp1-p2
             type: multiple_choice
             question: >-
-              Recordings appear as a secondary offering in how many use cases?
+              Session Replay appears as a secondary offering in how many use cases?
             options:
               - Two — Product Intelligence and Observability
               - Three — Product Intelligence, Observability, and Release Engineering
@@ -411,8 +411,8 @@ concepts:
           - id: pucm-kp2-p1
             type: multiple_choice
             question: >-
-              In the PI adoption sequence, what comes after Recordings
-              and before A/B testing?
+              In the Product Intelligence adoption sequence, what comes after Session Replay
+              and before Experiments?
             options:
               - Feature Flags
               - Revenue Analytics
@@ -427,8 +427,8 @@ concepts:
           - id: pucm-kp2-p2
             type: multiple_choice
             question: >-
-              Why does the Release adoption sequence go Flags → A/B Tests
-              → Recordings?
+              Why does the Release adoption sequence go controlled rollouts → Experiments
+              → Session Replay?
             options:
               - Because that's the order of increasing price
               - Because flags enable rollouts, experiments measure impact, replay debugs when control wins
@@ -537,7 +537,7 @@ concepts:
           - id: pi-kp1-p2
             type: multiple_choice
             question: >-
-              A B2B SaaS company uses funnels and trends but has no Group
+              A B2B SaaS company uses Product Analytics but has no Group
               capability. What use case selling opportunity does this represent?
             options:
               - They should switch to the Release Engineering use case
@@ -553,7 +553,7 @@ concepts:
           - id: pi-kp1-p3
             type: multiple_choice
             question: >-
-              In the Product Intelligence growth path, why does A/B testing come
+              In the Product Intelligence growth path, why does experimentation come
               after Surveys, not before?
             options:
               - Experiments is more expensive than Surveys
@@ -641,7 +641,7 @@ concepts:
           - id: pi-kp2-p3
             type: multiple_choice
             question: >-
-              A lead currently uses Hotjar for recordings and a separate
+              A lead currently uses Hotjar to watch user behavior and a separate
               Amplitude instance. What's the best Product Intelligence argument?
             options:
               - PostHog's replay is cheaper than Hotjar
@@ -721,8 +721,8 @@ concepts:
           - id: re-kp1-p1
             type: multiple_choice
             question: >-
-              What makes flag infrastructure one of the stickiest capabilities
-              in the platform?
+              What makes Feature Flags one of the stickiest capabilities
+              in PostHog?
             options:
               - They have the highest free tier
               - They are embedded in the codebase as infrastructure, making them very hard to rip out
@@ -737,7 +737,7 @@ concepts:
           - id: re-kp1-p2
             type: multiple_choice
             question: >-
-              How is A/B testing billed in relation to flag usage?
+              How are Experiments billed in relation to flag usage?
             options:
               - Experiments is a separate product with its own pricing
               - Experiments is included with Feature Flags — same billing
@@ -808,8 +808,8 @@ concepts:
           - id: re-kp2-p1
             type: multiple_choice
             question: >-
-              A buyer uses LaunchDarkly for rollouts and a separate tool for A/B testing.
-              What's the primary argument for switching to our platform?
+              A lead uses LaunchDarkly for rollouts and a separate tool for Experiments.
+              What's the primary argument for consolidating onto PostHog?
             options:
               - PostHog has more complex targeting rules than LaunchDarkly
               - PostHog bundles flags + experiments + analytics + replay in one platform at lower cost
@@ -824,7 +824,7 @@ concepts:
           - id: re-kp2-p2
             type: multiple_choice
             question: >-
-              What is a genuine limitation of the platform's A/B testing that you
+              What is a genuine limitation of PostHog's Experiments that you
               must be upfront about?
             options:
               - Experiments can only test two variants
@@ -947,8 +947,8 @@ concepts:
           - id: obs-kp1-p3
             type: multiple_choice
             question: >-
-              Why is connecting error data to behavioral metrics called a
-              "moat" for the platform?
+              Why is connecting Error Tracking to user behavior data called a
+              "moat" for PostHog?
             options:
               - Because it makes PostHog's error tracking faster
               - Because only PostHog can quantify error impact in business terms — affected users, revenue lost, funnel impact
@@ -1002,7 +1002,7 @@ concepts:
           - id: obs-kp2-p1
             type: multiple_choice
             question: >-
-              An account using Datadog asks if our platform can replace it. What's the
+              A customer using Datadog asks if PostHog can replace it. What's the
               candid answer?
             options:
               - '"Yes, PostHog can fully replace Datadog today."'
@@ -1139,7 +1139,7 @@ concepts:
           - id: gm-kp1-p3
             type: multiple_choice
             question: >-
-              What makes the A/B testing + rollout controls growth step in Growth &
+              What makes the Experiments + Feature Flags growth step in Growth &
               Marketing so strategically valuable?
             options:
               - It's the most expensive product combination
@@ -1331,7 +1331,7 @@ concepts:
               - It reduces model costs
               - It scores output quality and detects regressions that latency/cost metrics miss
               - It replaces the need for Product Analytics
-              - It provides session recordings of AI interactions
+              - It provides Session Replay of AI interactions
             correct: 1
             explanation: >-
               LLM Obs shows latency, cost, and tokens — but not whether the output is
@@ -1432,7 +1432,7 @@ concepts:
           - id: ai-kp2-p3
             type: multiple_choice
             question: >-
-              Why is our tool positioned as better than running benchmarks/BLEU scores
+              Why is PostHog positioned as better than running benchmarks/BLEU scores
               for AI evaluation?
             options:
               - Because benchmarks are inaccurate
@@ -1736,7 +1736,7 @@ concepts:
           - id: cx-kp1-p3
             type: multiple_choice
             question: >-
-              An account currently uses FullStory for recordings. What's the
+              An account currently uses FullStory for Session Replay. What's the
               best CX argument for consolidating?
             options:
               - PostHog replays look nicer than FullStory
@@ -1810,7 +1810,7 @@ concepts:
           - id: cx-kp2-p2
             type: multiple_choice
             question: >-
-              A healthcare company is interested in recordings but has strict PHI
+              A healthcare company is interested in Session Replay but has strict PHI
               requirements. What do you recommend?
             options:
               - '"Session Replay doesn''t work in healthcare."'
@@ -1921,8 +1921,8 @@ concepts:
           - id: cs-kp1-p1
             type: multiple_choice
             question: >-
-              An account's dev team uses rollout controls. The growth team wants
-              to run A/B tests. What's the cross-sell play?
+              An account's dev team uses Feature Flags. The growth team wants
+              to measure impact with controlled tests. What's the cross-sell play?
             options:
               - Sell them a separate Experiments tool
               - '"Experiments are included with Feature Flags. Growth defines hypotheses, engineering implements flags. Both teams in PostHog."'
@@ -2010,7 +2010,7 @@ concepts:
           - id: cs-kp2-p1
             type: multiple_choice
             question: >-
-              An account has high flag evaluation volume but zero A/B tests.
+              A team has high flag evaluation volume but has never run an experiment.
               What does this signal suggest?
             options:
               - They should switch to Product Analytics
