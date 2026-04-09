@@ -14,8 +14,11 @@ let creatorEmail: string;
 const creatorPassword = "TestPassword123!";
 
 let learnerApiKey: string;
+let learnerJwt: string;
 let learnerEmail: string;
 const learnerPassword = "TestPassword123!";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321";
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 let courseId: string;
 let academyId: string;
@@ -296,7 +299,7 @@ function creatorAuthHeaders(extra?: Record<string, string>) {
 function learnerAuthHeaders(extra?: Record<string, string>) {
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${learnerApiKey}`,
+    Authorization: `Bearer ${learnerJwt}`,
     ...extra,
   };
 }
@@ -578,6 +581,34 @@ test.describe.serial(
       expect(body.userId).toMatch(UUID_RE);
 
       learnerApiKey = body.apiKey;
+
+      // Get a Supabase JWT — needed for learner endpoints that use SupabaseAuthGuard
+      const signInRes = await fetch(
+        `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ email: learnerEmail, password: learnerPassword }),
+        }
+      );
+      expect(signInRes.status).toBeLessThan(300);
+      const signInBody = await signInRes.json();
+      learnerJwt = signInBody.access_token;
+      expect(learnerJwt).toBeTruthy();
+
+      // Add learner to creator's org so OrgMembershipGuard passes
+      const provisionRes = await fetch(`${BACKEND_URL}/auth/provision`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${learnerJwt}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ brandOrgSlug: creatorOrgSlug }),
+      });
+      expect(provisionRes.status).toBeLessThan(300);
     });
 
     // ── Step 9: Learner enrolls ────────────────────────────────────
