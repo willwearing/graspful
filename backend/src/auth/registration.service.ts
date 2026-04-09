@@ -6,6 +6,14 @@ import { VercelDomainsService } from '@/shared/application/vercel-domains.servic
 import { ApiKeyService } from './api-key/api-key.service';
 import * as crypto from 'crypto';
 
+/**
+ * Convert a slug like "will-use-case-selling-posthog" to "Will Use Case Selling Posthog".
+ * Used as a fallback when the org name would otherwise be the raw slug with spaces.
+ */
+function humanizeSlug(slug: string): string {
+  return slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
 @Injectable()
 export class RegistrationService {
   private readonly logger = new Logger(RegistrationService.name);
@@ -62,7 +70,7 @@ export class RegistrationService {
     let orgSlug = this.emailToOrgSlug(email);
     const existing = await this.prisma.organization.findUnique({ where: { slug: orgSlug } });
     if (existing) orgSlug = `${orgSlug}-${Date.now().toString(36).slice(-4)}`;
-    const orgName = orgSlug.replace(/-/g, ' ');
+    const orgName = humanizeSlug(orgSlug);
 
     // 3. Create DB records
     // Note: Supabase has an AFTER INSERT trigger on auth.users that auto-creates
@@ -81,39 +89,25 @@ export class RegistrationService {
         // This is a placeholder — it gets replaced when the user imports a brand YAML.
         // Uses upsert for idempotency in case a brand with this slug already exists.
         const domain = `${orgSlug}.graspful.ai`;
+        const brandData = {
+          name: orgName,
+          domain,
+          tagline: `Adaptive learning by ${orgName}`,
+          logoUrl: '/icon.svg',
+          orgSlug,
+          theme: { preset: 'indigo', radius: '0.5rem' },
+          landing: {
+            hero: { headline: `Welcome to ${orgName}`, subheadline: 'Adaptive learning that meets you where you are', ctaText: 'Start Learning' },
+            features: { heading: 'Features', items: [] },
+            howItWorks: { heading: 'How it works', items: [] },
+            faq: [],
+          },
+          seo: { title: orgName, description: `Adaptive learning by ${orgName}`, keywords: [] },
+        };
         await tx.brand.upsert({
           where: { slug: orgSlug },
-          update: {
-            name: orgName,
-            domain,
-            tagline: 'Adaptive learning',
-            logoUrl: '/icon.svg',
-            orgSlug,
-            theme: { preset: 'indigo', radius: '0.5rem' },
-            landing: {
-              hero: { headline: orgName, subheadline: 'Adaptive learning', ctaText: 'Start Learning' },
-              features: { heading: 'Features', items: [] },
-              howItWorks: { heading: 'How it works', items: [] },
-              faq: [],
-            },
-            seo: { title: orgName, description: 'Adaptive learning', keywords: [] },
-          },
-          create: {
-            slug: orgSlug,
-            name: orgName,
-            domain,
-            tagline: 'Adaptive learning',
-            logoUrl: '/icon.svg',
-            orgSlug,
-            theme: { preset: 'indigo', radius: '0.5rem' },
-            landing: {
-              hero: { headline: orgName, subheadline: 'Adaptive learning', ctaText: 'Start Learning' },
-              features: { heading: 'Features', items: [] },
-              howItWorks: { heading: 'How it works', items: [] },
-              faq: [],
-            },
-            seo: { title: orgName, description: 'Adaptive learning', keywords: [] },
-          },
+          update: brandData,
+          create: { slug: orgSlug, ...brandData },
         });
 
         // Create API key inside the transaction so it can see the uncommitted org

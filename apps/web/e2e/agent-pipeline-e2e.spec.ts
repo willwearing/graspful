@@ -357,6 +357,44 @@ test.describe.serial(
       expect(body.orgSlug).toBe(creatorOrgSlug);
     });
 
+    // ── Step 2b: Brand quality — not placeholder garbage ────────────
+    test("step 2b: brand landing content is not placeholder garbage", async ({
+      request,
+    }) => {
+      const domain = `${creatorOrgSlug}.graspful.ai`;
+
+      const res = await request.get(
+        `${BACKEND_URL}/brands/by-domain/${domain}`,
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      if (res.status() === 404) {
+        // Brand not yet created — skip (will be verified after import)
+        return;
+      }
+
+      expect(res.status()).toBe(200);
+
+      const brand = await res.json();
+
+      // Brand name should NOT equal the raw slug
+      expect(brand.name).not.toBe(creatorOrgSlug);
+
+      // Brand name should be title-cased (not lowercase with spaces)
+      expect(brand.name).not.toBe(creatorOrgSlug.replace(/-/g, ' '));
+
+      // Landing hero headline should NOT be the raw slug
+      const headline = brand.landing?.hero?.headline;
+      expect(headline).toBeTruthy();
+      expect(headline).not.toBe(creatorOrgSlug);
+      expect(headline).not.toBe(creatorOrgSlug.replace(/-/g, ' '));
+      expect(headline.length).toBeGreaterThanOrEqual(10);
+
+      // Brand tagline should be at least 10 characters
+      expect(brand.tagline).toBeTruthy();
+      expect(brand.tagline.length).toBeGreaterThanOrEqual(10);
+    });
+
     // ── Step 3: Scaffold — verify skeleton structure ───────────────
     test("step 3: scaffold produces valid skeleton structure", async () => {
       // We construct the YAML directly (most reliable).

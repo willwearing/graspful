@@ -3,6 +3,14 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
 
 /**
+ * Convert a slug like "will-use-case-selling-posthog" to "Will Use Case Selling Posthog".
+ * Used as a fallback when the org name would otherwise be the raw slug with spaces.
+ */
+function humanizeSlug(slug: string): string {
+  return slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+/**
  * Ensures every authenticated user has a personal organization and brand.
  * Called by POST /auth/provision after Supabase Auth sign-up
  * (which bypasses /auth/register).
@@ -47,7 +55,7 @@ export class ProvisionService {
     const clash = await this.prisma.organization.findUnique({ where: { slug: orgSlug } });
     if (clash) orgSlug = `${orgSlug}-${Date.now().toString(36).slice(-4)}`;
 
-    const orgName = orgSlug.replace(/-/g, ' ');
+    const orgName = humanizeSlug(orgSlug);
 
     const result = await this.prisma.$transaction(async (tx) => {
       const org = await tx.organization.create({
@@ -61,39 +69,25 @@ export class ProvisionService {
       // Default brand so the org is accessible via the web UI.
       // Uses upsert for idempotency in case a brand with this slug already exists.
       const domain = `${orgSlug}.graspful.ai`;
+      const brandData = {
+        name: orgName,
+        domain,
+        tagline: `Adaptive learning by ${orgName}`,
+        logoUrl: '/icon.svg',
+        orgSlug,
+        theme: { preset: 'indigo', radius: '0.5rem' },
+        landing: {
+          hero: { headline: `Welcome to ${orgName}`, subheadline: 'Adaptive learning that meets you where you are', ctaText: 'Start Learning' },
+          features: { heading: 'Features', items: [] },
+          howItWorks: { heading: 'How it works', items: [] },
+          faq: [],
+        },
+        seo: { title: orgName, description: `Adaptive learning by ${orgName}`, keywords: [] },
+      };
       await tx.brand.upsert({
         where: { slug: orgSlug },
-        update: {
-          name: orgName,
-          domain,
-          tagline: 'Adaptive learning',
-          logoUrl: '/icon.svg',
-          orgSlug,
-          theme: { preset: 'indigo', radius: '0.5rem' },
-          landing: {
-            hero: { headline: orgName, subheadline: 'Adaptive learning', ctaText: 'Start Learning' },
-            features: { heading: 'Features', items: [] },
-            howItWorks: { heading: 'How it works', items: [] },
-            faq: [],
-          },
-          seo: { title: orgName, description: 'Adaptive learning', keywords: [] },
-        },
-        create: {
-          slug: orgSlug,
-          name: orgName,
-          domain,
-          tagline: 'Adaptive learning',
-          logoUrl: '/icon.svg',
-          orgSlug,
-          theme: { preset: 'indigo', radius: '0.5rem' },
-          landing: {
-            hero: { headline: orgName, subheadline: 'Adaptive learning', ctaText: 'Start Learning' },
-            features: { heading: 'Features', items: [] },
-            howItWorks: { heading: 'How it works', items: [] },
-            faq: [],
-          },
-          seo: { title: orgName, description: 'Adaptive learning', keywords: [] },
-        },
+        update: brandData,
+        create: { slug: orgSlug, ...brandData },
       });
 
       return { orgSlug: org.slug, orgId: org.id };

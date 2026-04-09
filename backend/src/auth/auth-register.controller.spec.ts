@@ -118,7 +118,7 @@ describe('RegistrationService', () => {
     expect(mockTx.organization.create).toHaveBeenCalledWith({
       data: {
         slug: 'will-example',
-        name: 'will example',
+        name: 'Will Example',
         niche: 'general',
       },
     });

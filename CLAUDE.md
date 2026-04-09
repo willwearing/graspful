@@ -45,10 +45,10 @@ If MCP is already configured, you have these tools available — no CLI needed:
 | `graspful_validate` | No | Validate YAML against schema |
 | `graspful_review_course` | No | Run 10 quality checks |
 | `graspful_describe_course` | No | Course statistics |
-| `graspful_create_brand` | No | Generate brand YAML |
+| `graspful_create_brand` | No | Generate brand YAML (required — every org needs a brand) |
 | `graspful_import_course` | **Yes** | Import course to platform (set `GRASPFUL_API_KEY` first) |
 | `graspful_publish_course` | **Yes** | Publish a draft course (set `GRASPFUL_API_KEY` first) |
-| `graspful_import_brand` | **Yes** | Import brand config (set `GRASPFUL_API_KEY` first) |
+| `graspful_import_brand` | **Yes** | Import brand config — required for site to work (set `GRASPFUL_API_KEY` first) |
 | `graspful_list_courses` | **Yes** | List org courses (set `GRASPFUL_API_KEY` first) |
 
 Tools marked "No" for auth work offline — no account needed. Tools marked **Yes** will fail with a clear error if you haven't authenticated. Run `graspful register`, then restart MCP with `GRASPFUL_API_KEY`.
@@ -160,7 +160,17 @@ When building a course from a PDF or document:
 4. For visual content (photos, diagrams, comparisons), find or request publicly accessible image URLs and use `image` content blocks
 5. Do not copy-paste prose verbatim — rewrite for the lesson pattern (instruction -> worked example -> problems)
 
-### Step 4: Brand (optional)
+### Step 4: Create or update the brand
+
+Every org needs a brand for the site to work. Registration creates a minimal default, 
+but you should update it with content relevant to the course topic.
+
+Use `graspful_create_brand` to generate a brand YAML tailored to the course topic, 
+then import it with `graspful_import_brand`. This updates the landing page headline, 
+features, and SEO to match the actual course content.
+
+If the org already has a brand (from registration), importing a new one updates it 
+in place (upsert by slug).
 
 Create a white-label landing page and theme:
 
