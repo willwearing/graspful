@@ -11,6 +11,7 @@ import { useAudioPlayer } from "@/lib/hooks/use-audio-player";
 import { useLessonAudio } from "@/lib/hooks/use-lesson-audio";
 import { trackLessonComplete, trackLessonStarted, trackLessonPracticeAnswered, trackLessonAudioPlayed, trackLessonAbandoned } from "@/lib/posthog/events";
 import { LessonRichContent } from "@/components/app/lesson-rich-content";
+import { MarkdownText } from "@/components/app/markdown-text";
 import type { Problem, ProblemAnswer, RichContentBlock } from "@/lib/types";
 
 interface KnowledgePoint {
@@ -222,7 +223,7 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
             <BookOpen className="h-4 w-4" />
             Instruction
           </div>
-          <p className="text-foreground leading-relaxed whitespace-pre-line">{kp.instructionText}</p>
+          <MarkdownText>{kp.instructionText}</MarkdownText>
           <LessonRichContent blocks={instructionContent} />
 
           {/* Audio playback */}
@@ -271,7 +272,7 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
       {phase === "worked-example" && kp.workedExampleText && (
         <div className="rounded-lg border border-border bg-muted/20 p-6 space-y-2">
           <p className="text-sm font-medium text-muted-foreground">Worked Example</p>
-          <p className="text-foreground leading-relaxed whitespace-pre-line">{kp.workedExampleText}</p>
+          <MarkdownText>{kp.workedExampleText}</MarkdownText>
           <LessonRichContent blocks={workedExampleContent} />
         </div>
       )}
