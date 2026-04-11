@@ -222,60 +222,84 @@ function collectAllowedProblemStems(
   return allowed;
 }
 
+// Words that are too generic to count as evidence that a problem is on-topic.
+const ALIGNMENT_IGNORED_WORDS = new Set([
+  'which',
+  'would',
+  'should',
+  'could',
+  'about',
+  'their',
+  'there',
+  'these',
+  'those',
+  'being',
+  'between',
+  'through',
+  'during',
+  'before',
+  'after',
+  'above',
+  'below',
+  'following',
+  'statement',
+  'answer',
+  'question',
+  'correct',
+  'incorrect',
+  'client',
+  'server',
+  'resource',
+  'resources',
+]);
+
+// Minimum distinct teaching stems we need before we can judge alignment at all.
+// Below this, the KP's instruction/workedExample is effectively a stub and the
+// check would punish legitimate stub fixtures or in-progress drafts.
+const MIN_TEACHING_STEMS_FOR_ALIGNMENT = 8;
+
 function checkProblemTeachingAlignment(courseYaml: CourseYaml): QualityCheckResult {
   const conceptIndex = buildConceptIndex(courseYaml);
   const failures: string[] = [];
-  const ignoredWords = new Set([
-    'which',
-    'would',
-    'should',
-    'could',
-    'about',
-    'their',
-    'there',
-    'these',
-    'those',
-    'being',
-    'between',
-    'through',
-    'during',
-    'before',
-    'after',
-    'above',
-    'below',
-    'following',
-    'statement',
-    'answer',
-    'question',
-    'correct',
-    'incorrect',
-    'client',
-    'server',
-    'resource',
-    'resources',
-  ]);
 
   for (const concept of courseYaml.concepts) {
     for (let kpIndex = 0; kpIndex < concept.knowledgePoints.length; kpIndex++) {
       const kp = concept.knowledgePoints[kpIndex];
       const allowed = collectAllowedProblemStems(conceptIndex, concept, kpIndex);
 
+      // Skip the check when the teaching path has almost no substance — we
+      // cannot reliably tell whether a problem is on-topic against a stub.
+      if (allowed.size < MIN_TEACHING_STEMS_FOR_ALIGNMENT) {
+        continue;
+      }
+
+      let judgedProblems = 0;
+      let alignedProblems = 0;
+
       for (const problem of kp.problems) {
         const significantQuestionStems = extractStems(problem.question).filter(
-          (stem) => !ignoredWords.has(stem),
+          (stem) => !ALIGNMENT_IGNORED_WORDS.has(stem),
         );
 
+        // Short or stop-word-only questions cannot be judged by overlap.
         if (significantQuestionStems.length === 0) {
           continue;
         }
 
-        const overlap = significantQuestionStems.filter((stem) => allowed.has(stem));
-        if (overlap.length > 0) {
-          continue;
-        }
+        judgedProblems += 1;
 
+        const hasOverlap = significantQuestionStems.some((stem) => allowed.has(stem));
+        if (hasOverlap) {
+          alignedProblems += 1;
+        }
+      }
+
+      // Only fail the KP when EVERY judgable problem is off-topic. A single
+      // lexically drifted problem in an otherwise aligned KP is not enough to
+      // block publish — that is a content-author nit, not a gate violation.
+      if (judgedProblems > 0 && alignedProblems === 0) {
         failures.push(
-          `"${concept.id}/${kp.id}/${problem.id}" appears to test material that is not introduced in the current KP, earlier KPs, or prerequisite concepts`,
+          `"${concept.id}/${kp.id}" has ${judgedProblems} problem(s) that share no vocabulary with the KP's instruction, worked example, earlier KPs, or prerequisite concepts`,
         );
       }
     }

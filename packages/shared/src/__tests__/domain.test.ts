@@ -282,10 +282,17 @@ describe('runQualityGate', () => {
     expect(result.stats.concepts).toBe(0);
   });
 
-  it('fails when a problem tests material that is not taught in the current lesson path', () => {
+  it('fails when every problem in a KP tests material not taught in the current lesson path', () => {
     const bad = JSON.parse(JSON.stringify(MINIMAL_COURSE));
+    // Rewrite ALL problems in the first KP so none share vocabulary with the
+    // teaching path. A single drifted problem should not be enough — the check
+    // only fires when the whole KP looks off-topic.
     bad.concepts[0].knowledgePoints[0].problems[0].question =
-      'Which division remainder proves the quotient is correct?';
+      'Which division remainder proves the quotient is valid?';
+    bad.concepts[0].knowledgePoints[0].problems[1].question =
+      'How does integer division differ from floating point division?';
+    bad.concepts[0].knowledgePoints[0].problems[2].question =
+      'When does modular arithmetic produce a negative remainder?';
 
     const result = runQualityGate(bad);
     const alignmentFailure = result.failures.find(
@@ -293,7 +300,26 @@ describe('runQualityGate', () => {
     );
 
     expect(alignmentFailure).toBeDefined();
-    expect(alignmentFailure?.details).toMatch(/not introduced/i);
+    expect(alignmentFailure?.details).toMatch(/share no vocabulary/i);
+  });
+
+  it('does not fail the teaching-alignment check on a course with stub instructions', () => {
+    // Stub-instruction fixtures (typical of e2e tests and in-progress drafts)
+    // must not trip the teaching-alignment gate. When the KP has almost no
+    // teaching content, the check has nothing to judge against and should skip.
+    const stub = JSON.parse(JSON.stringify(MINIMAL_COURSE));
+    for (const concept of stub.concepts) {
+      for (const kp of concept.knowledgePoints) {
+        kp.instruction = 'Stub instruction.';
+        kp.workedExample = 'Stub example.';
+      }
+    }
+
+    const result = runQualityGate(stub);
+    const alignmentCheck = [...result.failures, ...(result as any).warnings ?? []]
+      .find((r: { check: string }) => r.check === 'problem_teaching_alignment');
+
+    expect(alignmentCheck).toBeUndefined();
   });
 
   it('emits a kp_atomicity warning when a KP instruction contains a long parallel list', () => {
