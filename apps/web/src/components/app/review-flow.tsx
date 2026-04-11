@@ -192,6 +192,7 @@ export function ReviewFlow({
         problem={problem}
         onSubmit={handleSubmit}
         disabled={submitting || !!feedback}
+        loading={submitting && !feedback}
         feedback={feedback ?? undefined}
       />
     </div>

@@ -32,6 +32,41 @@ export function scaffoldCourseObject(topic: string, options: { hours?: number; s
   };
 }
 
+// ─── Academy scaffolding ───────────────────────────────────────────────────
+
+function slugify(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+export function scaffoldAcademyObject(
+  topic: string,
+  options: { courseNames?: string[]; version?: string } = {},
+) {
+  const academySlug = slugify(topic);
+  const courseNames =
+    options.courseNames && options.courseNames.length > 0
+      ? options.courseNames
+      : [`${topic} Foundations`];
+
+  return {
+    academy: {
+      id: academySlug,
+      name: `${topic} Academy`,
+      description: `Adaptive academy for ${topic}. Break the domain into connected courses that build from foundations to applied performance.`,
+      version: options.version || '2026.1',
+    },
+    courses: courseNames.map((courseName) => {
+      const courseSlug = slugify(courseName);
+      return {
+        id: courseSlug,
+        name: courseName,
+        description: `Course in the ${topic} academy covering ${courseName.toLowerCase()}.`,
+        file: `courses/${courseSlug}.yaml`,
+      };
+    }),
+  };
+}
+
 // ─── Brand scaffolding ─────────────────────────────────────────────────────
 
 const NICHE_PRESETS: Record<string, { preset: string; tagline: string; headline: string }> = {
@@ -43,11 +78,21 @@ const NICHE_PRESETS: Record<string, { preset: string; tagline: string; headline:
   default: { preset: 'blue', tagline: 'Learn adaptively', headline: 'Personalized learning that works' },
 };
 
-export function scaffoldBrandObject(niche: string, options: { name?: string; domain?: string; orgSlug?: string }) {
+export function scaffoldBrandObject(
+  niche: string,
+  options: { name?: string; domain?: string; orgSlug?: string; topic?: string },
+) {
   const config = NICHE_PRESETS[niche] || NICHE_PRESETS['default'];
-  const slug = (options.name || niche).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const slug = slugify(options.name || niche);
   const name = options.name || `${niche.charAt(0).toUpperCase() + niche.slice(1)} Academy`;
   const domain = options.domain || `${slug}.graspful.ai`;
+  const topic = options.topic?.trim();
+  const heroHeadline = topic
+    ? `Master ${topic} with an academy built for real performance`
+    : config.headline;
+  const heroSubheadline = topic
+    ? `${name} teaches ${topic} as a connected learning path: foundations first, applied judgment next, then transfer into real work. Replace this scaffold with academy-specific proof, outcomes, and audience language before launch.`
+    : `${name} uses adaptive learning to help you master concepts faster. Replace this scaffold with academy-specific proof, outcomes, and audience language before launch.`;
 
   return {
     brand: {
@@ -64,8 +109,8 @@ export function scaffoldBrandObject(niche: string, options: { name?: string; dom
     },
     landing: {
       hero: {
-        headline: config.headline,
-        subheadline: `${name} uses adaptive learning to help you master concepts faster.`,
+        headline: heroHeadline,
+        subheadline: heroSubheadline,
         ctaText: 'Start Learning',
       },
       features: {
@@ -122,7 +167,7 @@ export function fillConceptInRaw(raw: unknown, conceptId: string, options: FillC
     throw new Error(`Concept "${conceptId}" already has ${concept.knowledgePoints.length} KP(s). Remove them first to regenerate.`);
   }
 
-  const kpCount = options.kps ?? 2;
+  const kpCount = options.kps ?? 3;
   const problemsPerKp = options.problemsPerKp ?? 3;
 
   const newKps = [];

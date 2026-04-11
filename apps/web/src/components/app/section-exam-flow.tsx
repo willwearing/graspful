@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, startTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock } from "lucide-react";
+import { Clock, Loader2 } from "lucide-react";
 import { apiClientFetch } from "@/lib/api-client";
 import { ProblemRenderer } from "@/components/app/problems/problem-renderer";
 import { Button } from "@/components/ui/button";
@@ -105,7 +105,25 @@ export function SectionExamFlow({
 
   async function handleSubmit(answer: ProblemAnswer) {
     if (submitting) return;
+    const submittedIndex = currentIndex;
+    const previousAnsweredCount = answeredCount;
+    const nextIndex = Math.min(submittedIndex + 1, examData.problems.length - 1);
+    const canAdvance = submittedIndex < examData.problems.length - 1;
+    const responseTimeMs = Date.now() - questionStartRef.current;
+
     setSubmitting(true);
+    setError(null);
+
+    startTransition(() => {
+      setAnsweredCount((prev) => prev + 1);
+      if (canAdvance) {
+        setCurrentIndex(nextIndex);
+      }
+    });
+
+    if (canAdvance) {
+      questionStartRef.current = Date.now();
+    }
 
     try {
       const response = await apiClientFetch<{ answeredCount: number; totalProblems: number }>(
@@ -114,24 +132,25 @@ export function SectionExamFlow({
         {
           method: "POST",
           body: JSON.stringify({
-            problemId: examData.problems[currentIndex].id,
+            problemId: examData.problems[submittedIndex].id,
             answer,
-            responseTimeMs: Date.now() - questionStartRef.current,
+            responseTimeMs,
           }),
         }
       );
 
       trackSectionExamQuestionAnswered(
         sectionId,
-        currentIndex,
-        Date.now() - questionStartRef.current,
+        submittedIndex,
+        responseTimeMs,
       );
       setAnsweredCount(response.answeredCount);
-      if (currentIndex < examData.problems.length - 1) {
-        setCurrentIndex((prev) => prev + 1);
-        questionStartRef.current = Date.now();
-      }
     } catch {
+      startTransition(() => {
+        setAnsweredCount(previousAnsweredCount);
+        setCurrentIndex(submittedIndex);
+      });
+      questionStartRef.current = Date.now();
       setError("Could not save your answer. Try again.");
     }
 
@@ -226,11 +245,19 @@ export function SectionExamFlow({
         problem={problem}
         onSubmit={handleSubmit}
         disabled={submitting}
+        loading={submitting}
       />
 
+      {submitting ? (
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+          <Loader2 className="size-4 animate-spin" />
+          Saving answer...
+        </div>
+      ) : null}
+
       {isLast && isLastAnswered ? (
-        <Button onClick={() => void handleFinish()} className="w-full">
-          Finish Section Exam
+        <Button onClick={() => void handleFinish()} className="w-full" disabled={submitting}>
+          {submitting ? "Saving final answer..." : "Finish Section Exam"}
         </Button>
       ) : null}
     </div>

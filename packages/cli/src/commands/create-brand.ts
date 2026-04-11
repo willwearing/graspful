@@ -11,12 +11,14 @@ export function registerCreateBrandCommand(createCmd: Command) {
     .description('Generate a brand YAML scaffold')
     .requiredOption('--niche <niche>', 'Brand niche (education, healthcare, finance, tech, legal)')
     .option('--name <name>', 'Brand name')
+    .option('--topic <topic>', 'Academy topic for more specific landing-page copy')
     .option('--domain <domain>', 'Custom domain')
     .option('--org <slug>', 'Organization slug')
     .option('-o, --output <file>', 'Output file path (defaults to stdout)')
-    .action(async (opts: { niche: string; name?: string; domain?: string; org?: string; output?: string }) => {
+    .action(async (opts: { niche: string; name?: string; topic?: string; domain?: string; org?: string; output?: string }) => {
       const obj = scaffoldBrandObject(opts.niche, {
         name: opts.name,
+        topic: opts.topic,
         domain: opts.domain,
         orgSlug: opts.org,
       });

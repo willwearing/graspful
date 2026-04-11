@@ -35,11 +35,11 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "bun run start:prod",
+      command: "bun run build && bun run start:prod",
       cwd: backendDir,
       url: "http://localhost:3000/api/v1/health",
       reuseExistingServer: true,
-      timeout: 60_000,
+      timeout: 120_000,
     },
     {
       command: "bun run dev",

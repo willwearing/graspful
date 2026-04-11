@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/@graspful/cli)](https://www.npmjs.com/package/@graspful/cli)
 [![license](https://img.shields.io/npm/l/@graspful/cli)](https://github.com/willwearing/graspful/blob/main/LICENSE)
 
-CLI for creating adaptive learning courses from YAML knowledge graphs. Designed for AI agents and humans. Two YAML files in, live course product out -- with adaptive learning, spaced repetition, and Stripe billing.
+CLI for creating adaptive learning academies and courses from YAML knowledge graphs. Designed for AI agents and humans. Academy manifest + course YAMLs + brand YAML in, live adaptive product out.
 
 ## Quick Start
 
@@ -11,15 +11,16 @@ CLI for creating adaptive learning courses from YAML knowledge graphs. Designed 
 # 1. Create an account (opens browser auth, then saves an API key locally)
 npx @graspful/cli register
 
-# 2. Scaffold a course
-npx @graspful/cli create course --topic "CKA Exam" -o cka.yaml
+# 2. Scaffold the academy shell and first course
+npx @graspful/cli create academy --topic "CKA Exam" -o cka-academy.yaml
+npx @graspful/cli create course --topic "CKA Exam Foundations" -o cka.yaml
 
 # 3. Validate and review
 npx @graspful/cli validate cka.yaml
 npx @graspful/cli review cka.yaml
 
 # 4. Import and publish
-npx @graspful/cli import cka.yaml --org <your-org> --publish
+npx @graspful/cli import cka-academy.yaml --org <your-org> --course-dir . --publish
 ```
 
 Steps 2-3 work offline — no account needed. You only need to authenticate before importing or publishing.
@@ -45,13 +46,13 @@ bun add -g @graspful/cli
 
 ## The Two-YAML Workflow
 
-Graspful turns two YAML files into a live learning product:
+Graspful turns an academy manifest, course YAMLs, and a brand YAML into a live learning product:
 
 ```
-course.yaml  ──┐
-                ├──▶  graspful import  ──▶  Live adaptive course
+academy.yaml ──┐
+course.yaml  ──┼──▶  graspful import  ──▶  Live adaptive academy
 brand.yaml   ──┘                           with billing, analytics,
-                                           and spaced repetition
+                                           spaced repetition, and a landing page
 ```
 
 **Course YAML** defines what learners study: concepts, prerequisite graph, knowledge points, practice problems, section exams.
@@ -62,6 +63,7 @@ brand.yaml   ──┘                           with billing, analytics,
 
 | Command | Description |
 |---------|-------------|
+| `graspful create academy` | Generate an academy manifest scaffold |
 | `graspful create course` | Generate a course YAML skeleton with knowledge graph structure |
 | `graspful create brand` | Generate a brand YAML with theme presets |
 | `graspful fill concept` | Add knowledge points and practice problems to a concept |
@@ -91,12 +93,24 @@ graspful create course \
 | `--source` | Source document reference | -- |
 | `-o, --output` | Output file path | stdout |
 
+### `graspful create academy`
+
+Generate an academy manifest scaffold. Every Graspful product should be modeled as an academy, even if it starts with a single course.
+
+```bash
+graspful create academy \
+  --topic "PostHog TAM" \
+  --course "Data Models" \
+  --course "Pipeline Reading and Solution Design" \
+  -o posthog-tam-academy.yaml
+```
+
 ### `graspful create brand`
 
 Generate a brand YAML scaffold. Niche presets: `education`, `healthcare`, `finance`, `tech`, `legal`.
 
 ```bash
-graspful create brand --niche tech --name "DevOps Academy" --org devops-co
+graspful create brand --niche tech --topic "PostHog TAM" --name "TAM Academy" --org tam-academy
 ```
 
 ### `graspful fill concept`
@@ -109,7 +123,7 @@ graspful fill concept course.yaml networking --kps 3 --problems 4
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--kps` | Number of KP stubs | `2` |
+| `--kps` | Number of KP stubs (starting point, not a cap) | `3` |
 | `--problems` | Problems per KP | `3` |
 
 Fails if the concept already has KPs (prevents accidental overwrites).
@@ -144,7 +158,7 @@ The 10 checks:
 | 3 | `prerequisites_valid` | All prerequisite refs point to real concepts |
 | 4 | `question_deduplication` | No near-duplicate questions at same difficulty |
 | 5 | `difficulty_staircase` | Each concept has problems at 2+ difficulty levels |
-| 6 | `cross_concept_coverage` | No single term dominates too many concepts |
+| 6 | `problem_teaching_alignment` | Problems only assess material introduced in the lesson path |
 | 7 | `problem_variant_depth` | Each KP has 3+ problems |
 | 8 | `instruction_formatting` | Long instructions (100+ words) use content blocks |
 | 9 | `worked_example_coverage` | 50%+ of authored concepts have worked examples |
@@ -160,17 +174,19 @@ graspful describe course.yaml
 
 ### `graspful import`
 
-Push a course or brand YAML to a Graspful instance. Requires authentication.
+Push a course, academy, or brand YAML to a Graspful instance. Requires authentication.
 
 ```bash
 graspful import course.yaml --org acme-learning
 graspful import course.yaml --org acme-learning --publish
+graspful import academy.yaml --org acme-learning --course-dir . --publish
 ```
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--org` | Organization slug (required for courses) | -- |
 | `--publish` | Publish immediately (runs review gate) | `false` |
+| `--course-dir` | Base directory for academy course files | manifest directory |
 
 ### `graspful publish`
 
@@ -212,13 +228,16 @@ graspful validate course.yaml --format json
 
 The typical agent loop:
 
-1. **Scaffold** -- `graspful create course --topic "X"` to generate the graph skeleton
-2. **Edit** -- modify the YAML to add concepts, adjust prerequisites and difficulty levels
-3. **Fill** -- `graspful fill concept` for each concept to add KP/problem stubs
-4. **Author** -- replace TODO placeholders with real instructions, worked examples, and problems
-5. **Validate** -- `graspful validate` after each edit (offline, fast)
-6. **Review** -- `graspful review` to run all 10 quality checks
-7. **Import** -- `graspful import --org <org> --publish` when review passes 10/10
+1. **Define the academy** -- `graspful create academy --topic "X"` to establish the academy shell
+2. **Decompose the topic** -- break it into foundations, structures, operations, and applied judgment
+3. **Scaffold each course** -- `graspful create course` for every course in the academy
+4. **Edit** -- modify YAML to add concepts, adjust prerequisites, and keep the graph layered
+5. **Fill** -- `graspful fill concept` for each concept to add KP/problem stubs
+6. **Author** -- replace TODO placeholders with real instructions, worked examples, and problems
+7. **Build the landing page** -- use `graspful create brand --topic "X"` as a starting point, then replace generic copy with academy-specific proof and outcomes
+8. **Validate** -- `graspful validate` after each edit (offline, fast)
+9. **Review** -- `graspful review` to run all 10 quality checks
+10. **Import** -- `graspful import academy.yaml --org <org> --course-dir . --publish` when review passes 10/10
 
 ## MCP Server
 

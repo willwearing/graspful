@@ -24,25 +24,33 @@ concepts:
     tags: [test]
     knowledgePoints:
       - id: kp-alpha-1
-        instruction: "This is the instruction for alpha."
-        workedExample: "Adding 1 and 1 gives 2, so the correct answer is the second option."
+        instruction: >-
+          Basic trivia across three everyday topics: arithmetic addition,
+          sky colour, and water chemistry. Addition combines numbers into a
+          sum. The sky looks blue because of Rayleigh scattering. Water is
+          a compound made of hydrogen and oxygen atoms.
+        workedExample: >-
+          Example addition — 1 plus 1 equals 2, the second option. Example
+          colour fact — the sky appears blue because sunlight scatters off
+          atmosphere molecules. Example chemistry — water, also written H2O,
+          is hydrogen bonded to oxygen.
         problems:
           - id: p-alpha-1
             type: multiple_choice
-            question: "What is 1 + 1?"
+            question: "What is 1 + 1 in basic addition?"
             options: ["1", "2", "3", "4"]
             correct: 1
-            explanation: "1 + 1 = 2."
+            explanation: "Basic addition: 1 + 1 = 2."
           - id: p-alpha-2
             type: true_false
-            question: "The sky is blue."
+            question: "The sky appears blue because of Rayleigh scattering."
             correct: "true"
-            explanation: "The sky appears blue due to Rayleigh scattering."
+            explanation: "Sunlight scattering off the atmosphere makes the sky look blue."
           - id: p-alpha-3
             type: fill_blank
-            question: "Water is made of hydrogen and ___."
+            question: "Water is a compound of hydrogen and ___."
             correct: "oxygen"
-            explanation: "H2O = hydrogen + oxygen."
+            explanation: "Water (H2O) combines hydrogen and oxygen atoms."
 
   - id: concept-beta
     name: "Beta Concept"
@@ -52,24 +60,32 @@ concepts:
     prerequisites: [concept-alpha]
     knowledgePoints:
       - id: kp-beta-1
-        instruction: "This is the instruction for beta."
+        instruction: >-
+          More trivia across familiar topics: arithmetic addition, the
+          solar system, and chemical symbols. Addition also covers 2 plus 2.
+          The Earth orbits the Sun once per year. Gold, a metal, uses the
+          chemical symbol Au from the Latin word "aurum".
+        workedExample: >-
+          Example addition — 2 plus 2 equals 4. Example orbit fact — Earth
+          travels around the Sun in roughly 365 days. Example chemical
+          symbol — gold is Au on the periodic table, derived from aurum.
         problems:
           - id: p-beta-1
             type: multiple_choice
-            question: "What is 2 + 2?"
+            question: "What is 2 + 2 in basic addition?"
             options: ["2", "3", "4", "5"]
             correct: 2
-            explanation: "2 + 2 = 4."
+            explanation: "Basic addition: 2 + 2 = 4."
           - id: p-beta-2
             type: true_false
-            question: "Earth orbits the Sun."
+            question: "The Earth orbits the Sun once per year."
             correct: "true"
-            explanation: "The Earth revolves around the Sun."
+            explanation: "Earth completes one orbit of the Sun in ~365 days."
           - id: p-beta-3
             type: fill_blank
-            question: "The chemical symbol for gold is ___."
+            question: "The chemical symbol for gold, from the Latin aurum, is ___."
             correct: "Au"
-            explanation: "Au comes from the Latin 'aurum'."
+            explanation: "Gold uses Au as its chemical symbol, from aurum."
 `.trim();
 }
 

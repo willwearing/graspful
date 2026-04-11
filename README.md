@@ -1,20 +1,21 @@
 # Graspful
 
-> Create adaptive learning courses with AI agents. Launch in minutes.
+> Create adaptive learning academies and courses with AI agents. Launch in minutes.
 
 ## What Is Graspful?
 
-Graspful is an agent-first course creation platform. Courses are defined as YAML files with knowledge graphs, validated by schema, and imported via CLI or MCP server -- no UI clicking required. Agents (or humans) scaffold a course, fill in content concept by concept, run quality checks, and publish. The platform handles the rest: adaptive diagnostics, mastery-based progression, spaced repetition, white-label landing pages, and Stripe billing.
+Graspful is an agent-first academy creation platform. Academies and courses are defined as YAML files with knowledge graphs, validated by schema, and imported via CLI or MCP server -- no UI clicking required. Agents (or humans) scaffold an academy, break it into prerequisite-aware courses, fill in content concept by concept, run quality checks, and publish. The platform handles the rest: adaptive diagnostics, mastery-based progression, spaced repetition, white-label landing pages, and Stripe billing.
 
 ## How It Works
 
-1. **Scaffold** -- `graspful create course --topic "CKA Exam"` generates the knowledge graph skeleton
-2. **Fill** -- `graspful fill concept course.yaml networking` adds KPs and practice problems
-3. **Review** -- `graspful review course.yaml` runs 10 quality checks
-4. **Import** -- `graspful import course.yaml --org k8s-cert --publish` goes live
-5. **Brand** -- `graspful create brand --niche "Kubernetes"` generates the landing page
+1. **Scaffold academy** -- `graspful create academy --topic "CKA Exam"` generates the academy shell
+2. **Scaffold courses** -- `graspful create course --topic "Cluster Networking"` generates each course graph
+3. **Fill** -- `graspful fill concept course.yaml networking` adds KPs and practice problems
+4. **Review** -- `graspful review course.yaml` runs 10 quality checks, including whether problems only assess taught material
+5. **Import** -- `graspful import academy.yaml --org k8s-cert --course-dir . --publish` goes live
+6. **Brand** -- `graspful create brand --niche "Kubernetes" --topic "CKA Exam"` generates the landing page that actually sells the academy
 
-Two YAMLs (course + brand) produce one live product with adaptive learning, spaced repetition, and Stripe billing.
+Three YAMLs (academy + courses + brand) produce one live product with adaptive learning, spaced repetition, and Stripe billing.
 
 ## Quick Start
 
@@ -22,7 +23,8 @@ Two YAMLs (course + brand) produce one live product with adaptive learning, spac
 npx @graspful/cli init
 # opens browser auth, then saves an API key locally
 graspful register --email you@example.com
-graspful create course --scaffold-only --topic "Your Topic" -o course.yaml
+graspful create academy --topic "Your Topic" -o academy.yaml
+graspful create course --topic "Foundations" -o courses/foundations.yaml
 ```
 
 ## Tech Stack
@@ -58,11 +60,12 @@ graspful/
 |---------|:---:|-------------|
 | `graspful register` | No | Create account + API key via browser auth |
 | `graspful login` | No | Authenticate with existing credentials |
+| `graspful create academy` | No | Generate academy manifest skeleton |
 | `graspful create course` | No | Generate course YAML skeleton |
 | `graspful create brand` | No | Generate brand YAML with theme presets |
 | `graspful fill concept` | No | Add KPs and problems to a concept |
 | `graspful validate` | No | Offline schema + DAG validation |
-| `graspful review` | No | 10 mechanical quality checks |
+| `graspful review` | No | 10 mechanical quality checks, including teaching alignment |
 | `graspful describe` | No | Course statistics |
 | `graspful import` | **Yes** | Push YAML to Graspful instance |
 | `graspful publish` | **Yes** | Publish a draft course |
@@ -96,12 +99,14 @@ Or manually add to your MCP config:
 | Tool | Auth? | Description |
 |------|:---:|-------------|
 | `graspful_scaffold_course` | No | Generate course YAML skeleton |
+| `graspful_create_academy` | No | Generate academy manifest scaffold |
 | `graspful_fill_concept` | No | Add KPs and problems to a concept |
 | `graspful_validate` | No | Validate YAML against schema |
-| `graspful_review_course` | No | Run 10 quality checks |
+| `graspful_review_course` | No | Run 10 quality checks, including teaching alignment |
 | `graspful_describe_course` | No | Course statistics |
 | `graspful_create_brand` | No | Generate brand YAML |
 | `graspful_import_course` | **Yes** | Import course to platform |
+| `graspful_import_academy` | **Yes** | Import academy manifest plus course YAMLs |
 | `graspful_publish_course` | **Yes** | Publish a draft course |
 | `graspful_import_brand` | **Yes** | Import brand config |
 | `graspful_list_courses` | **Yes** | List org courses |

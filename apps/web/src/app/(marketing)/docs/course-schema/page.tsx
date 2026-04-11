@@ -194,9 +194,10 @@ concepts:               # required, array of concept objects
         </h2>
         <p className="mt-2 text-muted-foreground">
           Each knowledge point teaches one load-bearing move, distinction, or
-          case. Fully-authored concepts should have 2-4 KPs with progressive
-          difficulty. Each KP follows: instruction &rarr; content &rarr; worked
-          example &rarr; practice.
+          case. There is no fixed cap on KPs per concept. Fully-authored
+          concepts should have as many KPs as the staircase requires, often
+          around 3-5, with progressive difficulty. Each KP follows: instruction
+          &rarr; content &rarr; worked example &rarr; practice.
         </p>
         <FieldTable
           fields={[
@@ -400,10 +401,10 @@ concepts:
               Knowledge points
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Fully-authored concepts should have 2-4 KPs with progressive
-              difficulty. Each KP teaches one load-bearing move. Difficulty
-              should rise one small step at a time — learners should feel like
-              climbing a staircase, not jumping a gap.
+              Fully-authored concepts should have as many KPs as the staircase
+              requires, often around 3-5. Each KP teaches one load-bearing
+              move. Difficulty should rise one small step at a time — learners
+              should feel like climbing a staircase, not jumping a gap.
             </p>
           </div>
 

@@ -40,7 +40,7 @@ const terms = [
     id: "concept",
     term: "Concept",
     definition:
-      "The atomic unit of knowledge in the graph. A concept represents one teachable idea that can be tested independently. Good granularity: \"Forms of Co-Ownership\" or \"JavaScript Closures\". Too broad: \"All of Property Law\". Too narrow: \"Definition of Joint Tenancy\" (this should be a knowledge point, not a concept). Each concept has a difficulty rating (1-10), prerequisites, optional encompassing edges, and 2-4 knowledge points.",
+      "The atomic unit of knowledge in the graph. A concept represents one teachable idea that can be tested independently. Good granularity: \"Forms of Co-Ownership\" or \"JavaScript Closures\". Too broad: \"All of Property Law\". Too narrow: \"Definition of Joint Tenancy\" (this should be a knowledge point, not a concept). Each concept has a difficulty rating (1-10), prerequisites, optional encompassing edges, and however many knowledge points the learning staircase requires.",
   },
   {
     id: "course",
@@ -82,7 +82,7 @@ const terms = [
     id: "knowledge-point-kp",
     term: "Knowledge Point (KP)",
     definition:
-      "A progressive difficulty stage within a concept. Each concept has 2-4 KPs forming a learning staircase. The recommended authoring pattern is recognition (can you identify it?), guided application (can you use it with support?), then transfer (can you apply it in a novel context?) — though this is a content guideline, not enforced by the engine. Each KP has its own instruction text, optional worked example, and 3+ practice problems. A student masters a KP by answering two consecutive problems correctly.",
+      "A progressive difficulty stage within a concept. There is no fixed cap on KPs per concept; authors should add as many steps as the staircase requires. The recommended authoring pattern is recognition (can you identify it?), guided application (can you use it with support?), then transfer (can you apply it in a novel context?) — though this is a content guideline, not enforced by the engine. Each KP has its own instruction text, optional worked example, and 3+ practice problems. A student masters a KP by answering two consecutive problems correctly.",
   },
   {
     id: "mastery-state",

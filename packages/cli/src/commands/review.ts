@@ -39,7 +39,19 @@ export function registerReviewCommand(program: Command) {
         }
       }
 
-      cliCapture('course reviewed', { score: result.score, passed: result.passed });
+      if (result.warnings.length > 0) {
+        lines.push('');
+        lines.push('Warnings:');
+        for (const warning of result.warnings) {
+          lines.push(`  [WARN] ${warning.check}: ${warning.details ?? 'no details'}`);
+        }
+      }
+
+      cliCapture('course reviewed', {
+        score: result.score,
+        passed: result.passed,
+        warnings: result.warnings.length,
+      });
       output(result, lines.join('\n'));
 
       if (!result.passed) {

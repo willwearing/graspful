@@ -3,6 +3,7 @@ import { validateParsedYaml } from '../validate';
 import { describeCourse } from '../describe';
 import {
   scaffoldCourseObject,
+  scaffoldAcademyObject,
   scaffoldBrandObject,
   fillConceptInRaw,
 } from '../scaffold';
@@ -27,14 +28,18 @@ function makeProblem(id: string, question: string, difficulty: number) {
 }
 
 function makeKp(conceptId: string, kpIndex: number) {
+  const conceptLabel =
+    conceptId === 'concept-a'
+      ? 'fractions and addition'
+      : 'equivalent fractions and simplification';
   return {
     id: `${conceptId}-kp${kpIndex}`,
-    instruction: `Instruction for ${conceptId} KP${kpIndex}`,
-    workedExample: `Worked example for ${conceptId} KP${kpIndex}`,
+    instruction: `Teach ${conceptLabel} in ${conceptId} KP${kpIndex} with a scaffolded explanation and guided practice.`,
+    workedExample: `Worked example for ${conceptLabel} in ${conceptId} KP${kpIndex}.`,
     problems: [
-      makeProblem(`${conceptId}-kp${kpIndex}-p1`, `Q1 for ${conceptId} kp${kpIndex}`, 2),
-      makeProblem(`${conceptId}-kp${kpIndex}-p2`, `Q2 for ${conceptId} kp${kpIndex}`, 3),
-      makeProblem(`${conceptId}-kp${kpIndex}-p3`, `Q3 for ${conceptId} kp${kpIndex}`, 4),
+      makeProblem(`${conceptId}-kp${kpIndex}-p1`, `Which fractions addition step is correct for ${conceptLabel}?`, 2),
+      makeProblem(`${conceptId}-kp${kpIndex}-p2`, `How does ${conceptLabel} work in this example?`, 3),
+      makeProblem(`${conceptId}-kp${kpIndex}-p3`, `When should you apply ${conceptLabel} to solve the problem?`, 4),
     ],
   };
 }
@@ -162,6 +167,25 @@ describe('scaffoldCourseObject', () => {
   });
 });
 
+describe('scaffoldAcademyObject', () => {
+  it('scaffolds an academy manifest with one default course', () => {
+    const result = scaffoldAcademyObject('PostHog TAM');
+    expect(result.academy.id).toBe('posthog-tam');
+    expect(result.academy.name).toBe('PostHog TAM Academy');
+    expect(result.courses).toHaveLength(1);
+    expect(result.courses[0].file).toBe('courses/posthog-tam-foundations.yaml');
+  });
+
+  it('uses provided course names when present', () => {
+    const result = scaffoldAcademyObject('Data Academy', {
+      courseNames: ['Data Models', 'Data Pipelines'],
+    });
+    expect(result.courses).toHaveLength(2);
+    expect(result.courses[0].id).toBe('data-models');
+    expect(result.courses[1].id).toBe('data-pipelines');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // scaffoldBrandObject
 // ---------------------------------------------------------------------------
@@ -209,7 +233,7 @@ describe('fillConceptInRaw', () => {
     const result = fillConceptInRaw(raw, 'intro', {}) as Record<string, unknown>;
     const concepts = result['concepts'] as Array<Record<string, unknown>>;
     const kps = concepts[0]['knowledgePoints'] as unknown[];
-    expect(kps).toHaveLength(2); // default kps = 2
+    expect(kps).toHaveLength(3); // default scaffold starting point = 3
   });
 
   it('respects custom kp and problem counts', () => {
@@ -256,5 +280,74 @@ describe('runQualityGate', () => {
     expect(result.passed).toBe(false);
     expect(result.failures.length).toBeGreaterThan(0);
     expect(result.stats.concepts).toBe(0);
+  });
+
+  it('fails when every problem in a KP tests material not taught in the current lesson path', () => {
+    const bad = JSON.parse(JSON.stringify(MINIMAL_COURSE));
+    // Rewrite ALL problems in the first KP so none share vocabulary with the
+    // teaching path. A single drifted problem should not be enough — the check
+    // only fires when the whole KP looks off-topic.
+    bad.concepts[0].knowledgePoints[0].problems[0].question =
+      'Which division remainder proves the quotient is valid?';
+    bad.concepts[0].knowledgePoints[0].problems[1].question =
+      'How does integer division differ from floating point division?';
+    bad.concepts[0].knowledgePoints[0].problems[2].question =
+      'When does modular arithmetic produce a negative remainder?';
+
+    const result = runQualityGate(bad);
+    const alignmentFailure = result.failures.find(
+      (failure) => failure.check === 'problem_teaching_alignment',
+    );
+
+    expect(alignmentFailure).toBeDefined();
+    expect(alignmentFailure?.details).toMatch(/share no vocabulary/i);
+  });
+
+  it('does not fail the teaching-alignment check on a course with stub instructions', () => {
+    // Stub-instruction fixtures (typical of e2e tests and in-progress drafts)
+    // must not trip the teaching-alignment gate. When the KP has almost no
+    // teaching content, the check has nothing to judge against and should skip.
+    const stub = JSON.parse(JSON.stringify(MINIMAL_COURSE));
+    for (const concept of stub.concepts) {
+      for (const kp of concept.knowledgePoints) {
+        kp.instruction = 'Stub instruction.';
+        kp.workedExample = 'Stub example.';
+      }
+    }
+
+    const result = runQualityGate(stub);
+    const alignmentCheck = [...result.failures, ...(result as any).warnings ?? []]
+      .find((r: { check: string }) => r.check === 'problem_teaching_alignment');
+
+    expect(alignmentCheck).toBeUndefined();
+  });
+
+  it('emits a kp_atomicity warning when a KP instruction contains a long parallel list', () => {
+    const oversized = JSON.parse(JSON.stringify(MINIMAL_COURSE));
+    oversized.concepts[0].knowledgePoints[0].instruction = [
+      'Every use case has a core product:',
+      '',
+      '- Product Analytics is primary for Product Intelligence.',
+      '- Feature Flags is primary for Release Engineering.',
+      '- Error Tracking is primary for Observability.',
+      '- Web Analytics is primary for Growth & Marketing.',
+      '- LLM Observability is primary for AI/LLM Observability.',
+      '- Data Warehouse is primary for Data Infrastructure.',
+      '- Session Replay is primary for Customer Experience.',
+    ].join('\n');
+
+    const result = runQualityGate(oversized);
+    const warning = result.warnings.find((w) => w.check === 'kp_atomicity');
+
+    expect(warning).toBeDefined();
+    expect(warning?.details).toMatch(/parallel list/i);
+    // A warning MUST NOT flip the passed/score contract — warnings are advisory.
+    expect(result.score).toMatch(/^\d+\/10$/);
+  });
+
+  it('does not warn when a KP instruction has no long parallel list', () => {
+    const result = runQualityGate(MINIMAL_COURSE);
+    const atomicityWarning = result.warnings.find((w) => w.check === 'kp_atomicity');
+    expect(atomicityWarning).toBeUndefined();
   });
 });

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AcademyGraphController } from './academy-graph.controller';
 import { AcademyImporterService } from './academy-importer.service';
 import { CourseReadService } from './course-read.service';
-import { OrgMembershipGuard, SupabaseAuthGuard } from '@/auth';
+import { JwtOrApiKeyGuard, OrgMembershipGuard } from '@/auth';
 
 const mockGuard = { canActivate: () => true };
 
@@ -33,7 +33,7 @@ describe('AcademyGraphController', () => {
         { provide: AcademyImporterService, useValue: mockAcademyImporter },
       ],
     })
-      .overrideGuard(SupabaseAuthGuard)
+      .overrideGuard(JwtOrApiKeyGuard)
       .useValue(mockGuard)
       .overrideGuard(OrgMembershipGuard)
       .useValue(mockGuard)

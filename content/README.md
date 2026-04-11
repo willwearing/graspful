@@ -139,7 +139,8 @@ A concept = one teachable idea that can be tested independently. Too broad = stu
 ### Knowledge Points (KPs)
 
 - Do not optimize for the fewest possible KPs. Optimize for enough scaffolding that a learner can actually master the idea in sequence.
-- Fully-authored concepts should usually have 2-4 KPs, progressively harder
+- There is no engine-level cap on KPs per concept. The count should come from the staircase the concept needs, not from a template number.
+- Many concepts will land around 3-5 KPs, but broad or high-transfer concepts may legitimately need more if that is what the prerequisite staircase requires.
 - Use 1 KP only when the concept is genuinely tiny and atomic, or when the concept is still a graph stub rather than a finished lesson
 - Each KP should follow: instruction -> content -> worked example -> practice
 - Each KP should teach one load-bearing move, distinction, or case. If one KP needs to cover definition + design rule + caveat + implementation pattern, split it.
