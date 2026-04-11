@@ -4,9 +4,9 @@
 [![MCP](https://img.shields.io/badge/MCP-compatible-blue)](https://modelcontextprotocol.io)
 [![License](https://img.shields.io/npm/l/@graspful/mcp)](https://github.com/willwearing/graspful/blob/main/LICENSE)
 
-MCP server for creating adaptive learning courses. AI agents scaffold, validate, review, and publish courses as YAML knowledge graphs.
+MCP server for creating adaptive learning academies and courses. AI agents scaffold, validate, review, and publish academy manifests, course YAMLs, and brand YAMLs as a connected product.
 
-Part of [Graspful](https://graspful.ai) -- the agent-first adaptive learning platform. Courses are authored as two YAML files (graph structure + content), validated offline, then imported via API.
+Part of [Graspful](https://graspful.ai) -- the agent-first adaptive learning platform. Academies are authored as an academy manifest plus one or more course YAMLs, then paired with a brand YAML for the learner-facing landing page.
 
 ## Quick Start
 
@@ -41,36 +41,50 @@ npx @graspful/cli register
 export GRASPFUL_API_KEY="gsk_..."
 ```
 
-### 3. Build a course
+### 3. Build an academy
 
 ```
-graspful_scaffold_course(topic: "Your Topic", estimatedHours: 10)
+graspful_create_academy(topic: "Your Topic")
+→ create or author the course YAMLs referenced by the manifest
+graspful_scaffold_course(topic: "Your First Course", estimatedHours: 10)
 → edit the YAML
 graspful_validate(yaml: "...")
 graspful_review_course(yaml: "...")
-graspful_import_course(yaml: "...", org: "your-org", publish: true)
+graspful_import_academy(manifestYaml: "...", courseYamls: { "courses/course.yaml": "..." }, org: "your-org", publish: true)
 ```
 
 Scaffold, fill, validate, and review work offline — no account needed. You only need to register before importing or publishing.
 
 ## Available Tools
 
-10 tools. Focused and minimal -- agents degrade above 40 tools.
+12 tools. Focused and minimal -- agents degrade above 40 tools.
 
 | Tool | Description | Auth Required |
 |------|-------------|:---:|
+| `graspful_create_academy` | Generate an academy manifest scaffold | No |
 | `graspful_scaffold_course` | Generate a course YAML skeleton with sections, concepts, and prerequisite edges | No |
 | `graspful_fill_concept` | Add knowledge points and problem stubs to a specific concept | No |
 | `graspful_validate` | Validate any Graspful YAML against its Zod schema. Auto-detects file type | No |
 | `graspful_review_course` | Run all 10 mechanical quality checks. Returns a score with failure details | No |
 | `graspful_describe_course` | Compute course statistics without importing (concept/KP/problem counts, graph depth) | No |
 | `graspful_create_brand` | Generate brand YAML scaffold for a white-label learning site | No |
+| `graspful_import_academy` | Import academy manifest + course YAMLs. Optionally publish imported courses | Yes |
 | `graspful_import_course` | Import course YAML into an organization. Creates as draft by default | Yes |
 | `graspful_publish_course` | Publish a draft course. Runs review gate first -- all 10 checks must pass | Yes |
 | `graspful_import_brand` | Import brand YAML to create white-label site config | Yes |
 | `graspful_list_courses` | List all courses in an organization | Yes |
 
 ## Tool Reference
+
+### `graspful_create_academy`
+
+Generate an academy manifest scaffold. Every Graspful product should be modeled as an academy, even if it starts with a single course.
+
+| Parameter | Type | Required | Description |
+|-----------|------|:---:|-------------|
+| `topic` | string | Yes | Academy topic (e.g., "PostHog TAM") |
+| `courseNames` | string[] | No | Ordered course names for the manifest |
+| `version` | string | No | Academy version string |
 
 ### `graspful_scaffold_course`
 
@@ -113,18 +127,31 @@ Run all 10 mechanical quality checks. Returns a score (e.g., "8/10") with detail
 2. Unique problem IDs
 3. Valid prerequisites (all refs point to real concepts)
 4. No DAG cycles
-5. Minimum KPs per concept
-6. Minimum problems per KP
-7. Difficulty distribution (2+ levels per concept)
+5. Difficulty distribution (2+ levels per concept)
+6. Problems only assess material introduced in the lesson path
+7. Minimum problems per KP
 8. Explanation coverage (worked examples)
 9. Question deduplication (no near-duplicates at same difficulty)
-10. Concept tag coverage
+10. Import dry run (graph remains valid for import)
 
 | Parameter | Type | Required | Description |
 |-----------|------|:---:|-------------|
 | `yaml` | string | Yes | Full course YAML string |
 
 **Returns:** `{ passed, score, failures, warnings, stats }`
+
+### `graspful_import_academy`
+
+Import academy manifest YAML plus the course YAMLs it references.
+
+| Parameter | Type | Required | Description |
+|-----------|------|:---:|-------------|
+| `manifestYaml` | string | Yes | Full academy manifest YAML string |
+| `courseYamls` | object | Yes | Map of manifest file paths to full course YAML strings |
+| `org` | string | Yes | Organization slug |
+| `publish` | boolean | No | Publish imported courses after academy import |
+| `replace` | boolean | No | Replace existing content on re-import |
+| `archiveMissing` | boolean | No | Archive removed content on re-import |
 
 ### `graspful_import_course`
 
@@ -167,6 +194,7 @@ Generate brand YAML scaffold for a white-label learning site. Niche presets set 
 |-----------|------|:---:|-------------|
 | `niche` | string | Yes | `education`, `healthcare`, `finance`, `tech`, or `legal` |
 | `name` | string | No | Brand name |
+| `topic` | string | No | Academy topic for more specific landing-page copy |
 | `domain` | string | No | Custom domain |
 | `orgSlug` | string | No | Organization slug |
 
@@ -192,24 +220,26 @@ List all courses in a Graspful organization.
 ## Typical Agent Workflow
 
 ```
-1. Scaffold       graspful_scaffold_course(topic: "Kubernetes Networking", estimatedHours: 8)
+1. Academy shell  graspful_create_academy(topic: "Kubernetes Networking")
+                  Define the academy boundary first, then author the courses inside it.
+
+2. Course graph   graspful_scaffold_course(topic: "Kubernetes Networking Foundations", estimatedHours: 8)
                   Edit the returned YAML -- add concepts, set prerequisites
 
-2. Validate       graspful_validate(yaml) -- catch schema errors early
+3. Validate       graspful_validate(yaml) -- catch schema errors early
 
-3. Fill           graspful_fill_concept(yaml, conceptId: "k8s-services")
+4. Fill           graspful_fill_concept(yaml, conceptId: "k8s-services")
                   Repeat for each concept. Replace TODO placeholders with real content.
                   Validate after each fill.
 
-4. Review         graspful_review_course(yaml) -- run quality gate
+5. Review         graspful_review_course(yaml) -- run quality gate
                   Fix failures, re-review until 10/10
 
-5. Import         graspful_import_course(yaml, org: "acme") -- creates draft
-
-6. Brand          graspful_create_brand(niche: "tech", name: "Acme Learn")
+6. Brand          graspful_create_brand(niche: "tech", topic: "Kubernetes Networking", name: "Acme Learn")
+                  Replace scaffold copy with learner-specific landing-page proof
                   graspful_import_brand(yaml, orgSlug: "acme")
 
-7. Publish        graspful_publish_course(courseId: "...", org: "acme")
+7. Import         graspful_import_academy(manifestYaml, courseYamls, org: "acme", publish: true)
 ```
 
 Offline tools (scaffold, fill, validate, review, describe, create_brand) need no API key. Only import, publish, import_brand, and list_courses require `GRASPFUL_API_KEY`.

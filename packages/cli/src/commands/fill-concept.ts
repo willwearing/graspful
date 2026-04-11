@@ -13,7 +13,7 @@ export function registerFillConceptCommand(program: Command) {
   fill
     .command('concept <file> <conceptId>')
     .description('Add KP stubs to a specific concept')
-    .option('--kps <count>', 'Number of KP stubs to add', '2')
+    .option('--kps <count>', 'Number of KP stubs to add (authoring starting point, not a cap)', '3')
     .option('--problems <count>', 'Number of problem stubs per KP', '3')
     .action(async (file: string, conceptId: string, opts: { kps: string; problems: string }) => {
       if (!fs.existsSync(file)) {

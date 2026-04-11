@@ -7,7 +7,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  SupabaseAuthGuard,
+  JwtOrApiKeyGuard,
   OrgMembershipGuard,
   CurrentOrg,
   MinRole,
@@ -18,7 +18,7 @@ import { AcademyImporterService } from './academy-importer.service';
 import { ImportAcademyDto } from './dto/import-academy.dto';
 
 @Controller('orgs/:orgId/academies')
-@UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
+@UseGuards(JwtOrApiKeyGuard, OrgMembershipGuard)
 export class AcademyGraphController {
   constructor(
     private courseReads: CourseReadService,

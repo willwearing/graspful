@@ -13,6 +13,7 @@ import {
   validateParsedYaml,
   runQualityGate,
   describeCourse,
+  scaffoldAcademyObject,
   scaffoldCourseObject,
   scaffoldBrandObject,
   fillConceptInRaw,
@@ -111,6 +112,25 @@ interface ToolDef {
 
 const TOOLS: ToolDef[] = [
   {
+    name: 'graspful_create_academy',
+    description: `Generate an academy manifest scaffold for an academy-first workflow. Every academy is a connected curriculum made of one or more real courses.
+
+Use this before authoring course YAML when the topic should be decomposed into multiple learner-facing parts. If you do not pass courseNames, the scaffold creates a single foundations course so the academy can still grow later without changing the outer product shape.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        topic: { type: 'string', description: 'Academy topic name (e.g., "PostHog TAM", "Linear Algebra")' },
+        courseNames: {
+          type: 'array',
+          description: 'Optional ordered course names to include in the manifest',
+          items: { type: 'string' },
+        },
+        version: { type: 'string', description: 'Academy version string (default: 2026.1)' },
+      },
+      required: ['topic'],
+    },
+  },
+  {
     name: 'graspful_scaffold_course',
     description: `Generate a course YAML skeleton with sections, concepts, and prerequisite edges. Returns a minimal valid YAML structure with TODO placeholders.
 
@@ -154,7 +174,7 @@ Fails if the concept already has KPs (to prevent accidental overwrites).`,
       properties: {
         yaml: { type: 'string', description: 'The full course YAML string' },
         conceptId: { type: 'string', description: 'ID of the concept to fill (must exist in the YAML and have 0 KPs)' },
-        kps: { type: 'number', description: 'Number of KP stubs to add (default: 2)' },
+        kps: { type: 'number', description: 'Number of KP stubs to add as a starting point (default: 3, not a cap)' },
         problemsPerKp: { type: 'number', description: 'Number of problem stubs per KP (default: 3)' },
       },
       required: ['yaml', 'conceptId'],
@@ -190,7 +210,7 @@ The 10 checks are:
 3. prerequisites_valid — All prerequisite refs point to real concepts
 4. question_deduplication — No near-duplicate questions at the same difficulty
 5. difficulty_staircase — Each concept has problems at 2+ difficulty levels
-6. cross_concept_coverage — No single term dominates too many concepts
+6. problem_teaching_alignment — Problems only assess material introduced in the current lesson path
 7. problem_variant_depth — Each KP has 3+ problems
 8. instruction_formatting — Long instructions have content blocks
 9. worked_example_coverage — 50%+ of authored concepts have worked examples
@@ -203,6 +223,29 @@ A score of 10/10 is required for publishing. Run this before graspful_import_cou
         yaml: { type: 'string', description: 'The full course YAML string to review' },
       },
       required: ['yaml'],
+    },
+  },
+  {
+    name: 'graspful_import_academy',
+    description: `Import an academy manifest and its referenced course YAMLs into a Graspful organization.
+
+IMPORTANT: Requires authentication. If not authenticated, run \`graspful register\` in a terminal first or set the \`GRASPFUL_API_KEY\` environment variable. Without auth, this tool will fail.
+
+If publish=true, Graspful imports the academy first and then attempts to publish each imported course. Returns the academy result plus publishedCourseIds and publishFailures.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        manifestYaml: { type: 'string', description: 'The full academy manifest YAML string' },
+        courseYamls: {
+          type: 'object',
+          description: 'Object mapping manifest file paths to the full course YAML strings',
+        },
+        org: { type: 'string', description: 'Organization slug (e.g., "acme-learning")' },
+        publish: { type: 'boolean', description: 'If true, publish every imported course after academy import. Default: false' },
+        replace: { type: 'boolean', description: 'Replace existing academy/course content on re-import. Default: false' },
+        archiveMissing: { type: 'boolean', description: 'Archive removed content on re-import. Default: false' },
+      },
+      required: ['manifestYaml', 'courseYamls', 'org'],
     },
   },
   {
@@ -278,6 +321,7 @@ Edit the YAML to customize, then import with \`graspful_import_brand\`.`,
       properties: {
         niche: { type: 'string', description: 'Brand niche: education, healthcare, finance, tech, or legal' },
         name: { type: 'string', description: 'Brand name (default: "{Niche} Academy")' },
+        topic: { type: 'string', description: 'Academy topic for more specific landing-page copy' },
         domain: { type: 'string', description: 'Custom domain (default: "{slug}.graspful.ai")' },
         orgSlug: { type: 'string', description: 'Organization slug to associate with' },
       },
@@ -333,6 +377,16 @@ function errorResult(text: string): ToolResult {
 
 async function handleToolCall(name: string, args: Record<string, unknown>): Promise<ToolResult> {
   switch (name) {
+    case 'graspful_create_academy': {
+      const topic = args.topic as string;
+      const obj = scaffoldAcademyObject(topic, {
+        courseNames: args.courseNames as string[] | undefined,
+        version: args.version as string | undefined,
+      });
+      mcpCapture('academy scaffolded', { topic, course_count: obj.courses.length });
+      return textResult(dumpYaml(obj));
+    }
+
     case 'graspful_scaffold_course': {
       const topic = args.topic as string;
       const obj = scaffoldCourseObject(topic, {
@@ -390,6 +444,69 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
       return textResult(JSON.stringify(result, null, 2));
     }
 
+    case 'graspful_import_academy': {
+      try {
+        requireApiAuth();
+        const result = await apiFetch<{
+          academyId: string;
+          academySlug: string;
+          partCount: number;
+          courseCount: number;
+          courseResults: Array<{ courseId: string }>;
+          warnings: string[];
+        }>(
+          'POST',
+          `/api/v1/orgs/${args.org}/academies/import`,
+          {
+            manifestYaml: args.manifestYaml,
+            courseYamls: args.courseYamls,
+            replace: args.replace ?? false,
+            archiveMissing: args.archiveMissing ?? false,
+          },
+        );
+
+        const publishedCourseIds: string[] = [];
+        const publishFailures: string[] = [];
+
+        if (args.publish) {
+          for (const courseResult of result.courseResults) {
+            try {
+              await apiFetch(
+                'POST',
+                `/api/v1/orgs/${args.org}/courses/${courseResult.courseId}/publish`,
+                {},
+              );
+              publishedCourseIds.push(courseResult.courseId);
+            } catch (error) {
+              publishFailures.push(
+                `${courseResult.courseId}: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+          }
+        }
+
+        mcpCapture('academy imported', {
+          academy_id: result.academyId,
+          org: args.org,
+          course_count: result.courseCount,
+          published_count: publishedCourseIds.length,
+        });
+        return textResult(
+          JSON.stringify(
+            {
+              ...result,
+              publishedCourseIds,
+              publishFailures,
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (e) {
+        return errorResult(`Academy import failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+
     case 'graspful_import_course': {
       try {
         requireApiAuth();
@@ -436,6 +553,7 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
       const niche = args.niche as string;
       const obj = scaffoldBrandObject(niche, {
         name: args.name as string | undefined,
+        topic: args.topic as string | undefined,
         domain: args.domain as string | undefined,
         orgSlug: args.orgSlug as string | undefined,
       });

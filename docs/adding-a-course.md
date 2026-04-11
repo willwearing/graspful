@@ -44,19 +44,40 @@ course:
   sourceDocument: "Official source document name, edition, year"
 ```
 
-### Step 0.5: Decide whether this is a course or an academy
+### Step 0.25: Define the academy promise and landing page angle
 
-Before drawing the graph, decide whether the material should be modeled as:
+Before building graph structure, the agent must also define the learner-facing product promise for the academy landing page. This is not optional polish. The landing page is part of the academy build.
 
-- one standalone `course`
-- or an `academy/track -> courses -> sections -> concepts` tree
+Capture, in plain language:
 
-Use an academy/track when:
+- who the academy is for
+- what outcome the learner is trying to achieve
+- why the outcome is hard today
+- what this academy teaches better than generic content
+- what proof, examples, or concrete curriculum structure the landing page can point to
 
-- the source naturally breaks into multiple major branches
-- those branches have different downstream dependents
-- a learner should be able to stall on one branch and keep progressing on another
-- forcing everything into one course would create oversized mixed buckets
+Important rule:
+
+- Do not ship generic landing-page filler like "learn faster" or "master concepts" without naming the actual domain, learner, and outcome
+- Spend a deliberate authoring cycle on academy landing content so a real learner can understand the offer, trust it, and want to sign up
+- The landing page should reflect the actual academy structure and promise, not placeholder niche copy
+
+### Step 0.5: Model everything as an academy
+
+The default product shape is always an academy.
+
+That means the agent should model the material as:
+
+- an `academy -> courses -> sections -> concepts` tree
+
+Some academies will contain many real courses. Some will begin as a single-course academy. But the outer shape should still be an academy so the curriculum can grow without changing the product boundary.
+
+Why:
+
+- Math Academy's argument is that a course graph is a compressed view of the real knowledge graph, not the source of truth
+- large domains should be split into smaller connected learning units to reduce cognitive load
+- a hierarchical connected sequence of learning units is better than a discontinuous array of disconnected courses
+- the outer academy boundary lets later courses reinforce earlier ones instead of forcing everything into a monolith
 
 This follows the PDF's core structural claims:
 
@@ -66,12 +87,47 @@ This follows the PDF's core structural claims:
 
 Important rule:
 
-- Do not force a multi-branch domain into one course just because the current content is easier to store that way
-- Do not split a connected domain into disconnected standalone courses if the learning engine will lose cross-course prerequisite, remediation, or review-compression logic
+- Do not author a free-floating standalone course as the product shape
+- Do not force a multi-branch domain into one course just because it is easier to store
+- Do not split a connected domain into disconnected standalone products if the learning engine will lose cross-course prerequisite, remediation, or review-compression logic
 
 For example, a large multi-section technical onboarding course should typically become an academy with multiple real courses, not one monolithic course with relabeled sections.
 
-### Step 1: Start from the tree, not the prose
+### Step 0.75: Decompose the domain into academy layers
+
+Before drafting detailed concept graphs, the agent should decompose the topic into a small number of connected academy layers.
+
+Use this formula:
+
+1. Foundations: what must become automatic first
+2. Core structures: what organizes the rest of the domain
+3. Operational flows: what learners do with those structures in practice
+4. Applied judgment: how learners diagnose, choose, and adapt in real scenarios
+
+This follows the PDF's logic:
+
+- Ch. 14, pp. 217-223: break learning into smaller stairs so working memory is not overloaded
+- Ch. 16, pp. 241-245: later learning should exercise and reinforce earlier knowledge through layering
+
+Use a simple dependency test:
+
+- What must the learner understand before the next thing will even make sense?
+- What would later failure most likely reveal as the missing foundation?
+- What should later work continue to rehearse instead of leaving behind?
+
+Examples:
+
+- In math, addition and subtraction sit below multiplication and division because later operations reuse earlier ones
+- In a PostHog TAM academy, models and data pipelines sit below use-case diagnosis and solution design because later TAM judgment depends on understanding how the data is structured and how it moves
+
+The output of this step should be a draft academy map:
+
+- academy name and learner promise
+- candidate courses in dependency order
+- why each course exists
+- what each later course reinforces from earlier courses
+
+### Step 1: Start from the graph, not the prose
 
 The knowledge graph is the curriculum. Sections and labels are summaries for humans; prerequisite edges are the real structure the learning engine uses.
 
@@ -133,15 +189,10 @@ If the answer is yes, the edge probably belongs in the graph.
 
 Once the prerequisite graph is coherent, compress it into:
 
-- for a narrower domain:
-  - `course` -> high-level container
-  - `sections` -> major tiers or capability clusters
-  - `concepts` -> graph nodes inside those sections
-- for a broader multi-branch domain:
-  - `academy/track` -> connected curriculum graph
-  - `courses` -> named subgraphs inside that academy
-  - `sections` -> human-readable groupings inside each course
-  - `concepts` -> graph nodes inside those sections
+- `academy` -> connected curriculum graph and learner-facing product
+- `courses` -> named subgraphs inside that academy
+- `sections` -> human-readable groupings inside each course
+- `concepts` -> graph nodes inside those sections
 
 Sections are not the source of truth. Courses are not the source of truth either. The graph is the source of truth; courses and sections are compressions for humans.
 
@@ -160,6 +211,15 @@ A good section groups concepts that:
 Sections should usually move from foundations to application. If a later section does not build on earlier ones, either the sectioning is wrong or the graph is missing cross-section prerequisites.
 
 Courses inside an academy should follow the same rule. If course B depends on course A in the real learning sequence, the graph should say so. Do not hide inter-course dependencies behind a catalog order or roadmap page.
+
+At this stage, the agent should also update the academy landing-page plan:
+
+- headline tied to the real learner outcome
+- subheadline tied to the real academy structure
+- feature list tied to actual instructional advantages
+- proof points tied to actual course/curriculum details
+
+The landing page should now mirror the academy structure rather than generic brand copy.
 
 This follows the PDF's distinction between knowledge graph and course graph: courses and sections are human-readable compressions of the underlying graph, not substitutes for it (Ch. 4 pp. 72-73).
 
@@ -238,12 +298,43 @@ Important constraint: `instruction` and `workedExample` should remain readable a
 Lesson-quality rules:
 
 - Do not optimize for the shortest possible course or the fewest possible KPs. Optimize for successful mastery through enough scaffolding, examples, and reactive feedback.
-- Fully-authored concepts should usually have 2-4 KPs. One oversized KP is almost always worse than two smaller KPs.
+- There is no fixed KP cap per concept. The right count is whatever staircase the idea needs.
+- Many concepts will land around 3-5 KPs, but if a concept needs more steps to preserve structural integrity and low cognitive load, add them. One oversized KP is almost always worse than several smaller KPs.
 - Each KP should teach one load-bearing move, contrast, or case. If the prose has to cover definition + why it matters + tradeoffs + caveats + operational pattern, split it.
 - KPs must increase in difficulty in small steps. The learner should move from recognition -> guided application -> judgment / transfer, not from definition straight to edge cases.
 - Treat `problems` + `explanation` as reactive feedback. Wrong-answer explanations should diagnose the likely misconception and tell the learner what rule, distinction, or prerequisite to revisit.
 - If a concept still reads like a short chapter instead of a staircase, stop and split it before polishing prose.
 - See [Course Review Gate](./course-review-gate.md) for detailed formatting and variant-depth requirements.
+
+#### Anti-pattern: the parallel catalog KP
+
+The most common way this rule gets violated: a KP whose instruction is a bulleted (or numbered) list where every bullet could be its own KP. The bullets are parallel, independent, and each introduces a distinct named entity.
+
+If you see a list like this inside a single KP, stop and split:
+
+```
+- Product Intelligence: Analytics → Replay → Surveys → Experiments → …
+- Release Engineering: Feature Flags → Experiments → Session Replay
+- Observability: Error Tracking → Session Replay → Logging → …
+- Growth & Marketing: Web Analytics → Marketing Analytics → …
+- AI/LLM Observability: LLM Obs → AI Evals → …
+- Data Infrastructure: Data Warehouse → Batch Exports
+- Customer Experience: Analytics → Replay → Error Tracking → …
+```
+
+That is not one KP. That is seven KPs wearing a trench coat. The learner has to master seven distinct facts simultaneously, the adaptive engine keeps surfacing the same monolith, and mastery never resolves because getting one problem right does not transfer to the others.
+
+**How to fix it:**
+
+1. Ask: *"Is there a meta-pattern that sits above all seven items?"* If yes, that meta-pattern becomes one small KP (the thing the learner actually needs to internalize once). In the example above, the meta-pattern is *"You can see X, but you can't see Y — product Z gives you Y."*
+2. Push the specific per-entity facts down into the concepts where they naturally live — in this example, each use-case concept already teaches its own expansion path. The catalog was duplicating content that existed downstream.
+3. If no meta-pattern exists and each bullet really is load-bearing, split the one KP into N KPs, each teaching a single item with its own problems.
+
+**How to detect it:**
+
+- `graspful review` emits a `kp_atomicity` warning when a KP instruction contains a parallel list of six or more consecutive items. Warnings are advisory — they do not fail the review gate — but they are a strong signal that a KP is over-scoped. Treat every warning as a splitting decision, not a formatting nit.
+- When drafting problems for a KP, write all three problems first. If the three problems naturally end up testing three different facts (three different proper nouns, three different correct-answer topics), the KP teaches multiple facts and should split. Problems on a single KP should test the same fact at difficulty 2 → 3 → 4.
+- When the instruction prose needs more than one worked example to make sense, the KP is almost certainly doing too much. One KP, one worked example, one load-bearing idea.
 
 ### Step 11: Run a content review before calling the course done
 

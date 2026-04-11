@@ -42,6 +42,16 @@ const quizData = {
   ],
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 describe("QuizFlow", () => {
   beforeEach(() => {
     mockApiClientFetch.mockReset();
@@ -69,6 +79,59 @@ describe("QuizFlow", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Quiz question 2?")).toBeTruthy();
+    });
+  });
+
+  it("optimistically advances and shows saving state before the answer request resolves", async () => {
+    const pending = deferred<{ answeredCount: number; totalProblems: number }>();
+    mockApiClientFetch.mockReturnValueOnce(pending.promise);
+
+    render(
+      <QuizFlow orgSlug="org-1" courseId="c1" token="test-token" quizData={quizData} />
+    );
+
+    fireEvent.click(screen.getByText("Answer A"));
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+
+    expect(screen.getByText("Quiz question 2?")).toBeTruthy();
+    expect(screen.getByText(/saving answer/i)).toBeTruthy();
+    expect(screen.getByText(/2 of 3/)).toBeTruthy();
+
+    await act(async () => {
+      pending.resolve({ answeredCount: 1, totalProblems: 3 });
+      await pending.promise;
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/saving answer/i)).toBeNull();
+    });
+  });
+
+  it("returns to the current question if saving the answer fails", async () => {
+    const pending = deferred<{ answeredCount: number; totalProblems: number }>();
+    mockApiClientFetch.mockReturnValueOnce(pending.promise);
+
+    render(
+      <QuizFlow orgSlug="org-1" courseId="c1" token="test-token" quizData={quizData} />
+    );
+
+    fireEvent.click(screen.getByText("Answer A"));
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+
+    expect(screen.getByText("Quiz question 2?")).toBeTruthy();
+
+    await act(async () => {
+      pending.reject(new Error("save failed"));
+      try {
+        await pending.promise;
+      } catch {
+        // expected
+      }
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Quiz question 1?")).toBeTruthy();
+      expect(screen.getByText(/something went wrong/i)).toBeTruthy();
     });
   });
 

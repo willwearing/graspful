@@ -9,16 +9,18 @@ async function scaffoldCourse(topic = 'Test'): Promise<string> {
 }
 
 describe('Tool registration', () => {
-  test('TOOLS has exactly 10 entries', () => {
-    expect(TOOLS.length).toBe(10);
+  test('TOOLS has exactly 12 entries', () => {
+    expect(TOOLS.length).toBe(12);
   });
 
   test('all expected tool names are present', () => {
     const names = TOOLS.map((t) => t.name);
+    expect(names).toContain('graspful_create_academy');
     expect(names).toContain('graspful_scaffold_course');
     expect(names).toContain('graspful_fill_concept');
     expect(names).toContain('graspful_validate');
     expect(names).toContain('graspful_review_course');
+    expect(names).toContain('graspful_import_academy');
     expect(names).toContain('graspful_import_course');
     expect(names).toContain('graspful_publish_course');
     expect(names).toContain('graspful_describe_course');

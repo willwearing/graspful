@@ -40,12 +40,14 @@ If MCP is already configured, you have these tools available — no CLI needed:
 
 | Tool | Auth? | Description |
 |------|:---:|-------------|
+| `graspful_create_academy` | No | Generate academy manifest YAML |
 | `graspful_scaffold_course` | No | Generate course YAML skeleton |
 | `graspful_fill_concept` | No | Add KPs and problems to a concept |
 | `graspful_validate` | No | Validate YAML against schema |
-| `graspful_review_course` | No | Run 10 quality checks |
+| `graspful_review_course` | No | Run 10 quality checks, including teaching alignment |
 | `graspful_describe_course` | No | Course statistics |
 | `graspful_create_brand` | No | Generate brand YAML (required — every org needs a brand) |
+| `graspful_import_academy` | **Yes** | Import academy manifest + course YAMLs (set `GRASPFUL_API_KEY` first) |
 | `graspful_import_course` | **Yes** | Import course to platform (set `GRASPFUL_API_KEY` first) |
 | `graspful_publish_course` | **Yes** | Publish a draft course (set `GRASPFUL_API_KEY` first) |
 | `graspful_import_brand` | **Yes** | Import brand config — required for site to work (set `GRASPFUL_API_KEY` first) |
@@ -72,38 +74,44 @@ The workflow is: scaffold -> fill -> validate -> review -> import.
 
 **Before writing any YAML**, follow the detailed runbook in `docs/adding-a-course.md`. Key steps:
 1. Gather source material (official docs, syllabi, PDFs — not marketing copy)
-2. Decide: single course or academy with multiple courses
-3. Build the prerequisite graph (roots -> trunk -> branches -> leaves)
-4. Write the YAML skeleton (graph first, content second)
-5. Fill concepts one at a time
-6. Validate and review
+2. Model it as an academy first, even if it starts with one course
+3. Decompose the academy into foundations -> structures -> operations -> applied judgment
+4. Build the prerequisite graph (roots -> trunk -> branches -> leaves)
+5. Write the YAML skeleton (graph first, content second)
+6. Spend a cycle on the academy landing page so the promise and proof are specific to the learner
+7. Fill concepts one at a time
+8. Validate and review
 
 ```bash
-# 1. Scaffold the knowledge graph
+# 1. Scaffold the academy shell
+graspful create academy --topic "Your Topic" -o academy.yaml
+
+# 2. Scaffold the first course knowledge graph
 graspful create course --topic "Your Topic" --hours 10 -o course.yaml
 
-# 2. Fill each concept with knowledge points and problems
+# 3. Fill each concept with knowledge points and problems
 graspful fill concept course.yaml <concept-id>
 
-# 3. Validate after every edit
+# 4. Validate after every edit
 graspful validate course.yaml
 
-# 4. Review — must score 10/10 to publish
+# 5. Review — must score 10/10 to publish
 graspful review course.yaml
 
-# 5. Import and publish
-graspful import course.yaml --org <org-slug> --publish
+# 6. Import and publish
+graspful import academy.yaml --org <org-slug> --course-dir .
 ```
 
 Or with MCP tools:
 
 ```
+graspful_create_academy(topic: "Your Topic")
 graspful_scaffold_course(topic: "Your Topic", estimatedHours: 10)
 -> edit the YAML
 graspful_fill_concept(yaml: "...", conceptId: "concept-id")
 graspful_validate(yaml: "...")
 graspful_review_course(yaml: "...")
-graspful_import_course(yaml: "...", org: "org-slug", publish: true)
+graspful_import_academy(manifestYaml: "...", courseYamls: { "courses/course.yaml": "..." }, org: "org-slug", publish: true)
 ```
 
 ### Images, Videos, Links in Course Content
@@ -160,7 +168,7 @@ When building a course from a PDF or document:
 4. For visual content (photos, diagrams, comparisons), find or request publicly accessible image URLs and use `image` content blocks
 5. Do not copy-paste prose verbatim — rewrite for the lesson pattern (instruction -> worked example -> problems)
 
-### Step 4: Create or update the brand
+### Step 4: Create or update the academy landing page and brand
 
 Every org needs a brand for the site to work. Registration creates a minimal default, 
 but you should update it with content relevant to the course topic.
@@ -169,13 +177,19 @@ Use `graspful_create_brand` to generate a brand YAML tailored to the course topi
 then import it with `graspful_import_brand`. This updates the landing page headline, 
 features, and SEO to match the actual course content.
 
+Important:
+
+- do not leave the landing page as generic niche filler
+- the page should name the learner, the outcome, the curriculum shape, and the proof for why this academy is worth joining
+- treat landing-page authoring as part of the academy build, not post-launch polish
+
 If the org already has a brand (from registration), importing a new one updates it 
 in place (upsert by slug).
 
 Create a white-label landing page and theme:
 
 ```bash
-graspful create brand --niche tech --name "My Academy" --org my-org -o brand.yaml
+graspful create brand --niche tech --topic "Your Topic" --name "My Academy" --org my-org -o brand.yaml
 graspful import brand.yaml
 ```
 

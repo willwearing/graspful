@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, startTransition } from "react";
 import { apiClientFetch } from "@/lib/api-client";
 import { ProblemRenderer } from "@/components/app/problems/problem-renderer";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { Problem, ProblemAnswer } from "@/lib/types";
 import Link from "next/link";
-import { Clock } from "lucide-react";
+import { Clock, Loader2 } from "lucide-react";
 import { useTimer } from "@/lib/hooks/use-timer";
 import { trackQuizComplete, trackQuizStarted, trackQuizQuestionAnswered, trackQuizTimedOut } from "@/lib/posthog/events";
 
@@ -111,7 +111,25 @@ export function QuizFlow({
 
   async function handleSubmit(answer: ProblemAnswer) {
     if (submitting) return;
+    const submittedIndex = currentIndex;
+    const previousAnsweredCount = answeredCount;
+    const nextIndex = Math.min(submittedIndex + 1, quizData.problems.length - 1);
+    const canAdvance = submittedIndex < quizData.problems.length - 1;
+    const responseTimeMs = Date.now() - questionStartRef.current;
+
     setSubmitting(true);
+    setError(null);
+
+    startTransition(() => {
+      setAnsweredCount((prev) => prev + 1);
+      if (canAdvance) {
+        setCurrentIndex(nextIndex);
+      }
+    });
+
+    if (canAdvance) {
+      questionStartRef.current = Date.now();
+    }
 
     try {
       const response = await apiClientFetch<{ answeredCount: number; totalProblems: number }>(
@@ -120,26 +138,25 @@ export function QuizFlow({
         {
           method: "POST",
           body: JSON.stringify({
-            problemId: quizData.problems[currentIndex].id,
+            problemId: quizData.problems[submittedIndex].id,
             answer,
-            responseTimeMs: Date.now() - questionStartRef.current,
+            responseTimeMs,
           }),
         }
       );
 
       trackQuizQuestionAnswered(
         quizData.quizId,
-        currentIndex,
-        Date.now() - questionStartRef.current,
+        submittedIndex,
+        responseTimeMs,
       );
       setAnsweredCount(response.answeredCount);
-
-      // Move to next or stay on last
-      if (currentIndex < quizData.problems.length - 1) {
-        setCurrentIndex((prev) => prev + 1);
-        questionStartRef.current = Date.now();
-      }
     } catch {
+      startTransition(() => {
+        setAnsweredCount(previousAnsweredCount);
+        setCurrentIndex(submittedIndex);
+      });
+      questionStartRef.current = Date.now();
       setError("Something went wrong. Please try again.");
     }
     setSubmitting(false);
@@ -207,11 +224,19 @@ export function QuizFlow({
         problem={problem}
         onSubmit={handleSubmit}
         disabled={submitting}
+        loading={submitting}
       />
 
+      {submitting ? (
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+          <Loader2 className="size-4 animate-spin" />
+          Saving answer...
+        </div>
+      ) : null}
+
       {isLast && isLastAnswered && (
-        <Button onClick={handleFinish} className="w-full" variant="default">
-          Finish Quiz
+        <Button onClick={handleFinish} className="w-full" variant="default" disabled={submitting}>
+          {submitting ? "Saving final answer..." : "Finish Quiz"}
         </Button>
       )}
     </div>

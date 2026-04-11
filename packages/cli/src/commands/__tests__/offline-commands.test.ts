@@ -7,8 +7,25 @@ import * as yaml from 'js-yaml';
 
 const CLI_CWD = path.resolve(__dirname, '..', '..', '..');
 const CLI_BIN = `node dist/index.js`;
+let cliBuilt = false;
+
+function buildCliOnce() {
+  if (cliBuilt) return;
+  execSync('bun run build', {
+    cwd: path.resolve(CLI_CWD, '..', 'shared'),
+    encoding: 'utf-8',
+    env: { ...process.env, NODE_ENV: 'test' },
+  });
+  execSync('bun run build', {
+    cwd: CLI_CWD,
+    encoding: 'utf-8',
+    env: { ...process.env, NODE_ENV: 'test' },
+  });
+  cliBuilt = true;
+}
 
 function run(args: string, opts?: { cwd?: string }): string {
+  buildCliOnce();
   try {
     return execSync(`${CLI_BIN} ${args}`, {
       cwd: opts?.cwd ?? CLI_CWD,
@@ -58,6 +75,21 @@ describe('offline CLI commands', () => {
     });
   });
 
+  describe('graspful create academy', () => {
+    it('scaffolds a valid academy YAML file', () => {
+      const outFile = path.join(tmpdir, 'academy.yaml');
+      run(`create academy --topic "PostHog TAM" --course "Data Models" --course "Data Pipelines" -o ${outFile}`);
+
+      expect(fs.existsSync(outFile)).toBe(true);
+
+      const parsed = yaml.load(fs.readFileSync(outFile, 'utf-8')) as any;
+      expect(parsed.academy).toBeDefined();
+      expect(parsed.academy.id).toBe('posthog-tam');
+      expect(parsed.courses).toHaveLength(2);
+      expect(parsed.courses[0].file).toBe('courses/data-models.yaml');
+    });
+  });
+
   // ── create brand ──────────────────────────────────────────────────────
 
   describe('graspful create brand', () => {
@@ -86,6 +118,15 @@ describe('offline CLI commands', () => {
 
       const output = run(`validate ${courseFile}`);
       expect(output).toContain('PASS');
+    });
+
+    it('passes validation for a scaffolded academy file', () => {
+      const academyFile = path.join(tmpdir, 'academy.yaml');
+      run(`create academy --topic "Validation Academy" -o ${academyFile}`);
+
+      const output = run(`validate ${academyFile}`);
+      expect(output).toContain('PASS');
+      expect(output).toContain('academy');
     });
 
     it('exits non-zero for invalid YAML', () => {

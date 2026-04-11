@@ -74,7 +74,7 @@ After the graph review and the content pass, run one final review focused on les
 10. If the learner failed a later KP twice, would the failure location and feedback point to a specific missing idea or prerequisite?
 11. **DEDUPLICATION CHECK (mandatory):** Grep every `question:` field in the YAML and flag any pair of questions that test the same atomic fact at the same cognitive level — even if the wording differs or the problem type differs. Repeated questions are the single most common failure mode in AI-authored courses. They create the illusion of mastery by training the learner to memorize the answer rather than reconstruct the reasoning. This check must be run cross-concept, not just within a single concept, because cross-concept duplication is harder to spot and more damaging. If duplicates are found, the review agent must either (a) delete the weaker variant, (b) rewrite it to test a genuinely different angle/application/scenario, or (c) escalate its difficulty so it adds a new rung on the staircase.
 12. **DIFFICULTY STAIRCASE CHECK (mandatory):** For each concept, list the cognitive level of every problem (recognition / application / judgment-transfer). If all problems are at the same level, the concept fails this check. The fix is to add at least one problem at a higher cognitive level: scenario-based application, multi-step tracing, "design the right approach" judgment, or troubleshooting a realistic failure. A course where every problem is recognition-level teaches vocabulary, not competence.
-13. **CROSS-CONCEPT FACT COVERAGE CHECK:** Identify the 5-10 most-tested facts across the entire course. If any single fact is tested more than 3 times across different concepts (even via encompassing), flag it. Some overlap from layering is expected, but excessive repetition of the same fact signals that the problem pool lacks variety, not that the concept is well-reinforced.
+13. **PROBLEM-TEACHING ALIGNMENT CHECK:** A problem must only assess material introduced in the learner's current lesson path: the current concept, earlier KPs in the concept, and explicitly-declared prerequisites. If a question introduces new vocabulary, operations, or distinctions that were not taught yet, it fails. This is the mechanical guard against asking a division-style question before the learner has been taught the addition and subtraction foundations that support it.
 
 Do not mark the course complete until both the graph review and the content review pass.
 
@@ -129,7 +129,8 @@ instruction: >-
 
 ### Knowledge point granularity
 
-- Fully-authored concepts should have 2-4 KPs. One oversized KP is almost always worse than two smaller KPs.
+- There is no hard cap on KPs per concept. Size the staircase to the structure of the idea, not to a template number.
+- Many concepts will land around 3-5 KPs, but some need more. One oversized KP is almost always worse than several smaller KPs that preserve prerequisite order and cognitive load.
 - Each KP should teach one idea or one skill step. If you need more than ~150 words to explain it, the KP probably covers too much.
 - KPs must form an increasing-difficulty staircase: recognition -> guided application -> judgment / transfer.
 - If a concept still reads like a short chapter instead of a staircase, stop and split it before polishing prose.
@@ -190,7 +191,7 @@ The following 10 checks are automated and run by `graspful review`:
 | 3 | prerequisites_valid | All prerequisite references resolve to real concept IDs |
 | 4 | question_deduplication | No near-identical questions at the same cognitive level |
 | 5 | difficulty_staircase | Each concept has problems at 2+ cognitive levels |
-| 6 | cross_concept_coverage | No fact tested >3 times across concepts |
+| 6 | problem_teaching_alignment | Problems only test vocabulary and operations introduced in the lesson path |
 | 7 | problem_variant_depth | Each authored KP has >=3 practice problems |
 | 8 | instruction_formatting | No wall-of-text instructions >100 words without content blocks |
 | 9 | worked_example_coverage | >=50% of concepts have worked examples |

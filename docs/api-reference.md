@@ -173,7 +173,7 @@ graspful fill concept <file> <conceptId> [options]
 |-----------|------|----------|---------|-------------|
 | `<file>` | string (path) | Yes | — | Path to the course YAML file. Modified in place. |
 | `<conceptId>` | string | Yes | — | ID of the concept to fill. Must exist in the file. |
-| `--kps <count>` | number | No | `2` | Number of KP stubs to generate. |
+| `--kps <count>` | number | No | `3` | Number of KP stubs to generate as a starting point. This is not a recommended maximum. |
 | `--problems <count>` | number | No | `3` | Number of problem stubs per KP. |
 
 **Behavior:**
@@ -290,7 +290,7 @@ graspful review <file>
 | 3 | `prerequisites_valid` | All prerequisite refs point to existing concept IDs. |
 | 4 | `question_deduplication` | No near-duplicate questions at the same difficulty (MD5 hash). |
 | 5 | `difficulty_staircase` | Each authored concept has problems at 2+ difficulty levels. |
-| 6 | `cross_concept_coverage` | No single meaningful term dominates >3 concepts (pass if <=5 violations). |
+| 6 | `problem_teaching_alignment` | Problems only assess vocabulary and operations introduced in the current lesson path and prerequisites. |
 | 7 | `problem_variant_depth` | Each KP has 3+ problems. |
 | 8 | `instruction_formatting` | Instructions >100 words must have content blocks. |
 | 9 | `worked_example_coverage` | 50%+ of authored concepts have worked examples. |
@@ -400,7 +400,7 @@ Sections:
 
 ### `graspful import`
 
-Import a course or brand YAML into a Graspful instance. Auto-detects file type from the top-level key (`course` or `brand`).
+Import a course, academy, or brand YAML into a Graspful instance. Auto-detects file type from the top-level key (`course`, `academy`, or `brand`).
 
 **Syntax:**
 
@@ -412,13 +412,19 @@ graspful import <file> [options]
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `<file>` | string (path) | Yes | — | Path to the YAML file (course or brand). |
-| `--org <slug>` | string | Yes (courses) | — | Organization slug. Required for course imports. |
+| `<file>` | string (path) | Yes | — | Path to the YAML file (course, academy, or brand). |
+| `--org <slug>` | string | Yes (courses and academies) | — | Organization slug. Required for course and academy imports. |
 | `--publish` | boolean | No | `false` | If set, publish immediately after import (runs review gate server-side). |
+| `--course-dir <dir>` | string | No | manifest dir | Base directory used to resolve course files referenced by an academy manifest. |
 
 **Behavior — courses:**
 - Sends YAML to `POST /api/v1/orgs/{org}/courses/import`.
 - If `--publish` is set and the review gate fails, the course is imported as a draft and failures are returned.
+
+**Behavior — academies:**
+- Sends the academy manifest plus resolved course YAMLs to `POST /api/v1/orgs/{org}/academies/import`.
+- If `--publish` is set, publishes each imported course after the academy import succeeds.
+- Use `--course-dir` when the academy manifest references course files outside the manifest's own directory.
 
 **Behavior — brands:**
 - Sends parsed YAML object to `POST /api/v1/brands`.
@@ -434,6 +440,19 @@ graspful import course.yaml --org acme-learning --publish
 Imported course: abc123-uuid
   URL: https://acme-learning.graspful.ai/courses/abc123-uuid
   Published: true
+```
+
+**Example (academy):**
+
+```bash
+graspful import academy.yaml --org acme-learning --course-dir . --publish
+```
+
+```
+Imported academy: posthog-tam
+  Academy ID: academy_123
+  Courses: 2
+  Published courses: 2
 ```
 
 **Example (brand):**

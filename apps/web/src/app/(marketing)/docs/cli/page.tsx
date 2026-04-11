@@ -229,7 +229,7 @@ export default function CLIReferencePage() {
         options={[
           { flag: "<file>", description: "Path to the course YAML file" },
           { flag: "<conceptId>", description: "ID of the concept to fill (must have 0 KPs)" },
-          { flag: "--kps <count>", description: "Number of KP stubs to add (default: 2)" },
+          { flag: "--kps <count>", description: "Number of KP stubs to add as a starting point (default: 3, not a cap)" },
           { flag: "--problems <count>", description: "Number of problem stubs per KP (default: 3)" },
         ]}
         examples={[

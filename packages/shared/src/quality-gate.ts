@@ -27,7 +27,7 @@ export const QUALITY_CHECKS = [
   'prerequisites_valid',
   'question_deduplication',
   'difficulty_staircase',
-  'cross_concept_coverage',
+  'problem_teaching_alignment',
   'problem_variant_depth',
   'instruction_formatting',
   'worked_example_coverage',
@@ -172,23 +172,60 @@ function extractStems(text: string): string[] {
     .filter((word) => word.length > 4);
 }
 
-function checkCrossConceptCoverage(courseYaml: CourseYaml): QualityCheckResult {
-  const stemConceptCount = new Map<string, Set<string>>();
+function addStems(target: Set<string>, value: string | undefined) {
+  if (!value) {
+    return;
+  }
 
-  for (const concept of courseYaml.concepts) {
-    for (const kp of concept.knowledgePoints) {
-      for (const problem of kp.problems) {
-        for (const stem of extractStems(problem.question)) {
-          if (!stemConceptCount.has(stem)) {
-            stemConceptCount.set(stem, new Set());
-          }
-          stemConceptCount.get(stem)!.add(concept.id);
-        }
-      }
+  for (const stem of extractStems(value)) {
+    target.add(stem);
+  }
+}
+
+function buildConceptIndex(courseYaml: CourseYaml) {
+  return new Map(courseYaml.concepts.map((concept) => [concept.id, concept]));
+}
+
+function collectAllowedProblemStems(
+  conceptIndex: Map<string, CourseYaml['concepts'][number]>,
+  concept: CourseYaml['concepts'][number],
+  kpIndex: number,
+) {
+  const allowed = new Set<string>();
+
+  addStems(allowed, concept.name);
+  for (const tag of concept.tags) {
+    addStems(allowed, tag);
+  }
+
+  for (const prereqId of concept.prerequisites) {
+    const prereq = conceptIndex.get(prereqId);
+    if (!prereq) {
+      continue;
+    }
+    addStems(allowed, prereq.name);
+    for (const tag of prereq.tags) {
+      addStems(allowed, tag);
+    }
+    for (const prereqKp of prereq.knowledgePoints) {
+      addStems(allowed, prereqKp.instruction);
+      addStems(allowed, prereqKp.workedExample);
     }
   }
 
-  const commonWords = new Set([
+  for (let index = 0; index <= kpIndex; index++) {
+    const kp = concept.knowledgePoints[index];
+    addStems(allowed, kp?.instruction);
+    addStems(allowed, kp?.workedExample);
+  }
+
+  return allowed;
+}
+
+function checkProblemTeachingAlignment(courseYaml: CourseYaml): QualityCheckResult {
+  const conceptIndex = buildConceptIndex(courseYaml);
+  const failures: string[] = [];
+  const ignoredWords = new Set([
     'which',
     'would',
     'should',
@@ -212,30 +249,48 @@ function checkCrossConceptCoverage(courseYaml: CourseYaml): QualityCheckResult {
     'question',
     'correct',
     'incorrect',
-    'agent',
-    'property',
-    'owner',
-    'buyer',
-    'seller',
+    'client',
+    'server',
+    'resource',
+    'resources',
   ]);
 
-  const overused: string[] = [];
-  for (const [stem, concepts] of stemConceptCount) {
-    if (concepts.size > 3 && !commonWords.has(stem)) {
-      overused.push(`"${stem}" appears across ${concepts.size} concepts`);
+  for (const concept of courseYaml.concepts) {
+    for (let kpIndex = 0; kpIndex < concept.knowledgePoints.length; kpIndex++) {
+      const kp = concept.knowledgePoints[kpIndex];
+      const allowed = collectAllowedProblemStems(conceptIndex, concept, kpIndex);
+
+      for (const problem of kp.problems) {
+        const significantQuestionStems = extractStems(problem.question).filter(
+          (stem) => !ignoredWords.has(stem),
+        );
+
+        if (significantQuestionStems.length === 0) {
+          continue;
+        }
+
+        const overlap = significantQuestionStems.filter((stem) => allowed.has(stem));
+        if (overlap.length > 0) {
+          continue;
+        }
+
+        failures.push(
+          `"${concept.id}/${kp.id}/${problem.id}" appears to test material that is not introduced in the current KP, earlier KPs, or prerequisite concepts`,
+        );
+      }
     }
   }
 
-  if (overused.length === 0) {
-    return { check: 'cross_concept_coverage', passed: true };
+  if (failures.length === 0) {
+    return { check: 'problem_teaching_alignment', passed: true };
   }
 
   return {
-    check: 'cross_concept_coverage',
-    passed: overused.length <= 5,
+    check: 'problem_teaching_alignment',
+    passed: false,
     details:
-      overused.slice(0, 5).join('; ') +
-      (overused.length > 5 ? ` (+${overused.length - 5} more)` : ''),
+      failures.slice(0, 5).join('; ') +
+      (failures.length > 5 ? ` (+${failures.length - 5} more)` : ''),
   };
 }
 
@@ -431,7 +486,48 @@ function checkImportDryRun(courseYaml: CourseYaml): QualityCheckResult {
   };
 }
 
-function summarizeChecks(checks: QualityCheckResult[]): Omit<QualityGateResult, 'stats'> {
+const KP_ATOMICITY_BULLET_THRESHOLD = 6;
+
+function collectKpAtomicityWarnings(courseYaml: CourseYaml): QualityCheckResult[] {
+  const warnings: QualityCheckResult[] = [];
+
+  for (const concept of courseYaml.concepts) {
+    for (const kp of concept.knowledgePoints) {
+      if (!kp.instruction) {
+        continue;
+      }
+
+      const lines = kp.instruction.split('\n');
+      let runLength = 0;
+      let maxRun = 0;
+      for (const line of lines) {
+        const isListItem = /^\s*(?:[-*•]|\d+\.)\s+\S/.test(line);
+        const isBlank = line.trim().length === 0;
+        if (isListItem) {
+          runLength += 1;
+          if (runLength > maxRun) maxRun = runLength;
+        } else if (!isBlank) {
+          runLength = 0;
+        }
+      }
+
+      if (maxRun >= KP_ATOMICITY_BULLET_THRESHOLD) {
+        warnings.push({
+          check: 'kp_atomicity',
+          passed: false,
+          details: `"${concept.id}/${kp.id}" instruction has a parallel list of ${maxRun} items — likely teaches multiple facts at once. Consider splitting into separate knowledge points so each KP teaches one load-bearing idea (The Math Academy Way, Ch. 14).`,
+        });
+      }
+    }
+  }
+
+  return warnings;
+}
+
+function summarizeChecks(
+  checks: QualityCheckResult[],
+  warnings: QualityCheckResult[],
+): Omit<QualityGateResult, 'stats'> {
   const passedCount = checks.filter((check) => check.passed).length;
   const failures = checks.filter((check) => !check.passed);
 
@@ -439,7 +535,7 @@ function summarizeChecks(checks: QualityCheckResult[]): Omit<QualityGateResult, 
     passed: failures.length === 0,
     score: `${passedCount}/${QUALITY_CHECKS.length}`,
     failures,
-    warnings: [],
+    warnings,
   };
 }
 
@@ -451,15 +547,16 @@ export function reviewCourseYaml(courseYaml: CourseYaml): QualityGateResult {
     checkPrerequisitesValid(courseYaml),
     checkQuestionDeduplication(courseYaml),
     checkDifficultyStaircase(courseYaml),
-    checkCrossConceptCoverage(courseYaml),
+    checkProblemTeachingAlignment(courseYaml),
     checkProblemVariantDepth(courseYaml),
     checkInstructionFormatting(courseYaml),
     checkWorkedExampleCoverage(courseYaml),
     checkImportDryRun(courseYaml),
   ];
+  const warnings = collectKpAtomicityWarnings(courseYaml);
 
   return {
-    ...summarizeChecks(checks),
+    ...summarizeChecks(checks, warnings),
     stats,
   };
 }

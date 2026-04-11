@@ -69,11 +69,12 @@ export default function LearningStaircasePage() {
         The Learning Staircase
       </h1>
       <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Every concept is broken into 2-4 knowledge points that form a
-        progressive staircase. The recommended pattern is recognition,
-        guided application, then transfer — though course authors have
-        flexibility in how they structure each step. Each step is small
-        enough that the student never feels overwhelmed.
+        Every concept is broken into however many knowledge points the
+        staircase actually requires. Many concepts land around 3-5 steps, but
+        there is no fixed cap. The recommended pattern is recognition, guided
+        application, then transfer — though course authors have flexibility in
+        how they structure each step. Each step is small enough that the
+        student never feels overwhelmed.
       </p>
 
       {/* Cognitive load */}
@@ -111,8 +112,9 @@ export default function LearningStaircasePage() {
         </h2>
         <p className="mt-2 text-muted-foreground">
           Not every concept needs all four levels. Simple definitional concepts
-          may only need KP1 and KP2. Complex applied concepts should use all
-          four. The minimum for a fully-authored concept is 2 knowledge points.
+          may only need a short staircase. Complex applied concepts should use
+          as many levels and intermediate steps as needed. There is no fixed
+          maximum number of knowledge points for a concept.
         </p>
         <div className="mt-6 space-y-4">
           {kpLevels.map((kp) => (
