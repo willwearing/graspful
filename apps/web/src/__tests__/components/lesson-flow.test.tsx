@@ -128,7 +128,19 @@ describe("LessonFlow", () => {
   });
 
   it("advances to next KP after completing practice", async () => {
-    mockApiClientFetch.mockResolvedValueOnce({ correct: true, feedback: "Correct!" });
+    // The backend returns a nextProblemHint telling the frontend to advance
+    // to kp2 after the learner passes kp1 (stream-driven practice loop).
+    mockApiClientFetch.mockResolvedValueOnce({
+      correct: true,
+      feedback: "Correct!",
+      nextProblemHint: {
+        targetKPId: "kp2",
+        nextProblemId: "p2",
+        reopenWorkedExample: false,
+        retryDelayMs: 0,
+        lessonComplete: false,
+      },
+    });
 
     renderFlow();
     // KP1: instruction -> worked example -> practice
@@ -137,33 +149,50 @@ describe("LessonFlow", () => {
 
     fireEvent.click(screen.getByRole("radio", { name: "Heat" }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+    // The hint advances directly to kp2's practice — no "Practice complete"
+    // intermediate for the old KP since the stream keeps flowing.
     await waitFor(() => {
-      expect(screen.getByText("Practice complete")).toBeTruthy();
+      expect(screen.getByText("Flashover is best described as:")).toBeTruthy();
     }, { timeout: 2500 });
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
-    expect(screen.getByText("Flashover occurs when all surfaces in a room ignite simultaneously.")).toBeTruthy();
     expect(screen.getByText(/2 of 2/)).toBeTruthy();
   });
 
   it("shows Complete Lesson button on last KP after practice is done", async () => {
     mockApiClientFetch
-      .mockResolvedValueOnce({ correct: true, feedback: "Correct!" })
-      .mockResolvedValueOnce({ correct: true, feedback: "Correct!" });
+      .mockResolvedValueOnce({
+        correct: true,
+        feedback: "Correct!",
+        nextProblemHint: {
+          targetKPId: "kp2",
+          nextProblemId: "p2",
+          reopenWorkedExample: false,
+          retryDelayMs: 0,
+          lessonComplete: false,
+        },
+      })
+      .mockResolvedValueOnce({
+        correct: true,
+        feedback: "Correct!",
+        nextProblemHint: {
+          targetKPId: "kp2",
+          nextProblemId: null,
+          reopenWorkedExample: false,
+          retryDelayMs: 0,
+          lessonComplete: true,
+        },
+      });
 
     renderFlow();
-    // KP1: instruction -> worked example -> practice -> answer -> continue
+    // KP1: instruction -> worked example -> practice -> answer (advances to kp2)
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("radio", { name: "Heat" }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
     await waitFor(() => {
-      expect(screen.getByText("Practice complete")).toBeTruthy();
+      expect(screen.getByText("Flashover is best described as:")).toBeTruthy();
     }, { timeout: 2500 });
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
 
-    // KP2: instruction -> worked example -> practice -> answer
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    // KP2: already in practice (stream-driven) -> answer -> lessonComplete
     fireEvent.click(screen.getByRole("radio", { name: /all surfaces igniting in a room/i }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
     await waitFor(() => {
@@ -174,24 +203,41 @@ describe("LessonFlow", () => {
 
   it("calls complete API and redirects on completion", async () => {
     mockApiClientFetch
-      .mockResolvedValueOnce({ correct: true, feedback: "Correct!" })
-      .mockResolvedValueOnce({ correct: true, feedback: "Correct!" })
+      .mockResolvedValueOnce({
+        correct: true,
+        feedback: "Correct!",
+        nextProblemHint: {
+          targetKPId: "kp2",
+          nextProblemId: "p2",
+          reopenWorkedExample: false,
+          retryDelayMs: 0,
+          lessonComplete: false,
+        },
+      })
+      .mockResolvedValueOnce({
+        correct: true,
+        feedback: "Correct!",
+        nextProblemHint: {
+          targetKPId: "kp2",
+          nextProblemId: null,
+          reopenWorkedExample: false,
+          retryDelayMs: 0,
+          lessonComplete: true,
+        },
+      })
       .mockResolvedValueOnce({ conceptId: "c1", status: "lesson_complete" });
 
     renderFlow();
-    // KP1: instruction -> worked example -> practice -> answer -> continue
+    // KP1: instruction -> worked example -> practice -> answer (advances to kp2)
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("radio", { name: "Heat" }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
     await waitFor(() => {
-      expect(screen.getByText("Practice complete")).toBeTruthy();
+      expect(screen.getByText("Flashover is best described as:")).toBeTruthy();
     }, { timeout: 2500 });
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
 
-    // KP2: instruction -> worked example -> practice -> answer -> complete
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    // KP2: already in practice -> answer -> lessonComplete -> complete
     fireEvent.click(screen.getByRole("radio", { name: /all surfaces igniting in a room/i }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
     await waitFor(() => {
