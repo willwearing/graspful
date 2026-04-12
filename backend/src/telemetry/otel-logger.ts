@@ -1,6 +1,6 @@
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
-import { SimpleLogRecordProcessor } from '@opentelemetry/sdk-logs';
+import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { logs, Logger, SeverityNumber } from '@opentelemetry/api-logs';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 
@@ -20,7 +20,7 @@ export function initOtel() {
   });
 
   const exporter = new OTLPLogExporter({
-    url: `${host.replace(/\/$/, '')}/v1/logs`,
+    url: `${host.replace(/\/$/, '')}/i/v1/logs`,
     headers: {
       Authorization: `Bearer ${apiKey}`,
     },
@@ -28,7 +28,7 @@ export function initOtel() {
 
   sdk = new NodeSDK({
     resource,
-    logRecordProcessors: [new SimpleLogRecordProcessor(exporter)],
+    logRecordProcessors: [new BatchLogRecordProcessor(exporter)],
   });
   sdk.start();
 
