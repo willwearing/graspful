@@ -289,7 +289,7 @@ export default async function CourseDetailPage({
                         </p>
                       </div>
                       {actionLabel ? (
-                        <div className="inline-flex items-center gap-1 self-start text-sm font-medium text-primary">
+                        <div className="inline-flex items-center gap-1 self-start shrink-0 whitespace-nowrap text-sm font-medium text-primary">
                           <span>{actionLabel}</span>
                           <ArrowRight className="h-4 w-4" />
                         </div>
