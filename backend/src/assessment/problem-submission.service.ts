@@ -9,7 +9,21 @@ import { calculateXP, ActivityType } from './xp-calculator';
 import { updateSpeed, deriveSpeed, blendSpeed, SpeedState, ConceptParams } from './speed-updater';
 import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
 import { SectionExamService } from './section-exam.service';
-import { activeKnowledgePointWhere } from '@/knowledge-graph/active-course-content';
+import {
+  selectNextKPProblem,
+  type ProblemBankEntry,
+  type KPStateSnapshot,
+} from './kp-remediation-selector';
+import {
+  shouldPauseLesson,
+  currentSessionId,
+} from '@/learning-engine/lesson-pause-policy';
+import { detectKPPlateau } from '@/learning-engine/kp-plateau-detector';
+import { RemediationService } from '@/learning-engine/remediation.service';
+import {
+  activeKnowledgePointWhere,
+  activeProblemWhere,
+} from '@/knowledge-graph/active-course-content';
 
 const logger = getLogger('assessment');
 
@@ -19,6 +33,32 @@ export interface SubmitAnswerInput {
   answer: unknown;
   responseTimeMs: number;
   activityType: ActivityType;
+  /**
+   * Problem IDs the learner has already seen during this lesson session.
+   * Used by the KPRemediationSelector to avoid repeating problems and to
+   * trigger anti-gaming retry delays. Optional for callers that are not
+   * driving a lesson-flow loop (e.g. reviews, section exams).
+   */
+  seenProblemIds?: string[];
+  /**
+   * KPs for which the worked example has already been re-opened once in
+   * this session. Matches the risk-mitigation rule: "only auto-expand on
+   * the first miss per KP per session; subsequent misses collapse it."
+   */
+  workedExampleReopenedKPIds?: string[];
+}
+
+export interface NextProblemHint {
+  /** The KP the next problem must target (same KP on miss; next KP on pass). */
+  targetKPId: string;
+  /** The concrete problem id to fetch next, or null if the lesson is complete. */
+  nextProblemId: string | null;
+  /** True if the lesson loop should re-surface the worked example panel. */
+  reopenWorkedExample: boolean;
+  /** Anti-gaming retry delay in ms; 0 if none. */
+  retryDelayMs: number;
+  /** True when every KP in the lesson has been passed. */
+  lessonComplete: boolean;
 }
 
 export interface SubmitAnswerResult {
@@ -32,6 +72,15 @@ export interface SubmitAnswerResult {
     consecutiveCorrect: number;
   };
   updatedMasteryState: string;
+  /**
+   * Slice 1 — KP-level "more practice" loop. When the submission was part
+   * of a lesson practice loop, the service returns a hint describing which
+   * KP the next problem should target and which concrete problem to load.
+   *
+   * Null for non-lesson submissions (reviews, quiz questions, exams) where
+   * task selection lives elsewhere.
+   */
+  nextProblemHint: NextProblemHint | null;
 }
 
 @Injectable()
@@ -42,6 +91,7 @@ export class ProblemSubmissionService {
     private xpService: XPService,
     private sectionExamService: SectionExamService,
     private studentState: StudentStateService,
+    private remediationService: RemediationService,
   ) {}
 
   async submitAnswer(input: SubmitAnswerInput): Promise<SubmitAnswerResult> {
@@ -67,6 +117,13 @@ export class ProblemSubmissionService {
         },
       },
     });
+    // Slice 3 uses `knowledgePoint.keyPrerequisiteConceptId`. Treat it as
+    // an optional field to stay tolerant of test mocks that pre-date the
+    // schema change.
+    const kpKeyPrereqConceptId =
+      (problem?.knowledgePoint as
+        | { keyPrerequisiteConceptId?: string | null }
+        | undefined)?.keyPrerequisiteConceptId ?? null;
 
     if (!problem) {
       throw new NotFoundException(`Problem ${problemId} not found`);
@@ -114,12 +171,68 @@ export class ProblemSubmissionService {
       },
     });
 
-    // 6. Update StudentKPState
+    // 6. Update StudentKPState (pass sessionId for Slice 3 failed-session tracking)
+    const sessionIdNow = currentSessionId();
     const updatedKPState = await this.updateKPState(
       userId,
       kp.id,
       evaluation.correct,
+      sessionIdNow,
     );
+
+    // Slice 3 — after a miss, check whether this KP has plateaued across
+    // multiple sessions. If so, create a key-prerequisite remediation.
+    if (!evaluation.correct && kpKeyPrereqConceptId) {
+      const academyId = concept.course?.academyId;
+      if (academyId) {
+        const refreshed = await this.prisma.studentKPState.findUnique({
+          where: {
+            userId_knowledgePointId: {
+              userId,
+              knowledgePointId: kp.id,
+            },
+          },
+          select: {
+            attempts: true,
+            passed: true,
+            firstFailedSessionId: true,
+            lastFailedSessionId: true,
+          },
+        });
+        const plateaued = detectKPPlateau({
+          attempts: refreshed?.attempts ?? 0,
+          passed: refreshed?.passed ?? false,
+          failedSessionIds: [
+            refreshed?.firstFailedSessionId,
+            refreshed?.lastFailedSessionId,
+          ].filter((v): v is string => typeof v === 'string'),
+          keyPrerequisiteConceptId: kpKeyPrereqConceptId,
+        });
+        if (plateaued) {
+          try {
+            await this.remediationService.createRemediation(
+              userId,
+              academyId,
+              concept.id,
+              kpKeyPrereqConceptId,
+              concept.courseId,
+            );
+          } catch (err) {
+            logger.emit({
+              severityNumber: SeverityNumber.WARN,
+              severityText: 'WARN',
+              body: 'Failed to create KP-plateau remediation',
+              attributes: {
+                'user.id': userId,
+                'concept.id': concept.id,
+                'kp.id': kp.id,
+                error: String(err),
+              },
+            });
+          }
+        }
+      }
+    }
 
     // Capture pre-update memory for implicit repetition delta
     const preUpdateMemory = await this.studentState.getConceptMemory(userId, concept.id);
@@ -165,6 +278,33 @@ export class ProblemSubmissionService {
 
     await this.sectionExamService.syncSectionStates(userId, concept.courseId);
 
+    // Slice 1 — compute KP-level "more practice" hint for lesson submissions.
+    let nextProblemHint: NextProblemHint | null = null;
+    if (activityType === 'lesson') {
+      try {
+        nextProblemHint = await this.computeNextProblemHint({
+          userId,
+          conceptId: concept.id,
+          currentKPId: kp.id,
+          lastProblemId: problemId,
+          lastAnswerCorrect: evaluation.correct,
+          seenProblemIds: input.seenProblemIds ?? [],
+          workedExampleReopenedKPIds: input.workedExampleReopenedKPIds ?? [],
+        });
+      } catch (err) {
+        logger.emit({
+          severityNumber: SeverityNumber.WARN,
+          severityText: 'WARN',
+          body: 'Failed to compute next problem hint',
+          attributes: {
+            'user.id': userId,
+            'problem.id': problemId,
+            error: String(err),
+          },
+        });
+      }
+    }
+
     logger.emit({
       severityNumber: SeverityNumber.INFO,
       severityText: 'INFO',
@@ -189,6 +329,94 @@ export class ProblemSubmissionService {
         consecutiveCorrect: updatedKPState.consecutiveCorrect,
       },
       updatedMasteryState,
+      nextProblemHint,
+    };
+  }
+
+  /**
+   * Build the `NextProblemHint` for a lesson practice submission by loading
+   * all active KPs + problems for the concept, projecting their current
+   * StudentKPState, and delegating the decision to the pure
+   * `selectNextKPProblem` function.
+   */
+  private async computeNextProblemHint(args: {
+    userId: string;
+    conceptId: string;
+    currentKPId: string;
+    lastProblemId: string;
+    lastAnswerCorrect: boolean;
+    seenProblemIds: string[];
+    workedExampleReopenedKPIds: string[];
+  }): Promise<NextProblemHint | null> {
+    const kps = await this.prisma.knowledgePoint.findMany({
+      where: activeKnowledgePointWhere({ conceptId: args.conceptId }),
+      orderBy: { sortOrder: 'asc' },
+      select: {
+        id: true,
+        sortOrder: true,
+        problems: {
+          where: activeProblemWhere({ isReviewVariant: false }),
+          orderBy: { createdAt: 'asc' },
+          select: { id: true },
+        },
+      },
+    });
+
+    if (kps.length === 0) return null;
+
+    const kpStates = await this.prisma.studentKPState.findMany({
+      where: {
+        userId: args.userId,
+        knowledgePointId: { in: kps.map((kp) => kp.id) },
+      },
+      select: {
+        knowledgePointId: true,
+        passed: true,
+        consecutiveCorrect: true,
+        attempts: true,
+      },
+    });
+    const kpStateById = new Map(kpStates.map((s) => [s.knowledgePointId, s]));
+
+    const problemBank: ProblemBankEntry[] = [];
+    const kpStateSnapshots: KPStateSnapshot[] = [];
+
+    for (const kp of kps) {
+      kpStateSnapshots.push({
+        knowledgePointId: kp.id,
+        sortOrder: kp.sortOrder,
+        passed: kpStateById.get(kp.id)?.passed ?? false,
+        consecutiveCorrect:
+          kpStateById.get(kp.id)?.consecutiveCorrect ?? 0,
+        attempts: kpStateById.get(kp.id)?.attempts ?? 0,
+      });
+      kp.problems.forEach((p, idx) => {
+        problemBank.push({
+          problemId: p.id,
+          knowledgePointId: kp.id,
+          sortOrder: idx,
+        });
+      });
+    }
+
+    const result = selectNextKPProblem({
+      currentKPId: args.currentKPId,
+      lastProblemId: args.lastProblemId,
+      lastAnswerCorrect: args.lastAnswerCorrect,
+      problemBank,
+      kpStates: kpStateSnapshots,
+      seenProblemIdsThisSession: new Set(args.seenProblemIds),
+      workedExampleAlreadyReopenedForKP: new Set(
+        args.workedExampleReopenedKPIds,
+      ),
+    });
+
+    return {
+      targetKPId: result.targetKPId,
+      nextProblemId: result.nextProblemId,
+      reopenWorkedExample: result.reopenWorkedExample,
+      retryDelayMs: result.retryDelayMs,
+      lessonComplete: result.lessonComplete,
     };
   }
 
@@ -196,16 +424,25 @@ export class ProblemSubmissionService {
     userId: string,
     knowledgePointId: string,
     correct: boolean,
+    sessionId?: string,
   ) {
     const existing = await this.studentState.getKPState(userId, knowledgePointId);
+    const rawExisting = existing as
+      | (typeof existing & { firstFailedSessionId?: string | null })
+      | null;
 
     return this.studentState.upsertKPState(
       userId,
       knowledgePointId,
       correct,
-      existing
-        ? { consecutiveCorrect: existing.consecutiveCorrect, passed: existing.passed }
+      rawExisting
+        ? {
+            consecutiveCorrect: rawExisting.consecutiveCorrect,
+            passed: rawExisting.passed,
+            firstFailedSessionId: rawExisting.firstFailedSessionId ?? null,
+          }
         : undefined,
+      sessionId,
     );
   }
 
@@ -222,6 +459,23 @@ export class ProblemSubmissionService {
     if (!conceptState) {
       throw new NotFoundException(`Student concept state not found for concept ${conceptId}`);
     }
+
+    // Slice 2 — session-level failed-KP-attempt counter drives lesson pause.
+    // We reset the counter when the concept rolls into a new session so the
+    // policy operates on "how stuck am I *right now*", not lifetime failures.
+    const nowSessionId = currentSessionId();
+    const rawState = conceptState as typeof conceptState & {
+      pausedAtSessionId?: string | null;
+      sessionFailedKPAttempts?: number | null;
+    };
+    const wasPausedThisSession =
+      rawState.pausedAtSessionId === nowSessionId;
+    const carriedSessionFailures = wasPausedThisSession
+      ? rawState.sessionFailedKPAttempts ?? 0
+      : 0;
+    const nextSessionFailedAttempts = correct
+      ? carriedSessionFailures
+      : carriedSessionFailures + 1;
 
     // Update speed parameters
     const speedState: SpeedState = {
@@ -262,6 +516,23 @@ export class ProblemSubmissionService {
       }
     }
 
+    // Slice 2 — decide whether to pause the lesson.
+    const hasUnpassedKPs = !(await this.checkAllKPsPassed(userId, conceptId));
+    const pauseNow = shouldPauseLesson({
+      sessionFailedKPAttempts: nextSessionFailedAttempts,
+      hasUnpassedKPs,
+      masteryState: newMasteryState as
+        | 'unstarted'
+        | 'in_progress'
+        | 'mastered'
+        | 'needs_review',
+    });
+    const pausedAtSessionId = pauseNow
+      ? nowSessionId
+      : wasPausedThisSession
+        ? rawState.pausedAtSessionId ?? null
+        : null;
+
     await this.studentState.updateConceptAfterPractice(userId, conceptId, {
       masteryState: newMasteryState,
       speed: effectiveSpeed,
@@ -270,6 +541,8 @@ export class ProblemSubmissionService {
       observationCount: updatedSpeed.observationCount,
       failCount: newFailCount,
       lastPracticedAt: new Date(),
+      pausedAtSessionId,
+      sessionFailedKPAttempts: nextSessionFailedAttempts,
     });
 
     return newMasteryState;

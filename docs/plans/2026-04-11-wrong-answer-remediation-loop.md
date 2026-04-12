@@ -1,7 +1,7 @@
 # Wrong-Answer Remediation Loop
 
 **Date:** 2026-04-11
-**Status:** Draft for review — no code yet
+**Status:** Approved — execute all 7 workstreams
 **Owner:** Will
 **Related:** `docs/adaptive-learning-architecture.md`, `docs/academy-graph-engine-plan.md`, `math-academy-way.pdf`
 

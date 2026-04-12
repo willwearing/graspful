@@ -3,6 +3,7 @@ import { SpacedRepetitionModule } from '@/spaced-repetition/spaced-repetition.mo
 import { GamificationModule } from '@/gamification/gamification.module';
 import { StudentModelCoreModule } from '@/student-model/application/student-model-core.module';
 import { SharedApplicationModule } from '@/shared/application/shared-application.module';
+import { RemediationCoreModule } from '@/learning-engine/remediation-core.module';
 import { AssessmentController } from './assessment.controller';
 import { ProblemSubmissionService } from './problem-submission.service';
 import { ReviewService } from './review.service';
@@ -10,7 +11,13 @@ import { QuizService } from './quiz.service';
 import { SectionExamService } from './section-exam.service';
 
 @Module({
-  imports: [SpacedRepetitionModule, GamificationModule, StudentModelCoreModule, SharedApplicationModule],
+  imports: [
+    SpacedRepetitionModule,
+    GamificationModule,
+    StudentModelCoreModule,
+    SharedApplicationModule,
+    RemediationCoreModule,
+  ],
   controllers: [AssessmentController],
   providers: [ProblemSubmissionService, ReviewService, QuizService, SectionExamService],
   exports: [ProblemSubmissionService, ReviewService, QuizService, SectionExamService],

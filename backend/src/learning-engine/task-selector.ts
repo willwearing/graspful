@@ -1,5 +1,9 @@
 import { detectPlateau, findWeakPrerequisites } from './plateau-detector';
 import {
+  currentSessionId,
+  isConceptPausedInSession,
+} from './lesson-pause-policy';
+import {
   ConceptSnapshot,
   SectionSnapshot,
   SimpleEdge,
@@ -25,7 +29,16 @@ export function selectNextTask(
   frontier: string[],
   xpSinceLastQuiz: number,
   academyId = '',
+  now: Date = new Date(),
 ): TaskRecommendation {
+  const sessionId = currentSessionId(now);
+  // Slice 2 — paused-this-session concepts are hidden from ALL tiers.
+  const pausedInSession = (snapshot: ConceptSnapshot): boolean =>
+    isConceptPausedInSession({
+      pausedAtSessionId: snapshot.pausedAtSessionId ?? null,
+      currentSessionId: sessionId,
+    });
+
   const snapshotById = new Map(
     snapshots.map((snapshot) => [snapshot.conceptId, snapshot]),
   );
@@ -57,8 +70,11 @@ export function selectNextTask(
     sections.find((section) => section.status === 'exam_ready')?.courseId ??
     snapshots[0]?.courseId;
 
-  // P1: Remediation — plateaued concepts with weak prerequisites
+  // P1: Remediation — plateaued concepts with weak prerequisites.
+  // Paused-this-session concepts are excluded — we want the learner to
+  // make progress elsewhere before circling back to the failed lesson.
   for (const snap of snapshots) {
+    if (pausedInSession(snap)) continue;
     if (detectPlateau(snap)) {
       const weakPrereqs = findWeakPrerequisites(snap.conceptId, edges, snapshots);
       if (weakPrereqs.length > 0) {
@@ -84,6 +100,7 @@ export function selectNextTask(
   const urgentReviews = snapshots
     .filter(
       (s) =>
+        !pausedInSession(s) &&
         (s.masteryState === 'mastered' || s.masteryState === 'needs_review') &&
         s.memory < URGENT_REVIEW_MEMORY_THRESHOLD,
     )
@@ -113,11 +130,39 @@ export function selectNextTask(
     };
   }
 
+  // P3.5: Re-surface previously-paused lessons from older sessions FIRST.
+  // This matches Math Academy's doctrine: "you had this one, let's come
+  // back to it first" (Ch 21, p.300 + FAQ p.415).
+  const resumePaused = snapshots
+    .filter(
+      (s) =>
+        s.pausedAtSessionId &&
+        s.pausedAtSessionId !== sessionId &&
+        s.masteryState !== 'mastered',
+    )
+    .sort((a, b) =>
+      (a.lastPracticedAt?.getTime() ?? 0) -
+      (b.lastPracticedAt?.getTime() ?? 0),
+    );
+  if (resumePaused.length > 0) {
+    const target = resumePaused[0];
+    return {
+      academyId,
+      courseId: target.courseId,
+      taskType: 'lesson',
+      conceptId: target.conceptId,
+      reason: `Resuming paused lesson from session ${target.pausedAtSessionId}`,
+    };
+  }
+
   // P4: New lessons — concepts at the knowledge frontier
   if (frontier.length > 0) {
     const frontierCandidates = frontier
       .map((conceptId) => snapshotById.get(conceptId))
-      .filter((snapshot): snapshot is ConceptSnapshot => snapshot !== undefined);
+      .filter(
+        (snapshot): snapshot is ConceptSnapshot =>
+          snapshot !== undefined && !pausedInSession(snapshot),
+      );
     const scored = frontierCandidates
       .map((candidate) => ({
         candidate,
@@ -151,6 +196,7 @@ export function selectNextTask(
   const standardReviews = snapshots
     .filter(
       (s) =>
+        !pausedInSession(s) &&
         (s.masteryState === 'mastered' || s.masteryState === 'needs_review') &&
         s.memory >= URGENT_REVIEW_MEMORY_THRESHOLD &&
         s.memory < STANDARD_REVIEW_MEMORY_THRESHOLD,

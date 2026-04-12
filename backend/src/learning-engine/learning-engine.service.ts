@@ -174,6 +174,8 @@ export class LearningEngineService {
       masteryState: s.masteryState as ConceptSnapshot['masteryState'],
       memory: s.memory,
       failCount: s.failCount,
+      pausedAtSessionId: (s as { pausedAtSessionId?: string | null })
+        .pausedAtSessionId ?? null,
     }));
 
     const edges: SimpleEdge[] = prereqEdges.map((e) => ({

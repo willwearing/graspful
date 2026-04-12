@@ -51,6 +51,12 @@ const KnowledgePointYamlSchema = z.object({
   workedExample: z.string().optional(),
   workedExampleContent: z.array(ContentBlockYamlSchema).optional().default([]),
   problems: z.array(ProblemYamlSchema).optional().default([]),
+  // Slice 3 — the curated concept id whose prereq knowledge is most
+  // directly used by this KP. When set, two failures across sessions
+  // auto-trigger a remedial review on this concept (Math Academy Way,
+  // Ch 4 p.76 + Ch 21 pp.300–301).
+  // Optional during backfill; `graspful review` warns when missing.
+  keyPrerequisite: z.string().optional(),
 });
 
 const EncompassingRefSchema = z.object({

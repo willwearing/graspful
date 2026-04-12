@@ -32,6 +32,13 @@ export interface ConceptSnapshot {
   masteryState: 'unstarted' | 'in_progress' | 'mastered' | 'needs_review';
   memory: number;
   failCount: number;
+  /**
+   * Slice 2 — the session id at which this concept was paused via the
+   * lesson-pause policy, or null when not paused. Concepts whose pause
+   * session matches the current session are hidden from the frontier;
+   * concepts paused in an older session re-enter as priority P3.5.
+   */
+  pausedAtSessionId?: string | null;
 }
 
 /**

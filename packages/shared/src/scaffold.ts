@@ -170,6 +170,14 @@ export function fillConceptInRaw(raw: unknown, conceptId: string, options: FillC
   const kpCount = options.kps ?? 3;
   const problemsPerKp = options.problemsPerKp ?? 3;
 
+  // Slice 3 — suggest a default `keyPrerequisite` for each KP from the
+  // concept's authored prerequisites. The author can override in the
+  // YAML afterwards. We pick the last-declared prereq since that is
+  // conventionally "the most immediate" one in Graspful YAMLs.
+  const suggestedKeyPrereq = concept.prerequisites.length > 0
+    ? concept.prerequisites[concept.prerequisites.length - 1]
+    : undefined;
+
   const newKps = [];
   for (let i = 1; i <= kpCount; i++) {
     const problems = [];
@@ -185,12 +193,16 @@ export function fillConceptInRaw(raw: unknown, conceptId: string, options: FillC
       });
     }
 
-    newKps.push({
+    const kpEntry: Record<string, unknown> = {
       id: `${conceptId}-kp${i}`,
       instruction: `TODO: Write instruction for ${concept.name} — knowledge point ${i}`,
       workedExample: `TODO: Write a worked example for ${concept.name} — knowledge point ${i}`,
       problems,
-    });
+    };
+    if (suggestedKeyPrereq) {
+      kpEntry.keyPrerequisite = suggestedKeyPrereq;
+    }
+    newKps.push(kpEntry);
   }
 
   // Mutate the raw object to preserve YAML structure
