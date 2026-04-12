@@ -124,7 +124,7 @@ export default async function DashboardPage() {
       {courses.length > 0 && (() => {
         const firstCourse = courses[0];
         const profile = profiles.get(firstCourse.id);
-        if (profile && profile.completionPercent > 0) {
+        if (profile && (profile.mastered > 0 || profile.inProgress > 0 || profile.needsReview > 0)) {
           return (
             <div className="mb-8">
               <ContinueStudying

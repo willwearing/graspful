@@ -14,7 +14,7 @@ describe("HomePage", () => {
       screen.getByRole("heading", { name: /what we do for you/i }),
     ).toBeVisible();
     expect(
-      screen.getByRole("heading", { name: /how it works/i }),
+      screen.getByRole("heading", { name: /three commands/i }),
     ).toBeVisible();
   });
 
@@ -22,7 +22,7 @@ describe("HomePage", () => {
     render(<HomePage />);
 
     expect(
-      screen.getAllByRole("link", { name: /start building free/i }).length,
+      screen.getAllByRole("link", { name: /create free account/i }).length,
     ).toBeGreaterThanOrEqual(1);
   });
 });

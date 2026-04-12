@@ -209,18 +209,18 @@ export async function countMasteredConcepts(
   userId: string,
   filter: { courseId?: string; academyId?: string },
 ): Promise<number> {
-  const conceptWhere: Record<string, unknown> = {};
+  const baseWhere: Record<string, unknown> = {};
   if (filter.courseId) {
-    conceptWhere.courseId = filter.courseId;
+    baseWhere.courseId = filter.courseId;
   }
   if (filter.academyId) {
-    conceptWhere.course = { academyId: filter.academyId };
+    baseWhere.course = { academyId: filter.academyId };
   }
 
   return prisma.studentConceptState.count({
     where: {
       userId,
-      concept: conceptWhere,
+      concept: activeConceptWhere(baseWhere),
       masteryState: 'mastered',
     },
   });
