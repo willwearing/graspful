@@ -22,6 +22,7 @@ import {
   loadMasteryMapForCourse,
   loadSectionState,
   loadSectionStatesForAcademy,
+  loadSectionStatesForCourse,
 } from './queries/student-state.queries';
 
 const logger = getLogger('student-model');
@@ -225,6 +226,10 @@ export class StudentStateService {
 
   async getSectionStatesForAcademy(userId: string, academyId: string) {
     return loadSectionStatesForAcademy(this.prisma, userId, academyId);
+  }
+
+  async getSectionStatesForCourse(userId: string, courseId: string) {
+    return loadSectionStatesForCourse(this.prisma, userId, courseId);
   }
 
   async getConceptStatesForFIRe(userId: string, academyId: string) {
