@@ -15,17 +15,24 @@ export class CourseProgressReadService {
   ) {}
 
   async getAcademyGraph(userId: string, academyId: string) {
-    const [concepts, edges] = await Promise.all([
+    const [concepts, edges, sectionStates] = await Promise.all([
       this.prisma.concept.findMany({
         where: activeConceptWhere({ course: { academyId } }),
-        select: { id: true, name: true, courseId: true },
+        select: { id: true, name: true, courseId: true, sectionId: true },
         orderBy: { sortOrder: 'asc' },
       }),
       this.prisma.prerequisiteEdge.findMany({
         where: activePrerequisiteEdgeWhereAcademy(academyId),
         select: { sourceConceptId: true, targetConceptId: true },
       }),
+      this.studentState.getSectionStatesForAcademy(userId, academyId),
     ]);
+
+    const lockedSectionIds = new Set(
+      sectionStates
+        .filter((s) => s.status === 'locked')
+        .map((s) => s.sectionId),
+    );
 
     const stateMap = await this.studentState.getConceptMasteryForIds(
       userId,
@@ -37,7 +44,10 @@ export class CourseProgressReadService {
         id: concept.id,
         name: concept.name,
         courseId: concept.courseId,
-        masteryState: stateMap.get(concept.id) ?? 'unstarted',
+        masteryState:
+          concept.sectionId && lockedSectionIds.has(concept.sectionId)
+            ? 'unstarted'
+            : (stateMap.get(concept.id) ?? 'unstarted'),
       })),
       edges: edges.map((edge) => ({
         sourceConceptId: edge.sourceConceptId,
@@ -47,17 +57,24 @@ export class CourseProgressReadService {
   }
 
   async getGraph(userId: string, courseId: string) {
-    const [concepts, edges] = await Promise.all([
+    const [concepts, edges, sectionStates] = await Promise.all([
       this.prisma.concept.findMany({
         where: activeConceptWhere({ courseId }),
-        select: { id: true, name: true },
+        select: { id: true, name: true, sectionId: true },
         orderBy: { sortOrder: 'asc' },
       }),
       this.prisma.prerequisiteEdge.findMany({
         where: activePrerequisiteEdgeWhere(courseId),
         select: { sourceConceptId: true, targetConceptId: true },
       }),
+      this.studentState.getSectionStatesForCourse(userId, courseId),
     ]);
+
+    const lockedSectionIds = new Set(
+      sectionStates
+        .filter((s) => s.status === 'locked')
+        .map((s) => s.sectionId),
+    );
 
     const stateMap = await this.studentState.getConceptMasteryForIds(
       userId,
@@ -68,7 +85,10 @@ export class CourseProgressReadService {
       concepts: concepts.map((concept) => ({
         id: concept.id,
         name: concept.name,
-        masteryState: stateMap.get(concept.id) ?? 'unstarted',
+        masteryState:
+          concept.sectionId && lockedSectionIds.has(concept.sectionId)
+            ? 'unstarted'
+            : (stateMap.get(concept.id) ?? 'unstarted'),
       })),
       edges: edges.map((edge) => ({
         sourceConceptId: edge.sourceConceptId,

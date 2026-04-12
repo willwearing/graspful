@@ -237,6 +237,24 @@ export async function loadSectionState(
   });
 }
 
+export async function loadSectionStatesForCourse(
+  prisma: PrismaService,
+  userId: string,
+  courseId: string,
+) {
+  return prisma.studentSectionState.findMany({
+    where: {
+      userId,
+      courseId,
+      section: activeSectionWhere(),
+    },
+    select: {
+      sectionId: true,
+      status: true,
+    },
+  });
+}
+
 export async function loadSectionStatesForAcademy(
   prisma: PrismaService,
   userId: string,
