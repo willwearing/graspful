@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useTheme } from "@/lib/theme";
 
 const navigationItems = [
-  { href: "/how-graspful-works", label: "Agents" },
+  { href: "/how-graspful-works", label: "How It Works" },
   { href: "/pricing", label: "Pricing" },
   { href: "/docs", label: "Docs" },
 ];
@@ -78,9 +78,9 @@ export function SiteHeader() {
           </Link>
           <Link
             href="/sign-up"
-            className="btn-gradient px-5 py-2 text-sm font-medium"
+            className="btn-gradient px-5 py-2.5 text-sm font-medium shadow-md"
           >
-            Get Started
+            Create Free Account
           </Link>
         </div>
       </div>

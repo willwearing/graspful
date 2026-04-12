@@ -73,9 +73,14 @@ export const platformPrinciples: PlatformPrinciple[] = [
 
 export const faqItems = [
   {
-    question: "Do I need to know how to code?",
+    question: "Do I need to know YAML?",
     answer:
-      "No. You describe what you want to teach, and Graspful's AI builds the course structure, questions, and adaptive logic. You review and customize.",
+      "No. Your AI agent writes the YAML for you. You prompt Claude Code or Cursor with what you want to teach, and the MCP tools handle scaffolding, filling, and validation. You review the output.",
+  },
+  {
+    question: "What if I don't use Claude Code or Cursor?",
+    answer:
+      "Any MCP-compatible AI tool works. You can also use the raw CLI directly if you prefer.",
   },
   {
     question: "How does the revenue share work?",
@@ -98,6 +103,11 @@ export const faqItems = [
       "Those platforms host videos. Graspful actually teaches. Every course gets adaptive diagnostics, mastery gating, and spaced review built in. Students don't just watch — they prove they learned.",
   },
   {
+    question: "What's the 10-check quality gate?",
+    answer:
+      "Before publishing, every course runs through 10 automated checks: prerequisite graph integrity, question uniqueness, difficulty calibration, content coverage, and more. Your agent runs this with graspful review.",
+  },
+  {
     question: "What happens if I want to leave?",
     answer:
       "Your course content is yours. Export it anytime as YAML. No lock-in.",
@@ -106,13 +116,13 @@ export const faqItems = [
 
 export const footerLinks = {
   product: [
-    { title: "Agents", href: "/how-graspful-works" },
+    { title: "How It Works", href: "/how-graspful-works" },
     { title: "Pricing", href: "/pricing" },
     { title: "Docs", href: "/docs" },
   ],
   resources: [
     { title: "Blog", href: "/blog" },
-    { title: "CLI Reference", href: "/docs/cli" },
-    { title: "Course Schema", href: "/docs/course-schema" },
+    { title: "CLI Reference", href: "https://graspful.ai/docs/cli" },
+    { title: "Course Schema", href: "https://graspful.ai/docs/course-schema" },
   ],
 };

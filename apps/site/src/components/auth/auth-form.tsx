@@ -95,7 +95,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     ? `Sign in to ${brand.name}`
     : isConfirmationPending
       ? "Check your email for a confirmation link."
-      : `Start building courses on ${brand.name}`;
+      : "Next step: run graspful register from your editor to connect the CLI.";
   const submitText = isSignIn ? "Sign In" : "Create Account";
   const switchText = isSignIn ? "Don't have an account?" : "Already have an account?";
   const switchHref = isSignIn ? "/sign-up" : "/sign-in";

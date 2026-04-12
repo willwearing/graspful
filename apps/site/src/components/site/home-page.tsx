@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { faqItems } from "@/lib/site-config";
 
 /* ─── Data ─── */
@@ -41,19 +42,22 @@ const features = [
 
 const howSteps = [
   {
-    title: "Describe What You Want to Teach",
+    step: "npx @graspful/cli init",
+    title: "Install the CLI",
     description:
-      "Tell us your subject and scope. Our AI builds the knowledge graph, diagnostics, and adaptive logic.",
+      "One command wires up MCP in Claude Code, Cursor, or Windsurf. Your AI agent gets course-building tools.",
   },
   {
-    title: "Review and Customize",
+    step: '"Build me a course on X"',
+    title: "Prompt your agent",
     description:
-      "Refine the content, adjust difficulty, add your branding. Publish when it meets your standard.",
+      "Your agent calls scaffold, fill, validate, and review. You guide the content. It handles the structure.",
   },
   {
-    title: "Publish and Earn",
+    step: "graspful import",
+    title: "Go live",
     description:
-      "Set your price, launch your academy. Students get adaptive learning. You get 70% of revenue.",
+      "Your academy launches on your domain with adaptive diagnostics, mastery gates, and spaced review from day one.",
   },
 ];
 
@@ -65,6 +69,30 @@ const learnerBenefits = [
   { title: "Finds Weak Spots", desc: "When a student is stuck, the system identifies exactly which foundation is shaky." },
   { title: "Built-In Reinforcement", desc: "Advanced topics naturally reinforce earlier material." },
 ];
+
+const agentLogos = [
+  { name: "Claude Code", icon: "claude" },
+  { name: "Cursor", icon: "cursor" },
+  { name: "Windsurf", icon: "windsurf" },
+  { name: "Codex", icon: "codex" },
+];
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}
+      className="ml-3 shrink-0 rounded border border-white/20 px-2 py-1 text-xs text-white/60 hover:text-white hover:border-white/40 transition-colors"
+      aria-label="Copy to clipboard"
+    >
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
 
 /* ─── Component ─── */
 export function HomePage() {
@@ -105,17 +133,50 @@ export function HomePage() {
             className="animate-fade-up mx-auto mt-8 max-w-xl text-xl leading-relaxed text-muted-foreground md:text-2xl"
             style={{ animationDelay: "0.6s" }}
           >
-            Your expertise. AI&apos;s scaffolding. Every course gets adaptive
-            diagnostics, mastery tracking, and spaced review. Launch a live
-            product in minutes, not months.
+            Prompt AI to build your course. Adaptive diagnostics, mastery
+            gates, and spaced review - scaffolded for you. Go live in one
+            session.
           </p>
-          <div className="animate-fade-up" style={{ animationDelay: "0.8s" }}>
+
+          {/* CLI snippet */}
+          <div className="animate-fade-up mx-auto mt-8 inline-flex" style={{ animationDelay: "0.75s" }}>
+            <div className="flex items-center rounded-full bg-[#0A1628] px-4 py-2.5 font-mono text-sm text-white/90 shadow-lg border border-white/10">
+              <span className="text-white/40 mr-2 select-none">$</span>
+              <code>npx @graspful/cli init</code>
+              <CopyButton text="npx @graspful/cli init" />
+            </div>
+          </div>
+
+          <div className="animate-fade-up flex flex-col sm:flex-row items-center justify-center gap-4 mt-8" style={{ animationDelay: "0.9s" }}>
             <Link
               href={"/sign-up"}
-              className="btn-gradient glow-pulse mt-10 inline-block px-12 py-4 text-base font-medium"
+              className="btn-gradient glow-pulse inline-block px-12 py-4 text-base font-medium"
             >
-              Start Building Free
+              Create Free Account
             </Link>
+            <Link
+              href={"/how-graspful-works"}
+              className="inline-block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors no-underline"
+            >
+              See how it works &rarr;
+            </Link>
+          </div>
+
+          {/* Agent logo strip */}
+          <div className="animate-fade-up mt-14" style={{ animationDelay: "1.05s" }}>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground/60 mb-4">
+              Works with any MCP-compatible agent
+            </p>
+            <div className="flex items-center justify-center gap-8 flex-wrap">
+              {agentLogos.map((agent) => (
+                <span
+                  key={agent.icon}
+                  className="text-sm font-medium text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                >
+                  {agent.name}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -156,9 +217,12 @@ export function HomePage() {
           <div className="orb-2" />
         </div>
         <div className="relative z-10 mx-auto max-w-5xl px-6">
-          <h2 className="text-center text-4xl font-bold tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl mb-20">
-            How It Works
+          <h2 className="text-center text-4xl font-bold tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl mb-6">
+            Three commands. One session.
           </h2>
+          <p className="text-center text-slate-400 mb-20 max-w-2xl mx-auto text-lg">
+            From empty repo to live academy with adaptive learning built in.
+          </p>
           <div className="relative">
             <div className="absolute top-10 left-[10%] right-[10%] h-px hidden sm:block overflow-hidden">
               <div className="w-full h-full animate-line-grow" style={{ background: "linear-gradient(to right, var(--gradient-start), var(--gradient-accent))" }} />
@@ -171,6 +235,9 @@ export function HomePage() {
                     style={{ background: "linear-gradient(135deg, var(--gradient-start), var(--gradient-accent))" }}
                   >
                     {i + 1}
+                  </div>
+                  <div className="mb-4 rounded-lg bg-white/5 border border-white/10 px-4 py-2 font-mono text-sm text-white/80">
+                    {step.step}
                   </div>
                   <h3 className="text-xl font-semibold text-white mb-3">{step.title}</h3>
                   <p className="text-slate-400 leading-relaxed">{step.description}</p>
@@ -285,14 +352,22 @@ export function HomePage() {
             Free to create. You earn 70% when learners subscribe.
           </p>
           <p className="text-sm text-muted-foreground/70 mb-10">
-            Free to start. No credit card required.
+            No credit card required.
           </p>
-          <Link
-            href={"/sign-up"}
-            className="btn-gradient glow-pulse inline-block px-12 py-4 text-base font-medium"
-          >
-            Start Building Free
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href={"/sign-up"}
+              className="btn-gradient glow-pulse inline-block px-12 py-4 text-base font-medium"
+            >
+              Create Free Account
+            </Link>
+            <Link
+              href={"/docs"}
+              className="inline-block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors no-underline"
+            >
+              Read the docs &rarr;
+            </Link>
+          </div>
         </div>
       </section>
     </main>

@@ -10,7 +10,7 @@ export default function PricingPage() {
     >
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-foreground mb-4">What creators pay</h2>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mb-6">
           No platform subscription. No setup fee. Graspful takes 30% of learner
           revenue and runs the infrastructure. You keep the rest.
         </p>
@@ -29,19 +29,19 @@ export default function PricingPage() {
       </div>
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-foreground mb-4">What learners pay</h2>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mb-6">
           You set the price. Graspful handles checkout, access control, and
           subscription management through Stripe.
         </p>
-        <ul className="text-sm space-y-2 list-none p-0 mb-6">
+        <ul className="space-y-2 list-none p-0 mb-6">
           {[
             "Monthly and annual plans",
             "Checkout and payouts handled by Stripe",
             "Your own branded academy site",
             "One platform for course, billing, and learner access",
           ].map((item) => (
-            <li key={item} className="flex gap-2">
-              <span className="text-primary">&#10003;</span> {item}
+            <li key={item} className="flex items-center gap-2 text-sm">
+              <span className="text-primary shrink-0">&#10003;</span> {item}
             </li>
           ))}
         </ul>

@@ -21,7 +21,7 @@ test.describe("Graspful site", () => {
     await page.goto("/");
 
     await expect(
-      page.getByRole("link", { name: /start building free/i }).first(),
+      page.getByRole("link", { name: /create free account/i }).first(),
     ).toHaveAttribute("href", /sign-up/);
   });
 

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { StudentStateService } from '@/student-model/student-state.service';
+import { activeConceptWhere } from '@/knowledge-graph/active-course-content';
 
 export interface CompletionEstimate {
   completionPercent: number;
@@ -28,7 +29,7 @@ export class CompletionEstimateService {
   ): Promise<CompletionEstimate> {
     const [totalConcepts, masteredConcepts, enrollment] = await Promise.all([
       this.prisma.concept.count({
-        where: { course: { academyId } },
+        where: activeConceptWhere({ course: { academyId } }),
       }),
       this.studentState.countMasteredConcepts(userId, { academyId }),
       this.prisma.academyEnrollment.findUnique({
@@ -82,7 +83,7 @@ export class CompletionEstimateService {
 
   async getEstimate(userId: string, courseId: string): Promise<CompletionEstimate> {
     const [totalConcepts, masteredConcepts, enrollment] = await Promise.all([
-      this.prisma.concept.count({ where: { courseId } }),
+      this.prisma.concept.count({ where: activeConceptWhere({ courseId }) }),
       this.studentState.countMasteredConcepts(userId, { courseId }),
       this.prisma.courseEnrollment.findUnique({
         where: { userId_courseId: { userId, courseId } },

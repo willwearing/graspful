@@ -40,7 +40,7 @@ test.describe("Auth and docs", () => {
     await page.goto("/docs");
 
     await expect(
-      page.getByRole("heading", { name: "Guidance for creator teams" }),
+      page.getByRole("heading", { name: "Getting started" }),
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Authoring" }),
@@ -49,7 +49,7 @@ test.describe("Auth and docs", () => {
       page.getByRole("heading", { name: "Operations" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "Open product docs" }),
-    ).toHaveAttribute("href", "/docs");
+      page.getByRole("heading", { name: "Reference", exact: true }),
+    ).toBeVisible();
   });
 });

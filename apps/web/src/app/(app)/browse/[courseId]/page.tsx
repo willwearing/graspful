@@ -100,7 +100,10 @@ export default async function CourseDetailPage({
       masteryState: masteryMap.get(concept.id) ?? ("unstarted" as MasteryState),
     }));
   const courseUnlocked = !!profile && (
-    profile.diagnosticCompleted || profile.completionPercent > 0
+    profile.diagnosticCompleted ||
+    profile.mastered > 0 ||
+    profile.inProgress > 0 ||
+    profile.needsReview > 0
   );
   const academyHref = graph.course.academyId
     ? getAcademyHref(graph.course.academyId)
