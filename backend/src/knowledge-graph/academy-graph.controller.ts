@@ -63,7 +63,7 @@ export class AcademyGraphController {
     return this.courseReads.getAcademy(org.orgId, academyId);
   }
 
-  @Get(':academyId/graph')
+  @Get(':academyId/structure')
   async getAcademyGraph(
     @Param('academyId') academyId: string,
     @CurrentOrg() org: OrgContext,
