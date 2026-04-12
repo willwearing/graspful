@@ -1,22 +1,16 @@
 course:
   id: posthog-use-case-selling
   name: PostHog Use Case Selling
-  description: >-
-    How to sell PostHog through use cases, not products — the six use cases, product mappings, buyer personas, discovery
-    questions, competitive positioning, objection handling, and cross-sell strategy.
+  description: How to sell PostHog through use cases, not products — the six use cases, product mappings, buyer personas, discovery questions, competitive positioning, objection handling, and cross-sell strategy.
   estimatedHours: 4
   version: '2026.1'
 sections:
   - id: foundations
     name: Use Case Selling Foundations
-    description: >-
-      The fundamental mindset shift from product selling to use case selling, and the product-to-use-case mapping that
-      underpins every conversation.
+    description: The fundamental mindset shift from product selling to use case selling, and the product-to-use-case mapping that underpins every conversation.
   - id: product-intelligence
     name: Product Intelligence
-    description: >-
-      Selling the Product Intelligence use case — helping teams understand what users do, why they do it, and what to
-      build next.
+    description: Selling the Product Intelligence use case — helping teams understand what users do, why they do it, and what to build next.
   - id: release-engineering
     name: Release Engineering
     description: Selling the Release Engineering use case — helping teams ship faster without breaking things.
@@ -25,22 +19,16 @@ sections:
     description: Selling the Observability use case — helping teams know when things break, understand why, and fix them fast.
   - id: growth-marketing
     name: Growth & Marketing
-    description: >-
-      Selling the Growth & Marketing use case — helping teams understand what drives acquisition, conversion, and
-      revenue.
+    description: Selling the Growth & Marketing use case — helping teams understand what drives acquisition, conversion, and revenue.
   - id: ai-llm-obs
     name: AI/LLM Observability
-    description: >-
-      Selling the AI/LLM Observability use case — helping teams understand how AI features perform, what they cost, and
-      how users interact with them.
+    description: Selling the AI/LLM Observability use case — helping teams understand how AI features perform, what they cost, and how users interact with them.
   - id: data-infra
     name: Data Infrastructure
     description: Selling the Data Infrastructure use case — helping teams unify product data with business data.
   - id: customer-experience
     name: Customer Experience
-    description: >-
-      Selling the Customer Experience use case — helping teams quickly understand issues, identify problems, and verify
-      fixes.
+    description: Selling the Customer Experience use case — helping teams quickly understand issues, identify problems, and verify fixes.
   - id: cross-sell
     name: Cross-Sell Strategy
     description: How to move customers between use cases using adoption signals, natural expansion pathways, and multithreading.
@@ -56,53 +44,37 @@ concepts:
     sourceRef: use-case-selling.md
     knowledgePoints:
       - id: use-case-vs-product-kp1
-        instruction: >-
-          PostHog sells products. Customers buy solutions. When you pitch "add Surveys," it sounds like you're trying to
-          increase their bill. When you pitch "here's how to close the loop on why users drop off," it sounds like
-          you're solving their problem. Same product. Different framing. Very different conversion rate.
+        instruction: |-
+          PostHog sells products. Customers buy solutions. When you pitch "add Surveys," it sounds like you're trying to increase their bill. When you pitch "here's how to close the loop on why users drop off," it sounds like you're solving their problem. Same product. Different framing. Very different conversion rate.
 
-
-          A use case is a discrete problem a team is trying to solve, supported by a combination of PostHog products.
-          Billing, metering, and packaging don't change. What changes is how you talk about it, how you organize around
-          it, and how you measure adoption.
-
+          A use case is a discrete problem a team is trying to solve, supported by a combination of PostHog products. Billing, metering, and packaging don't change. What changes is how you talk about it, how you organize around it, and how you measure adoption.
 
           The rule is simple: use cases are how we sell, products are how we bill.
         instructionContent:
-          - body: >-
-              Use cases are how we sell. Products are how we bill. Billing, metering, and packaging don't change. What
-              changes is how you talk about it, how you organize around it, and how you measure adoption.
+          - body: Use cases are how we sell. Products are how we bill. Billing, metering, and packaging don't change. What changes is how you talk about it, how you organize around it, and how you measure adoption.
             type: callout
             title: The Rule
           - url: https://posthog.com/handbook/growth/use-case-selling/use-case-selling
             type: link
             title: Use Case Selling Handbook
             description: The foundational playbook for use case selling at PostHog
-        workedExample: >-
+        workedExample: |-
           Bad pitch: "You should add Surveys to your plan — it's only $X/month."
 
-
-          Good pitch: "You're watching Session Replays of drop-off users. What if you could ask those users directly
-          what tripped them up, right at the moment of friction? Surveys lets you do that, and the responses tie
-          straight back to their behavior data."
-
+          Good pitch: "You're watching Session Replays of drop-off users. What if you could ask those users directly what tripped them up, right at the moment of friction? Surveys lets you do that, and the responses tie straight back to their behavior data."
 
           Both pitches sell Surveys. The second one solves a problem the customer already told you about.
         problems:
           - id: ucvp-kp1-p1
             type: multiple_choice
-            question: >-
-              A client is using Product Analytics. You want to upsell them on watching what users actually do. Which
-              framing best follows the use case selling approach?
+            question: A client is using Product Analytics. You want to upsell them on watching what users actually do. Which framing best follows the use case selling approach?
             correct: 1
             options:
               - '"Session Replay is a great product — you should add it to your plan."'
               - '"You see a 40% drop at checkout step 3. Want to watch what users are actually doing at that step?"'
               - '"Session Replay costs less than Hotjar and has more features."'
               - '"Adding Session Replay will increase your total platform coverage."'
-            explanation: >-
-              Use case selling leads with the problem the customer already has (they see the drop-off but not why) and
-              positions the product as the solution. Option B connects directly to a known pain point.
+            explanation: Use case selling leads with the problem the customer already has (they see the drop-off but not why) and positions the product as the solution. Option B connects directly to a known pain point.
             difficulty: 2
           - id: ucvp-kp1-p2
             type: multiple_choice
@@ -113,9 +85,7 @@ concepts:
               - We should rename our products to match use case names
               - The framing and discovery should center on problems, but invoices still show individual products
               - We should stop mentioning individual product names to customers
-            explanation: >-
-              Billing, metering, and packaging don't change — products are still how we bill. What changes is how we
-              frame conversations: lead with the problem (use case), not the product.
+            explanation: 'Billing, metering, and packaging don''t change — products are still how we bill. What changes is how we frame conversations: lead with the problem (use case), not the product.'
           - id: ucvp-kp1-p3
             type: multiple_choice
             question: Why does framing an upsell as "solving a problem" convert better than framing it as "adding a tool"?
@@ -125,55 +95,33 @@ concepts:
               - Because "add a product" sounds like increasing their bill; "solve a problem" sounds like you're helping
               - Because customers don't understand what our products do
               - Because use cases always involve more products, leading to higher revenue
-            explanation: >-
-              When you pitch "add Surveys" it sounds like increasing the bill. When you pitch "close the loop on why
-              users drop off," it sounds like solving their problem. Same product, different conversion rate.
+            explanation: When you pitch "add Surveys" it sounds like increasing the bill. When you pitch "close the loop on why users drop off," it sounds like solving their problem. Same product, different conversion rate.
             difficulty: 4
       - id: use-case-vs-product-kp2
-        instruction: >-
+        instruction: |-
           PostHog has seven use cases, each representing a distinct job a team is trying to do:
 
-
           1. **Product Intelligence**: "Help me understand what users do, why they do it, and what to build next."
-
           2. **Release Engineering**: "Help me ship faster without breaking things."
-
           3. **Observability**: "Help me know when things break, understand why, and fix them fast."
-
           4. **Growth & Marketing**: "Help me understand what drives acquisition, conversion, and revenue."
-
-          5. **AI/LLM Observability**: "Help me understand how my AI features perform, what they cost, and how users
-          interact with them."
-
+          5. **AI/LLM Observability**: "Help me understand how my AI features perform, what they cost, and how users interact with them."
           6. **Data Infrastructure**: "Help me unify product data with business data and get it where it needs to go."
+          7. **Customer Experience**: "Help me quickly understand what happened, identify the problem, and verify a fix."
 
-          7. **Customer Experience**: "Help me quickly understand what happened, identify the problem, and verify a
-          fix."
-
-
-          Each use case has a different core buyer. Product Intelligence sells to PMs. Release Engineering sells to
-          engineering managers. Observability sells to SREs. Growth & Marketing sells to growth engineers and marketing
-          leads. These are separate budgets, separate champions, separate conversations.
+          Each use case has a different core buyer. Product Intelligence sells to PMs. Release Engineering sells to engineering managers. Observability sells to SREs. Growth & Marketing sells to growth engineers and marketing leads. These are separate budgets, separate champions, separate conversations.
         instructionContent:
-          - body: >-
-              Each use case has a different core buyer. PI sells to PMs. Release Engineering sells to EMs. Observability
-              sells to SREs. Growth & Marketing sells to growth engineers. These are separate budgets, separate
-              champions, separate conversations.
+          - body: Each use case has a different core buyer. PI sells to PMs. Release Engineering sells to EMs. Observability sells to SREs. Growth & Marketing sells to growth engineers. These are separate budgets, separate champions, separate conversations.
             type: callout
             title: Seven Use Cases, Seven Buyers
           - url: https://posthog.com/handbook/growth/use-case-selling/use-case-selling
             type: link
             title: Use Case Selling Handbook
             description: Overview of all seven use cases and their buyer personas
-        workedExample: >-
-          A customer's engineering team uses Feature Flags for releases. Their growth team wants to run A/B tests. Their
-          product team wants to understand retention.
+        workedExample: |-
+          A customer's engineering team uses Feature Flags for releases. Their growth team wants to run A/B tests. Their product team wants to understand retention.
 
-
-          Without use case framing, you'd pitch this as "add Experiments, add Product Analytics." With use case framing,
-          you'd recognize three distinct conversations: Release Engineering (engineering), Growth & Marketing (growth
-          team), and Product Intelligence (product team). Each conversation leads with that team's specific job to be
-          done.
+          Without use case framing, you'd pitch this as "add Experiments, add Product Analytics." With use case framing, you'd recognize three distinct conversations: Release Engineering (engineering), Growth & Marketing (growth team), and Product Intelligence (product team). Each conversation leads with that team's specific job to be done.
         problems:
           - id: ucvp-kp2-p1
             type: multiple_choice
@@ -184,9 +132,7 @@ concepts:
               - Observability
               - Release Engineering
               - Data Infrastructure
-            explanation: >-
-              Release Engineering's job to be done is helping teams ship faster without breaking things — through
-              feature flags, experiments, and controlled rollouts.
+            explanation: Release Engineering's job to be done is helping teams ship faster without breaking things — through feature flags, experiments, and controlled rollouts.
             difficulty: 2
           - id: ucvp-kp2-p2
             type: multiple_choice
@@ -197,9 +143,7 @@ concepts:
               - Growth & Marketing
               - Data Infrastructure
               - Product Intelligence
-            explanation: >-
-              Product Intelligence targets PMs and product leaders who want to understand what users do, why, and what
-              to build next — including proving business impact.
+            explanation: Product Intelligence targets PMs and product leaders who want to understand what users do, why, and what to build next — including proving business impact.
             difficulty: 2
           - id: ucvp-kp2-p3
             type: multiple_choice
@@ -210,10 +154,9 @@ concepts:
               - Because each use case represents a different buyer, budget, and conversation
               - Because use cases are required for pricing and packaging
               - Because competitors organize around use cases
-            explanation: >-
-              Each use case has a different core buyer with different problems. Product Intelligence sells to PMs,
-              Release Engineering to EMs, Observability to SREs. These are separate budgets and separate conversations.
+            explanation: Each use case has a different core buyer with different problems. Product Intelligence sells to PMs, Release Engineering to EMs, Observability to SREs. These are separate budgets and separate conversations.
             difficulty: 4
+        keyPrerequisite: use-case-vs-product
   - id: product-use-case-mapping
     name: Product-to-Use-Case Mapping
     section: foundations
@@ -228,14 +171,10 @@ concepts:
       - use-case-vs-product
     knowledgePoints:
       - id: pucm-kp1
-        instruction: >-
-          Every use case has a core product and expansion products. The core product is the entry point — it's what the
-          team needs first to solve their primary job. Expansion products extend the value once the core is established.
+        instruction: |-
+          Every use case has a core product and expansion products. The core product is the entry point — it's what the team needs first to solve their primary job. Expansion products extend the value once the core is established.
 
-
-          The product coverage matrix shows which products are primary for which use case and where they appear as
-          secondary:
-
+          The product coverage matrix shows which products are primary for which use case and where they appear as secondary:
           - Product Analytics is primary for Product Intelligence, secondary for Growth,
             AI, and Customer Experience.
 
@@ -248,43 +187,28 @@ concepts:
             regressions introduced by new releases.
 
           - Web Analytics is primary for Growth & Marketing.
-
           - LLM Observability is primary for AI/LLM Observability.
-
           - Data Warehouse and Data Pipelines are primary for Data Infrastructure.
-
           - Session Replay appears as secondary in nearly every use case — it's the most
             cross-cutting product.
 
           - Product Analytics and Session Replay together are primary for Customer Experience.
 
-
-          Key insight: products can be primary for one use case and secondary for several others. Session Replay is a
-          secondary expansion product in six of seven use cases. This means the same product gets pitched differently
-          depending on context.
+          Key insight: products can be primary for one use case and secondary for several others. Session Replay is a secondary expansion product in six of seven use cases. This means the same product gets pitched differently depending on context.
         instructionContent:
-          - body: >-
-              Session Replay appears as secondary in 6 of 7 use cases. The same product gets pitched differently
-              depending on context. "Watch the drop-off" (PI), "watch the error" (Obs), "watch the bug report" (CX) —
-              same product, different framing.
+          - body: Session Replay appears as secondary in 6 of 7 use cases. The same product gets pitched differently depending on context. "Watch the drop-off" (PI), "watch the error" (Obs), "watch the bug report" (CX) — same product, different framing.
             type: callout
             title: Session Replay Is Cross-Cutting
           - url: https://posthog.com/handbook/growth/use-case-selling/use-case-selling
             type: link
             title: Use Case Selling Handbook
             description: Full product-to-use-case coverage matrix
-        workedExample: >-
-          Session Replay pitched in Product Intelligence: "You see the 40% drop-off. Want to watch what users are
-          actually doing?"
+        workedExample: |-
+          Session Replay pitched in Product Intelligence: "You see the 40% drop-off. Want to watch what users are actually doing?"
 
+          Session Replay pitched in Observability: "You see the stack trace. Want to watch the user's actual session when the error fired?"
 
-          Session Replay pitched in Observability: "You see the stack trace. Want to watch the user's actual session
-          when the error fired?"
-
-
-          Session Replay pitched in Customer Experience: "Support got a bug report. Want to watch exactly what the
-          customer experienced?"
-
+          Session Replay pitched in Customer Experience: "Support got a bug report. Want to watch exactly what the customer experienced?"
 
           Same product, three different pitches, each anchored in the use case's job to be done.
         problems:
@@ -297,9 +221,7 @@ concepts:
               - Product Analytics
               - Error Tracking
               - Logging
-            explanation: >-
-              Error Tracking is the core product for Observability. Session Replay, Product Analytics, and Logging are
-              expansion products that extend the value.
+            explanation: Error Tracking is the core product for Observability. Session Replay, Product Analytics, and Logging are expansion products that extend the value.
             difficulty: 2
           - id: pucm-kp1-p2
             type: multiple_choice
@@ -310,10 +232,7 @@ concepts:
               - Three — Product Intelligence, Observability, and Release Engineering
               - Four — it's common but not everywhere
               - Six — it's the most cross-cutting product
-            explanation: >-
-              Session Replay is secondary in Product Intelligence, Release Engineering, Observability, AI/LLM
-              Observability, Growth & Marketing, and Customer Experience. It appears in nearly every use case because
-              "watch what the user actually did" is universally useful.
+            explanation: Session Replay is secondary in Product Intelligence, Release Engineering, Observability, AI/LLM Observability, Growth & Marketing, and Customer Experience. It appears in nearly every use case because "watch what the user actually did" is universally useful.
           - id: pucm-kp1-p3
             type: multiple_choice
             question: What are the primary tools for the Data Infrastructure use case?
@@ -323,91 +242,64 @@ concepts:
               - Data Warehouse and Batch Exports / Data Pipelines
               - Data Warehouse only
               - HogQL and Data Warehouse
-            explanation: >-
-              Data Infrastructure has two core products — Data Warehouse (bring external data IN) and Data Pipelines /
-              Batch Exports (send PostHog data OUT). Both are primary because the use case is about bidirectional data
-              flow.
+            explanation: Data Infrastructure has two core products — Data Warehouse (bring external data IN) and Data Pipelines / Batch Exports (send PostHog data OUT). Both are primary because the use case is about bidirectional data flow.
+        keyPrerequisite: use-case-vs-product
       - id: pucm-kp2
-        instruction: >-
-          Every expansion path follows one shape: each step solves a limitation that the previous step exposed. The
-          pitch always takes the same form — "You can see X, but you can't see Y. This next product gives you Y."
+        instruction: |-
+          Every expansion path follows one shape: each step solves a limitation that the previous step exposed. The pitch always takes the same form — "You can see X, but you can't see Y. This next product gives you Y."
 
+          You don't need to memorize all seven paths. You need to recognize the pattern so you can run it live in any conversation. When a customer is active on one product and describes a pain point, your job is to name what they can see today, what they can't, and which PostHog product closes that gap.
 
-          You don't need to memorize all seven paths. You need to recognize the pattern so you can run it live in any
-          conversation. When a customer is active on one product and describes a pain point, your job is to name what
-          they can see today, what they can't, and which PostHog product closes that gap.
-
-
-          Each use case has its own path, and you'll learn the specific sequences inside each use-case lesson. This
-          knowledge point is only about the shape all paths share.
+          Each use case has its own path, and you'll learn the specific sequences inside each use-case lesson. This knowledge point is only about the shape all paths share.
         instructionContent:
-          - body: >-
-              "You can see X, but you can't see Y. This next product gives you Y." Every expansion pitch is a variation
-              on this sentence. Learn the shape once; apply it everywhere.
+          - body: '"You can see X, but you can''t see Y. This next product gives you Y." Every expansion pitch is a variation on this sentence. Learn the shape once; apply it everywhere.'
             type: callout
             title: The Expansion Pitch Pattern
           - url: https://posthog.com/handbook/growth/use-case-selling/use-case-selling
             type: link
             title: Use Case Selling Handbook
             description: Reference for all seven expansion paths
-        workedExample: >-
+        workedExample: |-
           A customer using Product Analytics says "we see a 40% drop at checkout step 3, but we have no idea why."
 
+          Run the pattern. What can they see? The drop (the what). What can't they see? Why users are dropping (the why). Which product closes that gap? Session Replay.
 
-          Run the pattern. What can they see? The drop (the what). What can't they see? Why users are dropping (the
-          why). Which product closes that gap? Session Replay.
-
-
-          Your pitch: "You see the 40% drop, but you can't see what users are actually doing at that step. Session
-          Replay lets you watch their real sessions and figure out the why." Same pattern works whether the customer is
-          on Error Tracking, Feature Flags, or Web Analytics — only the X, Y, and Z change.
+          Your pitch: "You see the 40% drop, but you can't see what users are actually doing at that step. Session Replay lets you watch their real sessions and figure out the why." Same pattern works whether the customer is on Error Tracking, Feature Flags, or Web Analytics — only the X, Y, and Z change.
         problems:
           - id: pucm-kp2-p1
             type: multiple_choice
-            question: >-
-              What sentence shape does every PostHog expansion pitch follow?
+            question: What sentence shape does every PostHog expansion pitch follow?
             correct: 1
             options:
               - '"Product Z is cheaper than your current tool — you should switch."'
               - '"You can see X, but you can''t see Y. This next product gives you Y."'
               - '"Here are all the features of Product Z — which ones sound useful?"'
               - '"Your competitors are using Product Z, so you should too."'
-            explanation: >-
-              Every expansion pitch follows the same pattern: name what the customer can already see (X), name the gap
-              (Y), and offer the product that closes the gap (Z). The specific X, Y, and Z change per use case — the
-              shape does not.
+            explanation: 'Every expansion pitch follows the same pattern: name what the customer can already see (X), name the gap (Y), and offer the product that closes the gap (Z). The specific X, Y, and Z change per use case — the shape does not.'
             difficulty: 2
           - id: pucm-kp2-p2
             type: multiple_choice
-            question: >-
-              A customer on Error Tracking says "we catch the errors fine, but we can't tell what the user was doing
-              when the error fired." Which step of the expansion pattern is the customer describing?
+            question: A customer on Error Tracking says "we catch the errors fine, but we can't tell what the user was doing when the error fired." Which step of the expansion pattern is the customer describing?
             correct: 1
             options:
               - They are describing X (what they can see) and asking for Y (what they can't)
               - They are describing Y (what they can't see) — there is no X here
               - They are describing the billing step of the pattern
               - They are rejecting the expansion pattern
-            explanation: >-
-              "We catch the errors fine" is X — what they can see. "Can't tell what the user was doing" is Y — the gap.
-              Session Replay is Z — the product that closes the gap. When a customer names an X and a Y in the same
-              breath, they are handing you the pitch.
+            explanation: '"We catch the errors fine" is X — what they can see. "Can''t tell what the user was doing" is Y — the gap. Session Replay is Z — the product that closes the gap. When a customer names an X and a Y in the same breath, they are handing you the pitch.'
             difficulty: 3
           - id: pucm-kp2-p3
             type: multiple_choice
-            question: >-
-              Why does the course teach the meta-pattern before teaching each use case's specific expansion path?
+            question: Why does the course teach the meta-pattern before teaching each use case's specific expansion path?
             correct: 1
             options:
               - Because memorizing seven paths is faster than learning one pattern
               - Because the pattern is the transferable skill — you apply it live, per customer, without needing to recall a specific path
               - Because the specific paths are wrong and the pattern replaces them
               - Because every use case has the same products, only reordered
-            explanation: >-
-              The specific paths are useful as reference material, but in a live conversation you will not retrieve them
-              from memory fast enough. You will listen for what the customer can and can't see, name the gap, and
-              suggest the product that closes it. The pattern is the skill; the paths are the reference.
+            explanation: The specific paths are useful as reference material, but in a live conversation you will not retrieve them from memory fast enough. You will listen for what the customer can and can't see, name the gap, and suggest the product that closes it. The pattern is the skill; the paths are the reference.
             difficulty: 4
+        keyPrerequisite: product-use-case-mapping
   - id: product-intelligence
     name: Product Intelligence
     section: product-intelligence
@@ -422,55 +314,33 @@ concepts:
       - product-use-case-mapping
     knowledgePoints:
       - id: pi-kp1
-        instruction: >-
-          Product Intelligence is about helping teams understand what users do, why they do it, and what to build next.
-          The core product is Product Analytics (funnels, retention, cohorts, lifecycle, trends, paths).
+        instruction: |-
+          Product Intelligence is about helping teams understand what users do, why they do it, and what to build next. The core product is Product Analytics (funnels, retention, cohorts, lifecycle, trends, paths).
 
-
-          The primary buyers are Product Managers, Product Engineers, UX Researchers, Designers, and early-stage
-          Founders. Each cares about different things:
-
+          The primary buyers are Product Managers, Product Engineers, UX Researchers, Designers, and early-stage Founders. Each cares about different things:
           - PMs want feature adoption, retention, and proving ROI to leadership.
-
           - Product Engineers want fast instrumentation and reliable data.
-
           - UX Researchers want behavior patterns and session-level detail.
-
           - Designers want before/after impact of design changes.
-
           - Founders want to figure out what to build next.
 
+          The expansion path follows a clear logic: Analytics shows the "what" (40% drop at step 3). Replay shows the "why" (qualitative context). Surveys let you ask users directly. Experiments let you test fixes. Revenue Analytics proves business impact. Workflows and Product Tours automate action on insights.
 
-          The expansion path follows a clear logic: Analytics shows the "what" (40% drop at step 3). Replay shows the
-          "why" (qualitative context). Surveys let you ask users directly. Experiments let you test fixes. Revenue
-          Analytics proves business impact. Workflows and Product Tours automate action on insights.
-
-
-          For B2B accounts, Group Analytics is a significant upsell opportunity — it answers "which companies are most
-          engaged?" not just "which users."
+          For B2B accounts, Group Analytics is a significant upsell opportunity — it answers "which companies are most engaged?" not just "which users."
         instructionContent:
-          - body: >-
-              Analytics shows the "what" (40% drop at step 3). Replay shows the "why." Surveys let you ask users
-              directly. Experiments test fixes. Each step builds on the previous insight. For B2B, Group Analytics is a
-              significant upsell.
+          - body: Analytics shows the "what" (40% drop at step 3). Replay shows the "why." Surveys let you ask users directly. Experiments test fixes. Each step builds on the previous insight. For B2B, Group Analytics is a significant upsell.
             type: callout
             title: Expansion Logic
           - url: https://posthog.com/handbook/growth/use-case-selling/product-intelligence
             type: link
             title: Product Intelligence Playbook
             description: Buyer personas and expansion path
-        workedExample: >-
-          A PM at a SaaS company says: "We can see that 40% of users drop off at the third step of our onboarding flow,
-          but we have no idea why."
+        workedExample: |-
+          A PM at a SaaS company says: "We can see that 40% of users drop off at the third step of our onboarding flow, but we have no idea why."
 
+          Your response: "That's the classic analytics gap — you see the what but not the why. Session Replay would let you watch exactly what those users are doing at that step. And once you have a hypothesis, you could run a Survey right at that friction point to ask them directly. Then test a fix with Experiments."
 
-          Your response: "That's the classic analytics gap — you see the what but not the why. Session Replay would let
-          you watch exactly what those users are doing at that step. And once you have a hypothesis, you could run a
-          Survey right at that friction point to ask them directly. Then test a fix with Experiments."
-
-
-          You've just outlined three expansion products (Replay, Surveys, Experiments) without pitching any of them by
-          name — you pitched solutions to a problem the PM already told you about.
+          You've just outlined three expansion products (Replay, Surveys, Experiments) without pitching any of them by name — you pitched solutions to a problem the PM already told you about.
         problems:
           - id: pi-kp1-p1
             type: multiple_choice
@@ -481,24 +351,18 @@ concepts:
               - Feature Flags
               - Product Analytics
               - Surveys
-            explanation: >-
-              Product Analytics is the core product for Product Intelligence. Everything else (Replay, Surveys,
-              Experiments) are expansion products.
+            explanation: Product Analytics is the core product for Product Intelligence. Everything else (Replay, Surveys, Experiments) are expansion products.
             difficulty: 2
           - id: pi-kp1-p2
             type: multiple_choice
-            question: >-
-              A B2B SaaS company uses Product Analytics but has no Group capability. What use case selling opportunity
-              does this represent?
+            question: A B2B SaaS company uses Product Analytics but has no Group capability. What use case selling opportunity does this represent?
             correct: 1
             options:
               - They should switch to the Release Engineering use case
               - Group Analytics adds account-level insights like "which companies are most engaged"
               - Group Analytics is not relevant to Product Intelligence
               - You should pitch Data Infrastructure instead
-            explanation: >-
-              For B2B accounts without Group Analytics, it's a significant upsell. It answers "which companies are most
-              engaged?" — a question PMs and CS teams care deeply about.
+            explanation: For B2B accounts without Group Analytics, it's a significant upsell. It answers "which companies are most engaged?" — a question PMs and CS teams care deeply about.
           - id: pi-kp1-p3
             type: multiple_choice
             question: In the Product Intelligence growth path, why does experimentation come after Surveys, not before?
@@ -508,25 +372,19 @@ concepts:
               - Surveys helps form hypotheses that Experiments then validates
               - Surveys requires Experiments to work
               - There is no specific order — either can come first
-            explanation: >-
-              The logic is: Replays form hypotheses about friction. Surveys ask users directly to confirm. Then
-              Experiments tests whether a proposed fix actually works. Each step builds on the previous insight.
+            explanation: 'The logic is: Replays form hypotheses about friction. Surveys ask users directly to confirm. Then Experiments tests whether a proposed fix actually works. Each step builds on the previous insight.'
             difficulty: 4
+        keyPrerequisite: product-use-case-mapping
       - id: pi-kp2
-        instruction: >-
-          Competitive positioning for Product Intelligence centers on platform breadth. PostHog is the only tool that
-          goes from quantitative analytics to qualitative replay to direct feedback to experimentation to action — in
-          one platform.
-
+        instruction: |-
+          Competitive positioning for Product Intelligence centers on platform breadth. PostHog is the only tool that goes from quantitative analytics to qualitative replay to direct feedback to experimentation to action — in one platform.
 
           Key competitive advantages:
-
           - vs Amplitude: Broader platform (replay, flags, surveys, workflows). Better
             pricing. Open source. Amplitude has more mature ML (predictions, audiences)
             and a larger enterprise install base.
 
           - vs Mixpanel: Broader platform, no sampling. Mixpanel has strong mobile analytics.
-
           - vs Hotjar: Engineering-grade analytics alongside replay and experiments.
             Hotjar is simpler for non-technical users.
 
@@ -537,13 +395,9 @@ concepts:
             Pendo has more mature in-app guides and enterprise PM workflow features.
 
 
-          The sweet spot for Product Intelligence: technical product teams at companies with engineers who value depth,
-          flexibility, and not paying for 5 tools. Weaker against very large enterprises (Amplitude's ML) and
-          non-technical teams (Hotjar/Pendo's simpler UX).
+          The sweet spot for Product Intelligence: technical product teams at companies with engineers who value depth, flexibility, and not paying for 5 tools. Weaker against very large enterprises (Amplitude's ML) and non-technical teams (Hotjar/Pendo's simpler UX).
         instructionContent:
-          - body: >-
-              Technical product teams with engineers who value depth, flexibility, and not paying for 5 tools. Weaker
-              against very large enterprises (Amplitude's ML) and non-technical teams (Hotjar/Pendo's simpler UX).
+          - body: Technical product teams with engineers who value depth, flexibility, and not paying for 5 tools. Weaker against very large enterprises (Amplitude's ML) and non-technical teams (Hotjar/Pendo's simpler UX).
             type: callout
             title: Sweet Spot
           - url: https://posthog.com/handbook/growth/use-case-selling/product-intelligence
@@ -553,19 +407,14 @@ concepts:
         problems:
           - id: pi-kp2-p1
             type: multiple_choice
-            question: >-
-              A buyer says "We use Amplitude and we're happy with it." What is the top differentiator for Product
-              Intelligence?
+            question: A buyer says "We use Amplitude and we're happy with it." What is the top differentiator for Product Intelligence?
             correct: 1
             options:
               - PostHog has better ML predictions than Amplitude
               - PostHog combines analytics + replay + surveys + experiments + workflows in one platform
               - PostHog has a larger enterprise install base
               - PostHog has better mobile analytics
-            explanation: >-
-              PostHog's main advantage over Amplitude is platform breadth — analytics, replay, surveys, flags,
-              experiments, and workflows all in one tool. Amplitude actually has more mature ML features and a larger
-              enterprise base.
+            explanation: PostHog's main advantage over Amplitude is platform breadth — analytics, replay, surveys, flags, experiments, and workflows all in one tool. Amplitude actually has more mature ML features and a larger enterprise base.
           - id: pi-kp2-p2
             type: multiple_choice
             question: When are we weakest for the Product Intelligence use case?
@@ -575,25 +424,20 @@ concepts:
               - Technical product teams with engineers
               - Very large enterprises needing mature ML predictions and audiences
               - Companies that want open-source tools
-            explanation: >-
-              PostHog is weakest against very large enterprises where Amplitude's ML features (predictions, audiences)
-              and enterprise sales motion are more mature. PostHog is strongest with technical product teams.
+            explanation: PostHog is weakest against very large enterprises where Amplitude's ML features (predictions, audiences) and enterprise sales motion are more mature. PostHog is strongest with technical product teams.
             difficulty: 4
           - id: pi-kp2-p3
             type: multiple_choice
-            question: >-
-              A lead currently uses Hotjar to watch user behavior and a separate Amplitude instance. What's the best
-              Product Intelligence argument?
+            question: A lead currently uses Hotjar to watch user behavior and a separate Amplitude instance. What's the best Product Intelligence argument?
             correct: 1
             options:
               - PostHog's replay is cheaper than Hotjar
               - PostHog connects replay to funnels, experiments, and surveys in one platform — no context-switching
               - Hotjar is going to shut down soon
               - PostHog has better heatmaps than Hotjar
-            explanation: >-
-              The advantage over Hotjar is engineering-grade analytics alongside replay plus experiments and flags.
-              PostHog actually doesn't have built-in heatmaps — don't claim features that don't exist.
+            explanation: The advantage over Hotjar is engineering-grade analytics alongside replay plus experiments and flags. PostHog actually doesn't have built-in heatmaps — don't claim features that don't exist.
             difficulty: 4
+        keyPrerequisite: product-intelligence
   - id: release-engineering
     name: Release Engineering
     section: release-engineering
@@ -608,13 +452,10 @@ concepts:
       - product-use-case-mapping
     knowledgePoints:
       - id: re-kp1
-        instruction: >-
-          Release Engineering's job is "Help me ship faster without breaking things." The core product is Feature Flags
-          — controlled rollouts, percentage-based releases, and kill switches.
-
+        instruction: |-
+          Release Engineering's job is "Help me ship faster without breaking things." The core product is Feature Flags — controlled rollouts, percentage-based releases, and kill switches.
 
           Key expansion products:
-
           - Experiments: Billed with Feature Flags (same billing). Measures whether a
             release actually improved the target metric, not just that it didn't crash.
 
@@ -622,39 +463,25 @@ concepts:
             replays by flag variant to see why.
 
 
-          The primary buyers are Engineering Managers, Platform Engineers, Individual Developers, and Founding
-          Engineers. They care about release velocity, incident rate, rollback time, and SDK quality.
+          The primary buyers are Engineering Managers, Platform Engineers, Individual Developers, and Founding Engineers. They care about release velocity, incident rate, rollback time, and SDK quality.
 
+          Critical business insight: Feature flags in the codebase are extremely sticky — they're infrastructure, not a dashboard. Once embedded, they're very hard to rip out. This makes Release Engineering one of the highest-retention use cases.
 
-          Critical business insight: Feature flags in the codebase are extremely sticky — they're infrastructure, not a
-          dashboard. Once embedded, they're very hard to rip out. This makes Release Engineering one of the
-          highest-retention use cases.
-
-
-          The tight flags + experiments integration is genuinely differentiated. No other flag tool lets you create a
-          flag → run an experiment → measure in analytics → watch sessions by variant, all in one platform.
+          The tight flags + experiments integration is genuinely differentiated. No other flag tool lets you create a flag → run an experiment → measure in analytics → watch sessions by variant, all in one platform.
         instructionContent:
-          - body: >-
-              Feature flags in the codebase are infrastructure, not a dashboard. Once embedded, they're very hard to rip
-              out. This makes Release Engineering one of the highest-retention use cases.
+          - body: Feature flags in the codebase are infrastructure, not a dashboard. Once embedded, they're very hard to rip out. This makes Release Engineering one of the highest-retention use cases.
             type: callout
             title: Stickiness Factor
           - url: https://posthog.com/handbook/growth/use-case-selling/release-engineering
             type: link
             title: Release Engineering Playbook
             description: Buyer personas, expansion path, and competitive positioning
-        workedExample: >-
+        workedExample: |-
           A customer says: "We use LaunchDarkly for feature flags. It's expensive but works."
 
+          Your response: "What happens after you ship behind a flag? Do you measure whether the feature actually improved your target metric? With PostHog, experiments are included with flags — same billing. You can go from flag to experiment to watching the losing variant's replays in one workflow. And the pricing is significantly lower because we bundle experiments instead of charging separately."
 
-          Your response: "What happens after you ship behind a flag? Do you measure whether the feature actually
-          improved your target metric? With PostHog, experiments are included with flags — same billing. You can go from
-          flag to experiment to watching the losing variant's replays in one workflow. And the pricing is significantly
-          lower because we bundle experiments instead of charging separately."
-
-
-          You've hit three points: functionality gap (experiments), integrated workflow (flag → experiment → replay),
-          and cost (bundled pricing vs separate tools).
+          You've hit three points: functionality gap (experiments), integrated workflow (flag → experiment → replay), and cost (bundled pricing vs separate tools).
         problems:
           - id: re-kp1-p1
             type: multiple_choice
@@ -665,9 +492,7 @@ concepts:
               - They are embedded in the codebase as infrastructure, making them very hard to rip out
               - They are the cheapest product
               - They require the most training to use
-            explanation: >-
-              Feature flags live in the codebase as infrastructure. Unlike a dashboard you can stop visiting, flags are
-              woven into production code. This makes them extremely sticky.
+            explanation: Feature flags live in the codebase as infrastructure. Unlike a dashboard you can stop visiting, flags are woven into production code. This makes them extremely sticky.
           - id: re-kp1-p2
             type: multiple_choice
             question: How are Experiments billed in relation to flag usage?
@@ -677,9 +502,7 @@ concepts:
               - Experiments is included with Feature Flags — same billing
               - Experiments requires a separate Enterprise license
               - Experiments is free for all customers
-            explanation: >-
-              Experiments are billed with Feature Flags. This is a key selling point — the barrier to experiments
-              adoption is usage, not cost.
+            explanation: Experiments are billed with Feature Flags. This is a key selling point — the barrier to experiments adoption is usage, not cost.
             difficulty: 2
           - id: re-kp1-p3
             type: multiple_choice
@@ -687,27 +510,18 @@ concepts:
             correct: 1
             options:
               - '"You need Product Analytics to understand deploy impact."'
-              - >-
-                "Feature Flags let you ship to 5% first, monitor, then expand — with instant kill switches if something
-                goes wrong."
+              - '"Feature Flags let you ship to 5% first, monitor, then expand — with instant kill switches if something goes wrong."'
               - '"You should slow down your release velocity."'
               - '"Error Tracking will catch issues after full rollout."'
-            explanation: >-
-              The Release Engineering entry point is gradual rollout. Ship to 5%, monitor, expand. Kill switch if
-              something goes wrong. No more all-or-nothing deploys.
+            explanation: The Release Engineering entry point is gradual rollout. Ship to 5%, monitor, expand. Kill switch if something goes wrong. No more all-or-nothing deploys.
+        keyPrerequisite: product-use-case-mapping
       - id: re-kp2
-        instruction: >-
-          The main competitor for Release Engineering is LaunchDarkly. PostHog's advantages: experiments included with
-          flags, analytics integration, replay filtered by variant, and significantly better pricing (bundles vs
-          separate tools).
+        instruction: |-
+          The main competitor for Release Engineering is LaunchDarkly. PostHog's advantages: experiments included with flags, analytics integration, replay filtered by variant, and significantly better pricing (bundles vs separate tools).
 
-
-          LaunchDarkly's advantages: more mature enterprise flag management, more complex targeting rules, and a larger
-          enterprise base.
-
+          LaunchDarkly's advantages: more mature enterprise flag management, more complex targeting rules, and a larger enterprise base.
 
           Other competitors:
-
           - Statsig: Purpose-built for experimentation with a strong warehouse-native story.
             PostHog is broader (replay, surveys, workflows) and open source.
 
@@ -718,16 +532,11 @@ concepts:
             and broader platform.
 
 
-          The sweet spot: engineering teams wanting the full loop (flag → measure → debug) who are paying LaunchDarkly
-          prices for flags alone without experiments.
+          The sweet spot: engineering teams wanting the full loop (flag → measure → debug) who are paying LaunchDarkly prices for flags alone without experiments.
 
-
-          Known limitation: PostHog uses Bayesian statistics for experiments. This is faster to reach conclusions and
-          easier to interpret, but is a real limitation for teams that require frequentist methodology.
+          Known limitation: PostHog uses Bayesian statistics for experiments. This is faster to reach conclusions and easier to interpret, but is a real limitation for teams that require frequentist methodology.
         instructionContent:
-          - body: >-
-              PostHog uses Bayesian statistics for experiments. Faster conclusions, easier to interpret, but a real
-              limitation for teams that require frequentist methodology. Be upfront about this — honesty builds trust.
+          - body: PostHog uses Bayesian statistics for experiments. Faster conclusions, easier to interpret, but a real limitation for teams that require frequentist methodology. Be upfront about this — honesty builds trust.
             type: callout
             title: Bayesian Limitation
           - url: https://posthog.com/handbook/growth/use-case-selling/release-engineering
@@ -737,18 +546,14 @@ concepts:
         problems:
           - id: re-kp2-p1
             type: multiple_choice
-            question: >-
-              A lead uses LaunchDarkly for rollouts and a separate tool for Experiments. What's the primary argument for
-              consolidating onto PostHog?
+            question: A lead uses LaunchDarkly for rollouts and a separate tool for Experiments. What's the primary argument for consolidating onto PostHog?
             correct: 1
             options:
               - PostHog has more complex targeting rules than LaunchDarkly
               - PostHog bundles flags + experiments + analytics + replay in one platform at lower cost
               - PostHog has a larger enterprise install base
               - PostHog uses frequentist statistics which are more rigorous
-            explanation: >-
-              PostHog's advantage is the bundled platform at lower cost. LaunchDarkly actually has more mature
-              enterprise flag management. PostHog uses Bayesian (not frequentist) statistics.
+            explanation: PostHog's advantage is the bundled platform at lower cost. LaunchDarkly actually has more mature enterprise flag management. PostHog uses Bayesian (not frequentist) statistics.
           - id: re-kp2-p2
             type: multiple_choice
             question: What is a genuine limitation of PostHog's Experiments that you must be upfront about?
@@ -758,9 +563,7 @@ concepts:
               - PostHog uses Bayesian statistics, which is a real limitation for teams requiring frequentist methodology
               - Experiments don't integrate with Feature Flags
               - Results take months to generate
-            explanation: >-
-              PostHog uses Bayesian statistics — faster conclusions, easier to interpret, but a real limitation for
-              teams that require frequentist methodology. Being honest about this builds trust.
+            explanation: PostHog uses Bayesian statistics — faster conclusions, easier to interpret, but a real limitation for teams that require frequentist methodology. Being honest about this builds trust.
             difficulty: 4
           - id: re-kp2-p3
             type: multiple_choice
@@ -771,10 +574,9 @@ concepts:
               - When the growth team wants experiments (requiring flags), pulling engineering into the same platform
               - When you run multiple experiments simultaneously
               - When flag evaluations exceed the free tier
-            explanation: >-
-              Multithreading happens when growth defines a hypothesis and engineering implements the flag. Both teams
-              are now active in PostHog — growth in the Growth & Marketing use case, engineering in Release Engineering.
+            explanation: Multithreading happens when growth defines a hypothesis and engineering implements the flag. Both teams are now active in PostHog — growth in the Growth & Marketing use case, engineering in Release Engineering.
             difficulty: 4
+        keyPrerequisite: release-engineering
   - id: observability-uc
     name: Observability
     section: observability
@@ -789,50 +591,34 @@ concepts:
       - product-use-case-mapping
     knowledgePoints:
       - id: obs-kp1
-        instruction: >-
-          Observability's job is "Help me know when things break, understand why, and fix them fast." The core product
-          is Error Tracking.
-
+        instruction: |-
+          Observability's job is "Help me know when things break, understand why, and fix them fast." The core product is Error Tracking.
 
           The expansion path: Error Tracking → Session Replay → Logging → Product Analytics.
-
           - Error Tracking → Replay: See the error and stack trace, but not what the user
             was doing. Click from an error to the user's actual session. This is the single
             most differentiated feature vs Sentry.
 
           - Replay → Logging (beta): Frontend error context covered; now need backend logs.
-
           - Logging → Product Analytics: Individual debugging done; now measure aggregate
             impact (how many users affected? Revenue impact?).
 
 
-          The primary buyers are SREs, Backend Engineers, Product Engineers, Engineering Managers, and early-stage
-          Founders.
+          The primary buyers are SREs, Backend Engineers, Product Engineers, Engineering Managers, and early-stage Founders.
 
-
-          Key business insight: observability data connected to product analytics is a moat. Only PostHog can say "this
-          error affected 500 users, 30 were in checkout, $15k lost revenue this week." Sentry gives you a stack trace.
-          PostHog gives you business impact.
+          Key business insight: observability data connected to product analytics is a moat. Only PostHog can say "this error affected 500 users, 30 were in checkout, $15k lost revenue this week." Sentry gives you a stack trace. PostHog gives you business impact.
         instructionContent:
-          - body: >-
-              Observability data connected to product analytics is PostHog's moat. Only PostHog can say "this error
-              affected 500 users, 30 were in checkout, $15k lost revenue this week." Sentry gives a stack trace. PostHog
-              gives business impact.
+          - body: Observability data connected to product analytics is PostHog's moat. Only PostHog can say "this error affected 500 users, 30 were in checkout, $15k lost revenue this week." Sentry gives a stack trace. PostHog gives business impact.
             type: callout
             title: The Moat
           - url: https://posthog.com/handbook/growth/use-case-selling/observability
             type: link
             title: Observability Playbook
             description: Expansion path and buyer personas
-        workedExample: >-
-          A customer says: "We use Sentry for error tracking. It catches errors fine but when we get a bug report, it
-          still takes hours to reproduce."
+        workedExample: |-
+          A customer says: "We use Sentry for error tracking. It catches errors fine but when we get a bug report, it still takes hours to reproduce."
 
-
-          Your response: "That reproduction time is exactly what Session Replay eliminates. In PostHog, you click from
-          an error directly to the user's session recording. You see exactly what they did, what they saw, and where
-          things went wrong — no reproduction needed. Sentry gives you the stack trace. PostHog gives you the stack
-          trace plus the user's actual experience."
+          Your response: "That reproduction time is exactly what Session Replay eliminates. In PostHog, you click from an error directly to the user's session recording. You see exactly what they did, what they saw, and where things went wrong — no reproduction needed. Sentry gives you the stack trace. PostHog gives you the stack trace plus the user's actual experience."
         problems:
           - id: obs-kp1-p1
             type: multiple_choice
@@ -843,9 +629,7 @@ concepts:
               - Clicking from an error directly to the user's session recording
               - Built-in incident management workflows
               - APM and distributed tracing
-            explanation: >-
-              The error-to-replay connection is the killer feature. Sentry gives you a stack trace; PostHog gives you
-              the stack trace plus the user's actual experience. No other error tracking tool offers this.
+            explanation: The error-to-replay connection is the killer feature. Sentry gives you a stack trace; PostHog gives you the stack trace plus the user's actual experience. No other error tracking tool offers this.
           - id: obs-kp1-p2
             type: multiple_choice
             question: What is a known gap in the Observability story that you must be transparent about?
@@ -855,10 +639,7 @@ concepts:
               - PostHog has no APM or distributed tracing yet — it can't fully replace Datadog today
               - Session Replay doesn't work with Error Tracking
               - Logging is not on the roadmap
-            explanation: >-
-              PostHog has no APM or tracing yet. Be honest: "For error tracking, better than Sentry because of user
-              context. For full observability, building toward it — in the meantime, product analytics connection gives
-              you something no other observability tool offers."
+            explanation: 'PostHog has no APM or tracing yet. Be honest: "For error tracking, better than Sentry because of user context. For full observability, building toward it — in the meantime, product analytics connection gives you something no other observability tool offers."'
             difficulty: 4
           - id: obs-kp1-p3
             type: multiple_choice
@@ -866,45 +647,28 @@ concepts:
             correct: 1
             options:
               - Because it makes PostHog's error tracking faster
-              - >-
-                Because only PostHog can quantify error impact in business terms — affected users, revenue lost, funnel
-                impact
+              - Because only PostHog can quantify error impact in business terms — affected users, revenue lost, funnel impact
               - Because product analytics data helps fix bugs automatically
               - Because Datadog doesn't have error tracking
-            explanation: >-
-              Only PostHog connects errors to user behavior and business outcomes. "This error affected 500 users, 30 in
-              checkout, $15k lost revenue" is something no pure observability tool can tell you.
+            explanation: Only PostHog connects errors to user behavior and business outcomes. "This error affected 500 users, 30 in checkout, $15k lost revenue" is something no pure observability tool can tell you.
             difficulty: 4
+        keyPrerequisite: product-use-case-mapping
       - id: obs-kp2
-        instruction: >-
+        instruction: |-
           The three main Observability competitors are Sentry, Datadog, and New Relic.
 
+          vs Sentry: PostHog has deeper product analytics and replay context. Sentry has more mature error tracking, broader language support, and a larger install base. Best pitch: "Sentry gives you the stack trace. PostHog gives you the stack trace, the user's session, and the business impact."
 
-          vs Sentry: PostHog has deeper product analytics and replay context. Sentry has more mature error tracking,
-          broader language support, and a larger install base. Best pitch: "Sentry gives you the stack trace. PostHog
-          gives you the stack trace, the user's session, and the business impact."
+          vs Datadog: PostHog has product analytics integration, replay depth, and is much cheaper. Datadog has the complete observability stack (APM, traces, metrics) and a massive enterprise ecosystem. Don't try to replace Datadog entirely.
 
-
-          vs Datadog: PostHog has product analytics integration, replay depth, and is much cheaper. Datadog has the
-          complete observability stack (APM, traces, metrics) and a massive enterprise ecosystem. Don't try to replace
-          Datadog entirely.
-
-
-          vs New Relic: Similar to Datadog — PostHog adds product analytics and replay, but New Relic has more mature
-          enterprise features.
-
+          vs New Relic: Similar to Datadog — PostHog adds product analytics and replay, but New Relic has more mature enterprise features.
 
           Entry scenarios:
-
           1. Sentry replacement: Consolidate into PostHog already used for analytics/flags.
-
           2. First observability tool: Early-stage, 100K exceptions/month free tier.
-
           3. Session Replay → Error Tracking: Errors surfaced in replays tracked systematically.
         instructionContent:
-          - body: >-
-              "Sentry gives you the stack trace. PostHog gives you the stack trace, the user's session, and the business
-              impact." Don't try to fully replace Datadog — position as complement for user-facing issues.
+          - body: '"Sentry gives you the stack trace. PostHog gives you the stack trace, the user''s session, and the business impact." Don''t try to fully replace Datadog — position as complement for user-facing issues.'
             type: callout
             title: Sentry Pitch Formula
           - url: https://posthog.com/handbook/growth/use-case-selling/observability
@@ -918,14 +682,10 @@ concepts:
             correct: 1
             options:
               - '"Yes, PostHog can fully replace Datadog today."'
-              - >-
-                "PostHog can replace the error tracking part and add product analytics context, but Datadog is still
-                needed for APM and tracing."
+              - '"PostHog can replace the error tracking part and add product analytics context, but Datadog is still needed for APM and tracing."'
               - '"No, PostHog has no observability features."'
               - '"You should switch entirely — PostHog is cheaper."'
-            explanation: >-
-              Be honest. PostHog can't fully replace Datadog today (no APM/tracing). Position as complement that adds
-              something Datadog can't: product analytics context and session replay for user-facing issues.
+            explanation: 'Be honest. PostHog can''t fully replace Datadog today (no APM/tracing). Position as complement that adds something Datadog can''t: product analytics context and session replay for user-facing issues.'
           - id: obs-kp2-p2
             type: multiple_choice
             question: Which entry scenario is best for getting an existing user into the Observability use case?
@@ -935,9 +695,7 @@ concepts:
               - Sentry replacement — they already use PostHog for analytics/flags and can consolidate
               - Pitching a full Datadog replacement
               - Starting with Logging
-            explanation: >-
-              Sentry replacement is the strongest entry for existing PostHog customers. They already have the SDK, they
-              already know the platform — consolidating error tracking into PostHog eliminates a vendor.
+            explanation: Sentry replacement is the strongest entry for existing PostHog customers. They already have the SDK, they already know the platform — consolidating error tracking into PostHog eliminates a vendor.
           - id: obs-kp2-p3
             type: multiple_choice
             question: What is the free tier for Error Tracking?
@@ -947,10 +705,9 @@ concepts:
               - 50K exceptions/month
               - 100K exceptions/month
               - 1M exceptions/month
-            explanation: >-
-              Error Tracking has a generous free tier of 100K exceptions per month. For early-stage companies, this is a
-              strong entry point — free observability.
+            explanation: Error Tracking has a generous free tier of 100K exceptions per month. For early-stage companies, this is a strong entry point — free observability.
             difficulty: 2
+        keyPrerequisite: observability-uc
   - id: growth-marketing
     name: Growth & Marketing
     section: growth-marketing
@@ -965,50 +722,28 @@ concepts:
       - product-use-case-mapping
     knowledgePoints:
       - id: gm-kp1
-        instruction: >-
-          Growth & Marketing's job is "Help me understand what drives acquisition, conversion, and revenue." The core
-          product is Web Analytics.
+        instruction: |-
+          Growth & Marketing's job is "Help me understand what drives acquisition, conversion, and revenue." The core product is Web Analytics.
 
+          This is described internally as "probably the most underserved use case in our current motion." The products exist but PostHog rarely leads with this story. Marketing teams spending $10k+/month on Segment, Mixpanel, GA4, CDPs.
 
-          This is described internally as "probably the most underserved use case in our current motion." The products
-          exist but PostHog rarely leads with this story. Marketing teams spending $10k+/month on Segment, Mixpanel,
-          GA4, CDPs.
+          The pitch is stack consolidation: replace 3-5 marketing tools with one platform that goes from ad click to conversion to revenue.
 
+          The primary buyers are Growth Engineers, Marketing Leads, CRO/Growth PMs, Founding Growth, and Marketing Analysts. These are separate budgets from engineering — a different buyer than Product Intelligence or Release Engineering.
 
-          The pitch is stack consolidation: replace 3-5 marketing tools with one platform that goes from ad click to
-          conversion to revenue.
-
-
-          The primary buyers are Growth Engineers, Marketing Leads, CRO/Growth PMs, Founding Growth, and Marketing
-          Analysts. These are separate budgets from engineering — a different buyer than Product Intelligence or Release
-          Engineering.
-
-
-          Critical expansion mechanism: Experiments + Feature Flags create a multithreading bridge. The growth team
-          defines the hypothesis, engineering implements the flag. Both teams are now active in PostHog. This is the
-          highest-value cross-team play because it creates flags in the codebase (sticky) and pulls in engineering (new
-          champion).
+          Critical expansion mechanism: Experiments + Feature Flags create a multithreading bridge. The growth team defines the hypothesis, engineering implements the flag. Both teams are now active in PostHog. This is the highest-value cross-team play because it creates flags in the codebase (sticky) and pulls in engineering (new champion).
         instructionContent:
-          - body: >-
-              Growth & Marketing is "probably the most underserved use case" internally. Marketing teams spending
-              $10k+/month on Segment, Mixpanel, GA4, CDPs. The pitch is stack consolidation: replace 3-5 tools with one
-              platform from ad click to revenue.
+          - body: 'Growth & Marketing is "probably the most underserved use case" internally. Marketing teams spending $10k+/month on Segment, Mixpanel, GA4, CDPs. The pitch is stack consolidation: replace 3-5 tools with one platform from ad click to revenue.'
             type: callout
             title: Underserved Opportunity
           - url: https://posthog.com/handbook/growth/use-case-selling/growth-and-marketing
             type: link
             title: Growth & Marketing Playbook
             description: Expansion path, buyer personas, and competitive positioning
-        workedExample: >-
-          A growth lead says: "We use GA4 for web analytics, Segment for data piping, and Amplitude for product
-          analytics. It costs $12k/month across all three."
+        workedExample: |-
+          A growth lead says: "We use GA4 for web analytics, Segment for data piping, and Amplitude for product analytics. It costs $12k/month across all three."
 
-
-          Your response: "That's a common stack. Here's what PostHog consolidates: Web Analytics replaces GA4 with
-          first-party data that isn't blocked by ad blockers. Product Analytics gives you the funnel depth Amplitude
-          has. Data Pipelines replaces the Segment pipe to push conversions back to ad platforms and your CRM. You'd go
-          from three vendors to one, save most of that $12k, and get things none of those three can do — like
-          Experiments to A/B test your signup flow measured against actual revenue."
+          Your response: "That's a common stack. Here's what PostHog consolidates: Web Analytics replaces GA4 with first-party data that isn't blocked by ad blockers. Product Analytics gives you the funnel depth Amplitude has. Data Pipelines replaces the Segment pipe to push conversions back to ad platforms and your CRM. You'd go from three vendors to one, save most of that $12k, and get things none of those three can do — like Experiments to A/B test your signup flow measured against actual revenue."
         problems:
           - id: gm-kp1-p1
             type: multiple_choice
@@ -1019,9 +754,7 @@ concepts:
               - Marketing Analytics
               - Web Analytics
               - Data Pipelines
-            explanation: >-
-              Web Analytics is the core product — traffic, referrers, UTM tracking, bounce rates. It's the GA4
-              replacement entry point. Marketing Analytics, Product Analytics, and others are expansion products.
+            explanation: Web Analytics is the core product — traffic, referrers, UTM tracking, bounce rates. It's the GA4 replacement entry point. Marketing Analytics, Product Analytics, and others are expansion products.
             difficulty: 2
           - id: gm-kp1-p2
             type: multiple_choice
@@ -1029,37 +762,27 @@ concepts:
             correct: 1
             options:
               - Because PostHog doesn't have any marketing products
-              - >-
-                Because the products exist but PostHog rarely leads with this story, despite marketing teams spending
-                $10k+/month on tools PostHog could replace
+              - Because the products exist but PostHog rarely leads with this story, despite marketing teams spending $10k+/month on tools PostHog could replace
               - Because marketing teams don't want analytics
               - Because Web Analytics is too new to sell
-            explanation: >-
-              The products exist and the opportunity is large (marketing teams spending heavily on multiple tools), but
-              PostHog's current sales motion rarely leads with the Growth & Marketing story.
+            explanation: The products exist and the opportunity is large (marketing teams spending heavily on multiple tools), but PostHog's current sales motion rarely leads with the Growth & Marketing story.
           - id: gm-kp1-p3
             type: multiple_choice
             question: What makes the Experiments + Feature Flags growth step in Growth & Marketing so strategically valuable?
             correct: 1
             options:
               - It's the most expensive product combination
-              - >-
-                It creates a multithreading bridge — growth defines hypotheses, engineering implements flags, both teams
-                are active in PostHog
+              - It creates a multithreading bridge — growth defines hypotheses, engineering implements flags, both teams are active in PostHog
               - It's the only way to run A/B tests
               - It replaces GA4 completely
-            explanation: >-
-              The growth-to-engineering bridge is the highest-value cross-team play. Growth gets experiment capability.
-              Engineering gets flag infrastructure for their own releases. Both teams are now in PostHog with flags
-              embedded in the codebase.
+            explanation: The growth-to-engineering bridge is the highest-value cross-team play. Growth gets experiment capability. Engineering gets flag infrastructure for their own releases. Both teams are now in PostHog with flags embedded in the codebase.
             difficulty: 4
+        keyPrerequisite: product-use-case-mapping
       - id: gm-kp2
-        instruction: >-
+        instruction: |-
           Competitive positioning for Growth & Marketing centers on full-funnel consolidation and first-party data.
 
-
           PostHog advantages:
-
           - Full-funnel in one platform: web traffic → attribution → funnels → behavior
             → revenue → engagement. GA4 stops at the website. Segment stops at the pipe.
             Amplitude stops at the dashboard.
@@ -1068,29 +791,18 @@ concepts:
             attribution, higher match rates when pushing conversions to ad platforms.
 
           - Analytics + automation (Workflows, Product Tours) in the same tool.
-
           - Stack consolidation = real, quantifiable cost savings.
 
-
           Honest weaknesses:
-
           - Marketing Analytics is beta — set expectations.
-
           - Workflows is less mature than HubSpot/Braze for complex email nurture.
-
           - Product Tours is alpha.
-
           - Pipeline destination coverage is less than Segment.
-
           - Non-technical marketers may find the UI intimidating initially.
 
-
-          Key objection: "We already use GA4 and it's free." Response: "GA4 shows visits. PostHog shows which channels
-          drive users who activate and pay. PostHog starts free too, and goes all the way to revenue."
+          Key objection: "We already use GA4 and it's free." Response: "GA4 shows visits. PostHog shows which channels drive users who activate and pay. PostHog starts free too, and goes all the way to revenue."
         instructionContent:
-          - body: >-
-              "GA4 shows visits. PostHog shows which channels drive users who activate and pay — and starts free too."
-              Acknowledge GA4's free tier, then reframe on depth: visits vs revenue attribution.
+          - body: '"GA4 shows visits. PostHog shows which channels drive users who activate and pay — and starts free too." Acknowledge GA4''s free tier, then reframe on depth: visits vs revenue attribution.'
             type: callout
             title: GA4 Objection Response
           - url: https://posthog.com/handbook/growth/use-case-selling/growth-and-marketing
@@ -1107,39 +819,29 @@ concepts:
               - '"GA4 shows visits. PostHog shows which channels drive users who activate and pay — and starts free too."'
               - '"PostHog is cheaper than GA4."'
               - '"You should keep GA4 and add PostHog on top."'
-            explanation: >-
-              The response acknowledges GA4's free tier while positioning PostHog's depth: it goes beyond visits to
-              activation, retention, and revenue. PostHog also starts free, so the cost objection is neutralized.
+            explanation: 'The response acknowledges GA4''s free tier while positioning PostHog''s depth: it goes beyond visits to activation, retention, and revenue. PostHog also starts free, so the cost objection is neutralized.'
           - id: gm-kp2-p2
             type: multiple_choice
             question: What is the first-party data advantage for marketing teams?
             correct: 1
             options:
               - PostHog's data is stored on the customer's own servers
-              - >-
-                First-party data isn't blocked by ad blockers, giving more accurate attribution and higher match rates
-                for ad platforms
+              - First-party data isn't blocked by ad blockers, giving more accurate attribution and higher match rates for ad platforms
               - First-party data means PostHog collects less data
               - First-party data is only relevant for GDPR compliance
-            explanation: >-
-              First-party data collection means ad blockers don't block PostHog's tracking. This gives more accurate
-              data, better attribution, and higher match rates when pushing conversions back to ad platforms like Meta
-              and Google.
+            explanation: First-party data collection means ad blockers don't block PostHog's tracking. This gives more accurate data, better attribution, and higher match rates when pushing conversions back to ad platforms like Meta and Google.
           - id: gm-kp2-p3
             type: multiple_choice
             question: A buyer says "We need Segment for our data pipelines." What's the candid response?
             correct: 1
             options:
               - '"PostHog has more destination integrations than Segment."'
-              - >-
-                "Check what destinations you actually need — PostHog has built-in Pipelines, and webhooks bridge gaps.
-                But verify before promising."
+              - '"Check what destinations you actually need — PostHog has built-in Pipelines, and webhooks bridge gaps. But verify before promising."'
               - '"Segment is obsolete."'
               - '"You should rip out Segment immediately."'
-            explanation: >-
-              Be honest. PostHog has fewer destination integrations than Segment. The right response is to check what
-              the prospect actually needs. PostHog's Pipelines cover many common destinations, and webhooks bridge gaps.
+            explanation: Be honest. PostHog has fewer destination integrations than Segment. The right response is to check what the prospect actually needs. PostHog's Pipelines cover many common destinations, and webhooks bridge gaps.
             difficulty: 4
+        keyPrerequisite: growth-marketing
   - id: ai-llm-observability
     name: AI/LLM Observability
     section: ai-llm-obs
@@ -1154,14 +856,10 @@ concepts:
       - product-use-case-mapping
     knowledgePoints:
       - id: ai-kp1
-        instruction: >-
-          AI/LLM Observability's job is "Help me understand how my AI features perform, what they cost, and how users
-          interact with them." The core product is LLM Observability (model performance, cost tracking, latency
-          monitoring, trace individual calls with inputs/outputs/tokens/latency/cost).
-
+        instruction: |-
+          AI/LLM Observability's job is "Help me understand how my AI features perform, what they cost, and how users interact with them." The core product is LLM Observability (model performance, cost tracking, latency monitoring, trace individual calls with inputs/outputs/tokens/latency/cost).
 
           The expansion path: LLM Obs → AI Evals → Product Analytics → Experiments → Error Tracking → Session Replay.
-
           - LLM Obs → AI Evals: See latency and cost, but not whether output quality is
             good. AI Evals scores quality and detects regressions.
 
@@ -1174,28 +872,19 @@ concepts:
 
           The primary buyers are AI Engineers, AI Product Managers, AI Founders, and AI Product Engineers.
 
-
-          Key differentiation: No one else connects model performance → quality → user behavior → business outcomes in
-          one platform. Langfuse does tracing. Amplitude does analytics. Sentry does errors. Nobody connects all four.
+          Key differentiation: No one else connects model performance → quality → user behavior → business outcomes in one platform. Langfuse does tracing. Amplitude does analytics. Sentry does errors. Nobody connects all four.
         instructionContent:
-          - body: >-
-              No one else connects model performance, output quality, user behavior, and business outcomes in one
-              platform. Langfuse does tracing. Amplitude does analytics. Sentry does errors. Nobody connects all four.
+          - body: No one else connects model performance, output quality, user behavior, and business outcomes in one platform. Langfuse does tracing. Amplitude does analytics. Sentry does errors. Nobody connects all four.
             type: callout
             title: Key Differentiator
           - url: https://posthog.com/handbook/growth/use-case-selling/ai-llm-observability
             type: link
             title: AI/LLM Observability Playbook
             description: Expansion path and buyer personas
-        workedExample: >-
-          An AI startup says: "We use Langfuse for LLM tracing and Amplitude for product analytics. We changed our
-          prompt last week and users seem less happy but we can't prove it."
+        workedExample: |-
+          An AI startup says: "We use Langfuse for LLM tracing and Amplitude for product analytics. We changed our prompt last week and users seem less happy but we can't prove it."
 
-
-          Your response: "That's exactly the gap between model metrics and user outcomes. PostHog connects both. AI
-          Evals would have caught the quality regression when you changed the prompt. Product Analytics shows the user
-          behavior change — acceptance rates, regeneration rates, downstream conversion. And you'd A/B test the next
-          prompt change with Experiments, measured against user behavior, not benchmarks."
+          Your response: "That's exactly the gap between model metrics and user outcomes. PostHog connects both. AI Evals would have caught the quality regression when you changed the prompt. Product Analytics shows the user behavior change — acceptance rates, regeneration rates, downstream conversion. And you'd A/B test the next prompt change with Experiments, measured against user behavior, not benchmarks."
         problems:
           - id: ai-kp1-p1
             type: multiple_choice
@@ -1206,9 +895,7 @@ concepts:
               - Product Analytics
               - Error Tracking
               - LLM Observability
-            explanation: >-
-              LLM Observability is the core product — tracing individual calls with inputs, outputs, tokens, latency,
-              and cost. AI Evals and Product Analytics are expansion products.
+            explanation: LLM Observability is the core product — tracing individual calls with inputs, outputs, tokens, latency, and cost. AI Evals and Product Analytics are expansion products.
             difficulty: 2
           - id: ai-kp1-p2
             type: multiple_choice
@@ -1219,56 +906,36 @@ concepts:
               - It scores output quality and detects regressions that latency/cost metrics miss
               - It replaces the need for Product Analytics
               - It provides Session Replay of AI interactions
-            explanation: >-
-              LLM Obs shows latency, cost, and tokens — but not whether the output is good. AI Evals scores quality and
-              catches regressions after prompt or model changes.
+            explanation: LLM Obs shows latency, cost, and tokens — but not whether the output is good. AI Evals scores quality and catches regressions after prompt or model changes.
           - id: ai-kp1-p3
             type: multiple_choice
             question: Why are AI-native companies said to have "uniquely strong" cross-sell potential?
             correct: 1
             options:
               - Because they have the largest budgets
-              - >-
-                Because AI products sit at the intersection of 4+ use cases — model performance, product analytics,
-                error tracking, experimentation
+              - Because AI products sit at the intersection of 4+ use cases — model performance, product analytics, error tracking, experimentation
               - Because they only need one PostHog product
               - Because they don't use competitors
-            explanation: >-
-              AI products touch model performance (AI/LLM Obs), user behavior (Product Intelligence), errors
-              (Observability), controlled rollouts (Release Engineering), and more. This makes cross-sell natural across
-              multiple use cases.
+            explanation: AI products touch model performance (AI/LLM Obs), user behavior (Product Intelligence), errors (Observability), controlled rollouts (Release Engineering), and more. This makes cross-sell natural across multiple use cases.
             difficulty: 4
+        keyPrerequisite: product-use-case-mapping
       - id: ai-kp2
-        instruction: >-
+        instruction: |-
           The main AI/LLM Observability competitors are Langfuse, Helicone, Braintrust, and Datadog LLM Monitoring.
 
+          vs Langfuse: PostHog has broader platform and user behavior metrics. Langfuse has more mature LLM-specific features, open-source community, and purpose-built prompt management.
 
-          vs Langfuse: PostHog has broader platform and user behavior metrics. Langfuse has more mature LLM-specific
-          features, open-source community, and purpose-built prompt management.
+          vs Helicone: PostHog has broader platform and experiments. Helicone has simpler LLM logging and built-in caching/rate limiting.
 
+          vs Braintrust: PostHog has broader platform and production monitoring. Braintrust has a more mature eval framework and better prompt playground.
 
-          vs Helicone: PostHog has broader platform and experiments. Helicone has simpler LLM logging and built-in
-          caching/rate limiting.
+          vs Datadog LLM Monitoring: PostHog has product analytics, user behavior, and is much cheaper for AI startups. Datadog has the full APM stack and enterprise ecosystem.
 
+          Sweet spot: AI-native startups and teams building AI inside existing products who want model performance connected to user outcomes without managing 4 vendors.
 
-          vs Braintrust: PostHog has broader platform and production monitoring. Braintrust has a more mature eval
-          framework and better prompt playground.
-
-
-          vs Datadog LLM Monitoring: PostHog has product analytics, user behavior, and is much cheaper for AI startups.
-          Datadog has the full APM stack and enterprise ecosystem.
-
-
-          Sweet spot: AI-native startups and teams building AI inside existing products who want model performance
-          connected to user outcomes without managing 4 vendors.
-
-
-          Be honest about maturity: LLM Obs feature set is newer than Langfuse's. Platform breadth is the
-          differentiator, not depth on LLM-specific tooling.
+          Be honest about maturity: LLM Obs feature set is newer than Langfuse's. Platform breadth is the differentiator, not depth on LLM-specific tooling.
         instructionContent:
-          - body: >-
-              LLM Obs feature set is newer than Langfuse's. Platform breadth is the differentiator, not depth on
-              LLM-specific tooling. Lead with the connection to user outcomes, not feature-by-feature comparison.
+          - body: LLM Obs feature set is newer than Langfuse's. Platform breadth is the differentiator, not depth on LLM-specific tooling. Lead with the connection to user outcomes, not feature-by-feature comparison.
             type: callout
             title: Honesty Check
           - url: https://posthog.com/handbook/growth/use-case-selling/ai-llm-observability
@@ -1282,14 +949,10 @@ concepts:
             correct: 1
             options:
               - PostHog has more mature LLM-specific features than Langfuse
-              - >-
-                PostHog's LLM features are newer, but the platform breadth (analytics, experiments, error tracking) is
-                the differentiator
+              - PostHog's LLM features are newer, but the platform breadth (analytics, experiments, error tracking) is the differentiator
               - Langfuse is shutting down
               - PostHog has better prompt management than Langfuse
-            explanation: >-
-              Be honest. Langfuse has more mature LLM-specific tooling. PostHog's advantage is connecting model metrics
-              to user behavior, experiments, and error tracking in one platform.
+            explanation: Be honest. Langfuse has more mature LLM-specific tooling. PostHog's advantage is connecting model metrics to user behavior, experiments, and error tracking in one platform.
           - id: ai-kp2-p2
             type: multiple_choice
             question: Which offering serves as a bridge between AI/LLM Observability and Release workflows?
@@ -1299,9 +962,7 @@ concepts:
               - Session Replay
               - AI Evals
               - Data Pipelines
-            explanation: >-
-              AI Evals bridges AI/LLM Obs and Release Engineering. It catches quality regressions after prompt or model
-              changes — the AI equivalent of catching bugs after a deploy.
+            explanation: AI Evals bridges AI/LLM Obs and Release Engineering. It catches quality regressions after prompt or model changes — the AI equivalent of catching bugs after a deploy.
             difficulty: 4
           - id: ai-kp2-p3
             type: multiple_choice
@@ -1309,16 +970,12 @@ concepts:
             correct: 1
             options:
               - Because benchmarks are inaccurate
-              - >-
-                Because PostHog measures prompt/model changes against real user behavior (acceptance, conversion), not
-                synthetic scores
+              - Because PostHog measures prompt/model changes against real user behavior (acceptance, conversion), not synthetic scores
               - Because PostHog doesn't support benchmark testing
               - Because BLEU scores are deprecated
-            explanation: >-
-              PostHog's Experiments tests prompt/model changes against real user outcomes (acceptance rates, conversion,
-              retention) — not synthetic benchmarks. Real user behavior is a more meaningful signal than BLEU or similar
-              scores.
+            explanation: PostHog's Experiments tests prompt/model changes against real user outcomes (acceptance rates, conversion, retention) — not synthetic benchmarks. Real user behavior is a more meaningful signal than BLEU or similar scores.
             difficulty: 4
+        keyPrerequisite: ai-llm-observability
   - id: data-infrastructure
     name: Data Infrastructure
     section: data-infra
@@ -1333,25 +990,16 @@ concepts:
       - product-use-case-mapping
     knowledgePoints:
       - id: di-kp1
-        instruction: >-
-          Data Infrastructure's job is "Help me unify product data with business data and get it where it needs to go."
-          The core products are Data Warehouse (bring external data IN — Stripe, HubSpot, Salesforce, databases) and
-          Data Pipelines / Batch Exports (send PostHog data OUT — S3, Snowflake, BigQuery, ad platforms).
+        instruction: |-
+          Data Infrastructure's job is "Help me unify product data with business data and get it where it needs to go." The core products are Data Warehouse (bring external data IN — Stripe, HubSpot, Salesforce, databases) and Data Pipelines / Batch Exports (send PostHog data OUT — S3, Snowflake, BigQuery, ad platforms).
 
+          This is the "stickiness" use case. Once PostHog receives data from Stripe/HubSpot and feeds data out to warehouses, it's very hard to rip out. Highest retention rates of any use case.
 
-          This is the "stickiness" use case. Once PostHog receives data from Stripe/HubSpot and feeds data out to
-          warehouses, it's very hard to rip out. Highest retention rates of any use case.
-
-
-          But it's also the hardest to sell into. Data teams are skeptical of analytics tools in the data engineering
-          space.
-
+          But it's also the hardest to sell into. Data teams are skeptical of analytics tools in the data engineering space.
 
           The primary buyers are Data Engineers, Data Team Leads, Product Ops / BizOps, and early-stage Founders.
 
-
           Two entry scenarios:
-
           1. Data OUT (Batch Exports first): Export PostHog events to existing warehouse.
              PostHog as data source.
 
@@ -1360,26 +1008,19 @@ concepts:
              because it keeps teams inside PostHog.
 
 
-          The "lightweight warehouse" pitch works for early-stage companies who don't have Snowflake yet. PostHog gives
-          them warehouse capabilities without a separate vendor.
+          The "lightweight warehouse" pitch works for early-stage companies who don't have Snowflake yet. PostHog gives them warehouse capabilities without a separate vendor.
         instructionContent:
-          - body: >-
-              Data Infrastructure is the stickiest use case. Once PostHog receives data from Stripe/HubSpot and feeds
-              data out to warehouses, ripping it out means rebuilding multiple integrations. Highest retention rates.
+          - body: Data Infrastructure is the stickiest use case. Once PostHog receives data from Stripe/HubSpot and feeds data out to warehouses, ripping it out means rebuilding multiple integrations. Highest retention rates.
             type: callout
             title: Stickiness Insight
           - url: https://posthog.com/handbook/growth/use-case-selling/data-infrastructure
             type: link
             title: Data Infrastructure Playbook
             description: Entry scenarios and expansion paths
-        workedExample: >-
-          A founder says: "We want to see retention broken down by Stripe subscription plan, but our product data is in
-          PostHog and our billing data is in Stripe."
+        workedExample: |-
+          A founder says: "We want to see retention broken down by Stripe subscription plan, but our product data is in PostHog and our billing data is in Stripe."
 
-
-          Your response: "That's a two-minute setup. Connect your Stripe account in Data Warehouse, and you can write a
-          HogQL query that joins PostHog events with Stripe subscription data. 'Show me 30-day retention by plan tier' —
-          no data engineering required, no separate warehouse needed."
+          Your response: "That's a two-minute setup. Connect your Stripe account in Data Warehouse, and you can write a HogQL query that joins PostHog events with Stripe subscription data. 'Show me 30-day retention by plan tier' — no data engineering required, no separate warehouse needed."
         problems:
           - id: di-kp1-p1
             type: multiple_choice
@@ -1387,14 +1028,10 @@ concepts:
             correct: 1
             options:
               - Because it has the most features
-              - >-
-                Because once PostHog receives and sends data through pipelines, ripping it out means rebuilding multiple
-                integrations
+              - Because once PostHog receives and sends data through pipelines, ripping it out means rebuilding multiple integrations
               - Because Data Warehouse has the highest free tier
               - Because data teams are the most loyal customers
-            explanation: >-
-              Once PostHog is receiving data from Stripe/HubSpot and feeding data out to warehouses/BI tools, removing
-              it means rebuilding multiple data pipelines. This creates the highest retention of any use case.
+            explanation: Once PostHog is receiving data from Stripe/HubSpot and feeding data out to warehouses/BI tools, removing it means rebuilding multiple data pipelines. This creates the highest retention of any use case.
             difficulty: 2
           - id: di-kp1-p2
             type: multiple_choice
@@ -1405,9 +1042,7 @@ concepts:
               - Data IN (Data Warehouse) because it keeps teams inside PostHog for enriched analytics
               - Neither is stronger — it depends entirely on the customer
               - Data IN because it's cheaper
-            explanation: >-
-              Data IN is the stronger entry because it keeps teams inside PostHog. "Show me retention by Stripe plan" is
-              a powerful demo that demonstrates value without requiring the customer to build external pipelines.
+            explanation: Data IN is the stronger entry because it keeps teams inside PostHog. "Show me retention by Stripe plan" is a powerful demo that demonstrates value without requiring the customer to build external pipelines.
           - id: di-kp1-p3
             type: multiple_choice
             question: For which type of company does the "lightweight warehouse" story work best?
@@ -1417,38 +1052,23 @@ concepts:
               - Early-stage companies who don't have a separate warehouse yet
               - Data engineering teams at large companies
               - Companies already using Fivetran
-            explanation: >-
-              The lightweight warehouse pitch resonates with early-stage companies who need to query Stripe alongside
-              PostHog without setting up Snowflake. For mature data stacks, PostHog is a complement, not a replacement.
+            explanation: The lightweight warehouse pitch resonates with early-stage companies who need to query Stripe alongside PostHog without setting up Snowflake. For mature data stacks, PostHog is a complement, not a replacement.
+        keyPrerequisite: product-use-case-mapping
       - id: di-kp2
-        instruction: >-
-          The main competitors for Data Infrastructure are Snowflake/BigQuery (real warehouses), Fivetran (pipeline
-          tool), and Census/Hightouch (reverse ETL).
+        instruction: |-
+          The main competitors for Data Infrastructure are Snowflake/BigQuery (real warehouses), Fivetran (pipeline tool), and Census/Hightouch (reverse ETL).
 
+          vs Snowflake/BigQuery: Don't try to replace them. For mature data stacks, PostHog is a complement — bring key business data into PostHog for enriched analytics, and export PostHog data to the warehouse. Full replacement pitch only works for early-stage without a warehouse.
 
-          vs Snowflake/BigQuery: Don't try to replace them. For mature data stacks, PostHog is a complement — bring key
-          business data into PostHog for enriched analytics, and export PostHog data to the warehouse. Full replacement
-          pitch only works for early-stage without a warehouse.
+          vs Fivetran: PostHog is analytics platform AND pipe. Simpler for early-stage. Fivetran has far more connectors and more mature governance.
 
+          vs Census/Hightouch: PostHog pushes data directly without a warehouse intermediate. Simpler architecture. They have more destination integrations and audience management.
 
-          vs Fivetran: PostHog is analytics platform AND pipe. Simpler for early-stage. Fivetran has far more connectors
-          and more mature governance.
+          vs Segment: PostHog is analytics platform AND pipe. No separate CDP needed. Segment has more integrations and a more mature enterprise CDP.
 
-
-          vs Census/Hightouch: PostHog pushes data directly without a warehouse intermediate. Simpler architecture. They
-          have more destination integrations and audience management.
-
-
-          vs Segment: PostHog is analytics platform AND pipe. No separate CDP needed. Segment has more integrations and
-          a more mature enterprise CDP.
-
-
-          Key honest limitation: data engineering teams may not trust PostHog as a warehouse. Don't oversell. Position
-          as complement. Demonstrate HogQL with their actual data to build credibility.
+          Key honest limitation: data engineering teams may not trust PostHog as a warehouse. Don't oversell. Position as complement. Demonstrate HogQL with their actual data to build credibility.
         instructionContent:
-          - body: >-
-              For mature data stacks, PostHog is a complement, not a replacement. Don't try to replace Snowflake.
-              Demonstrate HogQL with their actual data to build credibility with skeptical data teams.
+          - body: For mature data stacks, PostHog is a complement, not a replacement. Don't try to replace Snowflake. Demonstrate HogQL with their actual data to build credibility with skeptical data teams.
             type: callout
             title: Positioning Rule
           - url: https://posthog.com/handbook/growth/use-case-selling/data-infrastructure
@@ -1462,28 +1082,20 @@ concepts:
             correct: 1
             options:
               - Yes — PostHog can fully replace Snowflake
-              - >-
-                No — position PostHog as a complement that brings key business data into PostHog and exports PostHog
-                data to Snowflake
+              - No — position PostHog as a complement that brings key business data into PostHog and exports PostHog data to Snowflake
               - Yes — PostHog is cheaper than Snowflake
               - No — Data Infrastructure isn't relevant for Snowflake customers
-            explanation: >-
-              For mature data stacks, PostHog is a complement, not a replacement. Bring key business data into PostHog
-              for enriched analytics. Export PostHog events to Snowflake for the BI team. Don't oversell.
+            explanation: For mature data stacks, PostHog is a complement, not a replacement. Bring key business data into PostHog for enriched analytics. Export PostHog events to Snowflake for the BI team. Don't oversell.
           - id: di-kp2-p2
             type: multiple_choice
             question: A lead says "We maintain 6 custom ETL scripts to move data around." Which capabilities address this?
             correct: 1
             options:
               - Only Product Analytics
-              - >-
-                Data Warehouse (bring data IN) and Data Pipelines (send data OUT) — replacing custom scripts with
-                managed integrations
+              - Data Warehouse (bring data IN) and Data Pipelines (send data OUT) — replacing custom scripts with managed integrations
               - Only Batch Exports
               - Feature Flags and Experiments
-            explanation: >-
-              Data Warehouse replaces custom scripts that pull data in (Stripe, CRM, databases). Data Pipelines replaces
-              custom scripts that push data out (warehouse, ad platforms, CRMs). Both eliminate custom ETL maintenance.
+            explanation: Data Warehouse replaces custom scripts that pull data in (Stripe, CRM, databases). Data Pipelines replaces custom scripts that push data out (warehouse, ad platforms, CRMs). Both eliminate custom ETL maintenance.
           - id: di-kp2-p3
             type: multiple_choice
             question: What's the best way to build credibility with a skeptical data team?
@@ -1493,10 +1105,9 @@ concepts:
               - Demonstrate HogQL with their actual data — join their Stripe data with PostHog events in a live query
               - Tell them PostHog is better than Snowflake
               - Focus on the free tier pricing
-            explanation: >-
-              Data teams are skeptical of analytics tools in the data engineering space. Demonstrating HogQL with their
-              actual data (not slides or marketing) is the most effective way to build credibility.
+            explanation: Data teams are skeptical of analytics tools in the data engineering space. Demonstrating HogQL with their actual data (not slides or marketing) is the most effective way to build credibility.
             difficulty: 4
+        keyPrerequisite: data-infrastructure
   - id: customer-experience-uc
     name: Customer Experience
     section: customer-experience
@@ -1511,15 +1122,11 @@ concepts:
       - product-use-case-mapping
     knowledgePoints:
       - id: cx-kp1
-        instruction: >-
-          Customer Experience's job is "Help me quickly understand what happened, identify the problem, and verify a
-          fix." The core products are Product Analytics and Session Replay.
-
+        instruction: |-
+          Customer Experience's job is "Help me quickly understand what happened, identify the problem, and verify a fix." The core products are Product Analytics and Session Replay.
 
           The expansion path: Product Analytics → Session Replay → Error Tracking → Logging/LLM Obs → Surveys.
-
           - Analytics → Replay: Know what happened, need to see why.
-
           - Replay → Error Tracking: Visual context isn't enough; want structured, queryable
             errors tied to users and releases.
 
@@ -1532,28 +1139,19 @@ concepts:
 
           Primary buyers: Support Leaders, Engineering Leads, Product Managers, AI Leads, CS Leaders.
 
-
-          Key business impact: engineering time savings. Bug reproduction drops from 2 hours to 30-60 minutes. Support
-          shares one link (replay + errors + logs) and engineering has full context in seconds. Can justify the entire
-          PostHog contract on debugging time savings alone.
+          Key business impact: engineering time savings. Bug reproduction drops from 2 hours to 30-60 minutes. Support shares one link (replay + errors + logs) and engineering has full context in seconds. Can justify the entire PostHog contract on debugging time savings alone.
         instructionContent:
-          - body: >-
-              Bug reproduction drops from 2 hours to 30-60 minutes. Support shares one link (replay + errors + logs) and
-              engineering has full context in seconds. This alone can justify the entire PostHog contract.
+          - body: Bug reproduction drops from 2 hours to 30-60 minutes. Support shares one link (replay + errors + logs) and engineering has full context in seconds. This alone can justify the entire PostHog contract.
             type: callout
             title: ROI Anchor
           - url: https://posthog.com/handbook/growth/use-case-selling/customer-experience
             type: link
             title: Customer Experience Playbook
             description: Expansion path and buyer personas
-        workedExample: >-
-          A support leader says: "When a customer reports a bug, we ask them to describe what happened, then engineering
-          spends hours trying to reproduce it."
+        workedExample: |-
+          A support leader says: "When a customer reports a bug, we ask them to describe what happened, then engineering spends hours trying to reproduce it."
 
-
-          Your response: "With Session Replay, support searches for the user, watches their session, sees exactly what
-          happened, and shares a link with engineering. No reproduction needed — engineering sees the replay, the
-          errors, and the logs all in one view. You go from hours of back-and-forth to a 2-minute handoff."
+          Your response: "With Session Replay, support searches for the user, watches their session, sees exactly what happened, and shares a link with engineering. No reproduction needed — engineering sees the replay, the errors, and the logs all in one view. You go from hours of back-and-forth to a 2-minute handoff."
         problems:
           - id: cx-kp1-p1
             type: multiple_choice
@@ -1564,9 +1162,7 @@ concepts:
               - Bug reproduction time dropping from 2 hours to 30-60 minutes — engineering time savings
               - Higher feature flag evaluation volume
               - More data warehouse queries
-            explanation: >-
-              The engineering time savings alone can justify the PostHog contract. Bug reproduction drops from hours to
-              minutes. Fewer escalations, fewer context switches, more roadmap velocity.
+            explanation: The engineering time savings alone can justify the PostHog contract. Bug reproduction drops from hours to minutes. Fewer escalations, fewer context switches, more roadmap velocity.
             difficulty: 2
           - id: cx-kp1-p2
             type: multiple_choice
@@ -1574,60 +1170,38 @@ concepts:
             correct: 1
             options:
               - Because Surveys is the most expensive product
-              - >-
-                Because you first stabilize debugging (Replay, Errors, Logs), then proactively detect frustration and
-                close the feedback loop
+              - Because you first stabilize debugging (Replay, Errors, Logs), then proactively detect frustration and close the feedback loop
               - Because Surveys don't work with Session Replay
               - Because customers don't want surveys
-            explanation: >-
-              The expansion path builds from reactive debugging (Replay, Error Tracking, Logs) to proactive detection
-              (Surveys for NPS/CSAT). Surveys closes the loop — detect frustration before it becomes churn.
+            explanation: The expansion path builds from reactive debugging (Replay, Error Tracking, Logs) to proactive detection (Surveys for NPS/CSAT). Surveys closes the loop — detect frustration before it becomes churn.
           - id: cx-kp1-p3
             type: multiple_choice
             question: An account currently uses FullStory for Session Replay. What's the best CX argument for consolidating?
             correct: 1
             options:
               - PostHog replays look nicer than FullStory
-              - >-
-                PostHog connects replay to error tracking, logs, analytics, and surveys — one platform instead of replay
-                plus 3 separate tools
+              - PostHog connects replay to error tracking, logs, analytics, and surveys — one platform instead of replay plus 3 separate tools
               - PostHog has more enterprise CX features
               - FullStory is more expensive in every case
-            explanation: >-
-              PostHog's advantage over FullStory/LogRocket is consolidation: replay + errors + logs + analytics +
-              surveys in one platform. No more switching between 3-4 tabs to debug one issue.
+            explanation: 'PostHog''s advantage over FullStory/LogRocket is consolidation: replay + errors + logs + analytics + surveys in one platform. No more switching between 3-4 tabs to debug one issue.'
+        keyPrerequisite: product-use-case-mapping
       - id: cx-kp2
-        instruction: >-
+        instruction: |-
           Customer Experience has strong objection-handling patterns:
 
+          "We already have Hotjar/FullStory/LogRocket." → PostHog connects replay to errors, logs, analytics, and surveys in one platform. No more 3-4 tab switching. Consolidation saves vendor costs.
 
-          "We already have Hotjar/FullStory/LogRocket." → PostHog connects replay to errors, logs, analytics, and
-          surveys in one platform. No more 3-4 tab switching. Consolidation saves vendor costs.
+          "Support team isn't technical enough." → The replay viewer is visual and intuitive. Support searches for a user, watches the session, shares a link. Training takes one session.
 
+          "We need Zendesk/Intercom integration." → Paste replay links in tickets today. Pipelines push events via webhooks for automated workflows.
 
-          "Support team isn't technical enough." → The replay viewer is visual and intuitive. Support searches for a
-          user, watches the session, shares a link. Training takes one session.
+          "Session replay has privacy concerns." → Extensive controls: input masking, DOM blocking, network filtering. HIPAA BAA available with Boost package.
 
+          "Not sure this justifies another tool." → If already on PostHog, it's not another tool — it's enabling more of the existing platform. If not on PostHog, free tiers let you evaluate without financial risk.
 
-          "We need Zendesk/Intercom integration." → Paste replay links in tickets today. Pipelines push events via
-          webhooks for automated workflows.
-
-
-          "Session replay has privacy concerns." → Extensive controls: input masking, DOM blocking, network filtering.
-          HIPAA BAA available with Boost package.
-
-
-          "Not sure this justifies another tool." → If already on PostHog, it's not another tool — it's enabling more of
-          the existing platform. If not on PostHog, free tiers let you evaluate without financial risk.
-
-
-          For healthcare/regulated environments: may need heavy masking or skip replay entirely. Focus on Error Tracking
-          + Logs + Analytics instead.
+          For healthcare/regulated environments: may need heavy masking or skip replay entirely. Focus on Error Tracking + Logs + Analytics instead.
         instructionContent:
-          - body: >-
-              Session Replay has extensive controls — input masking, DOM blocking, network filtering. HIPAA BAA
-              available with Boost package. If replay is still too sensitive, pivot to Error Tracking + Logs +
-              Analytics.
+          - body: Session Replay has extensive controls — input masking, DOM blocking, network filtering. HIPAA BAA available with Boost package. If replay is still too sensitive, pivot to Error Tracking + Logs + Analytics.
             type: callout
             title: Privacy Objection Response
           - url: https://posthog.com/handbook/growth/use-case-selling/customer-experience
@@ -1641,31 +1215,20 @@ concepts:
             correct: 1
             options:
               - '"They need engineering training first."'
-              - >-
-                "The replay viewer is visual and intuitive — support searches for a user, watches the session, and
-                shares a link. One training session."
+              - '"The replay viewer is visual and intuitive — support searches for a user, watches the session, and shares a link. One training session."'
               - '"Support should not use PostHog — it is for engineers only."'
               - '"We can build a simpler interface for them."'
-            explanation: >-
-              Session Replay is the most accessible PostHog feature for non-technical users. Search for a user, watch
-              what happened, share a link. It's visual, not analytical.
+            explanation: Session Replay is the most accessible PostHog feature for non-technical users. Search for a user, watch what happened, share a link. It's visual, not analytical.
           - id: cx-kp2-p2
             type: multiple_choice
-            question: >-
-              A healthcare company is interested in Session Replay but has strict PHI requirements. What do you
-              recommend?
+            question: A healthcare company is interested in Session Replay but has strict PHI requirements. What do you recommend?
             correct: 1
             options:
               - '"Session Replay doesn''t work in healthcare."'
-              - >-
-                "Configure extensive masking and blocking. HIPAA BAA available with Boost package. If replay is too
-                sensitive, focus on Error Tracking + Logs + Analytics."
+              - '"Configure extensive masking and blocking. HIPAA BAA available with Boost package. If replay is too sensitive, focus on Error Tracking + Logs + Analytics."'
               - '"Skip PostHog entirely."'
               - '"Disable all data collection."'
-            explanation: >-
-              PostHog has extensive privacy controls (masking, blocking, network filtering) and offers HIPAA BAA with
-              the Boost package. If replay is still too sensitive, Error Tracking + Logs + Analytics provide value
-              without recording sessions.
+            explanation: PostHog has extensive privacy controls (masking, blocking, network filtering) and offers HIPAA BAA with the Boost package. If replay is still too sensitive, Error Tracking + Logs + Analytics provide value without recording sessions.
             difficulty: 4
           - id: cx-kp2-p3
             type: multiple_choice
@@ -1676,10 +1239,9 @@ concepts:
               - PostHog has no native ticketing integration — it complements rather than replaces ITSM workflows
               - PostHog is too expensive for enterprise
               - PostHog doesn't support session replay at scale
-            explanation: >-
-              PostHog doesn't have native ticketing/ITSM integration. For enterprises deep in ServiceNow or Jira Service
-              Management, PostHog is a debugging context complement, not an ITSM replacement.
+            explanation: PostHog doesn't have native ticketing/ITSM integration. For enterprises deep in ServiceNow or Jira Service Management, PostHog is a debugging context complement, not an ITSM replacement.
             difficulty: 4
+        keyPrerequisite: customer-experience-uc
   - id: cross-sell-strategy
     name: Cross-Sell Strategy
     section: cross-sell
@@ -1700,91 +1262,57 @@ concepts:
       - customer-experience-uc
     knowledgePoints:
       - id: cs-kp1
-        instruction: >-
-          Cross-selling between use cases follows natural bridges. The most important bridges create "multithreading" —
-          getting multiple teams in a customer organization active in PostHog.
-
+        instruction: |-
+          Cross-selling between use cases follows natural bridges. The most important bridges create "multithreading" — getting multiple teams in a customer organization active in PostHog.
 
           The highest-value cross-sell bridges:
 
+          1. Release Engineering → Product Intelligence: "Engineers use PostHog for releases. Has the product team seen the analytics?" Engineering champion introduces product team.
 
-          1. Release Engineering → Product Intelligence: "Engineers use PostHog for releases. Has the product team seen
-          the analytics?" Engineering champion introduces product team.
+          2. Growth & Marketing → Release Engineering: "Growth team started experiments. Engineering already implementing flags — have they considered using flags for all releases?" Growth champions engineering adoption.
 
+          3. Product Intelligence → Growth & Marketing: "Product team uses PostHog. Has the growth team seen Web Analytics and attribution?"
 
-          2. Growth & Marketing → Release Engineering: "Growth team started experiments. Engineering already
-          implementing flags — have they considered using flags for all releases?" Growth champions engineering
-          adoption.
+          4. Any use case → Data Infrastructure: "You're measuring conversion. Are you sending those conversions back to Meta and Google for optimization?" Data flow creates stickiness.
 
+          5. AI/LLM Obs → Multiple: AI products sit at the intersection of 4+ use cases, making AI companies the strongest cross-sell targets.
 
-          3. Product Intelligence → Growth & Marketing: "Product team uses PostHog. Has the growth team seen Web
-          Analytics and attribution?"
-
-
-          4. Any use case → Data Infrastructure: "You're measuring conversion. Are you sending those conversions back to
-          Meta and Google for optimization?" Data flow creates stickiness.
-
-
-          5. AI/LLM Obs → Multiple: AI products sit at the intersection of 4+ use cases, making AI companies the
-          strongest cross-sell targets.
-
-
-          The pattern: each use case creates champions in one team. Cross-selling means leveraging that champion to
-          introduce PostHog to an adjacent team with an adjacent problem.
+          The pattern: each use case creates champions in one team. Cross-selling means leveraging that champion to introduce PostHog to an adjacent team with an adjacent problem.
         instructionContent:
-          - body: >-
-              Each use case creates a champion in one team. Cross-selling means leveraging that champion to introduce
-              PostHog to an adjacent team with an adjacent problem. Multiple teams = multiple budgets = defensible
-              account.
+          - body: Each use case creates a champion in one team. Cross-selling means leveraging that champion to introduce PostHog to an adjacent team with an adjacent problem. Multiple teams = multiple budgets = defensible account.
             type: callout
             title: Multithreading Rule
           - url: https://posthog.com/handbook/growth/use-case-selling/use-case-selling
             type: link
             title: Use Case Selling Handbook
             description: Full cross-sell playbook and bridge patterns
-        workedExample: >-
-          Account situation: Engineering team uses Feature Flags heavily (Release Engineering). Growth team is asking
-          about A/B testing.
+        workedExample: |-
+          Account situation: Engineering team uses Feature Flags heavily (Release Engineering). Growth team is asking about A/B testing.
 
+          Cross-sell play: Experiments are included with Feature Flags. The growth team defines the hypothesis. Engineering implements the flag (they already know how). Now both teams are active in PostHog.
 
-          Cross-sell play: Experiments are included with Feature Flags. The growth team defines the hypothesis.
-          Engineering implements the flag (they already know how). Now both teams are active in PostHog.
-
-
-          Next move: Growth team sees value in Web Analytics and attribution. Product team hears about experiments and
-          wants retention analysis. Three teams in PostHog, three use cases, one platform.
+          Next move: Growth team sees value in Web Analytics and attribution. Product team hears about experiments and wants retention analysis. Three teams in PostHog, three use cases, one platform.
         problems:
           - id: cs-kp1-p1
             type: multiple_choice
-            question: >-
-              An account's dev team uses Feature Flags. The growth team wants to measure impact with controlled tests.
-              What's the cross-sell play?
+            question: An account's dev team uses Feature Flags. The growth team wants to measure impact with controlled tests. What's the cross-sell play?
             correct: 1
             options:
               - Sell them a separate Experiments tool
-              - >-
-                "Experiments are included with Feature Flags. Growth defines hypotheses, engineering implements flags.
-                Both teams in PostHog."
+              - '"Experiments are included with Feature Flags. Growth defines hypotheses, engineering implements flags. Both teams in PostHog."'
               - Tell them to use a dedicated experimentation platform
               - Suggest they switch from Release Engineering to Growth & Marketing
-            explanation: >-
-              Experiments are billed with Feature Flags. This is the perfect multithreading moment — growth gets
-              experiment capability, engineering uses existing flag infrastructure. Both teams are now active.
+            explanation: Experiments are billed with Feature Flags. This is the perfect multithreading moment — growth gets experiment capability, engineering uses existing flag infrastructure. Both teams are now active.
           - id: cs-kp1-p2
             type: multiple_choice
             question: Why are AI-native companies the best cross-sell targets?
             correct: 1
             options:
               - Because they have the largest budgets
-              - >-
-                Because AI products sit at the intersection of 4+ use cases — model performance, user behavior, errors,
-                releases, and experimentation
+              - Because AI products sit at the intersection of 4+ use cases — model performance, user behavior, errors, releases, and experimentation
               - Because they only use one product
               - Because they are less price-sensitive
-            explanation: >-
-              AI products naturally touch AI/LLM Obs (model metrics), Product Intelligence (user behavior),
-              Observability (errors), Release Engineering (controlled rollouts), and more. Cross-sell is natural, not
-              forced.
+            explanation: AI products naturally touch AI/LLM Obs (model metrics), Product Intelligence (user behavior), Observability (errors), Release Engineering (controlled rollouts), and more. Cross-sell is natural, not forced.
             difficulty: 4
           - id: cs-kp1-p3
             type: multiple_choice
@@ -1795,45 +1323,28 @@ concepts:
               - Getting multiple teams (engineering, growth, product) active in PostHog as separate champions
               - Using PostHog's multi-threading API
               - Having multiple projects in one PostHog organization
-            explanation: >-
-              Multithreading means multiple teams with separate budgets and champions using PostHog. Each team anchored
-              in a different use case. This makes the account more defensible and creates multiple expansion paths.
+            explanation: Multithreading means multiple teams with separate budgets and champions using PostHog. Each team anchored in a different use case. This makes the account more defensible and creates multiple expansion paths.
             difficulty: 2
+        keyPrerequisite: product-use-case-mapping
       - id: cs-kp2
-        instruction: >-
-          Adoption signals tell you when a customer is ready for expansion. These come from Vitally traits and PostHog
-          usage data.
-
+        instruction: |-
+          Adoption signals tell you when a customer is ready for expansion. These come from Vitally traits and PostHog usage data.
 
           Key signals by use case:
 
+          Product Intelligence: Single-product account (analytics only), high insight creation, Session Replay not used yet, B2B without Group Analytics, multiple PM/design roles in user list.
 
-          Product Intelligence: Single-product account (analytics only), high insight creation, Session Replay not used
-          yet, B2B without Group Analytics, multiple PM/design roles in user list.
+          Release Engineering: Feature Flags is primary/only paid product, high flag evaluations but low experiment count, customer mentions LaunchDarkly, engineering-only users.
 
+          Observability: Error Tracking active but low product count, customer mentions Sentry/Datadog, high Replay usage with error filtering, engineering-heavy users.
 
-          Release Engineering: Feature Flags is primary/only paid product, high flag evaluations but low experiment
-          count, customer mentions LaunchDarkly, engineering-only users.
+          Growth & Marketing: Web Analytics active but no other products, mentions GA4/Segment/CDP, multiple marketing/growth members invited, low Pipelines despite high analytics.
 
+          Data Infrastructure: Active batch exports, active external data schemas, high rows synced, mentions Fivetran/Snowflake, high HogQL usage.
 
-          Observability: Error Tracking active but low product count, customer mentions Sentry/Datadog, high Replay
-          usage with error filtering, engineering-heavy users.
-
-
-          Growth & Marketing: Web Analytics active but no other products, mentions GA4/Segment/CDP, multiple
-          marketing/growth members invited, low Pipelines despite high analytics.
-
-
-          Data Infrastructure: Active batch exports, active external data schemas, high rows synced, mentions
-          Fivetran/Snowflake, high HogQL usage.
-
-
-          The general pattern: look for single-product accounts, mentions of competitor tools, team composition (which
-          roles are active), and usage gaps (high activity on one product, zero on the logical next step).
+          The general pattern: look for single-product accounts, mentions of competitor tools, team composition (which roles are active), and usage gaps (high activity on one product, zero on the logical next step).
         instructionContent:
-          - body: >-
-              Look for three things: single-product accounts, mentions of competitor tools in notes, and usage gaps
-              (high activity on one product, zero on the logical next step). These signal expansion readiness.
+          - body: 'Look for three things: single-product accounts, mentions of competitor tools in notes, and usage gaps (high activity on one product, zero on the logical next step). These signal expansion readiness.'
             type: callout
             title: Adoption Signal Pattern
         problems:
@@ -1846,26 +1357,17 @@ concepts:
               - They're using flags for rollouts but not measuring impact — Experiments is the natural next step
               - They don't need Experiments
               - They should reduce their flag usage
-            explanation: >-
-              High flag volume + zero experiments means they're doing controlled rollouts without measuring impact.
-              Experiments (included with flags) is the obvious next step: "Do you know if these features are actually
-              working?"
+            explanation: 'High flag volume + zero experiments means they''re doing controlled rollouts without measuring impact. Experiments (included with flags) is the obvious next step: "Do you know if these features are actually working?"'
           - id: cs-kp2-p2
             type: multiple_choice
-            question: >-
-              In Vitally, you see an account with Web traffic tracking active, mentions GA4 in notes, and multiple
-              marketing team members invited. Which use case upsell should you pursue?
+            question: In Vitally, you see an account with Web traffic tracking active, mentions GA4 in notes, and multiple marketing team members invited. Which use case upsell should you pursue?
             correct: 2
             options:
               - Release Engineering
               - Data Infrastructure
-              - >-
-                Growth & Marketing — full expansion from Web Analytics into Marketing Analytics, Product Analytics,
-                Experiments, and Pipelines
+              - Growth & Marketing — full expansion from Web Analytics into Marketing Analytics, Product Analytics, Experiments, and Pipelines
               - Observability
-            explanation: >-
-              Web Analytics active + GA4 mentions + marketing team members = Growth & Marketing use case is live. The
-              expansion path is Web Analytics → Marketing Analytics → Product Analytics → Experiments → Pipelines.
+            explanation: Web Analytics active + GA4 mentions + marketing team members = Growth & Marketing use case is live. The expansion path is Web Analytics → Marketing Analytics → Product Analytics → Experiments → Pipelines.
             difficulty: 4
           - id: cs-kp2-p3
             type: multiple_choice
@@ -1876,8 +1378,6 @@ concepts:
               - A significant Product Intelligence upsell — Group Analytics answers "which companies are most engaged"
               - A Release Engineering opportunity
               - An Observability opportunity
-            explanation: >-
-              B2B company without Group Analytics is a significant Product Intelligence upsell. It answers "which
-              companies are most engaged?" — critical for B2B account-level insights.
+            explanation: B2B company without Group Analytics is a significant Product Intelligence upsell. It answers "which companies are most engaged?" — critical for B2B account-level insights.
             difficulty: 4
-
+        keyPrerequisite: cross-sell-strategy
