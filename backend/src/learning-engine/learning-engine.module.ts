@@ -9,7 +9,7 @@ import { LearningEngineController } from './learning-engine.controller';
 import { AcademyLearningEngineController } from './academy-learning-engine.controller';
 import { LearningEngineService } from './learning-engine.service';
 import { LessonService } from './lesson.service';
-import { RemediationService } from './remediation.service';
+import { RemediationCoreModule } from './remediation-core.module';
 
 @Module({
   imports: [
@@ -19,9 +19,10 @@ import { RemediationService } from './remediation.service';
     AssessmentModule,
     GamificationModule,
     SharedApplicationModule,
+    RemediationCoreModule,
   ],
   controllers: [LearningEngineController, AcademyLearningEngineController],
-  providers: [LearningEngineService, LessonService, RemediationService],
-  exports: [LearningEngineService, LessonService, RemediationService],
+  providers: [LearningEngineService, LessonService],
+  exports: [LearningEngineService, LessonService, RemediationCoreModule],
 })
 export class LearningEngineModule {}

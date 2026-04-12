@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { XPService } from '@/gamification/xp.service';
 import { StudentStateService } from '@/student-model/student-state.service';
+import { RemediationService } from '@/learning-engine/remediation.service';
 import { evaluateAnswer } from './answer-evaluator';
 import { calculateQuizXP } from './xp-calculator';
 import {
@@ -48,6 +49,7 @@ export class QuizService {
     private prisma: PrismaService,
     private xpService: XPService,
     private studentState: StudentStateService,
+    private remediationService: RemediationService,
   ) {}
 
   async generateQuiz(userId: string, courseId: string) {
@@ -261,6 +263,36 @@ export class QuizService {
     // Mark failed concepts as needs_review
     if (failedConcepts.length > 0) {
       await this.studentState.markConceptsNeedsReview(session.userId, failedConcepts);
+    }
+
+    // Slice 3 — Math Academy Way, Ch 21 p.300: "Whenever they miss a question
+    // on a quiz, we immediately follow up with a remedial review on the
+    // corresponding topic." Every missed question spawns a remediation. The
+    // existing task-selector gives remediation P1, so the next `GET /next-task`
+    // call will serve these as the top priority.
+    const missedConceptIds = new Set(
+      session.answers.filter((a) => !a.correct).map((a) => a.conceptId),
+    );
+    if (missedConceptIds.size > 0) {
+      const course = await this.prisma.course.findUnique({
+        where: { id: session.courseId },
+        select: { academyId: true },
+      });
+      if (course?.academyId) {
+        for (const conceptId of missedConceptIds) {
+          try {
+            await this.remediationService.createRemediation(
+              session.userId,
+              course.academyId,
+              conceptId,
+              conceptId,
+              session.courseId,
+            );
+          } catch {
+            // Best-effort; do not block quiz completion on remediation failure.
+          }
+        }
+      }
     }
 
     // Calculate and award quiz XP

@@ -148,6 +148,90 @@ describe('selectNextTask', () => {
     expect(result.reason).toContain('review');
   });
 
+  describe('Slice 2 — session-based lesson pause', () => {
+    const now = new Date('2026-04-11T12:00:00Z');
+
+    it('hides concepts paused in the current session from the frontier', () => {
+      const snapshots: ConceptSnapshot[] = [
+        { conceptId: 'c1', masteryState: 'mastered', memory: 0.9, failCount: 0 },
+        {
+          conceptId: 'c2',
+          masteryState: 'in_progress',
+          memory: 0.5,
+          failCount: 2,
+          pausedAtSessionId: '2026-04-11',
+        },
+        { conceptId: 'c3', masteryState: 'unstarted', memory: 1.0, failCount: 0 },
+      ];
+
+      const result = selectNextTask(
+        snapshots,
+        sections,
+        edges,
+        ['c2', 'c3'],
+        0,
+        '',
+        now,
+      );
+      // c2 is paused this session — should fall through to c3 lesson
+      expect(result.taskType).toBe('lesson');
+      expect(result.conceptId).toBe('c3');
+    });
+
+    it('does NOT trigger P1 remediation on concepts paused in the current session', () => {
+      const snapshots: ConceptSnapshot[] = [
+        { conceptId: 'prereq', masteryState: 'in_progress', memory: 0.3, failCount: 0 },
+        {
+          conceptId: 'c2',
+          masteryState: 'in_progress',
+          memory: 0.4,
+          failCount: 2,
+          pausedAtSessionId: '2026-04-11',
+        },
+      ];
+      const edgesPaused: SimpleEdge[] = [{ source: 'prereq', target: 'c2' }];
+
+      const result = selectNextTask(
+        snapshots,
+        sections,
+        edgesPaused,
+        [],
+        0,
+        '',
+        now,
+      );
+      expect(result.taskType).not.toBe('remediation');
+    });
+
+    it('resumes concepts paused in a PREVIOUS session as priority P3.5', () => {
+      const snapshots: ConceptSnapshot[] = [
+        {
+          conceptId: 'c2',
+          masteryState: 'in_progress',
+          memory: 0.5,
+          failCount: 0,
+          // paused yesterday
+          pausedAtSessionId: '2026-04-10',
+          lastPracticedAt: new Date('2026-04-10T12:00:00Z'),
+        },
+        { conceptId: 'c3', masteryState: 'unstarted', memory: 1.0, failCount: 0 },
+      ];
+
+      const result = selectNextTask(
+        snapshots,
+        sections,
+        edges,
+        ['c3'],
+        0,
+        '',
+        now,
+      );
+      expect(result.taskType).toBe('lesson');
+      expect(result.conceptId).toBe('c2');
+      expect(result.reason).toContain('paused');
+    });
+  });
+
   it('P3: should prioritize a ready section exam over new lessons', () => {
     const snapshots: ConceptSnapshot[] = [
       { conceptId: 'c1', masteryState: 'mastered', memory: 0.9, failCount: 0 },

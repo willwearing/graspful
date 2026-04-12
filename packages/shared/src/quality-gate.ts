@@ -510,6 +510,58 @@ function checkImportDryRun(courseYaml: CourseYaml): QualityCheckResult {
   };
 }
 
+/**
+ * Slice 3 — every authored KP should link to a key-prerequisite concept
+ * so that KP-level plateau can trigger targeted remediation (Math Academy
+ * Way, Ch 4 p.76 + Ch 21 pp.300–301).
+ *
+ * We emit these as WARNINGS (not 10/10 failures) during the backfill
+ * window so existing courses keep passing the quality gate while authors
+ * add the links. Invalid (unknown-concept) links are also warnings —
+ * the import path validates them against the authored graph already.
+ *
+ * Once every course in the catalog has been backfilled, raise this to
+ * a hard failure and expand `QUALITY_CHECKS` to `key_prerequisite_links`.
+ */
+function collectKeyPrerequisiteWarnings(
+  courseYaml: CourseYaml,
+): QualityCheckResult[] {
+  const conceptIds = new Set(courseYaml.concepts.map((c) => c.id));
+  const missing: string[] = [];
+  const invalid: string[] = [];
+
+  for (const concept of courseYaml.concepts) {
+    for (const kp of concept.knowledgePoints) {
+      if (!kp.keyPrerequisite) {
+        missing.push(`${concept.id}.${kp.id}`);
+      } else if (!conceptIds.has(kp.keyPrerequisite)) {
+        invalid.push(
+          `${concept.id}.${kp.id} -> ${kp.keyPrerequisite} (unknown concept)`,
+        );
+      }
+    }
+  }
+
+  const warnings: QualityCheckResult[] = [];
+  if (missing.length > 0) {
+    warnings.push({
+      check: 'key_prerequisite_links',
+      passed: false,
+      details: `${missing.length} KP(s) missing key prerequisite (warning during backfill): ${missing
+        .slice(0, 5)
+        .join(', ')}${missing.length > 5 ? '...' : ''}`,
+    });
+  }
+  if (invalid.length > 0) {
+    warnings.push({
+      check: 'key_prerequisite_links',
+      passed: false,
+      details: `Invalid key prerequisite link: ${invalid.join('; ')}`,
+    });
+  }
+  return warnings;
+}
+
 const KP_ATOMICITY_BULLET_THRESHOLD = 6;
 
 function collectKpAtomicityWarnings(courseYaml: CourseYaml): QualityCheckResult[] {
@@ -577,7 +629,10 @@ export function reviewCourseYaml(courseYaml: CourseYaml): QualityGateResult {
     checkWorkedExampleCoverage(courseYaml),
     checkImportDryRun(courseYaml),
   ];
-  const warnings = collectKpAtomicityWarnings(courseYaml);
+  const warnings = [
+    ...collectKpAtomicityWarnings(courseYaml),
+    ...collectKeyPrerequisiteWarnings(courseYaml),
+  ];
 
   return {
     ...summarizeChecks(checks, warnings),

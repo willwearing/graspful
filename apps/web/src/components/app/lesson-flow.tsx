@@ -40,14 +40,32 @@ interface LessonFlowProps {
 
 type KPPhase = "instruction" | "worked-example" | "practice";
 
+interface NextProblemHint {
+  targetKPId: string;
+  nextProblemId: string | null;
+  reopenWorkedExample: boolean;
+  retryDelayMs: number;
+  lessonComplete: boolean;
+}
+
 export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: LessonFlowProps) {
   const router = useRouter();
   const [currentKP, setCurrentKP] = useState(0);
   const [phase, setPhase] = useState<KPPhase>("instruction");
   const [completing, setCompleting] = useState(false);
-  const [practiceIndex, setPracticeIndex] = useState(0);
+  // Slice 1 — practice loop is driven by `currentProblemId` rather than an
+  // index into a pre-computed list. On a miss, the backend tells us which
+  // problem (and which KP) to serve next via `nextProblemHint`.
+  const [currentProblemId, setCurrentProblemId] = useState<string | null>(null);
   const [practiceFeedback, setPracticeFeedback] = useState<ProblemFeedback | null>(null);
   const [practiceSubmitting, setPracticeSubmitting] = useState(false);
+  const [workedExampleOpen, setWorkedExampleOpen] = useState(true);
+  // Problems the learner has seen in this lesson session — sent to the backend
+  // so the selector can prefer unseen problems and apply retry delays.
+  const seenProblemIdsRef = useRef<string[]>([]);
+  // KPs for which the worked example has already been auto-re-opened once this
+  // session. Prevents repeated noise on repeated misses.
+  const reopenedKPIdsRef = useRef<string[]>([]);
   const { audioUrls } = useLessonAudio(orgSlug, lesson.knowledgePoints, token);
   const { loadQueue, isPlaying, currentItem } = useAudioPlayer();
   const lessonStartRef = useRef(0);
@@ -61,8 +79,10 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
   const instructionContent = kp.instructionContent ?? [];
   const workedExampleContent = kp.workedExampleContent ?? [];
   const isLast = currentKP === lesson.knowledgePoints.length - 1;
-  const currentProblem = problems[practiceIndex] ?? null;
-  const practiceComplete = problems.length === 0 || practiceIndex >= problems.length;
+  const currentProblem =
+    problems.find((p) => p.id === currentProblemId) ??
+    (currentProblemId === null ? problems[0] ?? null : null);
+  const practiceComplete = problems.length === 0 || currentProblem === null;
 
   // Progress accounts for 3 phases per KP
   const totalPhases = lesson.knowledgePoints.length * 3;
@@ -100,7 +120,10 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
   }, []);
 
   function resetPractice() {
-    setPracticeIndex(0);
+    // On entering practice, seed with the first authored problem for this KP.
+    // The backend hint will take over after the first submission.
+    const first = kp.problems?.[0]?.id ?? null;
+    setCurrentProblemId(first);
     setPracticeFeedback(null);
     setPracticeSubmitting(false);
     practiceStartRef.current = Date.now();
@@ -109,16 +132,20 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
   function advancePhase() {
     if (phase === "instruction") {
       setPhase(kp.workedExampleText ? "worked-example" : "practice");
+      setWorkedExampleOpen(true);
       if (!kp.workedExampleText) resetPractice();
     } else if (phase === "worked-example") {
       setPhase("practice");
+      setWorkedExampleOpen(false);
       resetPractice();
     } else {
       // practice done — move to next KP or complete
       if (!isLast) {
         setCurrentKP((prev) => prev + 1);
         setPhase("instruction");
-        resetPractice();
+        setWorkedExampleOpen(true);
+        // Let the next effect pick the first problem for the new KP
+        setCurrentProblemId(null);
       }
     }
   }
@@ -129,11 +156,9 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
     } else if (phase === "worked-example") {
       setPhase("instruction");
     } else if (currentKP > 0) {
-      const prevKP = lesson.knowledgePoints[currentKP - 1];
-      const prevProblems = prevKP.problems ?? [];
       setCurrentKP((prev) => prev - 1);
       setPhase("practice");
-      setPracticeIndex(prevProblems.length);
+      setCurrentProblemId(null);
       setPracticeFeedback(null);
       setPracticeSubmitting(false);
     }
@@ -158,30 +183,87 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
     }
   }
 
+  /**
+   * Slice 1 — Apply the backend's next-problem hint to the local state machine.
+   *
+   * - On miss: stay on the same KP, load the suggested next problem, and
+   *   re-surface the worked example (first miss per KP per session only).
+   * - On pass: advance to the next KP the hint points at, or mark lesson
+   *   complete if we were on the last KP.
+   */
+  function applyNextProblemHint(hint: NextProblemHint | null) {
+    if (!hint) {
+      // Fallback to legacy behavior: advance within the current KP's problem list.
+      const idx = problems.findIndex((p) => p.id === currentProblemId);
+      const next = idx >= 0 ? problems[idx + 1] ?? null : null;
+      setCurrentProblemId(next?.id ?? null);
+      return;
+    }
+
+    if (hint.lessonComplete) {
+      setCurrentProblemId(null);
+      return;
+    }
+
+    if (hint.reopenWorkedExample) {
+      setWorkedExampleOpen(true);
+      reopenedKPIdsRef.current = Array.from(
+        new Set([...reopenedKPIdsRef.current, hint.targetKPId]),
+      );
+    }
+
+    // If the hint points at a different KP, navigate to it.
+    if (hint.targetKPId !== kp.id) {
+      const targetIdx = lesson.knowledgePoints.findIndex(
+        (k) => k.id === hint.targetKPId,
+      );
+      if (targetIdx >= 0) {
+        setCurrentKP(targetIdx);
+        setPhase("practice");
+      }
+    }
+
+    setCurrentProblemId(hint.nextProblemId);
+    practiceStartRef.current = Date.now();
+  }
+
   async function handlePracticeSubmit(answer: ProblemAnswer) {
     if (!currentProblem || practiceSubmitting) return;
     setPracticeSubmitting(true);
+
+    // Record this problem as seen BEFORE submission so the backend selector
+    // can avoid repeating it when choosing the next hint.
+    const submittedProblemId = currentProblem.id;
+    if (!seenProblemIdsRef.current.includes(submittedProblemId)) {
+      seenProblemIdsRef.current = [
+        ...seenProblemIdsRef.current,
+        submittedProblemId,
+      ];
+    }
 
     try {
       const response = await apiClientFetch<{
         correct: boolean;
         feedback: string;
+        nextProblemHint: NextProblemHint | null;
       }>(
         `/orgs/${orgSlug}/courses/${courseId}/lessons/${lesson.conceptId}/answer`,
         token,
         {
           method: "POST",
           body: JSON.stringify({
-            problemId: currentProblem.id,
+            problemId: submittedProblemId,
             answer,
             responseTimeMs: Date.now() - practiceStartRef.current,
+            seenProblemIds: seenProblemIdsRef.current,
+            workedExampleReopenedKPIds: reopenedKPIdsRef.current,
           }),
         }
       );
 
       trackLessonPracticeAnswered(
         lesson.conceptId,
-        currentProblem.id,
+        submittedProblemId,
         response.correct,
         Date.now() - practiceStartRef.current,
       );
@@ -190,12 +272,12 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
         explanation: response.feedback,
       });
 
+      const delay = response.nextProblemHint?.retryDelayMs ?? 1500;
       setTimeout(() => {
         setPracticeFeedback(null);
         setPracticeSubmitting(false);
-        setPracticeIndex((prev) => prev + 1);
-        practiceStartRef.current = Date.now();
-      }, 1500);
+        applyNextProblemHint(response.nextProblemHint ?? null);
+      }, Math.max(1500, delay));
     } catch {
       setPracticeSubmitting(false);
       setPracticeFeedback({
@@ -283,19 +365,34 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
             <ClipboardList className="h-4 w-4" />
             Practice
           </div>
+
+          {/* Re-surfaced worked example — same content verbatim, collapsible. */}
+          {kp.workedExampleText && (
+            <details
+              open={workedExampleOpen}
+              onToggle={(e) =>
+                setWorkedExampleOpen((e.target as HTMLDetailsElement).open)
+              }
+              className="rounded-lg border border-border bg-muted/20 p-4"
+            >
+              <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+                Review the worked example
+              </summary>
+              <div className="mt-3 space-y-2">
+                <MarkdownText>{kp.workedExampleText}</MarkdownText>
+                <LessonRichContent blocks={workedExampleContent} />
+              </div>
+            </details>
+          )}
+
           {!practiceComplete && currentProblem ? (
-            <>
-              <p className="text-sm text-muted-foreground">
-                Problem {practiceIndex + 1} of {problems.length}
-              </p>
-              <ProblemRenderer
-                key={currentProblem.id}
-                problem={currentProblem}
-                onSubmit={handlePracticeSubmit}
-                disabled={practiceSubmitting || !!practiceFeedback}
-                feedback={practiceFeedback ?? undefined}
-              />
-            </>
+            <ProblemRenderer
+              key={currentProblem.id}
+              problem={currentProblem}
+              onSubmit={handlePracticeSubmit}
+              disabled={practiceSubmitting || !!practiceFeedback}
+              feedback={practiceFeedback ?? undefined}
+            />
           ) : problems.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border p-5 text-sm text-muted-foreground">
               No practice problems are authored for this knowledge point yet.

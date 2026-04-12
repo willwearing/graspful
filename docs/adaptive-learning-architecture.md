@@ -863,13 +863,183 @@ The system selects from frontier concepts using these heuristics:
 
 ### Plateau Detection & Remediation
 
-When a student fails a lesson twice consecutively:
+Graspful's wrong-answer loop is staged at three granularities. Each stage is
+grounded in an explicit directive from *The Math Academy Way* (cited below
+with page numbers — see `docs/plans/2026-04-11-wrong-answer-remediation-loop.md`
+and `tasks/math-academy-quotes.md` for the full quotes).
 
-1. **Identify weak prerequisites:** Trace back through the graph. Which prerequisite KPs are the lesson's KPs depending on?
-2. **Check prerequisite mastery signals:** Low memory, long time since practice, previous failures
-3. **Assign remediation:** Targeted review of the specific weak prerequisite(s)
-4. **Route to parallel paths:** While remediation is pending, suggest other frontier concepts that don't depend on the weak prerequisite
-5. **Return:** After remediation is complete (prerequisite re-mastered), the halted lesson becomes available again
+**Doctrine in one sentence:** *never lower the bar, only add more practice
+on the same KP* (Ch 21 p.299). Every stage below follows that rule.
+
+#### Stage 1 — KP-level "more practice" loop (within a session)
+
+> "If they struggle during a task, we give more questions — that is, more
+>  chances to learn and demonstrate their learning." — Ch 21, p.300
+
+On a wrong answer during lesson practice, the next problem the learner sees
+**must target the same KP** as the missed problem, drawn from the problem
+bank without replacement. Mastery is still 2 consecutive correct per KP;
+only then does the loop advance to the next KP.
+
+Implementation: `backend/src/assessment/kp-remediation-selector.ts` is a
+pure function that consumes `(currentKPId, lastAnswerCorrect, problemBank,
+kpStates, seenProblemIdsThisSession)` and returns the next problem id, the
+target KP id, whether the worked example should re-open, and an anti-gaming
+retry delay. `ProblemSubmissionService` returns the resulting `NextProblemHint`
+in the answer response so the frontend can drive the loop.
+
+**Worked-example re-surface:** on the *first* miss per KP per session we
+auto-expand a collapsible "Review the worked example" panel that shows the
+**exact same authored worked example verbatim**. We do not generate an
+alternate explanation. This is deliberate:
+
+> "Some people think that students need a million different explanations of
+>  the same topic until one 'clicks' for them. But really, if you have to
+>  explain something a ton of different ways to a student before it they
+>  can follow that explanation well enough to successfully engage in active
+>  problem-solving, then either 1) your original explanations were not good
+>  in a pedagogical sense, or 2) the student was lacking prerequisite
+>  knowledge." — FAQ, p.416
+
+> "For lessons that have undergone this much data-driven refining, on the
+>  rare occasion that a student does struggle with it, it doesn't mean that
+>  the lesson needs to explain things in a different way. Usually, all it
+>  takes to rebound is a bit of rest and a fresh pair of eyes. And then the
+>  same exact content will 'click' the next time around." — FAQ, p.417
+
+If a KP consistently trips learners we fix the *content* via
+`graspful review` analytics, not the runtime loop. This is **content
+remediation**, not student remediation (Ch 21 p.304).
+
+**Anti-gaming retry delay:** when a learner has attempted the same KP more
+than twice in the session, or when the problem bank has been exhausted and
+we have to recycle, the loop applies a randomized 1.5–2.5 s delay before
+accepting the next submission. This matches Ch 22 p.313:
+
+> "And if a student fails a task and has to re-attempt it, we change up the
+>  questions and even wait for a delay period before allowing the
+>  re-attempt (in the meantime, the student is able to continue making
+>  progress along other learning paths)." — Ch 22, p.313
+
+#### Stage 2 — Session-based lesson pause (across sessions)
+
+> "If they fail a lesson, we give them a break and enable them to make
+>  progress learning unrelated topics before asking them to re-attempt the
+>  failed lesson. Usually, all it takes to rebound is a bit of rest and a
+>  fresh pair of eyes." — Ch 21, p.300
+
+> "It's much more efficient to take a break, move forward with some wins
+>  along other learning paths that don't depend on said topic, and then
+>  come back better set up to succeed the second time around... By halting
+>  a failed lesson and coming back to it later, that produces an 80% chance
+>  of passing the lesson the second time around *without any additional
+>  intervention*." — FAQ, p.415
+
+When a learner accumulates `PAUSE_SESSION_FAILURE_THRESHOLD` (currently 6)
+failed KP attempts on a single concept **within one session** and unpassed
+KPs remain, the system pauses that concept. The paused concept disappears
+from the frontier for the rest of the current session and re-enters at
+**priority P3.5** (above fresh lessons) on the next session.
+
+**Session identifier:** UTC `YYYY-MM-DD` derived from timestamp. Rolls over
+at UTC midnight regardless of the learner's local clock. We deliberately
+did *not* adopt a wall-clock "cool down in N hours" because Math Academy's
+doctrine is explicitly session-based: *rest and consolidation across a
+sleep cycle* is what produces the 80% second-attempt pass rate quoted
+above, not an arbitrary number of minutes.
+
+Implementation:
+
+- `backend/src/learning-engine/lesson-pause-policy.ts` — pure function
+  `shouldPauseLesson` and `currentSessionId`.
+- `StudentConceptState.pausedAtSessionId` and `.sessionFailedKPAttempts` —
+  nullable columns added in migration
+  `20260411120000_add_lesson_pause_state`.
+- `task-selector.ts` — new priority tier P3.5 "resume paused lessons from
+  older sessions" fires between section exams and fresh lessons. Paused
+  concepts in the current session are excluded from every tier (P1
+  remediation, P2 urgent reviews, P4 new lessons, P5 standard reviews).
+
+Pause is **system-initiated only**. A student cannot voluntarily pause to
+dodge hard content — the concept is re-queued on the next session, not
+skipped.
+
+#### Stage 3 — Key-prerequisite remediation (KP-level plateau)
+
+Every KP has an authored **`keyPrerequisite`** link — the concept whose
+prerequisite knowledge is most directly used by that KP. This is the
+single most curated piece of data in the knowledge graph and is the basis
+for Math Academy's targeted remediation.
+
+> "Each knowledge point is linked to one or more key prerequisite topics
+>  that represent the prerequisite knowledge that is most directly being
+>  used in that knowledge point. If a student ever fails a lesson twice at
+>  the same knowledge point, we automatically provide remedial reviews on
+>  the key prerequisites. This helps the student strengthen their
+>  foundations in the areas where they are most in need of additional
+>  practice, so that they are better prepared to pass the lesson the next
+>  time around." — Ch 4, pp.75–76
+
+> "One challenge in properly targeting remedial reviews is that often, the
+>  key prerequisite concepts or skills required to solve a particular
+>  problem lie several steps back in the hierarchy of mathematical
+>  knowledge. However, when developing our content and building our
+>  knowledge graph, we explicitly keep track of the key prerequisites that
+>  are used in each part of each lesson. This allows us to pinpoint the
+>  exact topics that are necessary for successful remediation." — Ch 21,
+>  pp.300–301
+
+**Trigger:** `detectKPPlateau` in
+`backend/src/learning-engine/kp-plateau-detector.ts` fires when a learner
+has `attempts >= KP_PLATEAU_ATTEMPTS_THRESHOLD` (4) *and* those failures
+are spread across `KP_PLATEAU_SESSIONS_THRESHOLD` (2) different sessions.
+The multi-session requirement is the **slow peel-back** Math Academy
+describes as anti-gaming:
+
+> "How quickly the system peels back a student's knowledge profile in
+>  response to a failed task depends on how much evidence the student has
+>  demonstrated for knowing the prerequisite topics... This is a slow
+>  process because it has to be resistant to adversarial students 'gaming
+>  the system.'" — FAQ, p.415–416
+
+**Effect:** a `Remediation` record is created pointing at the KP's
+`keyPrerequisiteConceptId`. The existing `RemediationService` +
+`task-selector` P1 priority handles the rest — the blocked concept cannot
+be re-attempted until the key-prereq review passes.
+
+**Graceful fallback:** courses whose KPs have not yet been backfilled
+fall back to the original concept-level plateau → weakest-ancestor
+behavior. The `graspful review` quality gate emits a
+`key_prerequisite_links` **warning** (not a hard failure) for now so
+existing courses keep passing. Once backfill completes across the catalog
+we will promote the warning to a hard failure.
+
+#### Stage 4 — Quiz-miss immediate P1 remediation
+
+> "Whenever they miss a question on a quiz, we immediately follow up with
+>  a remedial review on the corresponding topic." — Ch 21, p.300
+
+On quiz completion, every concept with at least one missed question gets
+an immediate `Remediation` record created inside the same transaction.
+Because `task-selector.ts` already ranks remediation as priority P1, the
+next `GET /next-task` call will serve the remedial review as a hard block
+on new lesson selection until the review passes.
+
+Implementation: `QuizService.completeQuiz` calls
+`RemediationService.createRemediation` once per missed concept, with both
+`blockedConceptId` and `weakPrerequisiteId` set to the missed concept
+itself (the review is *on the topic*, not a prerequisite of it).
+
+#### What Graspful does NOT do on a wrong answer
+
+- **Generate alternate explanations on the fly.** FAQ p.416–417 is
+  explicit: if an explanation is broken, fix the content, not the runtime.
+- **Add adaptive hints during a failed problem.** p.299 treats this as
+  lowering the bar.
+- **Fall back to prerequisites after a single KP miss.** FAQ p.416: slow
+  peel-back is anti-gaming. Fallback is a second-failure mechanism.
+- **Mastery based on a single correct answer.** 2-consecutive-correct
+  remains the baseline mastery bar.
 
 ---
 
@@ -954,6 +1124,12 @@ All problem types are designed for mobile-first interaction:
 
 ### Lesson Flow (Per Knowledge Point)
 
+The lesson flow is a **streamed practice loop** driven by the
+`nextProblemHint` returned from `ProblemSubmissionService.submitAnswer`.
+The frontend no longer iterates a pre-computed practice array; each
+submission tells the UI which KP the next problem should target and
+which concrete problem to load.
+
 ```
 1. Audio instruction (1-3 min) -- TTS of the explanation text
    [Student can pause, replay, speed up]
@@ -961,18 +1137,32 @@ All problem types are designed for mobile-first interaction:
 2. Worked example (audio + optional visual)
    [Step-by-step solved problem narrated via audio]
 
-3. Practice problem 1 (easy)
-   [Student answers, immediate feedback + explanation audio]
+3. Practice loop driven by `nextProblemHint`:
+   a. Backend picks a problem for the current KP from the bank.
+   b. Student answers.
+   c. On correct:
+        - consecutiveCorrect < 2 -> serve another problem on the SAME KP
+        - consecutiveCorrect >= 2 -> advance to the next KP in sortOrder
+   d. On wrong:
+        - Re-open the collapsible "Review the worked example" panel
+          (first miss per KP per session only — subsequent misses keep it
+          collapsed to avoid noise). The panel shows the SAME worked
+          example verbatim — no generated rewording.
+        - Serve another problem on the SAME KP, preferring bank entries
+          the learner has not yet seen this session.
+        - When attempts on this KP in the session exceed 2, apply an
+          anti-gaming randomized retry delay before accepting input
+          (Ch 22, p.313).
+   e. When every KP is passed -> lesson complete.
 
-4. Practice problem 2 (medium)
-   [Student answers, immediate feedback]
-
-5. (If both correct) -> KP PASSED, advance to next KP
-   (If either wrong) -> Practice problem 3 (medium)
-   (If still wrong) -> KP FAILED, mark for remediation
-
-Rule: 2 consecutive correct = KP passed
+Rule: 2 consecutive correct = KP passed (unchanged)
 ```
+
+**Session failure accumulator.** Wrong answers increment
+`StudentConceptState.sessionFailedKPAttempts`. When it crosses
+`PAUSE_SESSION_FAILURE_THRESHOLD` the concept is paused for the remainder
+of the session (Stage 2 of Plateau Detection & Remediation above). The
+paused concept is re-surfaced as priority P3.5 in the next session.
 
 ### Review Flow
 
@@ -991,8 +1181,18 @@ Triggered every ~150 XP:
 - Interleaved across multiple concepts
 - No immediate feedback during the quiz (closed-book simulation)
 - Results shown after: per-concept breakdown, weak areas highlighted
-- Failed concepts immediately scheduled for review
+- **Every missed quiz question immediately spawns a P1 `Remediation`**
+  on the corresponding topic (Ch 21, p.300: "Whenever they miss a question
+  on a quiz, we immediately follow up with a remedial review on the
+  corresponding topic."). The next `GET /next-task` call serves those
+  remedial reviews before any new lesson.
+- Failed concepts (≥50% wrong across a concept's quiz questions) are
+  also transitioned to `needs_review` mastery state.
 - Target difficulty: ~80% expected score
+- Quizzes cover the learner's full knowledge profile, not just recent
+  material — per FAQ p.403: limiting quizzes to recently-learned content
+  would "dilute the efficacy of the quizzes in adapting the pace of
+  learning and promoting retention & automaticity."
 
 ---
 

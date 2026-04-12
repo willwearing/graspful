@@ -245,11 +245,24 @@ export class StudentStateService {
     userId: string,
     knowledgePointId: string,
     correct: boolean,
-    currentState?: { consecutiveCorrect: number; passed: boolean },
+    currentState?: {
+      consecutiveCorrect: number;
+      passed: boolean;
+      firstFailedSessionId?: string | null;
+    },
+    sessionId?: string,
   ) {
     const currentConsecutive = currentState?.consecutiveCorrect ?? 0;
     const newConsecutive = correct ? currentConsecutive + 1 : 0;
     const passed = (currentState?.passed ?? false) || newConsecutive >= 2;
+
+    // Slice 3 — record the first and most-recent session in which the
+    // student failed this KP. The KPPlateauDetector uses this pair to
+    // require multi-session failure before firing remediation.
+    const firstFailedSessionId = correct
+      ? (currentState?.firstFailedSessionId ?? null)
+      : (currentState?.firstFailedSessionId ?? sessionId ?? null);
+    const lastFailedSessionId = correct ? undefined : sessionId;
 
     return this.prisma.studentKPState.upsert({
       where: { userId_knowledgePointId: { userId, knowledgePointId } },
@@ -260,12 +273,18 @@ export class StudentStateService {
         consecutiveCorrect: correct ? 1 : 0,
         passed: correct ? false : false,
         lastAttemptAt: new Date(),
+        firstFailedSessionId: correct ? null : (sessionId ?? null),
+        lastFailedSessionId: correct ? null : (sessionId ?? null),
       },
       update: {
         attempts: { increment: 1 },
         consecutiveCorrect: newConsecutive,
         passed,
         lastAttemptAt: new Date(),
+        firstFailedSessionId,
+        ...(lastFailedSessionId !== undefined
+          ? { lastFailedSessionId }
+          : {}),
       },
     });
   }
@@ -281,6 +300,12 @@ export class StudentStateService {
       observationCount?: number;
       failCount?: number;
       lastPracticedAt?: Date;
+      /**
+       * Slice 2 — session-based lesson pause. null clears the pause;
+       * undefined leaves the existing value unchanged.
+       */
+      pausedAtSessionId?: string | null;
+      sessionFailedKPAttempts?: number;
     },
   ) {
     return this.prisma.studentConceptState.update({

@@ -53,7 +53,16 @@ describe('ProblemSubmissionService', () => {
       },
       studentKPState: {
         findUnique: jest.fn().mockResolvedValue(null),
-        findMany: jest.fn().mockResolvedValue([{ passed: false }]),
+        findMany: jest.fn().mockImplementation(({ select }: any) => {
+          // The hint builder wants full KP state; checkAllKPsPassed only needs passed
+          if (select?.knowledgePointId) {
+            return Promise.resolve([
+              { knowledgePointId: 'kp-1', passed: false, consecutiveCorrect: 0, attempts: 1 },
+              { knowledgePointId: 'kp-2', passed: false, consecutiveCorrect: 0, attempts: 0 },
+            ]);
+          }
+          return Promise.resolve([{ passed: false }]);
+        }),
         upsert: jest.fn().mockResolvedValue({
           passed: false,
           attempts: 1,
@@ -65,7 +74,24 @@ describe('ProblemSubmissionService', () => {
         update: jest.fn().mockResolvedValue({ masteryState: 'in_progress' }),
       },
       knowledgePoint: {
-        findMany: jest.fn().mockResolvedValue([{ id: 'kp-1' }]),
+        findMany: jest.fn().mockImplementation(({ select }: any) => {
+          // checkAllKPsPassed uses { id: true }, the hint builder wants problems
+          if (select?.problems) {
+            return Promise.resolve([
+              {
+                id: 'kp-1',
+                sortOrder: 0,
+                problems: [{ id: 'prob-1' }, { id: 'prob-1b' }],
+              },
+              {
+                id: 'kp-2',
+                sortOrder: 1,
+                problems: [{ id: 'prob-2' }],
+              },
+            ]);
+          }
+          return Promise.resolve([{ id: 'kp-1' }]);
+        }),
       },
       problemAttempt: {
         create: jest.fn().mockResolvedValue({ id: 'attempt-1' }),
@@ -107,12 +133,21 @@ describe('ProblemSubmissionService', () => {
       ),
     };
 
+    const mockRemediationService = {
+      createRemediation: jest.fn().mockResolvedValue({}),
+      getActiveRemediations: jest.fn().mockResolvedValue([]),
+      getBlockedConceptIds: jest.fn().mockResolvedValue(new Set()),
+      getBlockedConceptIdsForCourse: jest.fn().mockResolvedValue(new Set()),
+      resolveRemediationsForPrerequisite: jest.fn().mockResolvedValue({}),
+    };
+
     service = new ProblemSubmissionService(
       mockPrisma,
       mockFireUpdate,
       mockXPService,
       mockSectionExamService,
       mockStudentState as any,
+      mockRemediationService as any,
     );
   });
 
@@ -196,6 +231,7 @@ describe('ProblemSubmissionService', () => {
       'kp-1',
       true,
       undefined, // no existing state
+      expect.any(String), // sessionId
     );
   });
 
@@ -218,7 +254,8 @@ describe('ProblemSubmissionService', () => {
       'user-1',
       'kp-1',
       false,
-      { consecutiveCorrect: 1, passed: false },
+      expect.objectContaining({ consecutiveCorrect: 1, passed: false }),
+      expect.any(String),
     );
   });
 
@@ -241,7 +278,8 @@ describe('ProblemSubmissionService', () => {
       'user-1',
       'kp-1',
       true,
-      { consecutiveCorrect: 1, passed: false },
+      expect.objectContaining({ consecutiveCorrect: 1, passed: false }),
+      expect.any(String),
     );
   });
 
@@ -399,7 +437,112 @@ describe('ProblemSubmissionService', () => {
       'user-1',
       'kp-1',
       false,
-      { consecutiveCorrect: 1, passed: false },
+      expect.objectContaining({ consecutiveCorrect: 1, passed: false }),
+      expect.any(String),
     );
+  });
+
+  describe('nextProblemHint (Slice 1 — KP-level more practice)', () => {
+    it('should return a hint targeting the same KP after a wrong answer', async () => {
+      const result = await service.submitAnswer({
+        userId: 'user-1',
+        problemId: 'prob-1',
+        answer: 'opt-a', // wrong
+        responseTimeMs: 5000,
+        activityType: 'lesson',
+        seenProblemIds: ['prob-1'],
+      });
+
+      expect(result.nextProblemHint).not.toBeNull();
+      expect(result.nextProblemHint!.targetKPId).toBe('kp-1');
+      expect(result.nextProblemHint!.nextProblemId).toBe('prob-1b');
+      expect(result.nextProblemHint!.reopenWorkedExample).toBe(true);
+      expect(result.nextProblemHint!.lessonComplete).toBe(false);
+    });
+
+    it('should not reopen worked example twice for the same KP', async () => {
+      const result = await service.submitAnswer({
+        userId: 'user-1',
+        problemId: 'prob-1b',
+        answer: 'opt-a',
+        responseTimeMs: 5000,
+        activityType: 'lesson',
+        seenProblemIds: ['prob-1', 'prob-1b'],
+        workedExampleReopenedKPIds: ['kp-1'],
+      });
+
+      expect(result.nextProblemHint!.reopenWorkedExample).toBe(false);
+    });
+
+    it('should not compute a hint for non-lesson activity types', async () => {
+      const result = await service.submitAnswer({
+        userId: 'user-1',
+        problemId: 'prob-1',
+        answer: 'opt-b',
+        responseTimeMs: 5000,
+        activityType: 'review',
+      });
+
+      expect(result.nextProblemHint).toBeNull();
+    });
+
+    it('should advance to next KP when current KP passes (2 consecutive correct)', async () => {
+      // Simulate kp-1 now passed
+      mockPrisma.studentKPState.findMany.mockImplementation(({ select }: any) => {
+        if (select?.knowledgePointId) {
+          return Promise.resolve([
+            { knowledgePointId: 'kp-1', passed: true, consecutiveCorrect: 2, attempts: 2 },
+            { knowledgePointId: 'kp-2', passed: false, consecutiveCorrect: 0, attempts: 0 },
+          ]);
+        }
+        return Promise.resolve([{ passed: false }]);
+      });
+
+      const result = await service.submitAnswer({
+        userId: 'user-1',
+        problemId: 'prob-1',
+        answer: 'opt-b',
+        responseTimeMs: 5000,
+        activityType: 'lesson',
+        seenProblemIds: ['prob-1'],
+      });
+
+      expect(result.nextProblemHint!.targetKPId).toBe('kp-2');
+      expect(result.nextProblemHint!.nextProblemId).toBe('prob-2');
+    });
+
+    it('should signal lessonComplete when all KPs are passed', async () => {
+      mockPrisma.studentKPState.findMany.mockImplementation(({ select }: any) => {
+        if (select?.knowledgePointId) {
+          return Promise.resolve([
+            { knowledgePointId: 'kp-1', passed: true, consecutiveCorrect: 2, attempts: 2 },
+            { knowledgePointId: 'kp-2', passed: true, consecutiveCorrect: 2, attempts: 2 },
+          ]);
+        }
+        return Promise.resolve([{ passed: true }, { passed: true }]);
+      });
+
+      // Simulate practice on kp-2 -> correct -> advance past last KP
+      const correctProblem = {
+        ...mockProblem,
+        knowledgePoint: {
+          ...mockProblem.knowledgePoint,
+          id: 'kp-2',
+        },
+      };
+      mockPrisma.problem.findUnique.mockResolvedValueOnce(correctProblem);
+
+      const result = await service.submitAnswer({
+        userId: 'user-1',
+        problemId: 'prob-2',
+        answer: 'opt-b',
+        responseTimeMs: 5000,
+        activityType: 'lesson',
+        seenProblemIds: ['prob-1', 'prob-2'],
+      });
+
+      expect(result.nextProblemHint!.lessonComplete).toBe(true);
+      expect(result.nextProblemHint!.nextProblemId).toBeNull();
+    });
   });
 });

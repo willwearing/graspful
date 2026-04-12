@@ -42,6 +42,8 @@ export class AssessmentController {
       answer: body.answer,
       responseTimeMs: body.responseTimeMs,
       activityType: 'lesson',
+      seenProblemIds: body.seenProblemIds,
+      workedExampleReopenedKPIds: body.workedExampleReopenedKPIds,
     });
   }
 

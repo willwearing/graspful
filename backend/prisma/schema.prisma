@@ -649,6 +649,7 @@ model Concept {
   course               Course                      @relation(fields: [courseId], references: [id], onDelete: Cascade)
   section              CourseSection?              @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   knowledgePoints      KnowledgePoint[]
+  keyPrerequisiteForKPs KnowledgePoint[]           @relation("KPKeyPrerequisite")
   prerequisiteOf       PrerequisiteEdge[]          @relation("PrerequisiteSource")
   prerequisiteFor      PrerequisiteEdge[]          @relation("PrerequisiteTarget")
   encompassedBy        EncompassingEdge[]          @relation("EncompassingSource")
@@ -678,16 +679,24 @@ model KnowledgePoint {
   workedExampleContent  Json?    @map("worked_example_content")
   instructionAudioUrl   String?  @map("instruction_audio_url")
   workedExampleAudioUrl String?  @map("worked_example_audio_url")
+  // Slice 3 — the single most curated link in the Math Academy graph.
+  // Points at the concept whose prereq knowledge is most directly used
+  // by this KP. Two failures on this KP auto-trigger a remedial review
+  // on the key prerequisite (Ch 4 p.76, Ch 21 pp.300-301).
+  // Nullable for backfill; `graspful review` rejects courses missing links.
+  keyPrerequisiteConceptId String? @map("key_prerequisite_concept_id") @db.Uuid
   isArchived            Boolean  @default(false) @map("is_archived")
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  concept       Concept          @relation(fields: [conceptId], references: [id], onDelete: Cascade)
-  problems      Problem[]
-  studentStates StudentKPState[]
+  concept                 Concept          @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  keyPrerequisiteConcept  Concept?         @relation("KPKeyPrerequisite", fields: [keyPrerequisiteConceptId], references: [id], onDelete: SetNull)
+  problems                Problem[]
+  studentStates           StudentKPState[]
 
   @@unique([conceptId, slug])
   @@index([conceptId])
+  @@index([keyPrerequisiteConceptId])
   @@map("knowledge_points")
 }
 
@@ -871,23 +880,29 @@ model StudentCourseState {
 // =============================================================================
 
 model StudentConceptState {
-  id                  String          @id @default(uuid()) @db.Uuid
-  userId              String          @map("user_id") @db.Uuid
-  conceptId           String          @map("concept_id") @db.Uuid
-  masteryState        MasteryState    @default(unstarted) @map("mastery_state")
-  repNum              Float           @default(0) @map("rep_num")
-  memory              Float           @default(1.0)
-  lastPracticedAt     DateTime?       @map("last_practiced_at") @db.Timestamptz
-  interval            Float           @default(1.0)
-  speed               Float           @default(1.0)
-  abilityTheta        Float           @default(0) @map("ability_theta")
-  speedRD             Float           @default(350) @map("speed_rd")
-  observationCount    Int             @default(0) @map("observation_count")
-  implicitCreditRatio Float           @default(0) @map("implicit_credit_ratio")
-  failCount           Int             @default(0) @map("fail_count")
-  diagnosticState     DiagnosticState @default(unknown) @map("diagnostic_state")
-  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  id                       String          @id @default(uuid()) @db.Uuid
+  userId                   String          @map("user_id") @db.Uuid
+  conceptId                String          @map("concept_id") @db.Uuid
+  masteryState             MasteryState    @default(unstarted) @map("mastery_state")
+  repNum                   Float           @default(0) @map("rep_num")
+  memory                   Float           @default(1.0)
+  lastPracticedAt          DateTime?       @map("last_practiced_at") @db.Timestamptz
+  interval                 Float           @default(1.0)
+  speed                    Float           @default(1.0)
+  abilityTheta             Float           @default(0) @map("ability_theta")
+  speedRD                  Float           @default(350) @map("speed_rd")
+  observationCount         Int             @default(0) @map("observation_count")
+  implicitCreditRatio      Float           @default(0) @map("implicit_credit_ratio")
+  failCount                Int             @default(0) @map("fail_count")
+  // Slice 2 — session-based lesson pause. When set, the concept is hidden
+  // from the frontier for the session whose id matches `pausedAtSessionId`.
+  // Cleared (set back to null) on the next session so the concept re-enters
+  // the frontier as high-priority unfinished business.
+  pausedAtSessionId        String?         @map("paused_at_session_id")
+  sessionFailedKPAttempts  Int             @default(0) @map("session_failed_kp_attempts")
+  diagnosticState          DiagnosticState @default(unknown) @map("diagnostic_state")
+  createdAt                DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
@@ -932,6 +947,12 @@ model StudentKPState {
   attempts           Int       @default(0)
   consecutiveCorrect Int       @default(0) @map("consecutive_correct")
   lastAttemptAt      DateTime? @map("last_attempt_at") @db.Timestamptz
+  // Slice 3 — track the session id of the first and most recent failure
+  // on this KP so the KPPlateauDetector can require "failed across at
+  // least 2 DIFFERENT sessions" before firing (Math Academy FAQ p.416:
+  // slow peel-back is anti-gaming).
+  firstFailedSessionId String? @map("first_failed_session_id")
+  lastFailedSessionId  String? @map("last_failed_session_id")
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 

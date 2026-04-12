@@ -350,4 +350,43 @@ describe('runQualityGate', () => {
     const atomicityWarning = result.warnings.find((w) => w.check === 'kp_atomicity');
     expect(atomicityWarning).toBeUndefined();
   });
+
+  // Slice 3 — key-prerequisite link warning
+  it('emits a key_prerequisite_links warning when a KP has no key prerequisite', () => {
+    const result = runQualityGate(MINIMAL_COURSE);
+    const warning = result.warnings.find(
+      (w) => w.check === 'key_prerequisite_links',
+    );
+    expect(warning).toBeDefined();
+    expect(warning?.details).toMatch(/missing key prerequisite/i);
+    // The warning MUST NOT flip the 10/10 passed/score contract.
+    expect(result.score).toMatch(/^\d+\/10$/);
+  });
+
+  it('does NOT emit a key_prerequisite_links warning when every KP has a valid link', () => {
+    const happy = JSON.parse(JSON.stringify(MINIMAL_COURSE));
+    const conceptIds = happy.concepts.map((c: { id: string }) => c.id);
+    for (const concept of happy.concepts) {
+      for (const kp of concept.knowledgePoints) {
+        // Point every KP at the first concept in the course — any valid
+        // concept id is accepted for the fixture.
+        kp.keyPrerequisite = conceptIds[0];
+      }
+    }
+    const result = runQualityGate(happy);
+    const warning = result.warnings.find(
+      (w) => w.check === 'key_prerequisite_links',
+    );
+    expect(warning).toBeUndefined();
+  });
+
+  it('emits a key_prerequisite_links warning when a link points at an unknown concept', () => {
+    const bad = JSON.parse(JSON.stringify(MINIMAL_COURSE));
+    bad.concepts[0].knowledgePoints[0].keyPrerequisite = 'does-not-exist';
+    const result = runQualityGate(bad);
+    const warning = result.warnings.find(
+      (w) => w.check === 'key_prerequisite_links' && w.details?.includes('unknown concept'),
+    );
+    expect(warning).toBeDefined();
+  });
 });
