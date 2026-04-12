@@ -60,6 +60,10 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
   const [practiceFeedback, setPracticeFeedback] = useState<ProblemFeedback | null>(null);
   const [practiceSubmitting, setPracticeSubmitting] = useState(false);
   const [workedExampleOpen, setWorkedExampleOpen] = useState(true);
+  // True when the current KP's practice is done — either via lessonComplete
+  // hint, KP advancement hint, or fallback exhaustion. Distinguishes "no
+  // problem selected yet" (initial) from "all done" (post-practice).
+  const [kpPracticeDone, setKpPracticeDone] = useState(false);
   // Problems the learner has seen in this lesson session — sent to the backend
   // so the selector can prefer unseen problems and apply retry delays.
   const seenProblemIdsRef = useRef<string[]>([]);
@@ -81,8 +85,8 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
   const isLast = currentKP === lesson.knowledgePoints.length - 1;
   const currentProblem =
     problems.find((p) => p.id === currentProblemId) ??
-    (currentProblemId === null ? problems[0] ?? null : null);
-  const practiceComplete = problems.length === 0 || currentProblem === null;
+    (currentProblemId === null && !kpPracticeDone ? problems[0] ?? null : null);
+  const practiceComplete = problems.length === 0 || kpPracticeDone;
 
   // Progress accounts for 3 phases per KP
   const totalPhases = lesson.knowledgePoints.length * 3;
@@ -124,6 +128,7 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
     // The backend hint will take over after the first submission.
     const first = kp.problems?.[0]?.id ?? null;
     setCurrentProblemId(first);
+    setKpPracticeDone(false);
     setPracticeFeedback(null);
     setPracticeSubmitting(false);
     practiceStartRef.current = Date.now();
@@ -146,6 +151,7 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
         setWorkedExampleOpen(true);
         // Let the next effect pick the first problem for the new KP
         setCurrentProblemId(null);
+        setKpPracticeDone(false);
       }
     }
   }
@@ -196,11 +202,15 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
       // Fallback to legacy behavior: advance within the current KP's problem list.
       const idx = problems.findIndex((p) => p.id === currentProblemId);
       const next = idx >= 0 ? problems[idx + 1] ?? null : null;
+      if (!next) {
+        setKpPracticeDone(true);
+      }
       setCurrentProblemId(next?.id ?? null);
       return;
     }
 
     if (hint.lessonComplete) {
+      setKpPracticeDone(true);
       setCurrentProblemId(null);
       return;
     }
@@ -218,6 +228,7 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
         (k) => k.id === hint.targetKPId,
       );
       if (targetIdx >= 0) {
+        setKpPracticeDone(false);
         setCurrentKP(targetIdx);
         setPhase("practice");
       }
