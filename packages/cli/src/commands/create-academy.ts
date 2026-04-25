@@ -13,11 +13,11 @@ function collect(value: string, previous: string[]) {
 export function registerCreateAcademyCommand(createCmd: Command) {
   createCmd
     .command('academy')
-    .description('Generate an academy manifest scaffold')
+    .description('Generate an academy plan and manifest scaffold')
     .requiredOption('--topic <topic>', 'Academy topic name')
     .option(
       '--course <name>',
-      'Course name to include in the academy manifest (repeatable). Defaults to one foundations course.',
+      'Course name to include in the academy manifest (repeatable). Defaults to the four academy planning layers.',
       collect,
       [] as string[],
     )
@@ -45,7 +45,7 @@ export function registerCreateAcademyCommand(createCmd: Command) {
           fs.writeFileSync(opts.output, yamlContent);
           output(
             { file: opts.output, topic: opts.topic, courses: obj.courses.length },
-            `Academy scaffold written to ${opts.output}`,
+            `Academy plan scaffold written to ${opts.output}`,
           );
         } else {
           console.log(yamlContent);

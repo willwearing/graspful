@@ -188,6 +188,38 @@ export default function CLIReferencePage() {
       />
 
       <CommandSection
+        name="graspful create academy"
+        synopsis={`graspful create academy \\
+  --topic <topic> \\
+  [--course <name>] \\
+  [--version <version>] \\
+  [-o, --output <file>]`}
+        description="Generate an academy manifest scaffold with the academy planning layers, course file references, and authoring gates for source material, learner promise, landing-page proof, graph checks, and review before publishing."
+        options={[
+          { flag: "--topic <topic>", description: "Academy topic name (required)" },
+          { flag: "--course <name>", description: "Course name to include in dependency order. Repeatable. Defaults to the four academy planning layers." },
+          { flag: "--version <version>", description: "Academy version string (default: 2026.1)" },
+          { flag: "-o, --output <file>", description: "Output file path (defaults to stdout)" },
+        ]}
+        examples={[
+          {
+            label: "Scaffold a default academy plan",
+            code: `graspful create academy \\
+  --topic "AWS Solutions Architect" \\
+  -o aws-academy.yaml`,
+          },
+          {
+            label: "Scaffold with named courses",
+            code: `graspful create academy \\
+  --topic "PostHog TAM" \\
+  --course "Data Models" \\
+  --course "Pipeline Reading and Solution Design" \\
+  -o posthog-tam-academy.yaml`,
+          },
+        ]}
+      />
+
+      <CommandSection
         name="graspful create course"
         synopsis={`graspful create course \\
   --topic <topic> \\

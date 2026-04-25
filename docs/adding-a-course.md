@@ -1,8 +1,8 @@
-# Adding a New Course
+# Adding a New Academy or Course
 
-End-to-end guide for creating a course YAML and importing it into the platform.
+End-to-end guide for planning an academy, creating course YAML, and importing it into the platform.
 
-This document also serves as the agent runbook for new course creation. If an agent is asked to "add a course", "draft a course graph", or "author a course YAML", this is the document it should follow.
+This document also serves as the agent runbook for academy and course creation. If an agent is asked to "create an academy", "add a course", "draft a course graph", or "author a course YAML", this is the document it should follow.
 
 ## Agent Workflow
 

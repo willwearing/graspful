@@ -43,10 +43,37 @@ export function scaffoldAcademyObject(
   options: { courseNames?: string[]; version?: string } = {},
 ) {
   const academySlug = slugify(topic);
+  const layerTemplates = [
+    {
+      id: 'foundations',
+      name: 'Foundations',
+      description: 'Concepts that must become automatic before the rest of the academy can work.',
+      defaultCourseName: `${topic} Foundations`,
+    },
+    {
+      id: 'core-structures',
+      name: 'Core Structures',
+      description: 'The organizing models, systems, and relationships that later work depends on.',
+      defaultCourseName: `${topic} Core Structures`,
+    },
+    {
+      id: 'operational-flows',
+      name: 'Operational Flows',
+      description: 'How learners use the core structures in realistic workflows.',
+      defaultCourseName: `${topic} Operational Flows`,
+    },
+    {
+      id: 'applied-judgment',
+      name: 'Applied Judgment',
+      description: 'Scenario work where learners diagnose, choose, adapt, and transfer knowledge.',
+      defaultCourseName: `${topic} Applied Judgment`,
+    },
+  ];
+
   const courseNames =
     options.courseNames && options.courseNames.length > 0
       ? options.courseNames
-      : [`${topic} Foundations`];
+      : layerTemplates.map((layer) => layer.defaultCourseName);
 
   return {
     academy: {
@@ -55,12 +82,52 @@ export function scaffoldAcademyObject(
       description: `Adaptive academy for ${topic}. Break the domain into connected courses that build from foundations to applied performance.`,
       version: options.version || '2026.1',
     },
-    courses: courseNames.map((courseName) => {
+    authoringPlan: {
+      status: 'draft',
+      sourceOfTruth: {
+        requiredBeforeGraphWork: true,
+        expectedInputs: [
+          'Official exam blueprint, syllabus, handbook, standard, codebase, or curriculum outline',
+          'Official learning objectives or competency statements',
+          'Edition, version, or date of the source material',
+          'Scope boundary: what is in scope and what is explicitly out of scope',
+        ],
+      },
+      learnerPromise: {
+        who: 'TODO: Name the exact learner or buyer persona',
+        outcome: 'TODO: Name the concrete outcome they want',
+        whyHardToday: 'TODO: Explain why generic content does not solve this well',
+        advantage: 'TODO: Explain what this academy teaches better than generic content',
+        proof: 'TODO: Point to source material, examples, curriculum shape, or domain proof',
+      },
+      landingPage: {
+        headline: 'TODO: Write a learner-facing headline tied to the real outcome',
+        subheadline: 'TODO: Explain the academy structure and why it builds competence',
+        proofPoints: [
+          'TODO: Name a concrete course, section, source, example, or assessment the page can point to',
+        ],
+      },
+      graphChecklist: [
+        'Draft the academy course dependency map before authoring any knowledge points',
+        'Write course YAML skeletons before filling concept content',
+        'Use cross-course prerequisites when one course depends on another',
+        'Check that later courses reinforce earlier foundations instead of leaving them behind',
+        'Run validate after each structural edit and review before publishing',
+      ],
+    },
+    parts: layerTemplates.map(({ id, name, description }) => ({
+      id,
+      name,
+      description,
+    })),
+    courses: courseNames.map((courseName, index) => {
       const courseSlug = slugify(courseName);
+      const part = layerTemplates[Math.min(index, layerTemplates.length - 1)].id;
       return {
         id: courseSlug,
         name: courseName,
         description: `Course in the ${topic} academy covering ${courseName.toLowerCase()}.`,
+        part,
         file: `courses/${courseSlug}.yaml`,
       };
     }),

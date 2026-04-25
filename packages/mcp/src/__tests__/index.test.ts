@@ -38,6 +38,26 @@ describe('graspful_scaffold_course', () => {
   });
 });
 
+describe('graspful_create_academy', () => {
+  test('returns an academy-first scaffold with authoring gates', async () => {
+    const result = await handleToolCall('graspful_create_academy', {
+      topic: 'PostHog TAM',
+    });
+    const parsed = yaml.load(result.content[0].text) as Record<string, any>;
+
+    expect(parsed).toHaveProperty('academy');
+    expect(parsed).toHaveProperty('authoringPlan');
+    expect(parsed.authoringPlan.sourceOfTruth.requiredBeforeGraphWork).toBe(true);
+    expect(parsed.parts.map((part: any) => part.id)).toEqual([
+      'foundations',
+      'core-structures',
+      'operational-flows',
+      'applied-judgment',
+    ]);
+    expect(parsed.courses).toHaveLength(4);
+  });
+});
+
 describe('graspful_validate', () => {
   test('valid course passes validation', async () => {
     const courseYaml = await scaffoldCourse('Validation Test');

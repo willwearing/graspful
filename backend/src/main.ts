@@ -40,9 +40,25 @@ async function bootstrap() {
     transform: true,
   }));
 
-  // Static origins from env var (platform hosts, localhost, etc.)
+  const nodeEnv = config.get<string>('NODE_ENV', 'development');
+  const defaultLocalOrigins =
+    nodeEnv === 'production'
+      ? []
+      : [
+        'http://localhost:3001',
+        'http://127.0.0.1:3001',
+        'http://localhost:3002',
+        'http://127.0.0.1:3002',
+      ];
+
+  // Static origins from env var plus local development app hosts.
   const staticOrigins = new Set(
-    config.get<string>('ALLOWED_ORIGINS')?.split(',').filter(Boolean) ?? [],
+    [
+      ...defaultLocalOrigins,
+      ...(config.get<string>('ALLOWED_ORIGINS')?.split(',') ?? []),
+    ]
+      .map((origin) => origin.trim())
+      .filter(Boolean),
   );
 
   // Dynamic CORS: static origins are checked first, then brand domains from DB (cached 5 min)
