@@ -168,12 +168,20 @@ describe('scaffoldCourseObject', () => {
 });
 
 describe('scaffoldAcademyObject', () => {
-  it('scaffolds an academy manifest with one default course', () => {
+  it('scaffolds an academy manifest with the default academy layers', () => {
     const result = scaffoldAcademyObject('PostHog TAM');
     expect(result.academy.id).toBe('posthog-tam');
     expect(result.academy.name).toBe('PostHog TAM Academy');
-    expect(result.courses).toHaveLength(1);
+    expect(result.authoringPlan.sourceOfTruth.requiredBeforeGraphWork).toBe(true);
+    expect(result.parts.map((part) => part.id)).toEqual([
+      'foundations',
+      'core-structures',
+      'operational-flows',
+      'applied-judgment',
+    ]);
+    expect(result.courses).toHaveLength(4);
     expect(result.courses[0].file).toBe('courses/posthog-tam-foundations.yaml');
+    expect(result.courses[3].part).toBe('applied-judgment');
   });
 
   it('uses provided course names when present', () => {
@@ -182,7 +190,9 @@ describe('scaffoldAcademyObject', () => {
     });
     expect(result.courses).toHaveLength(2);
     expect(result.courses[0].id).toBe('data-models');
+    expect(result.courses[0].part).toBe('foundations');
     expect(result.courses[1].id).toBe('data-pipelines');
+    expect(result.courses[1].part).toBe('core-structures');
   });
 });
 

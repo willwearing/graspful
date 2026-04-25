@@ -85,7 +85,10 @@ describe('offline CLI commands', () => {
       const parsed = yaml.load(fs.readFileSync(outFile, 'utf-8')) as any;
       expect(parsed.academy).toBeDefined();
       expect(parsed.academy.id).toBe('posthog-tam');
+      expect(parsed.authoringPlan.sourceOfTruth.requiredBeforeGraphWork).toBe(true);
+      expect(parsed.parts).toHaveLength(4);
       expect(parsed.courses).toHaveLength(2);
+      expect(parsed.courses[0].part).toBe('foundations');
       expect(parsed.courses[0].file).toBe('courses/data-models.yaml');
     });
   });

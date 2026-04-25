@@ -113,9 +113,9 @@ interface ToolDef {
 const TOOLS: ToolDef[] = [
   {
     name: 'graspful_create_academy',
-    description: `Generate an academy manifest scaffold for an academy-first workflow. Every academy is a connected curriculum made of one or more real courses.
+    description: `Generate an academy plan and manifest scaffold for an academy-first workflow. Every academy is a connected curriculum made of one or more real courses.
 
-Use this before authoring course YAML when the topic should be decomposed into multiple learner-facing parts. If you do not pass courseNames, the scaffold creates a single foundations course so the academy can still grow later without changing the outer product shape.`,
+Use this before authoring course YAML when the topic should be decomposed into learner-facing parts. If you do not pass courseNames, the scaffold creates the four default planning layers: foundations, core structures, operational flows, and applied judgment. The result includes authoring gates for source material, learner promise, landing-page proof, graph checks, and review before publishing.`,
     inputSchema: {
       type: 'object',
       properties: {

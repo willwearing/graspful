@@ -11,7 +11,7 @@ CLI for creating adaptive learning academies and courses from YAML knowledge gra
 # 1. Create an account (opens browser auth, then saves an API key locally)
 npx @graspful/cli register
 
-# 2. Scaffold the academy shell and first course
+# 2. Scaffold the academy plan and first course
 npx @graspful/cli create academy --topic "CKA Exam" -o cka-academy.yaml
 npx @graspful/cli create course --topic "CKA Exam Foundations" -o cka.yaml
 
@@ -63,7 +63,7 @@ brand.yaml   ──┘                           with billing, analytics,
 
 | Command | Description |
 |---------|-------------|
-| `graspful create academy` | Generate an academy manifest scaffold |
+| `graspful create academy` | Generate an academy plan and manifest scaffold |
 | `graspful create course` | Generate a course YAML skeleton with knowledge graph structure |
 | `graspful create brand` | Generate a brand YAML with theme presets |
 | `graspful fill concept` | Add knowledge points and practice problems to a concept |
@@ -95,7 +95,9 @@ graspful create course \
 
 ### `graspful create academy`
 
-Generate an academy manifest scaffold. Every Graspful product should be modeled as an academy, even if it starts with a single course.
+Generate an academy plan and manifest scaffold. Every Graspful product should be modeled as an academy, even if it starts with a single course.
+
+If you do not pass `--course`, the scaffold starts with the four default planning layers: foundations, core structures, operational flows, and applied judgment. It also includes authoring gates for the source material, learner promise, landing-page proof, graph checks, and review before publishing.
 
 ```bash
 graspful create academy \
@@ -228,7 +230,7 @@ graspful validate course.yaml --format json
 
 The typical agent loop:
 
-1. **Define the academy** -- `graspful create academy --topic "X"` to establish the academy shell
+1. **Define the academy** -- `graspful create academy --topic "X"` to establish the academy plan
 2. **Decompose the topic** -- break it into foundations, structures, operations, and applied judgment
 3. **Scaffold each course** -- `graspful create course` for every course in the academy
 4. **Edit** -- modify YAML to add concepts, adjust prerequisites, and keep the graph layered

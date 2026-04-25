@@ -61,7 +61,7 @@ Scaffold, fill, validate, and review work offline — no account needed. You onl
 
 | Tool | Description | Auth Required |
 |------|-------------|:---:|
-| `graspful_create_academy` | Generate an academy manifest scaffold | No |
+| `graspful_create_academy` | Generate an academy plan and manifest scaffold | No |
 | `graspful_scaffold_course` | Generate a course YAML skeleton with sections, concepts, and prerequisite edges | No |
 | `graspful_fill_concept` | Add knowledge points and problem stubs to a specific concept | No |
 | `graspful_validate` | Validate any Graspful YAML against its Zod schema. Auto-detects file type | No |
@@ -78,12 +78,14 @@ Scaffold, fill, validate, and review work offline — no account needed. You onl
 
 ### `graspful_create_academy`
 
-Generate an academy manifest scaffold. Every Graspful product should be modeled as an academy, even if it starts with a single course.
+Generate an academy plan and manifest scaffold. Every Graspful product should be modeled as an academy, even if it starts with a single course.
+
+If `courseNames` is omitted, the scaffold starts with the four default planning layers: foundations, core structures, operational flows, and applied judgment. It also returns authoring gates for the source material, learner promise, landing-page proof, graph checks, and review before publishing.
 
 | Parameter | Type | Required | Description |
 |-----------|------|:---:|-------------|
 | `topic` | string | Yes | Academy topic (e.g., "PostHog TAM") |
-| `courseNames` | string[] | No | Ordered course names for the manifest |
+| `courseNames` | string[] | No | Ordered course names for the manifest. Defaults to the four academy planning layers. |
 | `version` | string | No | Academy version string |
 
 ### `graspful_scaffold_course`

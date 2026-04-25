@@ -40,7 +40,7 @@ If MCP is already configured, you have these tools available — no CLI needed:
 
 | Tool | Auth? | Description |
 |------|:---:|-------------|
-| `graspful_create_academy` | No | Generate academy manifest YAML |
+| `graspful_create_academy` | No | Generate academy plan and manifest YAML |
 | `graspful_scaffold_course` | No | Generate course YAML skeleton |
 | `graspful_fill_concept` | No | Add KPs and problems to a concept |
 | `graspful_validate` | No | Validate YAML against schema |
@@ -70,7 +70,7 @@ This creates an account, org, and API key through browser auth. To use MCP tools
 
 ### Step 3: Build a course
 
-The workflow is: scaffold -> fill -> validate -> review -> import.
+The workflow is: academy plan -> course graphs -> fill -> validate -> review -> import.
 
 **Before writing any YAML**, follow the detailed runbook in `docs/adding-a-course.md`. Key steps:
 1. Gather source material (official docs, syllabi, PDFs — not marketing copy)
@@ -83,22 +83,25 @@ The workflow is: scaffold -> fill -> validate -> review -> import.
 8. Validate and review
 
 ```bash
-# 1. Scaffold the academy shell
+# 1. Scaffold the academy plan
 graspful create academy --topic "Your Topic" -o academy.yaml
 
-# 2. Scaffold the first course knowledge graph
+# 2. Edit the academy plan until source material, learner promise,
+# landing-page proof, and course dependencies are specific.
+
+# 3. Scaffold each course knowledge graph
 graspful create course --topic "Your Topic" --hours 10 -o course.yaml
 
-# 3. Fill each concept with knowledge points and problems
+# 4. Fill each concept with knowledge points and problems
 graspful fill concept course.yaml <concept-id>
 
-# 4. Validate after every edit
+# 5. Validate after every edit
 graspful validate course.yaml
 
-# 5. Review — must score 10/10 to publish
+# 6. Review must score 10/10 to publish
 graspful review course.yaml
 
-# 6. Import and publish
+# 7. Import and publish
 graspful import academy.yaml --org <org-slug> --course-dir .
 ```
 

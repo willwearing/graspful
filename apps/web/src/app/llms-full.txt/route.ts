@@ -18,17 +18,19 @@ npx @graspful/cli init
 # 2. Register to get an API key (required before import/publish)
 graspful register
 
-# 3. Scaffold a course from a topic
-graspful create course --topic "Linear Algebra"
+# 3. Scaffold the academy plan
+graspful create academy --topic "Linear Algebra" -o academy.yaml
 
-# 4. Fill in a specific concept with problems
-graspful fill concept course.yaml concept-id
+# 4. Scaffold each course graph, then fill concepts
+mkdir -p courses
+graspful create course --topic "Linear Algebra Foundations" -o courses/linear-algebra-foundations.yaml
+graspful fill concept courses/linear-algebra-foundations.yaml concept-id
 
 # 5. Review the course (runs 10 quality checks)
-graspful review course.yaml
+graspful review courses/linear-algebra-foundations.yaml
 
-# 6. Import and publish to an organization
-graspful import course.yaml --org my-org --publish
+# 6. Import and publish the academy to an organization
+graspful import academy.yaml --org my-org --course-dir . --publish
 \`\`\`
 
 ---
@@ -55,8 +57,8 @@ graspful import course.yaml --org my-org --publish
 
 | Operation | Auth required? |
 |-----------|:-:|
-| Scaffold, fill, validate, review, describe, create brand | No |
-| Import course, publish course, import brand, list courses | **Yes** |
+| Create academy, scaffold course, fill, validate, review, describe, create brand | No |
+| Import academy, import course, publish course, import brand, list courses | **Yes** |
 
 ---
 
@@ -66,13 +68,14 @@ graspful import course.yaml --org my-org --publish
 |---------|:---:|-------------|-----------|
 | \`graspful init\` | No | Initialize project, browser-auth, and auto-configure MCP | \`--email\`, \`--no-browser\` |
 | \`graspful register\` | No | Create account + API key via browser auth | \`--email <email>\`, \`--no-browser\` |
+| \`graspful create academy\` | No | Scaffold an academy plan with source, landing-page, graph, and review gates | \`--topic <topic>\`, \`--course <name>\`, \`--version <version>\` |
 | \`graspful create course\` | No | Scaffold a new course YAML | \`--topic <topic>\`, \`--hours <n>\`, \`--source <file>\` |
 | \`graspful fill concept <yaml> <conceptId>\` | No | Generate knowledge points and problems for a concept | \`--force\` overwrite existing |
 | \`graspful validate <yaml>\` | No | Validate course YAML against schema | — |
 | \`graspful review <yaml>\` | No | Run all 10 quality checks | \`--fix\` auto-fix issues |
 | \`graspful describe <yaml>\` | No | Describe course structure | — |
 | \`graspful create brand\` | No | Scaffold a brand YAML | \`--niche <niche>\`, \`--name <name>\`, \`--domain <domain>\`, \`--org <slug>\` |
-| \`graspful import <yaml>\` | **Yes** | Import course to platform | \`--org <slug>\`, \`--publish\` |
+| \`graspful import <yaml>\` | **Yes** | Import an academy manifest or course to platform | \`--org <slug>\`, \`--publish\`, \`--course-dir <dir>\` |
 | \`graspful publish <courseId>\` | **Yes** | Publish an imported course | \`--org <slug>\` |
 | \`graspful import-brand <yaml>\` | **Yes** | Import brand config to platform | \`--org <slug>\` |
 | \`graspful list courses\` | **Yes** | List courses in an org | \`--org <slug>\` |
@@ -82,8 +85,14 @@ graspful import course.yaml --org my-org --publish
 
 ## MCP Tools
 
-Graspful exposes 10 MCP tools for AI agents. Tools marked (AUTH REQUIRED) need
+Graspful exposes 12 MCP tools for AI agents. Tools marked (AUTH REQUIRED) need
 an API key in \`GRASPFUL_API_KEY\`.
+
+### graspful_create_academy
+Generate an academy manifest with planning layers and authoring gates.
+- \`topic\` (string, required) — Academy topic
+- \`courseNames\` (string[], optional) — Ordered course names. Defaults to foundations, core structures, operational flows, and applied judgment
+- \`version\` (string, optional) — Academy version string
 
 ### graspful_scaffold_course
 Scaffold a new course YAML from a topic.
@@ -109,6 +118,13 @@ Import a course YAML to the Graspful platform. Set \`GRASPFUL_API_KEY\` first if
 - \`yaml\` (string, required) — Path to the course YAML file
 - \`orgSlug\` (string, required) — Organization slug
 - \`publish\` (boolean, optional) — Publish immediately after import
+
+### graspful_import_academy (AUTH REQUIRED)
+Import an academy manifest and referenced course YAMLs. Set \`GRASPFUL_API_KEY\` first if not authenticated.
+- \`manifestYaml\` (string, required) — Full academy manifest YAML
+- \`courseYamls\` (object, required) — Map of course file paths to course YAML strings
+- \`org\` (string, required) — Organization slug
+- \`publish\` (boolean, optional) — Publish imported courses after import
 
 ### graspful_publish_course (AUTH REQUIRED)
 Publish an already-imported course. Set \`GRASPFUL_API_KEY\` first if not authenticated.
@@ -358,12 +374,14 @@ Each check returns pass/fail with details. Fix failures before importing.
 ## Typical Agent Workflow
 
 1. **Register** — Run \`graspful register\` in a terminal to complete browser auth and get an API key. This is required before importing or publishing. Skip if you already have GRASPFUL_API_KEY set.
-2. **Scaffold** — Use \`graspful_scaffold_course(topic: "Your Topic", hours: 10)\` to generate the course skeleton.
-3. **Fill concepts** — For each concept, call \`graspful_fill_concept(yaml, conceptId)\` to generate knowledge points and problems.
-4. **Review** — Call \`graspful_review_course(yaml)\` to run quality checks. Fix any failures.
-5. **Import** — Call \`graspful_import_course(yaml, orgSlug, publish: true)\` to push to platform.
-6. **Create brand** (optional) — Use \`graspful_create_brand(niche: "Your Niche")\` to generate a white-label site config.
-7. **Import brand** (optional) — Use \`graspful_import_brand(yaml, orgSlug)\` to deploy the site.
+2. **Plan the academy** — Use \`graspful_create_academy(topic: "Your Topic")\` to generate the academy manifest, planning layers, and authoring gates.
+3. **Resolve the plan** — Fill in source material, learner promise, landing-page proof, and course dependencies before writing knowledge points.
+4. **Scaffold course graphs** — Use \`graspful_scaffold_course(topic: "Your Course", estimatedHours: 10)\` for each course referenced by the academy.
+5. **Fill concepts** — For each concept, call \`graspful_fill_concept(yaml, conceptId)\` to generate knowledge points and problems.
+6. **Review** — Call \`graspful_review_course(yaml)\` to run quality checks. Fix any failures.
+7. **Import academy** — Call \`graspful_import_academy(manifestYaml, courseYamls, org, publish: true)\` to push the connected product to platform.
+8. **Create brand** — Use \`graspful_create_brand(niche: "Your Niche", topic: "Your Topic")\` to generate the landing page config.
+9. **Import brand** — Use \`graspful_import_brand(yaml, orgSlug)\` to deploy the site.
 
 ### Tips for Agents
 

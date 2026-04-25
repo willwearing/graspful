@@ -8,7 +8,7 @@ Graspful is an agent-first academy creation platform. Academies and courses are 
 
 ## How It Works
 
-1. **Scaffold academy** -- `graspful create academy --topic "CKA Exam"` generates the academy shell
+1. **Plan academy** -- `graspful create academy --topic "CKA Exam"` generates the academy layers, course map, and authoring gates
 2. **Scaffold courses** -- `graspful create course --topic "Cluster Networking"` generates each course graph
 3. **Fill** -- `graspful fill concept course.yaml networking` adds KPs and practice problems
 4. **Review** -- `graspful review course.yaml` runs 10 quality checks, including whether problems only assess taught material
@@ -24,6 +24,7 @@ npx @graspful/cli init
 # opens browser auth, then saves an API key locally
 graspful register --email you@example.com
 graspful create academy --topic "Your Topic" -o academy.yaml
+mkdir -p courses
 graspful create course --topic "Foundations" -o courses/foundations.yaml
 ```
 
@@ -60,7 +61,7 @@ graspful/
 |---------|:---:|-------------|
 | `graspful register` | No | Create account + API key via browser auth |
 | `graspful login` | No | Authenticate with existing credentials |
-| `graspful create academy` | No | Generate academy manifest skeleton |
+| `graspful create academy` | No | Generate academy plan and manifest skeleton |
 | `graspful create course` | No | Generate course YAML skeleton |
 | `graspful create brand` | No | Generate brand YAML with theme presets |
 | `graspful fill concept` | No | Add KPs and problems to a concept |
@@ -99,7 +100,7 @@ Or manually add to your MCP config:
 | Tool | Auth? | Description |
 |------|:---:|-------------|
 | `graspful_scaffold_course` | No | Generate course YAML skeleton |
-| `graspful_create_academy` | No | Generate academy manifest scaffold |
+| `graspful_create_academy` | No | Generate academy plan and manifest scaffold |
 | `graspful_fill_concept` | No | Add KPs and problems to a concept |
 | `graspful_validate` | No | Validate YAML against schema |
 | `graspful_review_course` | No | Run 10 quality checks, including teaching alignment |

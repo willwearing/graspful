@@ -8,6 +8,7 @@ Version: 0.1.0
 
 - [1. CLI Reference](#1-cli-reference)
   - [Global Options](#global-options)
+  - [graspful create academy](#graspful-create-academy)
   - [graspful create course](#graspful-create-course)
   - [graspful create brand](#graspful-create-brand)
   - [graspful fill concept](#graspful-fill-concept)
@@ -19,6 +20,7 @@ Version: 0.1.0
   - [graspful login](#graspful-login)
   - [graspful register](#graspful-register)
 - [2. MCP Tools Reference](#2-mcp-tools-reference)
+  - [graspful_create_academy](#graspful_create_academy)
   - [graspful_scaffold_course](#graspful_scaffold_course)
   - [graspful_fill_concept](#graspful_fill_concept)
   - [graspful_validate](#graspful_validate)
@@ -52,6 +54,35 @@ All commands accept these global options:
 | `--help` | — | — | Print help for the command. |
 
 When `--format json` is set, all commands emit structured JSON to stdout and structured error JSON to stderr.
+
+---
+
+### `graspful create academy`
+
+Generate an academy plan and manifest scaffold with planning layers and authoring gates.
+
+If no `--course` flags are passed, the scaffold starts with the four default planning layers: foundations, core structures, operational flows, and applied judgment. It also includes an `authoringPlan` block for source material, learner promise, landing-page proof, graph checks, and review before publishing.
+
+**Syntax:**
+
+```
+graspful create academy --topic <topic> [options]
+```
+
+**Parameters:**
+
+| Flag | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `--topic <topic>` | string | Yes | — | Academy topic name. |
+| `--course <name>` | string[] | No | four planning layers | Course name to include in dependency order. Repeatable. |
+| `--version <version>` | string | No | `2026.1` | Academy version string. |
+| `-o, --output <file>` | string | No | stdout | Output file path. If omitted, YAML is printed to stdout. |
+
+**Example:**
+
+```bash
+graspful create academy --topic "PostHog TAM" --course "Data Models" --course "Pipeline Reading" -o academy.yaml
+```
 
 ---
 
@@ -630,9 +661,27 @@ You're ready. Run: graspful import course.yaml --org alice-org
 
 ## 2. MCP Tools Reference
 
-The Graspful MCP server exposes 10 tools over the Model Context Protocol (stdio transport). Server name: `graspful`, version `0.1.0`.
+The Graspful MCP server exposes 12 tools over the Model Context Protocol (stdio transport). Server name: `graspful`, version `0.1.0`.
 
 All tools return `{ content: [{ type: "text", text: "..." }], isError?: boolean }`. The `text` field contains either raw YAML or a JSON string depending on the tool.
+
+---
+
+### `graspful_create_academy`
+
+Generate an academy plan and manifest scaffold with planning layers and authoring gates.
+
+If `courseNames` is omitted, the scaffold starts with foundations, core structures, operational flows, and applied judgment. It also returns an `authoringPlan` block for source material, learner promise, landing-page proof, graph checks, and review before publishing.
+
+**Parameters:**
+
+| Name | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `topic` | string | Yes | — | Academy topic name (e.g., "PostHog TAM"). |
+| `courseNames` | string[] | No | four planning layers | Ordered course names for the manifest. |
+| `version` | string | No | `2026.1` | Academy version string. |
+
+**Returns:** Raw academy manifest YAML string (not JSON-wrapped).
 
 ---
 
@@ -1232,6 +1281,8 @@ Array of `{ question: string, answer: string }` (both required per item).
 Top-level key: `academy`. File: `academy-manifest.schema.ts`.
 
 Used to define a multi-course academy with optional grouping into "parts."
+
+`graspful create academy` also emits an `authoringPlan` block. That block is for agents and humans while drafting: source material, learner promise, landing-page proof, graph checks, and review gates. The import API treats it as authoring metadata and does not persist it.
 
 #### `academy` (required)
 
