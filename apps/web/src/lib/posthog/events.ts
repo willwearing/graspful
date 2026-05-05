@@ -20,11 +20,16 @@ export function trackSignIn(userId: string) {
 
 // ── Errors ────────────────────────────────────────────────────────────
 
-export function captureError(message: string, source?: string) {
+export function captureError(
+  error: Error | string,
+  source?: string,
+  properties: Record<string, unknown> = {},
+) {
   if (!isLoaded()) return;
-  posthog.capture("$exception", {
-    message,
+  const exception = error instanceof Error ? error : new Error(error);
+  posthog.captureException(exception, {
     ...(source ? { source } : {}),
+    ...properties,
   });
 }
 

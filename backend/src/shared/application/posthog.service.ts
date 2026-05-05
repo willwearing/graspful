@@ -19,6 +19,7 @@ export class PostHogService implements OnModuleDestroy {
         host: this.config.get<string>('POSTHOG_HOST') || 'https://us.i.posthog.com',
         flushAt: 10,
         flushInterval: 5000,
+        enableExceptionAutocapture: true,
       });
     }
   }
@@ -50,16 +51,7 @@ export class PostHogService implements OnModuleDestroy {
 
   captureException(error: Error, distinctId: string, properties: Record<string, unknown> = {}) {
     if (!this.client) return;
-    this.client.capture({
-      distinctId,
-      event: '$exception',
-      properties: {
-        $exception_message: error.message,
-        $exception_type: error.name,
-        $exception_stack_trace_raw: error.stack,
-        ...properties,
-      },
-    });
+    this.client.captureException(error, distinctId, properties);
   }
 
   async onModuleDestroy() {

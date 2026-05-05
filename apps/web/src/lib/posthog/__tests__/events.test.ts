@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("posthog-js", () => ({
   default: {
     capture: vi.fn(),
+    captureException: vi.fn(),
     identify: vi.fn(),
     isFeatureEnabled: vi.fn(),
     __loaded: true,
@@ -21,6 +22,8 @@ import {
 } from "../events";
 import posthog from "posthog-js";
 
+const captureExceptionMock = posthog.captureException as ReturnType<typeof vi.fn>;
+
 describe("PostHog event helpers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -34,18 +37,25 @@ describe("PostHog event helpers", () => {
     });
   });
 
-  it("captureError sends $exception event", () => {
+  it("captureError sends exception through PostHog error tracking", () => {
     captureError("Something broke", "auth-form");
-    expect(posthog.capture).toHaveBeenCalledWith("$exception", {
-      message: "Something broke",
+    expect(posthog.captureException).toHaveBeenCalledWith(expect.any(Error), {
       source: "auth-form",
     });
+    expect(captureExceptionMock.mock.calls[0][0].message).toBe("Something broke");
   });
 
   it("captureError omits source when not provided", () => {
     captureError("Oops");
-    expect(posthog.capture).toHaveBeenCalledWith("$exception", {
-      message: "Oops",
+    expect(posthog.captureException).toHaveBeenCalledWith(expect.any(Error), {});
+  });
+
+  it("captureError preserves existing Error instances and properties", () => {
+    const error = new Error("Original");
+    captureError(error, "route-error", { digest: "abc123" });
+    expect(posthog.captureException).toHaveBeenCalledWith(error, {
+      source: "route-error",
+      digest: "abc123",
     });
   });
 
