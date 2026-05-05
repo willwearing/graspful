@@ -20,6 +20,7 @@ export class OtelExceptionFilter extends BaseExceptionFilter {
   }
 
   catch(exception: unknown, host: ArgumentsHost) {
+    const request = host.switchToHttp().getRequest();
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
@@ -45,7 +46,18 @@ export class OtelExceptionFilter extends BaseExceptionFilter {
         },
       });
       if (exception instanceof Error) {
-        this.posthog?.captureException(exception, 'server', { 'http.status_code': status });
+        const distinctId =
+          request?.orgContext?.userId ||
+          request?.user?.userId ||
+          request?.headers?.['x-posthog-distinct-id'] ||
+          'server';
+        this.posthog?.captureException(exception, String(distinctId), {
+          source: 'nestjs-exception-filter',
+          'http.method': request?.method,
+          'http.url': request?.originalUrl || request?.url,
+          'http.status_code': status,
+          ...(request?.orgContext?.orgId ? { 'org.id': request.orgContext.orgId } : {}),
+        });
       }
     }
 
