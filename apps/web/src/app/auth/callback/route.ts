@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { getServerPostHog } from "@/lib/posthog/server";
+import { emitServerLog, flushServerLogsAfterResponse } from "@/lib/posthog/server-logs";
 import { getDefaultAuthRedirectPath, getHostSurface, getRequestHost } from "@/lib/hosts";
 import { resolveBrand } from "@/lib/brand/resolve";
 
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
         try {
           const brand = await resolveBrand(hostname, request.headers.get("cookie"));
-          await fetch(`${backendUrl}/auth/provision`, {
+          const provisionResponse = await fetch(`${backendUrl}/auth/provision`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -71,13 +72,51 @@ export async function GET(request: NextRequest) {
             },
             body: JSON.stringify({ brandOrgSlug: brand.orgSlug }),
           });
-        } catch {
-          // Non-fatal
+          if (!provisionResponse.ok) {
+            emitServerLog(
+              "auth",
+              "WARN",
+              "Auth callback provisioning request failed",
+              {
+                "http.status_code": provisionResponse.status,
+                "brand.org_slug": brand.orgSlug,
+                "auth.redirect": redirect,
+              },
+            );
+            flushServerLogsAfterResponse();
+          }
+        } catch (provisionError) {
+          emitServerLog(
+            "auth",
+            "ERROR",
+            "Auth callback provisioning threw",
+            {
+              "error.message":
+                provisionError instanceof Error
+                  ? provisionError.message
+                  : "Unknown provisioning error",
+              "auth.redirect": redirect,
+            },
+          );
+          flushServerLogsAfterResponse();
         }
       }
 
       return NextResponse.redirect(new URL(redirect, origin));
     }
+
+    emitServerLog("auth", "WARN", "Auth callback code exchange failed", {
+      "error.message": error.message,
+      "auth.redirect": redirect,
+    });
+    flushServerLogsAfterResponse();
+  }
+
+  if (!code) {
+    emitServerLog("auth", "WARN", "Auth callback missing code", {
+      "auth.redirect": redirect,
+    });
+    flushServerLogsAfterResponse();
   }
 
   // Auth error -- redirect to sign-in

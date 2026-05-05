@@ -1,10 +1,10 @@
 import { BatchLogRecordProcessor, LoggerProvider } from '@opentelemetry/sdk-logs'
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
-import { logs } from '@opentelemetry/api-logs'
+import { logs, SeverityNumber } from '@opentelemetry/api-logs'
 import { resourceFromAttributes } from '@opentelemetry/resources'
+import { getPostHogLogsEndpoint, getPostHogProjectToken } from './lib/posthog/server-config'
 
-const token = process.env.NEXT_PUBLIC_POSTHOG_KEY
-const host = (process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com').replace(/\/$/, '')
+const token = getPostHogProjectToken()
 
 export const loggerProvider = token
   ? new LoggerProvider({
@@ -12,7 +12,7 @@ export const loggerProvider = token
       processors: [
         new BatchLogRecordProcessor(
           new OTLPLogExporter({
-            url: `${host}/i/v1/logs`,
+            url: getPostHogLogsEndpoint(),
             headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
@@ -69,6 +69,29 @@ export const onRequestError = async (
 ) => {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return
 
+  const errorObject = asError(error)
+  loggerProvider?.getLogger('nextjs').emit({
+    severityNumber: SeverityNumber.ERROR,
+    severityText: 'ERROR',
+    body: `Next.js request error: ${errorObject.message}`,
+    attributes: {
+      source: 'nextjs-on-request-error',
+      path: request.path,
+      method: request.method,
+      ...(typeof context.routeType === 'string' && { route_type: context.routeType }),
+      ...(typeof context.routePath === 'string' && { route_path: context.routePath }),
+      ...(typeof context.routerKind === 'string' && { router_kind: context.routerKind }),
+      'error.type': errorObject.name,
+      'error.message': errorObject.message,
+      ...(errorObject.stack && { 'error.stack': errorObject.stack }),
+    },
+  })
+  try {
+    await loggerProvider?.forceFlush()
+  } catch {
+    // Logging should never block exception capture.
+  }
+
   const { getServerPostHog } = await import('./lib/posthog/server')
   const posthog = getServerPostHog()
   if (!posthog) return
@@ -76,7 +99,7 @@ export const onRequestError = async (
   const cookie = readHeader(request.headers, 'cookie')
   const distinctId = getPostHogDistinctId(cookie) || 'nextjs-server'
 
-  posthog.captureException(asError(error), distinctId, {
+  posthog.captureException(errorObject, distinctId, {
     source: 'nextjs-on-request-error',
     path: request.path,
     method: request.method,
