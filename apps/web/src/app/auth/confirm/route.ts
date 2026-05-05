@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { emitServerLog, flushServerLogsAfterResponse } from "@/lib/posthog/server-logs";
 import { getDefaultAuthRedirectPath, getHostSurface, getRequestHost } from "@/lib/hosts";
 
 export async function GET(request: NextRequest) {
@@ -47,6 +48,20 @@ export async function GET(request: NextRequest) {
       }
       return response;
     }
+
+    emitServerLog("auth", "WARN", "Auth confirmation token verification failed", {
+      "error.message": error.message,
+      "auth.next": next,
+      "auth.otp_type": type,
+    });
+    flushServerLogsAfterResponse();
+  } else {
+    emitServerLog("auth", "WARN", "Auth confirmation missing token parameters", {
+      "auth.next": next,
+      "auth.has_token_hash": Boolean(tokenHash),
+      "auth.has_type": Boolean(type),
+    });
+    flushServerLogsAfterResponse();
   }
 
   // Verification failed — redirect to sign-in with error context

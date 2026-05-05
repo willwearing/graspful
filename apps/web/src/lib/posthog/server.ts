@@ -1,14 +1,15 @@
 import { PostHog } from "posthog-node";
+import { getPostHogProjectToken, getPostHogServerHost } from "./server-config";
 
 let posthogServer: PostHog | null = null;
 
 export function getServerPostHog(): PostHog | null {
-  if (!process.env.POSTHOG_API_KEY) return null;
+  const token = getPostHogProjectToken();
+  if (!token) return null;
 
   if (!posthogServer) {
-    posthogServer = new PostHog(process.env.POSTHOG_API_KEY, {
-      host:
-        process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
+    posthogServer = new PostHog(token, {
+      host: getPostHogServerHost(),
       flushAt: 1,
       flushInterval: 0,
     });
