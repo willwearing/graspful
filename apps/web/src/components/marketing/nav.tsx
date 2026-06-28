@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Sun, Moon } from "lucide-react";
 import { useBrand } from "@/lib/brand/context";
 import { useHostSurface } from "@/lib/host-context";
+import { getPlatformHost } from "@/lib/hosts";
 import { useTheme } from "@/lib/theme/theme-provider";
 
 const platformLinks = [
@@ -26,12 +27,13 @@ export function MarketingNav() {
       : brand.id === "graspful"
         ? platformLinks
         : learnerLinks;
+  const homeHref = hostSurface === "app" ? `https://${getPlatformHost()}/` : "/";
 
   return (
     <nav className="absolute top-0 left-0 right-0 z-20 border-b border-[#0F172A]/[0.06] dark:border-white/[0.06] bg-transparent">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 md:px-12">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href={homeHref} prefetch={false} className="flex items-center gap-2">
             <span className="text-xl font-bold text-foreground tracking-tight">
               {brand.name}
             </span>

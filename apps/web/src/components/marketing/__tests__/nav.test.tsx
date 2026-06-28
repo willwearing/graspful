@@ -6,10 +6,10 @@ import { HostSurfaceProvider } from "@/lib/host-context";
 import { ThemeProvider } from "@/lib/theme/theme-provider";
 import { defaultBrand, firefighterBrand } from "@/lib/brand/defaults";
 
-function renderNav() {
+function renderNav(surface: "local" | "platform" | "app" | "academy" = "local") {
   return render(
       <ThemeProvider>
-        <HostSurfaceProvider surface="local">
+        <HostSurfaceProvider surface={surface}>
           <BrandProvider brand={firefighterBrand}>
             <MarketingNav />
           </BrandProvider>
@@ -22,6 +22,28 @@ describe("MarketingNav", () => {
   it("renders brand name", () => {
     renderNav();
     expect(screen.getByText("FirefighterPrep")).toBeTruthy();
+  });
+
+  it("links the logo to the current home surface by default", () => {
+    renderNav();
+    expect(screen.getByRole("link", { name: "FirefighterPrep" })).toHaveAttribute("href", "/");
+  });
+
+  it("links the logo to the platform home from the app surface", () => {
+    render(
+      <ThemeProvider>
+        <HostSurfaceProvider surface="app">
+          <BrandProvider brand={defaultBrand}>
+            <MarketingNav />
+          </BrandProvider>
+        </HostSurfaceProvider>
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByRole("link", { name: "Graspful" })).toHaveAttribute(
+      "href",
+      "https://graspful.ai/",
+    );
   });
 
   it("renders Sign In link", () => {

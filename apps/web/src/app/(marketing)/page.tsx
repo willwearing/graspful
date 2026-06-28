@@ -79,7 +79,7 @@ export default async function LandingPage() {
         <section className="bg-muted/50 py-24 md:py-32">
           <div className="mx-auto max-w-5xl px-6">
             <h2 className="text-center text-3xl font-bold tracking-[-0.03em] text-foreground sm:text-4xl mb-4">
-              Your students learn better
+              Students learn more effectively
             </h2>
             <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
               Every Graspful course adapts to each student. They focus on what they don&apos;t know, review at the right time, and prove mastery before moving on.

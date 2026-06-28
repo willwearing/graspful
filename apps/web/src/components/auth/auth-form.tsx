@@ -16,6 +16,37 @@ interface AuthFormProps {
   mode: "sign-in" | "sign-up";
 }
 
+function buildAuthHref(path: "/sign-in" | "/sign-up", redirectTo: string, email: string) {
+  const params = new URLSearchParams({ redirect: redirectTo });
+  const trimmedEmail = email.trim();
+
+  if (trimmedEmail) {
+    params.set("email", trimmedEmail);
+  }
+
+  return `${path}?${params.toString()}`;
+}
+
+function getFormValidationError(email: string, password: string, isSignIn: boolean) {
+  const trimmedEmail = email.trim();
+
+  if (!trimmedEmail || !password) {
+    return isSignIn
+      ? "Enter your email and password to sign in, or create an account if you're new."
+      : "Enter your email and a password to create your account.";
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    return "Enter a valid email address.";
+  }
+
+  if (password.length < 8) {
+    return "Password must be at least 8 characters.";
+  }
+
+  return null;
+}
+
 export function AuthForm({ mode }: AuthFormProps) {
   const brand = useBrand();
   const hostSurface = useHostSurface();
@@ -45,12 +76,20 @@ export function AuthForm({ mode }: AuthFormProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    const isSignIn = mode === "sign-in";
+    const validationError = getFormValidationError(email, password, isSignIn);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setLoading(true);
 
     try {
       if (mode === "sign-up") {
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
@@ -73,11 +112,11 @@ export function AuthForm({ mode }: AuthFormProps) {
           router.refresh();
         } else {
           // Email confirmation required (production)
-          setSubmittedEmail(email);
+          setSubmittedEmail(email.trim());
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
+          email: email.trim(),
           password,
         });
         if (error) throw error;
@@ -119,8 +158,11 @@ export function AuthForm({ mode }: AuthFormProps) {
       : `Start your free trial with ${brand.name}`;
   const submitText = isSignIn ? "Sign In" : "Create Account";
   const switchText = isSignIn ? "Don't have an account?" : "Already have an account?";
-  const switchHref = isSignIn ? "/sign-up" : "/sign-in";
+  const switchHref = isSignIn
+    ? buildAuthHref("/sign-up", redirectTo, email)
+    : buildAuthHref("/sign-in", redirectTo, email);
   const switchLabel = isSignIn ? "Sign up" : "Sign in";
+  const switchButtonText = isSignIn ? "Create account instead" : "Sign in instead";
 
   return (
     <div className="flex min-h-[calc(100vh-73px)] items-center justify-center px-4 py-12">
@@ -136,7 +178,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 We sent a confirmation link to <strong>{submittedEmail}</strong>.
               </p>
               <Link
-                href="/sign-in"
+                href={buildAuthHref("/sign-in", redirectTo, submittedEmail)}
                 className="inline-block text-sm font-medium text-primary hover:underline"
               >
                 Back to sign in
@@ -159,7 +201,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 <div>
                   <label
                     htmlFor="email"
@@ -211,9 +253,18 @@ export function AuthForm({ mode }: AuthFormProps) {
                   <p className="text-sm text-destructive">{error}</p>
                 )}
 
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Loading..." : submitText}
-                </Button>
+                <div className="space-y-3">
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? "Loading..." : submitText}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    render={<Link href={switchHref} prefetch={false} />}
+                  >
+                    {switchButtonText}
+                  </Button>
+                </div>
               </form>
 
               <p className="mt-6 text-center text-sm text-muted-foreground">
