@@ -1,35 +1,46 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Sidebar } from "@/components/app/sidebar";
 import { BrandProvider } from "@/lib/brand/context";
 import { HostSurfaceProvider } from "@/lib/host-context";
 import { ThemeProvider } from "@/lib/theme/theme-provider";
 import { firefighterBrand } from "@/lib/brand/defaults";
 
-const mockPush = vi.fn();
-const mockRefresh = vi.fn();
-const mockSignOut = vi.fn();
-let mockPathname = "/dashboard";
+const testState = vi.hoisted(() => ({
+  mockPush: vi.fn(),
+  mockRefresh: vi.fn(),
+  mockSignOut: vi.fn(),
+  mockResetPostHog: vi.fn(),
+  mockPathname: "/dashboard",
+}));
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => mockPathname,
-  useRouter: () => ({ push: mockPush, refresh: mockRefresh }),
+  usePathname: () => testState.mockPathname,
+  useRouter: () => ({
+    push: testState.mockPush,
+    refresh: testState.mockRefresh,
+  }),
 }));
 
 vi.mock("@/lib/supabase/client", () => ({
   createSupabaseBrowserClient: () => ({
     auth: {
-      signOut: mockSignOut,
+      signOut: testState.mockSignOut,
     },
   }),
 }));
 
+vi.mock("@/lib/posthog/events", () => ({
+  resetPostHog: testState.mockResetPostHog,
+}));
+
 describe("Sidebar", () => {
   beforeEach(() => {
-    mockPathname = "/dashboard";
-    mockPush.mockReset();
-    mockRefresh.mockReset();
-    mockSignOut.mockReset();
+    testState.mockPathname = "/dashboard";
+    testState.mockPush.mockReset();
+    testState.mockRefresh.mockReset();
+    testState.mockSignOut.mockReset();
+    testState.mockResetPostHog.mockReset();
     Object.defineProperty(window, "localStorage", {
       value: {
         getItem: () => null,
@@ -78,7 +89,7 @@ describe("Sidebar", () => {
   });
 
   it("shows learn-specific navigation on platform learner routes", () => {
-    mockPathname = "/learn/posthog-tam/academies/posthog-tam";
+    testState.mockPathname = "/learn/posthog-tam/academies/posthog-tam";
 
     render(
       <ThemeProvider>
@@ -99,5 +110,22 @@ describe("Sidebar", () => {
       "/settings",
     );
     expect(screen.queryByRole("link", { name: /dashboard/i })).toBeNull();
+  });
+
+  it("resets PostHog identity state when signing out", async () => {
+    render(
+      <ThemeProvider>
+        <HostSurfaceProvider surface="local">
+          <BrandProvider brand={firefighterBrand}>
+            <Sidebar isOpen={false} onClose={() => {}} />
+          </BrandProvider>
+        </HostSurfaceProvider>
+      </ThemeProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /log out/i }));
+
+    expect(testState.mockSignOut).toHaveBeenCalled();
+    await waitFor(() => expect(testState.mockResetPostHog).toHaveBeenCalled());
   });
 });

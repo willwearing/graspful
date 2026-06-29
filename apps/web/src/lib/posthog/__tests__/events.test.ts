@@ -7,6 +7,7 @@ vi.mock("posthog-js", () => ({
     captureException: vi.fn(),
     identify: vi.fn(),
     isFeatureEnabled: vi.fn(),
+    reset: vi.fn(),
     __loaded: true,
   },
 }));
@@ -19,6 +20,7 @@ import {
   trackSubscription,
   trackDiagnosticComplete,
   captureError,
+  resetPostHog,
 } from "../events";
 import posthog from "posthog-js";
 
@@ -35,6 +37,11 @@ describe("PostHog event helpers", () => {
     expect(posthog.capture).toHaveBeenCalledWith("sign_up", {
       method: "email",
     });
+  });
+
+  it("resetPostHog clears PostHog identity state", () => {
+    resetPostHog();
+    expect(posthog.reset).toHaveBeenCalled();
   });
 
   it("captureError sends exception through PostHog error tracking", () => {

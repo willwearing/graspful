@@ -6,6 +6,7 @@ import { useBrand } from "@/lib/brand/context";
 import { Button } from "@/components/ui/button";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/app/theme-toggle";
+import { resetPostHog } from "@/lib/posthog/events";
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -18,6 +19,7 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
   async function handleSignOut() {
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
+    resetPostHog();
     router.push("/");
     router.refresh();
   }

@@ -18,6 +18,11 @@ export function trackSignIn(userId: string) {
   posthog.capture("sign_in", { method: "email" });
 }
 
+export function resetPostHog() {
+  if (!isLoaded()) return;
+  posthog.reset();
+}
+
 // ── Errors ────────────────────────────────────────────────────────────
 
 export function captureError(

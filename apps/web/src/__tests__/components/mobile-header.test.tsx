@@ -1,31 +1,42 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@/lib/theme/theme-provider";
 import { BrandProvider } from "@/lib/brand/context";
 import { defaultBrand } from "@/lib/brand/defaults";
 import { MobileHeader } from "@/components/app/mobile-header";
 
-const mockPush = vi.fn();
-const mockRefresh = vi.fn();
-const mockSignOut = vi.fn();
+const testState = vi.hoisted(() => ({
+  mockPush: vi.fn(),
+  mockRefresh: vi.fn(),
+  mockSignOut: vi.fn(),
+  mockResetPostHog: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush, refresh: mockRefresh }),
+  useRouter: () => ({
+    push: testState.mockPush,
+    refresh: testState.mockRefresh,
+  }),
 }));
 
 vi.mock("@/lib/supabase/client", () => ({
   createSupabaseBrowserClient: () => ({
     auth: {
-      signOut: mockSignOut,
+      signOut: testState.mockSignOut,
     },
   }),
 }));
 
+vi.mock("@/lib/posthog/events", () => ({
+  resetPostHog: testState.mockResetPostHog,
+}));
+
 describe("MobileHeader", () => {
   beforeEach(() => {
-    mockPush.mockReset();
-    mockRefresh.mockReset();
-    mockSignOut.mockReset();
+    testState.mockPush.mockReset();
+    testState.mockRefresh.mockReset();
+    testState.mockSignOut.mockReset();
+    testState.mockResetPostHog.mockReset();
 
     Object.defineProperty(window, "localStorage", {
       value: {
@@ -38,7 +49,7 @@ describe("MobileHeader", () => {
     });
   });
 
-  it("renders top-right theme and logout controls and signs out from the header", () => {
+  it("renders top-right theme and logout controls and signs out from the header", async () => {
     const onMenuClick = vi.fn();
 
     render(
@@ -55,6 +66,7 @@ describe("MobileHeader", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /log out/i }));
 
-    expect(mockSignOut).toHaveBeenCalled();
+    expect(testState.mockSignOut).toHaveBeenCalled();
+    await waitFor(() => expect(testState.mockResetPostHog).toHaveBeenCalled());
   });
 });

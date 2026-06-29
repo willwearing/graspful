@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { apiClientFetch } from "@/lib/api-client";
+import { resetPostHog } from "@/lib/posthog/events";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 
 type CliAuthState = "checking" | "redirecting" | "authorizing" | "done" | "error";
@@ -65,6 +66,7 @@ export default function CliAuthPage() {
         if (accessToken && nextMode === "sign-up") {
           try {
             await supabase.auth.signOut();
+            resetPostHog();
           } catch {
             // Fall through to sign-up even if sign-out fails.
           }

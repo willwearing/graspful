@@ -7,6 +7,7 @@ import { Home, BookOpen, Settings, LayoutDashboard, FolderCog, KeyRound, LogOut 
 import { useBrand } from "@/lib/brand/context";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { extractOrgSlugFromLearnPath, getLearnOrgHref } from "@/lib/learn-routes";
+import { resetPostHog } from "@/lib/posthog/events";
 
 const learnerNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -73,6 +74,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   async function handleSignOut() {
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
+    resetPostHog();
     router.push("/");
     router.refresh();
   }
