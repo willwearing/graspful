@@ -74,9 +74,8 @@ test.describe("SEO Smoke Tests", () => {
     expect(res.status()).toBe(200);
     const body = await res.text();
     expect(body).toContain("Allow: /");
-    // Should not block AI crawlers
-    expect(body).not.toContain("Disallow: /agents");
-    expect(body).not.toContain("Disallow: /docs");
+    // Crawlers need access to private pages to read their noindex metadata.
+    expect(body).not.toContain("Disallow:");
   });
 
   test("llms.txt is accessible", async ({ request }) => {

@@ -1,5 +1,14 @@
-import type { MetadataRoute } from "next";
+import type { Metadata, MetadataRoute } from "next";
 import type { HostSurface } from "@/lib/hosts";
+
+export const privatePageRobots = {
+  index: false,
+  follow: false,
+  googleBot: {
+    index: false,
+    follow: false,
+  },
+} satisfies NonNullable<Metadata["robots"]>;
 
 export function buildSitemapEntries(
   baseUrl: string,
@@ -19,18 +28,6 @@ export function buildSitemapEntries(
         changeFrequency: "weekly",
         priority: 1.0,
       },
-      {
-        url: `${baseUrl}/sign-up`,
-        lastModified: now,
-        changeFrequency: "monthly",
-        priority: 0.6,
-      },
-      {
-        url: `${baseUrl}/sign-in`,
-        lastModified: now,
-        changeFrequency: "monthly",
-        priority: 0.3,
-      },
     ];
   }
 
@@ -43,6 +40,12 @@ export function buildSitemapEntries(
     },
     {
       url: `${baseUrl}/agents`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/academies`,
       lastModified: now,
       changeFrequency: "weekly",
       priority: 0.9,
@@ -101,18 +104,6 @@ export function buildSitemapEntries(
       changeFrequency: "monthly",
       priority: 0.6,
     },
-    {
-      url: `${baseUrl}/sign-up`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/sign-in`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.3,
-    },
   ];
 }
 
@@ -124,9 +115,8 @@ export function buildRobotsConfig(
     return {
       rules: {
         userAgent: "*",
-        disallow: "/",
+        allow: "/",
       },
-      sitemap: `${baseUrl}/sitemap.xml`,
     };
   }
 
@@ -135,20 +125,7 @@ export function buildRobotsConfig(
       rules: [
         {
           userAgent: "*",
-          allow: ["/", "/sign-up", "/sign-in"],
-          disallow: [
-            "/creator",
-            "/settings",
-            "/browse",
-            "/study",
-            "/diagnostic",
-            "/academy",
-            "/pricing",
-            "/docs",
-            "/agents",
-            "/cli-auth",
-            "/auth",
-          ],
+          allow: "/",
         },
       ],
       sitemap: `${baseUrl}/sitemap.xml`,
@@ -159,17 +136,7 @@ export function buildRobotsConfig(
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/docs/", "/pricing", "/agents", "/sign-up"],
-        disallow: [
-          "/dashboard",
-          "/study",
-          "/browse",
-          "/settings",
-          "/diagnostic",
-          "/auth",
-          "/academy",
-          "/creator",
-        ],
+        allow: "/",
       },
       {
         userAgent: "GPTBot",

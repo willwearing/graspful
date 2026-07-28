@@ -76,9 +76,11 @@ test.describe("SEO", () => {
     const body = await response.text();
     expect(body).toContain("<urlset");
     expect(body).toContain("<loc>");
-    // Should include home, pricing, sign-up at minimum
+    // Should include public, indexable marketing pages
     expect(body).toContain("/pricing");
-    expect(body).toContain("/sign-up");
+    expect(body).toContain("/academies");
+    expect(body).not.toContain("/sign-up");
+    expect(body).not.toContain("/sign-in");
   });
 
   test("robots.txt returns valid content", async ({ request }) => {
@@ -87,7 +89,7 @@ test.describe("SEO", () => {
     const body = await response.text();
     expect(body).toContain("User-Agent:");
     expect(body).toContain("Allow: /");
-    expect(body).toContain("Disallow: /dashboard");
+    expect(body).not.toContain("Disallow:");
     expect(body).toContain("Sitemap:");
   });
 });

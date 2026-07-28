@@ -10,6 +10,7 @@ import { PostHogProvider } from "@/lib/posthog/provider";
 import { DevBrandSwitcher } from "@/components/dev/brand-switcher";
 import { ThemeProvider, themeInitScript } from "@/lib/theme/theme-provider";
 import { safeJsonLd } from "@/lib/sanitize-json-ld";
+import { privatePageRobots } from "@/lib/seo/surface-indexing";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,6 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const cookieHeader = headersList.get("cookie");
   const brand = await resolveBrand(hostname, cookieHeader);
   const canonicalHost = isLocalHost(hostname) ? brand.domain : hostname;
+  const surface = getHostSurface(hostname);
 
   return {
     metadataBase: new URL(`https://${canonicalHost}`),
@@ -62,17 +64,20 @@ export async function generateMetadata(): Promise<Metadata> {
       description: brand.seo.description,
       ...(brand.ogImageUrl ? { images: [brand.ogImageUrl] } : {}),
     },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        "max-video-preview": -1,
-        "max-image-preview": "large",
-        "max-snippet": -1,
-      },
-    },
+    robots:
+      surface === "app"
+        ? privatePageRobots
+        : {
+            index: true,
+            follow: true,
+            googleBot: {
+              index: true,
+              follow: true,
+              "max-video-preview": -1,
+              "max-image-preview": "large",
+              "max-snippet": -1,
+            },
+          },
     alternates: {
       canonical: `https://${canonicalHost}`,
     },
