@@ -121,30 +121,30 @@ const faqs = [
 export default function AiCourseBuilderPage() {
   return (
     <div className="bg-background text-foreground">
-      <section className="relative overflow-hidden border-b border-border/40 pt-20 md:pt-24">
+      <section className="relative overflow-hidden border-b border-border/40 pt-14 md:pt-20">
         <div className="gradient-mesh overflow-hidden opacity-70">
           <div className="orb-1" />
           <div className="orb-3" />
         </div>
-        <div className="relative z-10 mx-auto max-w-6xl px-6 py-12 text-center md:py-20">
-          <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-3 py-1.5 text-xs font-semibold text-sky-700 backdrop-blur dark:border-sky-400/20 dark:bg-sky-950/40 dark:text-sky-300">
+        <div className="relative z-10 mx-auto max-w-6xl px-6 py-6 text-center md:py-14">
+          <div className="mx-auto mb-3 inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-3 py-1.5 text-xs font-semibold text-sky-700 backdrop-blur sm:mb-4 dark:border-sky-400/20 dark:bg-sky-950/40 dark:text-sky-300">
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
             AI course creation with learning science built in
           </div>
-          <h1 className="mx-auto max-w-4xl text-4xl font-bold leading-[1.04] tracking-[-0.05em] sm:text-5xl lg:text-6xl">
+          <h1 className="mx-auto max-w-4xl text-[2rem] font-bold leading-[1.04] tracking-[-0.05em] sm:text-5xl lg:text-6xl">
             An AI course builder that creates{" "}
             <span className="text-gradient">learning that adapts.</span>
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg lg:text-xl">
-            Give source material to your AI agent. Graspful turns its work into
-            a validated knowledge graph, active practice, and an adaptive course
-            that responds to each learner.
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg lg:text-xl">
+            Give source material to your AI agent. Graspful turns it into a
+            validated knowledge graph, active practice, and an adaptive course
+            for each learner.
           </p>
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <TrackedMarketingLink
               href="/docs/quickstart"
               location="seo_pillar_primary"
-              className="btn-gradient inline-flex items-center gap-2 px-7 py-3.5 text-sm font-semibold"
+              className="btn-gradient inline-flex items-center gap-2 px-7 py-3 text-sm font-semibold"
             >
               Build your first course
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -152,7 +152,7 @@ export default function AiCourseBuilderPage() {
             <TrackedMarketingLink
               href="/docs/course-creation-guide"
               location="seo_pillar_guide"
-              className="rounded-full border border-border bg-background/70 px-7 py-3.5 text-sm font-semibold transition-colors hover:bg-muted"
+              className="rounded-full border border-border bg-background/70 px-7 py-3 text-sm font-semibold transition-colors hover:bg-muted"
             >
               Read the creation guide
             </TrackedMarketingLink>
@@ -228,7 +228,9 @@ graspful review course.yaml
       <section className="border-y border-border/40 bg-muted/35">
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 md:py-28 lg:grid-cols-2 lg:items-center">
           <div>
-            <p className="text-sm font-semibold text-primary">Built for outcomes</p>
+            <p className="text-sm font-semibold text-primary">
+              Built for outcomes
+            </p>
             <h2 className="mt-2 text-3xl font-bold tracking-[-0.035em] sm:text-4xl">
               Generation is only the first step
             </h2>
@@ -257,7 +259,10 @@ graspful review course.yaml
 
       <section className="mx-auto max-w-4xl px-6 py-20 md:py-28">
         <div className="text-center">
-          <FileCheck2 className="mx-auto h-8 w-8 text-primary" aria-hidden="true" />
+          <FileCheck2
+            className="mx-auto h-8 w-8 text-primary"
+            aria-hidden="true"
+          />
           <h2 className="mt-4 text-3xl font-bold tracking-[-0.035em] sm:text-4xl">
             AI course builder FAQ
           </h2>
@@ -280,8 +285,8 @@ graspful review course.yaml
             Build a course your learners can master
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-slate-400">
-            Install the tools, create locally, and publish when the course passes
-            every quality check.
+            Install the tools, create locally, and publish when the course
+            passes every quality check.
           </p>
           <TrackedMarketingLink
             href="/docs/quickstart"

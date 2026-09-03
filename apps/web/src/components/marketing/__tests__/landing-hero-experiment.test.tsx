@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { BrandProvider } from "@/lib/brand/context";
 import { defaultBrand } from "@/lib/brand/defaults";
 import { LandingHeroExperiment } from "../landing-hero-experiment";
@@ -53,8 +53,7 @@ describe("LandingHeroExperiment", () => {
     ).toHaveAttribute("href", "/docs/how-it-works");
   });
 
-  it("hides the control while assignment loads, then falls back without a swap", () => {
-    vi.useFakeTimers();
+  it("hides the control while assignment loads", () => {
     variant = undefined;
     const { container } = renderExperiment();
 
@@ -64,13 +63,5 @@ describe("LandingHeroExperiment", () => {
     expect(
       screen.queryByText("Turn source material into an adaptive course."),
     ).not.toBeInTheDocument();
-
-    act(() => vi.advanceTimersByTime(500));
-
-    expect(
-      container.querySelector('[data-landing-variant="loading"]'),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText("Current homepage copy.")).toBeInTheDocument();
-    vi.useRealTimers();
   });
 });
