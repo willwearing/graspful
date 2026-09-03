@@ -53,7 +53,7 @@ export function registerLoginCommand(program: Command) {
             userId: string;
           };
 
-          saveApiKeyCredentials(apiKey, baseUrl);
+          saveApiKeyCredentials(apiKey, baseUrl, userId);
           cliCapture('cli logged in', { method: 'email-password' });
           output(
             { authenticated: true, baseUrl, tokenType: 'apiKey', orgSlug, userId },
@@ -70,6 +70,7 @@ export function registerLoginCommand(program: Command) {
             noBrowser: opts.browser === false,
           });
 
+          cliCapture('cli logged in', { method: 'browser-auth' });
           output(
             {
               authenticated: true,

@@ -141,7 +141,7 @@
     },
     "packages/cli": {
       "name": "@graspful/cli",
-      "version": "0.2.6",
+      "version": "0.2.7",
       "bin": {
         "graspful": "./dist/index.js",
       },
@@ -161,7 +161,7 @@
     },
     "packages/mcp": {
       "name": "@graspful/mcp",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "bin": {
         "graspful-mcp": "./dist/index.js",
       },

@@ -116,6 +116,7 @@ describe('graspful login', () => {
     expect(writeFileSyncSpy).toHaveBeenCalledTimes(1);
     const savedContent = JSON.parse(writeFileSyncSpy.mock.calls[0][1] as string);
     expect(savedContent.apiKey).toBe('gsk_browser_flow_key');
+    expect(savedContent.userId).toBe('user-123');
     expect(savedContent.baseUrl).toBe('http://localhost:3000');
   });
 });

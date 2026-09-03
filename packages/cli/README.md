@@ -329,6 +329,10 @@ graspful import course.yaml --org my-org
 |----------|-------------|
 | `GRASPFUL_API_KEY` | API key for authenticated commands (`import`, `publish`) |
 | `GRASPFUL_API_URL` | API base URL (default: `https://api.graspful.ai`) |
+| `GRASPFUL_USER_ID` | Optional Graspful user ID for analytics identity continuity |
+| `GRASPFUL_TELEMETRY_DISABLED` | Set to `1` to disable anonymous product analytics |
+
+The CLI sends command usage and outcome metadata to help improve Graspful. It never sends API keys or YAML course bodies. Set `GRASPFUL_TELEMETRY_DISABLED=1` to disable this data collection.
 
 ## Links
 

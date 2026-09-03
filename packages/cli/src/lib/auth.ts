@@ -5,6 +5,7 @@ import * as os from 'os';
 export interface Credentials {
   apiKey?: string;
   jwt?: string;
+  userId?: string;
   baseUrl: string;
 }
 
@@ -20,7 +21,7 @@ export function resolveCredentials(): Credentials {
   // 1. API key (agent mode)
   const apiKey = process.env.GRASPFUL_API_KEY;
   if (apiKey) {
-    return { apiKey, baseUrl };
+    return { apiKey, userId: process.env.GRASPFUL_USER_ID, baseUrl };
   }
 
   // 2. Stored credentials (interactive or registered)
@@ -28,9 +29,17 @@ export function resolveCredentials(): Credentials {
     try {
       const stored = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
       if (stored.apiKey) {
-        return { apiKey: stored.apiKey, baseUrl: stored.baseUrl || baseUrl };
+        return {
+          apiKey: stored.apiKey,
+          userId: stored.userId,
+          baseUrl: stored.baseUrl || baseUrl,
+        };
       }
-      return { jwt: stored.jwt, baseUrl: stored.baseUrl || baseUrl };
+      return {
+        jwt: stored.jwt,
+        userId: stored.userId,
+        baseUrl: stored.baseUrl || baseUrl,
+      };
     } catch {
       // Invalid file
     }
@@ -51,14 +60,14 @@ export function saveCredentials(jwt: string, baseUrl?: string): void {
   );
 }
 
-export function saveApiKeyCredentials(apiKey: string, baseUrl?: string): void {
+export function saveApiKeyCredentials(apiKey: string, baseUrl?: string, userId?: string): void {
   const dir = path.dirname(CREDENTIALS_PATH);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   }
   fs.writeFileSync(
     CREDENTIALS_PATH,
-    JSON.stringify({ apiKey, baseUrl: baseUrl || getBaseUrl() }, null, 2),
+    JSON.stringify({ apiKey, userId, baseUrl: baseUrl || getBaseUrl() }, null, 2),
     { mode: 0o600 },
   );
 }

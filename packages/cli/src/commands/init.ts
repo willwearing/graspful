@@ -45,7 +45,7 @@ function detectEditors(): Editor[] {
   return editors;
 }
 
-function writeMcpConfig(configPath: string, apiKey: string): void {
+function writeMcpConfig(configPath: string, apiKey: string, userId?: string): void {
   const dir = path.dirname(configPath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -64,7 +64,10 @@ function writeMcpConfig(configPath: string, apiKey: string): void {
   mcpServers['graspful'] = {
     command: 'npx',
     args: ['-y', '@graspful/mcp'],
-    env: { GRASPFUL_API_KEY: apiKey },
+    env: {
+      GRASPFUL_API_KEY: apiKey,
+      ...(userId ? { GRASPFUL_USER_ID: userId } : {}),
+    },
   };
   existing.mcpServers = mcpServers;
 
@@ -91,7 +94,7 @@ export function registerInitCommand(program: Command) {
 
         // Still configure MCP if requested
         if (opts.mcp) {
-          configureMcp(existingCreds.apiKey);
+          configureMcp(existingCreds.apiKey, existingCreds.userId);
         }
 
         output(
@@ -120,7 +123,7 @@ export function registerInitCommand(program: Command) {
 
         // ── Configure MCP ───────────────────────────────────────────────
         if (opts.mcp) {
-          configureMcp(data.apiKey);
+          configureMcp(data.apiKey, data.userId);
         }
 
         output(
@@ -147,7 +150,7 @@ export function registerInitCommand(program: Command) {
     });
 }
 
-function configureMcp(apiKey: string): void {
+function configureMcp(apiKey: string, userId?: string): void {
   const editors = detectEditors();
 
   if (editors.length === 0) {
@@ -157,7 +160,10 @@ function configureMcp(apiKey: string): void {
         graspful: {
           command: 'npx',
           args: ['-y', '@graspful/mcp'],
-          env: { GRASPFUL_API_KEY: apiKey },
+          env: {
+            GRASPFUL_API_KEY: apiKey,
+            ...(userId ? { GRASPFUL_USER_ID: userId } : {}),
+          },
         },
       },
     }, null, 2));
@@ -165,7 +171,7 @@ function configureMcp(apiKey: string): void {
   }
 
   for (const editor of editors) {
-    writeMcpConfig(editor.configPath, apiKey);
+    writeMcpConfig(editor.configPath, apiKey, userId);
     cliCapture('cli initialized', { editor: editor.name });
     console.log(`\nMCP configured for ${editor.name}: ${editor.configPath}`);
   }
