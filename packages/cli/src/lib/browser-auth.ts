@@ -156,7 +156,7 @@ export async function runBrowserAuthFlow(options: BrowserAuthOptions): Promise<B
       throw new Error('Browser authentication expired. Start again.');
     }
 
-    saveApiKeyCredentials(exchangeData.apiKey, baseUrl);
+    saveApiKeyCredentials(exchangeData.apiKey, baseUrl, exchangeData.userId);
     return {
       apiKey: exchangeData.apiKey,
       orgSlug: exchangeData.orgSlug,

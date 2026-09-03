@@ -22,7 +22,15 @@ import {
 
 // ─── PostHog analytics ──────────────────────────────────────────────────────
 
-const posthogKey = process.env.POSTHOG_API_KEY || process.env.NEXT_PUBLIC_POSTHOG_KEY;
+const DEFAULT_POSTHOG_KEY = 'phc_ahQLCJsOBzeuro1yDeurs1a3xx07pIreJWeXG9T4d4';
+const telemetryDisabled =
+  process.env.GRASPFUL_TELEMETRY_DISABLED === '1' ||
+  process.env.NODE_ENV === 'test';
+const posthogKey = telemetryDisabled
+  ? null
+  : process.env.POSTHOG_API_KEY ||
+    process.env.NEXT_PUBLIC_POSTHOG_KEY ||
+    DEFAULT_POSTHOG_KEY;
 const posthogClient = posthogKey
   ? new PostHog(posthogKey, {
       host: process.env.POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',

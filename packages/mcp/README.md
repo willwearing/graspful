@@ -294,6 +294,10 @@ Same pattern -- point `command` at `npx` and `args` at `@graspful/mcp`. The serv
 |----------|:---:|-------------|
 | `GRASPFUL_API_KEY` | For import/publish/list | API key for authenticated operations |
 | `GRASPFUL_API_URL` | No | API base URL (default: `https://api.graspful.ai`) |
+| `GRASPFUL_USER_ID` | No | Graspful user ID for analytics identity continuity |
+| `GRASPFUL_TELEMETRY_DISABLED` | No | Set to `1` to disable anonymous product analytics |
+
+The MCP server sends tool usage and outcome metadata to help improve Graspful. It never sends API keys or YAML course bodies. Set `GRASPFUL_TELEMETRY_DISABLED=1` to disable this data collection.
 
 ## Links
 

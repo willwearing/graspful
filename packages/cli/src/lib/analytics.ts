@@ -6,7 +6,15 @@ import * as path from 'node:path';
 import type { Credentials } from './auth';
 import { resolveCredentials } from './auth';
 
-const posthogKey = process.env.POSTHOG_API_KEY || process.env.NEXT_PUBLIC_POSTHOG_KEY;
+const DEFAULT_POSTHOG_KEY = 'phc_ahQLCJsOBzeuro1yDeurs1a3xx07pIreJWeXG9T4d4';
+const telemetryDisabled =
+  process.env.GRASPFUL_TELEMETRY_DISABLED === '1' ||
+  process.env.NODE_ENV === 'test';
+const posthogKey = telemetryDisabled
+  ? null
+  : process.env.POSTHOG_API_KEY ||
+    process.env.NEXT_PUBLIC_POSTHOG_KEY ||
+    DEFAULT_POSTHOG_KEY;
 
 let client: PostHog | null = null;
 let anonymousDistinctId: string | null = null;
@@ -53,7 +61,7 @@ function getOrCreateAnonymousDistinctId(): string {
 }
 
 export function cliDistinctId(
-  credentials?: Pick<Credentials, 'apiKey' | 'jwt'>,
+  credentials?: Pick<Credentials, 'apiKey' | 'jwt' | 'userId'>,
   fallbackAnonymousId?: string,
 ): string {
   if (process.env.GRASPFUL_USER_ID) {
@@ -61,6 +69,10 @@ export function cliDistinctId(
   }
 
   const resolvedCredentials = credentials ?? resolveCredentials();
+  if (resolvedCredentials.userId) {
+    return resolvedCredentials.userId;
+  }
+
   const credential =
     process.env.GRASPFUL_API_KEY ??
     resolvedCredentials.apiKey ??

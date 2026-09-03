@@ -77,7 +77,14 @@ jobs:
 
       - name: Publish @graspful/shared
         if: github.event.inputs.dry_run != 'true'
-        run: cd packages/shared && npm publish --access public || echo "shared already published at this version"
+        run: |
+          cd packages/shared
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "@graspful/shared@$VERSION" version >/dev/null 2>&1; then
+            echo "@graspful/shared@$VERSION is already published"
+          else
+            npm publish --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -91,13 +98,27 @@ jobs:
 
       - name: Publish @graspful/cli
         if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli') && github.event.inputs.dry_run != 'true'
-        run: cd packages/cli && npm publish --access public || echo "cli already published at this version"
+        run: |
+          cd packages/cli
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "@graspful/cli@$VERSION" version >/dev/null 2>&1; then
+            echo "@graspful/cli@$VERSION is already published"
+          else
+            npm publish --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @graspful/mcp
         if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'mcp') && github.event.inputs.dry_run != 'true'
-        run: cd packages/mcp && npm publish --access public || echo "mcp already published at this version"
+        run: |
+          cd packages/mcp
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "@graspful/mcp@$VERSION" version >/dev/null 2>&1; then
+            echo "@graspful/mcp@$VERSION is already published"
+          else
+            npm publish --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

@@ -48,6 +48,15 @@ describe('cliDistinctId', () => {
     );
   });
 
+  test('uses the stored user ID before hashing stored credentials', () => {
+    delete process.env.GRASPFUL_USER_ID;
+    delete process.env.GRASPFUL_API_KEY;
+
+    expect(cliDistinctId({ apiKey: 'gsk_stored', userId: 'user-stored' })).toBe(
+      'user-stored',
+    );
+  });
+
   test('uses a stable identifier for the current anonymous process', () => {
     delete process.env.GRASPFUL_USER_ID;
     delete process.env.GRASPFUL_API_KEY;
