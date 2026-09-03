@@ -165,8 +165,8 @@ export default function AiCourseBuilderPage() {
 
       <section className="mx-auto max-w-6xl px-6 py-20 md:py-28">
         <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
-          <div>
-            <p className="text-sm font-semibold text-primary">The workflow</p>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-sky-700 dark:text-sky-300">The workflow</p>
             <h2 className="mt-2 text-3xl font-bold tracking-[-0.035em] sm:text-4xl">
               From source material to a live course
             </h2>
@@ -228,13 +228,13 @@ graspful review course.yaml
       <section className="border-y border-border/40 bg-muted/35">
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 md:py-28 lg:grid-cols-2 lg:items-center">
           <div>
-            <p className="text-sm font-semibold text-primary">
+            <p className="text-sm font-semibold text-sky-700 dark:text-sky-300">
               Built for outcomes
             </p>
             <h2 className="mt-2 text-3xl font-bold tracking-[-0.035em] sm:text-4xl">
               Generation is only the first step
             </h2>
-            <p className="mt-4 leading-7 text-muted-foreground">
+            <p className="mt-4 leading-7 text-foreground/80">
               A course needs a coherent learning sequence, enough practice, and
               evidence that each learner has mastered the foundations. Graspful
               checks the course before publishing and adapts it after launch.

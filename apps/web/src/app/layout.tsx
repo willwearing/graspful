@@ -102,8 +102,8 @@ export default async function RootLayout({
         <BrandThemeStyle brand={brand} />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link rel="icon" href={brand.faviconUrl} />
-        <link rel="help" href="/llms.txt" type="text/plain" title="LLM instructions" />
-        <link rel="help" href="/llms-full.txt" type="text/plain" title="LLM full documentation" />
+        <link rel="describedby" href="/llms.txt" type="text/markdown" title="LLM instructions" />
+        <link rel="describedby" href="/llms-full.txt" type="text/markdown" title="LLM full documentation" />
         <link rel="help" href="/agents.md" type="text/markdown" title="Agent onboarding instructions" />
         <script
           type="application/ld+json"

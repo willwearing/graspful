@@ -6,7 +6,7 @@ test.describe("Pricing page", () => {
   });
 
   test("renders pricing heading and plan details", async ({ page }) => {
-    await expect(page.locator("#pricing h2")).toBeVisible();
+    await expect(page.locator("#pricing h1")).toBeVisible();
     const priceSignals = page.getByText(/\$\d+|70\/30/);
     await expect(priceSignals.first()).toBeVisible();
   });

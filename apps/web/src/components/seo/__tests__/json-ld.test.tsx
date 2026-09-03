@@ -87,7 +87,7 @@ describe("CredentialJsonLd", () => {
 });
 
 describe("WebSiteJsonLd", () => {
-  it("renders WebSite schema with SearchAction", () => {
+  it("renders WebSite schema without unsupported actions", () => {
     const { container } = render(
       <WebSiteJsonLd
         name="Graspful"
@@ -104,7 +104,7 @@ describe("WebSiteJsonLd", () => {
     expect(data["@context"]).toBe("https://schema.org");
     expect(data.name).toBe("Graspful");
     expect(data.url).toBe("https://graspful.ai");
-    expect(data.potentialAction["@type"]).toBe("SearchAction");
+    expect(data.potentialAction).toBeUndefined();
   });
 });
 

@@ -66,4 +66,16 @@ describe("PricingSection", () => {
     expect(ctaLink?.tagName).toBe("A");
     expect(ctaLink?.querySelector("button")).toBeNull();
   });
+
+  it("can render the section heading as the page h1", () => {
+    render(
+      <ThemeProvider>
+        <BrandProvider brand={firefighterBrand}>
+          <PricingSection headingLevel="h1" />
+        </BrandProvider>
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByRole("heading", { level: 1, name: "Simple Pricing" })).toBeDefined();
+  });
 });

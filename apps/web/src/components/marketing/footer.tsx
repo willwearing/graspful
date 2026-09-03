@@ -120,7 +120,7 @@ export function MarketingFooter() {
         </div>
 
         <div className="mt-10 border-t border-border/30 pt-6 text-center">
-          <p className="text-xs text-muted-foreground/60">
+          <p className="text-xs text-foreground/70">
             &copy; {year} {brand.name}. All rights reserved.
           </p>
         </div>

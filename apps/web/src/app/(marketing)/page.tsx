@@ -10,9 +10,7 @@ import { ScrollDepthTracker } from "@/components/marketing/tracking";
 import {
   CourseJsonLd,
   OrganizationJsonLd,
-  CredentialJsonLd,
   WebSiteJsonLd,
-  SoftwareApplicationJsonLd,
   FAQPageJsonLd,
 } from "@/components/seo/json-ld";
 
@@ -21,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const url = `https://${brand.domain}`;
 
   return {
-    title: brand.seo.title,
+    title: { absolute: brand.seo.title },
     description: brand.seo.description,
     keywords: brand.seo.keywords,
     openGraph: {
@@ -115,38 +113,23 @@ export default async function LandingPage() {
         url={url}
         description={brand.seo.description}
       />
-      <SoftwareApplicationJsonLd
-        name={brand.name}
-        description={brand.seo.description}
-        url={url}
-        applicationCategory="EducationalApplication"
-        operatingSystem="Web"
-        offers={{ price: 0, priceCurrency: "USD" }}
-      />
       {brand.landing.faq.length > 0 && (
         <FAQPageJsonLd items={brand.landing.faq} />
       )}
-      <CourseJsonLd
-        name={brand.name}
-        description={brand.seo.description}
-        provider={brand.name}
-        url={url}
-      />
+      {!isGraspful && (
+        <CourseJsonLd
+          name={brand.name}
+          description={brand.seo.description}
+          provider={brand.name}
+          url={url}
+        />
+      )}
       <OrganizationJsonLd
         name={brand.name}
         url={url}
         description={brand.seo.description}
         logoUrl={`${url}${brand.logoUrl}`}
       />
-      {isGraspful && (
-        <CredentialJsonLd
-          name={`${brand.name} Certification Prep`}
-          description={brand.seo.description}
-          url={url}
-          educationalLevel="Professional"
-          credentialCategory="Professional Certification"
-        />
-      )}
       <ScrollDepthTracker />
     </div>
   );
