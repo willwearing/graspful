@@ -429,13 +429,13 @@ export function trackLandingCtaClick(
     | "bottom"
     | "footer",
   brandId: string,
-  destination?: string,
+  destination: string,
 ) {
   if (!isLoaded()) return;
   posthog.capture("landing_cta_clicked", {
     location,
     brand_id: brandId,
-    ...(destination ? { destination } : {}),
+    destination,
   });
 }
 

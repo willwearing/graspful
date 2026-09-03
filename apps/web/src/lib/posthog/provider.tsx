@@ -10,6 +10,7 @@ function PostHogPageviewTracker() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    initPostHog();
     if (!pathname || !posthog.__loaded) return;
     posthog.capture("$pageview", {
       $current_url: buildPostHogPageviewUrl(window.location),

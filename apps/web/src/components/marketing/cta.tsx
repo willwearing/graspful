@@ -31,7 +31,7 @@ export function CTA({ ctaText, headline, subheadline }: CTAProps) {
         <a
           href="/sign-up"
           onClick={() => {
-            trackLandingCtaClick("bottom", brand.id);
+            trackLandingCtaClick("bottom", brand.id, "/sign-up");
           }}
           className="btn-gradient glow-pulse inline-block px-12 py-4 text-base font-medium"
         >

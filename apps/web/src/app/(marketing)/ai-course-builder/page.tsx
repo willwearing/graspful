@@ -178,10 +178,13 @@ export default function AiCourseBuilderPage() {
 
 graspful create course \\
   --topic "Your subject" \\
-  --source "source-material.pdf"
+  --source "source-material.pdf" \\
+  --output course.yaml
 
+# Ask your AI agent to author the lessons and problems
 graspful review course.yaml
-# 10/10 quality checks passed`}</code>
+# PASS
+# Score: 10`}</code>
               </pre>
             </div>
           </div>
