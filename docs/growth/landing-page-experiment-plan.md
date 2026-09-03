@@ -32,9 +32,9 @@ Use PostHog's standard experiment exposure event. Evaluate `homepage-product-pro
 
 ### Primary metric
 
-`landing_cta_clicked`, measured as a user-level funnel after exposure.
+`landing_cta_clicked`, filtered to `page = /` and measured as a user-level funnel after exposure.
 
-This event includes the CTA location, destination, and brand ID. A funnel keeps repeated clicks from one person from inflating the conversion rate.
+This event includes the CTA location, destination, page, and brand ID. The page filter prevents later clicks on other marketing pages from counting as homepage conversions. A funnel keeps repeated clicks from one person from inflating the conversion rate.
 
 ### Secondary metric
 

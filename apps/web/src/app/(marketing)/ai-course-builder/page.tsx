@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
   ArrowRight,
   Bot,
@@ -11,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { FAQPageJsonLd } from "@/components/seo/json-ld";
+import { TrackedMarketingLink } from "@/components/marketing/tracked-marketing-link";
 
 export const metadata: Metadata = {
   title: "AI Course Builder for Adaptive Learning",
@@ -39,6 +39,13 @@ export const metadata: Metadata = {
         alt: "Graspful AI course builder",
       },
     ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AI Course Builder for Adaptive Learning | Graspful",
+    description:
+      "Turn source material into a validated adaptive course with your AI coding agent.",
+    images: ["/images/og-graspful.png"],
   },
 };
 
@@ -114,39 +121,41 @@ const faqs = [
 export default function AiCourseBuilderPage() {
   return (
     <div className="bg-background text-foreground">
-      <section className="relative overflow-hidden border-b border-border/40 pt-28">
+      <section className="relative overflow-hidden border-b border-border/40 pt-20 md:pt-24">
         <div className="gradient-mesh overflow-hidden opacity-70">
           <div className="orb-1" />
           <div className="orb-3" />
         </div>
-        <div className="relative z-10 mx-auto max-w-6xl px-6 py-20 text-center md:py-28">
+        <div className="relative z-10 mx-auto max-w-6xl px-6 py-12 text-center md:py-20">
           <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-3 py-1.5 text-xs font-semibold text-sky-700 backdrop-blur dark:border-sky-400/20 dark:bg-sky-950/40 dark:text-sky-300">
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
             AI course creation with learning science built in
           </div>
-          <h1 className="mx-auto max-w-4xl text-5xl font-bold leading-[1.04] tracking-[-0.05em] sm:text-6xl lg:text-7xl">
+          <h1 className="mx-auto max-w-4xl text-4xl font-bold leading-[1.04] tracking-[-0.05em] sm:text-5xl lg:text-6xl">
             An AI course builder that creates{" "}
             <span className="text-gradient">learning that adapts.</span>
           </h1>
-          <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg lg:text-xl">
             Give source material to your AI agent. Graspful turns its work into
             a validated knowledge graph, active practice, and an adaptive course
             that responds to each learner.
           </p>
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
+            <TrackedMarketingLink
               href="/docs/quickstart"
+              location="seo_pillar_primary"
               className="btn-gradient inline-flex items-center gap-2 px-7 py-3.5 text-sm font-semibold"
             >
               Build your first course
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-            <Link
+            </TrackedMarketingLink>
+            <TrackedMarketingLink
               href="/docs/course-creation-guide"
+              location="seo_pillar_guide"
               className="rounded-full border border-border bg-background/70 px-7 py-3.5 text-sm font-semibold transition-colors hover:bg-muted"
             >
               Read the creation guide
-            </Link>
+            </TrackedMarketingLink>
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
             Build and validate locally. No account required until publishing.
@@ -274,13 +283,14 @@ graspful review course.yaml
             Install the tools, create locally, and publish when the course passes
             every quality check.
           </p>
-          <Link
+          <TrackedMarketingLink
             href="/docs/quickstart"
+            location="seo_pillar_bottom"
             className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-slate-950 transition-transform hover:scale-[1.02]"
           >
             Start with the quickstart
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
+          </TrackedMarketingLink>
         </div>
       </section>
 

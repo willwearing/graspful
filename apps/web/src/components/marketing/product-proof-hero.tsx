@@ -95,7 +95,7 @@ export function ProductProofHero() {
 
   return (
     <section
-      className="relative flex min-h-[78vh] items-center overflow-hidden pt-24"
+      className="relative flex min-h-[78vh] items-center overflow-hidden pt-20 md:pt-24"
       data-landing-variant="product-proof"
     >
       <div className="gradient-mesh overflow-hidden opacity-80">
@@ -105,23 +105,23 @@ export function ProductProofHero() {
         <div className="orb-4" />
       </div>
 
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-14 px-6 py-16 md:px-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:py-24">
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-12 px-6 py-10 md:px-12 md:py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:py-20">
         <div className="text-center lg:text-left">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-3 py-1.5 text-xs font-semibold text-sky-700 shadow-sm backdrop-blur dark:border-sky-400/20 dark:bg-sky-950/40 dark:text-sky-300">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-3 py-1.5 text-xs font-semibold text-sky-700 shadow-sm backdrop-blur dark:border-sky-400/20 dark:bg-sky-950/40 dark:text-sky-300">
             <Network className="h-3.5 w-3.5" aria-hidden="true" />
             Built for Claude, Codex, and MCP clients
           </div>
-          <h1 className="text-5xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-6xl lg:text-7xl">
+          <h1 className="text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl lg:text-6xl xl:text-7xl">
             Turn source material into an{" "}
             <span className="text-gradient">adaptive course.</span>
           </h1>
-          <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl lg:mx-0">
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg lg:mx-0 lg:text-xl">
             Your AI agent builds the knowledge graph, lessons, and assessments.
             Graspful validates the course, adapts every learner&apos;s path, and
             gives you a product ready to publish.
           </p>
 
-          <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
+          <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
             <Link
               href="/docs/quickstart"
               onClick={() =>

@@ -56,6 +56,7 @@ describe("PostHog event helpers", () => {
       location: "header",
       brand_id: "graspful",
       destination: "/sign-up",
+      page: "/",
     });
   });
 

@@ -60,8 +60,12 @@ describe("AuthForm", () => {
       ),
     ).toBeInTheDocument();
 
-    fireEvent.focus(screen.getByLabelText("Email"));
-    fireEvent.focus(screen.getByLabelText("Password"));
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "person@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "password123" },
+    });
 
     expect(mockTrackSignUpStarted).toHaveBeenCalledTimes(1);
     expect(mockTrackSignUpStarted).toHaveBeenCalledWith("graspful");

@@ -73,6 +73,13 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const hasTrackedSignUpStart = useRef(false);
 
+  function trackFirstSignUpEdit() {
+    if (mode === "sign-up" && !hasTrackedSignUpStart.current) {
+      hasTrackedSignUpStart.current = true;
+      trackSignUpStarted(brand.id);
+    }
+  }
+
   const supabase = createSupabaseBrowserClient();
 
   useEffect(() => {
@@ -211,12 +218,6 @@ export function AuthForm({ mode }: AuthFormProps) {
 
               <form
                 onSubmit={handleSubmit}
-                onFocusCapture={() => {
-                  if (mode === "sign-up" && !hasTrackedSignUpStart.current) {
-                    hasTrackedSignUpStart.current = true;
-                    trackSignUpStarted(brand.id);
-                  }
-                }}
                 noValidate
                 className="space-y-4"
               >
@@ -231,7 +232,10 @@ export function AuthForm({ mode }: AuthFormProps) {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      trackFirstSignUpEdit();
+                      setEmail(e.target.value);
+                    }}
                     required
                     className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     placeholder="you@example.com"
@@ -248,7 +252,10 @@ export function AuthForm({ mode }: AuthFormProps) {
                     id="password"
                     type="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      trackFirstSignUpEdit();
+                      setPassword(e.target.value);
+                    }}
                     required
                     minLength={8}
                     className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"

@@ -418,16 +418,21 @@ export function trackStudyTaskDispatched(
 
 // ── Landing Page ─────────────────────────────────────────────────────
 
-export function trackLandingCtaClick(
-  location:
+export type LandingCtaLocation =
     | "header"
     | "hero"
     | "pricing_free"
     | "pricing_creator"
     | "product_proof_primary"
     | "product_proof_details"
+    | "seo_pillar_primary"
+    | "seo_pillar_guide"
+    | "seo_pillar_bottom"
     | "bottom"
-    | "footer",
+    | "footer";
+
+export function trackLandingCtaClick(
+  location: LandingCtaLocation,
   brandId: string,
   destination: string,
 ) {
@@ -436,6 +441,7 @@ export function trackLandingCtaClick(
     location,
     brand_id: brandId,
     destination,
+    page: window.location.pathname,
   });
 }
 
