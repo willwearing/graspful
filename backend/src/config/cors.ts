@@ -31,3 +31,25 @@ export function isOriginAllowed(
   if (staticOrigins.has(origin)) return true;
   return brandDomains.has(origin);
 }
+
+export function createCorsOriginGuard(
+  staticOrigins: ReadonlySet<string>,
+  loadBrandDomains: () => Promise<ReadonlySet<string>>,
+): RequestHandler {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin;
+    if (!origin || staticOrigins.has(origin)) {
+      next();
+      return;
+    }
+
+    const brandDomains = await loadBrandDomains();
+    if (brandDomains.has(origin)) {
+      next();
+      return;
+    }
+
+    res.status(403).json({ statusCode: 403, message: 'Origin not allowed' });
+  };
+}
+import type { NextFunction, Request, RequestHandler, Response } from 'express';

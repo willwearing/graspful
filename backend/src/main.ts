@@ -15,7 +15,11 @@ import { LoggingInterceptor } from './telemetry/logging.interceptor';
 import { OtelExceptionFilter } from './telemetry/exception.filter';
 import { PostHogService } from './shared/application/posthog.service';
 import { PrismaService } from './prisma/prisma.service';
-import { buildStaticOrigins, isOriginAllowed } from './config/cors';
+import {
+  buildStaticOrigins,
+  createCorsOriginGuard,
+  isOriginAllowed,
+} from './config/cors';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -72,6 +76,10 @@ async function bootstrap() {
     }
     return brandDomainCache;
   }
+
+  // Stop disallowed browser origins before a simple request can reach a route.
+  // Return a normal 403 response so expected denials do not enter error tracking.
+  app.use(createCorsOriginGuard(staticOrigins, loadBrandDomains));
 
   app.enableCors({
     origin: async (origin, callback) => {

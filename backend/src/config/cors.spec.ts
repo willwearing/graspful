@@ -1,4 +1,10 @@
-import { buildStaticOrigins, isOriginAllowed, SELF_ORIGIN } from './cors';
+import type { NextFunction, Request, Response } from 'express';
+import {
+  buildStaticOrigins,
+  createCorsOriginGuard,
+  isOriginAllowed,
+  SELF_ORIGIN,
+} from './cors';
 
 describe('buildStaticOrigins', () => {
   it('always includes the API self origin', () => {
@@ -58,5 +64,45 @@ describe('isOriginAllowed', () => {
     expect(
       isOriginAllowed('https://evil.example.com', staticOrigins, brandDomains),
     ).toBe(false);
+  });
+});
+
+describe('createCorsOriginGuard', () => {
+  const staticOrigins = buildStaticOrigins({ nodeEnv: 'production' });
+
+  function invoke(origin: string | undefined, brandDomains = new Set<string>()) {
+    const next = jest.fn() as NextFunction;
+    const json = jest.fn();
+    const status = jest.fn().mockReturnValue({ json });
+    const req = { headers: { origin } } as Request;
+    const res = { status } as unknown as Response;
+    const guard = createCorsOriginGuard(
+      staticOrigins,
+      jest.fn().mockResolvedValue(brandDomains),
+    );
+
+    return Promise.resolve(guard(req, res, next)).then(() => ({
+      next,
+      status,
+      json,
+    }));
+  }
+
+  it('continues requests from allowed origins', async () => {
+    const result = await invoke(SELF_ORIGIN);
+
+    expect(result.next).toHaveBeenCalledTimes(1);
+    expect(result.status).not.toHaveBeenCalled();
+  });
+
+  it('stops requests from disallowed origins with a 403 response', async () => {
+    const result = await invoke('https://evil.example.com');
+
+    expect(result.next).not.toHaveBeenCalled();
+    expect(result.status).toHaveBeenCalledWith(403);
+    expect(result.json).toHaveBeenCalledWith({
+      statusCode: 403,
+      message: 'Origin not allowed',
+    });
   });
 });
