@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { getPublicAcademyCatalog } from "@/lib/public-academies";
 
 export const metadata: Metadata = {
-  title: "Academies | Graspful",
+  title: { absolute: "Academies | Graspful" },
   description:
     "Browse public academies and their course tracks across the Graspful network.",
   alternates: { canonical: "https://graspful.ai/academies" },

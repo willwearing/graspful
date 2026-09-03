@@ -212,35 +212,47 @@ export function buildRobotsConfig(
       },
       {
         userAgent: "GPTBot",
-        allow: ["/", "/docs/", "/pricing", "/agents", "/llms.txt"],
+        allow: "/",
       },
       {
         userAgent: "ChatGPT-User",
-        allow: ["/", "/docs/", "/pricing", "/agents", "/llms.txt"],
+        allow: "/",
+      },
+      {
+        userAgent: "OAI-SearchBot",
+        allow: "/",
       },
       {
         userAgent: "Google-Extended",
-        allow: ["/", "/docs/", "/pricing", "/agents"],
+        allow: "/",
       },
       {
-        userAgent: "anthropic-ai",
-        allow: ["/", "/docs/", "/pricing", "/agents", "/llms.txt"],
+        userAgent: "ClaudeBot",
+        allow: "/",
       },
       {
-        userAgent: "Claude-Web",
-        allow: ["/", "/docs/", "/pricing", "/agents", "/llms.txt"],
+        userAgent: "Claude-User",
+        allow: "/",
+      },
+      {
+        userAgent: "Claude-SearchBot",
+        allow: "/",
       },
       {
         userAgent: "PerplexityBot",
-        allow: ["/", "/docs/", "/pricing", "/agents"],
+        allow: "/",
+      },
+      {
+        userAgent: "Perplexity-User",
+        allow: "/",
       },
       {
         userAgent: "Bytespider",
-        allow: ["/", "/docs/", "/pricing", "/agents"],
+        allow: "/",
       },
       {
         userAgent: "CCBot",
-        allow: ["/", "/docs/", "/pricing", "/agents"],
+        allow: "/",
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

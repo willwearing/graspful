@@ -41,6 +41,8 @@ const learnerPlans = [
   },
 ];
 
+type PricingHeadingLevel = "h1" | "h2";
+
 const creatorPlans = [
   {
     id: "free" as const,
@@ -63,7 +65,7 @@ const creatorPlans = [
     name: "Creator",
     price: "70/30",
     priceSuffix: "revenue share",
-    description: "Go live. Learners pay you — we take 30%.",
+    description: "Go live. Learners pay you, and we take 30%.",
     features: [
       "Everything in Free",
       "Stripe Connect billing",
@@ -78,17 +80,18 @@ const creatorPlans = [
   },
 ];
 
-function CreatorPricing() {
+function CreatorPricing({ headingLevel }: { headingLevel: PricingHeadingLevel }) {
   const brand = useBrand();
+  const Heading = headingLevel;
 
   return (
     <section id="pricing" className="py-20 px-4 bg-background">
       <div className="mx-auto max-w-4xl">
-        <h2 className="text-3xl font-bold text-center text-foreground mb-4">
+        <Heading className="text-3xl font-bold text-center text-foreground mb-4">
           Free to Create. Earn When Learners Pay.
-        </h2>
+        </Heading>
         <p className="text-center text-muted-foreground mb-10 max-w-lg mx-auto">
-          No monthly fees. No upfront cost. Like the App Store — we take a cut when you make money.
+          No monthly fees. No upfront cost. Like the App Store, we take a cut when you make money.
         </p>
 
         <div className="grid md:grid-cols-2 gap-6 pt-4">
@@ -154,9 +157,10 @@ function CreatorPricing() {
   );
 }
 
-function LearnerPricing() {
+function LearnerPricing({ headingLevel }: { headingLevel: PricingHeadingLevel }) {
   const brand = useBrand();
   const [billingInterval, setBillingInterval] = useState<"month" | "year">("month");
+  const Heading = headingLevel;
 
   const price = billingInterval === "month" ? brand.pricing.monthly : brand.pricing.yearly;
   const teamPrice = billingInterval === "month" ? brand.pricing.monthly * 3.34 : brand.pricing.yearly * 3.34;
@@ -164,9 +168,9 @@ function LearnerPricing() {
   return (
     <section id="pricing" className="py-20 px-4 bg-background">
       <div className="mx-auto max-w-5xl">
-        <h2 className="text-3xl font-bold text-center text-foreground mb-4">
+        <Heading className="text-3xl font-bold text-center text-foreground mb-4">
           Simple Pricing
-        </h2>
+        </Heading>
         <p className="text-center text-muted-foreground mb-8 max-w-lg mx-auto">
           Start free. Upgrade when you need more exams or offline access.
         </p>
@@ -269,13 +273,15 @@ function LearnerPricing() {
   );
 }
 
-function FreePricing() {
+function FreePricing({ headingLevel }: { headingLevel: PricingHeadingLevel }) {
+  const Heading = headingLevel;
+
   return (
     <section id="pricing" className="py-20 px-4 bg-background">
       <div className="mx-auto max-w-md">
-        <h2 className="text-3xl font-bold text-center text-foreground mb-4">
+        <Heading className="text-3xl font-bold text-center text-foreground mb-4">
           100% Free
-        </h2>
+        </Heading>
         <p className="text-center text-muted-foreground mb-10">
           No credit card required. Start learning immediately.
         </p>
@@ -306,17 +312,21 @@ function FreePricing() {
   );
 }
 
-export function PricingSection() {
+export function PricingSection({
+  headingLevel = "h2",
+}: {
+  headingLevel?: PricingHeadingLevel;
+}) {
   const brand = useBrand();
 
   if (brand.id === "graspful") {
-    return <CreatorPricing />;
+    return <CreatorPricing headingLevel={headingLevel} />;
   }
 
   const isFree = !brand.pricing.monthly && !brand.pricing.yearly;
   if (isFree) {
-    return <FreePricing />;
+    return <FreePricing headingLevel={headingLevel} />;
   }
 
-  return <LearnerPricing />;
+  return <LearnerPricing headingLevel={headingLevel} />;
 }

@@ -72,6 +72,28 @@ describe("robots", () => {
     const config = await robots();
     expect(config.sitemap).toContain("sitemap.xml");
   });
+
+  it("explicitly allows current search and answer engine crawlers", () => {
+    const config = buildRobotsConfig("https://graspful.ai", "platform");
+    const rules = Array.isArray(config.rules) ? config.rules : [config.rules];
+    const expectedAgents = [
+      "GPTBot",
+      "ChatGPT-User",
+      "OAI-SearchBot",
+      "Google-Extended",
+      "ClaudeBot",
+      "Claude-User",
+      "Claude-SearchBot",
+      "PerplexityBot",
+      "Perplexity-User",
+    ];
+
+    for (const userAgent of expectedAgents) {
+      expect(rules).toContainEqual(
+        expect.objectContaining({ userAgent, allow: "/" }),
+      );
+    }
+  });
 });
 
 describe("private page metadata", () => {

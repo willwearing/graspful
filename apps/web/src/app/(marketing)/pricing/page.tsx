@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: "Pricing",
     description: `Plans and pricing for ${brand.name}. Free to create courses. 70/30 revenue share when learners pay.`,
     openGraph: {
-      title: `Pricing — ${brand.name}`,
+      title: `Pricing: ${brand.name}`,
       description: `Free to create. 70/30 revenue share when learners pay. Plans and pricing for ${brand.name}.`,
       url,
       images: brand.ogImageUrl
@@ -27,7 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: {
       card: "summary_large_image",
-      title: `Pricing — ${brand.name}`,
+      title: `Pricing: ${brand.name}`,
       description: `Free to create. 70/30 revenue share when learners pay.`,
       images: brand.ogImageUrl ? [brand.ogImageUrl] : [],
     },
@@ -40,7 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function PricingPage() {
   return (
     <div className="bg-background text-foreground">
-      <PricingSection />
+      <PricingSection headingLevel="h1" />
       <div className="mx-auto max-w-3xl px-6 pb-16 text-center">
         <p className="text-sm text-muted-foreground">
           Ready to start?{" "}
