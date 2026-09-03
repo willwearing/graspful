@@ -27,6 +27,7 @@ const LOCAL_PUBLIC_ROUTES = [
   "/reset-password",
   "/pricing",
   "/agents",
+  "/ai-course-builder",
   "/academies",
   "/docs",
   "/sentry-example-page",
@@ -43,6 +44,7 @@ const PLATFORM_PUBLIC_ROUTES = [
   "/reset-password",
   "/pricing",
   "/agents",
+  "/ai-course-builder",
   "/academies",
   "/docs",
   "/sentry-example-page",
@@ -69,7 +71,15 @@ const ACADEMY_PUBLIC_ROUTES = [
 ];
 
 const AUTH_PAGES = ["/sign-in", "/sign-up"] as const;
-const MARKETING_ROUTES = ["/", "/pricing", "/agents", "/academies", "/docs", "/cli-auth"];
+const MARKETING_ROUTES = [
+  "/",
+  "/pricing",
+  "/agents",
+  "/ai-course-builder",
+  "/academies",
+  "/docs",
+  "/cli-auth",
+];
 const CREATOR_ROUTES = ["/creator"];
 const LEARNER_ROUTES = ["/dashboard", "/browse", "/study", "/diagnostic", "/academy"];
 const PLATFORM_LEARNER_ROUTES = ["/learn"];

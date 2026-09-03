@@ -12,6 +12,7 @@ export const metadata: Metadata = {
     "course pricing",
     "api key",
   ],
+  alternates: { canonical: "https://graspful.ai/docs/billing" },
 };
 
 export default function BillingPage() {

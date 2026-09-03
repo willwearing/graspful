@@ -14,6 +14,14 @@ describe("sitemap", () => {
     expect(urls.some((url) => url.includes("graspful.ai") || url.includes("vercel.app"))).toBe(true);
     expect(urls.some((url) => url.includes("/pricing"))).toBe(true);
     expect(urls.some((url) => url.includes("/academies"))).toBe(true);
+    expect(urls.some((url) => url.includes("/ai-course-builder"))).toBe(true);
+    expect(urls.some((url) => url.includes("/docs/how-it-works"))).toBe(true);
+    expect(
+      urls.some((url) => url.includes("/docs/course-creation-guide")),
+    ).toBe(true);
+    expect(
+      urls.some((url) => url.includes("/docs/concepts/mastery-learning")),
+    ).toBe(true);
     expect(urls.some((url) => url.includes("/sign-up"))).toBe(false);
     expect(urls.some((url) => url.includes("/sign-in"))).toBe(false);
   });

@@ -37,6 +37,22 @@ test.describe("SEO Smoke Tests", () => {
     expect(description).toBeTruthy();
   });
 
+  test("AI course builder page loads with canonical metadata", async ({ page }) => {
+    const response = await page.goto("/ai-course-builder");
+
+    expect(response?.status()).toBe(200);
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: /AI course builder.*learning that adapts/i,
+      }),
+    ).toBeVisible();
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      "https://graspful.ai/ai-course-builder",
+    );
+  });
+
   test("docs pages have meta tags", async ({ page }) => {
     await page.goto("/docs/cli");
     const title = await page.title();
@@ -66,6 +82,7 @@ test.describe("SEO Smoke Tests", () => {
     expect(body).toContain("<urlset");
     expect(body).toContain("/docs");
     expect(body).toContain("/agents");
+    expect(body).toContain("/ai-course-builder");
     expect(body).toContain("/pricing");
   });
 

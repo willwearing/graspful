@@ -15,6 +15,7 @@ import {
   KeyRound,
 } from "lucide-react";
 import { SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
+import { AuthLink } from "@/components/navigation/auth-link";
 
 export const metadata: Metadata = {
   title: "AI Agents",
@@ -135,12 +136,12 @@ export default function AgentsPage() {
             <code className="rounded-lg border border-border/50 bg-card px-6 py-3 font-mono text-sm text-foreground">
               npx @graspful/cli init
             </code>
-            <Link
+            <AuthLink
               href="/sign-up"
               className="btn-gradient px-8 py-3 text-sm font-medium"
             >
               Get Started Free
-            </Link>
+            </AuthLink>
           </div>
         </div>
       </section>
@@ -419,12 +420,12 @@ export default function AgentsPage() {
             <code className="rounded-lg border border-border/50 bg-card px-6 py-3 font-mono text-sm text-foreground">
               npx @graspful/cli init
             </code>
-            <Link
+            <AuthLink
               href="/sign-up"
               className="btn-gradient inline-flex items-center gap-2 px-8 py-3 text-sm font-medium"
             >
               Get Started <ArrowRight className="h-4 w-4" />
-            </Link>
+            </AuthLink>
           </div>
           <div className="mt-6 flex items-center justify-center gap-6 text-sm text-muted-foreground">
             <Link href="/docs" className="hover:text-foreground transition-colors">

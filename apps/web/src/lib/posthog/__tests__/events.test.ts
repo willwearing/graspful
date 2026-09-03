@@ -14,6 +14,7 @@ vi.mock("posthog-js", () => ({
 
 import {
   trackSignUp,
+  trackSignUpStarted,
   trackEnrollment,
   trackLessonComplete,
   trackQuizComplete,
@@ -21,6 +22,8 @@ import {
   trackDiagnosticComplete,
   captureError,
   resetPostHog,
+  trackLandingCtaClick,
+  trackDocsCodeCopied,
 } from "../events";
 import posthog from "posthog-js";
 
@@ -36,6 +39,31 @@ describe("PostHog event helpers", () => {
     expect(posthog.identify).toHaveBeenCalledWith("user-123");
     expect(posthog.capture).toHaveBeenCalledWith("sign_up", {
       method: "email",
+    });
+  });
+
+  it("trackSignUpStarted captures the anonymous signup intent", () => {
+    trackSignUpStarted("graspful");
+    expect(posthog.capture).toHaveBeenCalledWith("sign_up_started", {
+      method: "email",
+      brand_id: "graspful",
+    });
+  });
+
+  it("trackLandingCtaClick captures placement and destination", () => {
+    trackLandingCtaClick("header", "graspful", "/sign-up");
+    expect(posthog.capture).toHaveBeenCalledWith("landing_cta_clicked", {
+      location: "header",
+      brand_id: "graspful",
+      destination: "/sign-up",
+    });
+  });
+
+  it("trackDocsCodeCopied captures the code context", () => {
+    trackDocsCodeCopied("Install the CLI", "bash");
+    expect(posthog.capture).toHaveBeenCalledWith("docs_code_copied", {
+      title: "Install the CLI",
+      language: "bash",
     });
   });
 

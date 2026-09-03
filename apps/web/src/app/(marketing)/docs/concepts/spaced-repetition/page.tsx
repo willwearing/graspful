@@ -17,6 +17,9 @@ export const metadata: Metadata = {
     "encompassing edges",
     "graspful review",
   ],
+  alternates: {
+    canonical: "https://graspful.ai/docs/concepts/spaced-repetition",
+  },
 };
 
 export default function SpacedRepetitionPage() {

@@ -12,6 +12,7 @@ export const metadata: Metadata = {
     "theme presets",
     "landing page config",
   ],
+  alternates: { canonical: "https://graspful.ai/docs/brand-schema" },
 };
 
 function FieldTable({

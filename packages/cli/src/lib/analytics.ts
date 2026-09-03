@@ -1,8 +1,10 @@
 import { PostHog } from 'posthog-node';
+import { createHash, randomUUID } from 'node:crypto';
 
 const posthogKey = process.env.POSTHOG_API_KEY || process.env.NEXT_PUBLIC_POSTHOG_KEY;
 
 let client: PostHog | null = null;
+const anonymousDistinctId = `anonymous-cli:${randomUUID()}`;
 
 function getClient(): PostHog | null {
   if (!posthogKey) return null;
@@ -16,13 +18,24 @@ function getClient(): PostHog | null {
   return client;
 }
 
-function distinctId(): string {
-  return process.env.GRASPFUL_USER_ID || process.env.GRASPFUL_API_KEY || 'anonymous-cli';
+export function cliDistinctId(): string {
+  if (process.env.GRASPFUL_USER_ID) {
+    return process.env.GRASPFUL_USER_ID;
+  }
+
+  if (process.env.GRASPFUL_API_KEY) {
+    const digest = createHash('sha256')
+      .update(process.env.GRASPFUL_API_KEY)
+      .digest('hex');
+    return `credential:${digest}`;
+  }
+
+  return anonymousDistinctId;
 }
 
 export function cliCapture(event: string, properties: Record<string, unknown> = {}) {
   getClient()?.capture({
-    distinctId: distinctId(),
+    distinctId: cliDistinctId(),
     event,
     properties: { ...properties, source: 'cli' },
   });

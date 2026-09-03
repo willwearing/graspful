@@ -8,6 +8,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import * as yaml from 'js-yaml';
 import { PostHog } from 'posthog-node';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   CourseYamlSchema,
   validateParsedYaml,
@@ -29,9 +30,21 @@ const posthogClient = posthogKey
       flushInterval: 0,
     })
   : null;
+const anonymousMcpDistinctId = `anonymous-mcp:${randomUUID()}`;
 
-function mcpDistinctId(): string {
-  return process.env.GRASPFUL_USER_ID || process.env.GRASPFUL_API_KEY || 'anonymous-mcp';
+export function mcpDistinctId(): string {
+  if (process.env.GRASPFUL_USER_ID) {
+    return process.env.GRASPFUL_USER_ID;
+  }
+
+  if (process.env.GRASPFUL_API_KEY) {
+    const digest = createHash('sha256')
+      .update(process.env.GRASPFUL_API_KEY)
+      .digest('hex');
+    return `credential:${digest}`;
+  }
+
+  return anonymousMcpDistinctId;
 }
 
 function mcpCapture(event: string, properties: Record<string, unknown> = {}) {

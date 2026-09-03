@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { AuthLink } from "@/components/navigation/auth-link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useBrand } from "@/lib/brand/context";
 import { Button } from "@/components/ui/button";
@@ -58,12 +58,12 @@ export default function ForgotPasswordPage() {
                 If an account exists for <strong>{email}</strong>, you'll
                 receive a password reset link shortly.
               </p>
-              <Link
+              <AuthLink
                 href="/sign-in"
                 className="inline-block text-sm font-medium text-primary hover:underline"
               >
                 Back to sign in
-              </Link>
+              </AuthLink>
             </div>
           ) : (
             <>
@@ -97,12 +97,12 @@ export default function ForgotPasswordPage() {
 
               <p className="mt-6 text-center text-sm text-muted-foreground">
                 Remember your password?{" "}
-                <Link
+                <AuthLink
                   href="/sign-in"
                   className="font-medium text-primary hover:underline"
                 >
                   Sign in
-                </Link>
+                </AuthLink>
               </p>
             </>
           )}

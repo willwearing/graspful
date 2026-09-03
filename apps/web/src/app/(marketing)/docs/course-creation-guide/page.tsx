@@ -15,6 +15,9 @@ export const metadata: Metadata = {
     "YAML course",
     "learning design",
   ],
+  alternates: {
+    canonical: "https://graspful.ai/docs/course-creation-guide",
+  },
 };
 
 export default function CourseCreationGuidePage() {

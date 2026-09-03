@@ -17,6 +17,9 @@ export const metadata: Metadata = {
     "knowledge tracing",
     "graspful mastery",
   ],
+  alternates: {
+    canonical: "https://graspful.ai/docs/concepts/mastery-learning",
+  },
 };
 
 export default function MasteryLearningPage() {

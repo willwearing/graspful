@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { AuthLink } from "@/components/navigation/auth-link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useBrand } from "@/lib/brand/context";
 import { useHostSurface } from "@/lib/host-context";
 import { getDefaultAuthRedirectPath } from "@/lib/hosts";
-import { trackSignUp, trackSignIn } from "@/lib/posthog/events";
+import {
+  trackSignIn,
+  trackSignUp,
+  trackSignUpStarted,
+} from "@/lib/posthog/events";
 import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,6 +71,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const hasTrackedSignUpStart = useRef(false);
 
   const supabase = createSupabaseBrowserClient();
 
@@ -155,7 +161,9 @@ export function AuthForm({ mode }: AuthFormProps) {
     ? `Sign in to continue studying with ${brand.name}`
     : isConfirmationPending
       ? "Check your email for a confirmation link."
-      : `Start your free trial with ${brand.name}`;
+      : brand.pricing.trialDays > 0
+        ? `Start your ${brand.pricing.trialDays}-day free trial with ${brand.name}`
+        : `Create a free ${brand.name} account. No credit card required.`;
   const submitText = isSignIn ? "Sign In" : "Create Account";
   const switchText = isSignIn ? "Don't have an account?" : "Already have an account?";
   const switchHref = isSignIn
@@ -177,12 +185,12 @@ export function AuthForm({ mode }: AuthFormProps) {
               <p className="text-sm text-muted-foreground">
                 We sent a confirmation link to <strong>{submittedEmail}</strong>.
               </p>
-              <Link
+              <AuthLink
                 href={buildAuthHref("/sign-in", redirectTo, submittedEmail)}
                 className="inline-block text-sm font-medium text-primary hover:underline"
               >
                 Back to sign in
-              </Link>
+              </AuthLink>
             </div>
           ) : (
             <>
@@ -201,7 +209,17 @@ export function AuthForm({ mode }: AuthFormProps) {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} noValidate className="space-y-4">
+              <form
+                onSubmit={handleSubmit}
+                onFocusCapture={() => {
+                  if (mode === "sign-up" && !hasTrackedSignUpStart.current) {
+                    hasTrackedSignUpStart.current = true;
+                    trackSignUpStarted(brand.id);
+                  }
+                }}
+                noValidate
+                className="space-y-4"
+              >
                 <div>
                   <label
                     htmlFor="email"
@@ -260,7 +278,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                   <Button
                     variant="outline"
                     className="w-full"
-                    render={<Link href={switchHref} prefetch={false} />}
+                    render={<AuthLink href={switchHref} />}
                   >
                     {switchButtonText}
                   </Button>
@@ -269,12 +287,12 @@ export function AuthForm({ mode }: AuthFormProps) {
 
               <p className="mt-6 text-center text-sm text-muted-foreground">
                 {switchText}{" "}
-                <Link
+                <AuthLink
                   href={switchHref}
                   className="font-medium text-primary hover:underline"
                 >
                   {switchLabel}
-                </Link>
+                </AuthLink>
               </p>
             </>
           )}

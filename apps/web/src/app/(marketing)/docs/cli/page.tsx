@@ -12,6 +12,7 @@ export const metadata: Metadata = {
     "yaml import",
     "adaptive learning cli",
   ],
+  alternates: { canonical: "https://graspful.ai/docs/cli" },
 };
 
 function CommandSection({

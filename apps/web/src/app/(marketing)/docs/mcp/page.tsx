@@ -13,6 +13,7 @@ export const metadata: Metadata = {
     "ai agent course creation",
     "model context protocol",
   ],
+  alternates: { canonical: "https://graspful.ai/docs/mcp" },
 };
 
 function ToolCard({

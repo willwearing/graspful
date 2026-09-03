@@ -9,6 +9,7 @@ const mockSignIn = vi.fn();
 const mockPush = vi.fn();
 const mockRefresh = vi.fn();
 const mockApiClientFetch = vi.fn();
+const mockTrackSignUpStarted = vi.fn();
 let mockSearchParams = "";
 
 vi.mock("next/navigation", () => ({
@@ -28,6 +29,7 @@ vi.mock("@/lib/supabase/client", () => ({
 vi.mock("@/lib/posthog/events", () => ({
   trackSignUp: vi.fn(),
   trackSignIn: vi.fn(),
+  trackSignUpStarted: (...args: unknown[]) => mockTrackSignUpStarted(...args),
 }));
 
 vi.mock("@/lib/api-client", () => ({
@@ -42,6 +44,27 @@ describe("AuthForm", () => {
     mockPush.mockReset();
     mockRefresh.mockReset();
     mockApiClientFetch.mockReset();
+    mockTrackSignUpStarted.mockReset();
+  });
+
+  it("uses free-account copy and tracks the first signup interaction once", () => {
+    render(
+      <BrandProvider brand={defaultBrand}>
+        <AuthForm mode="sign-up" />
+      </BrandProvider>
+    );
+
+    expect(
+      screen.getByText(
+        "Create a free Graspful account. No credit card required.",
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.focus(screen.getByLabelText("Email"));
+    fireEvent.focus(screen.getByLabelText("Password"));
+
+    expect(mockTrackSignUpStarted).toHaveBeenCalledTimes(1);
+    expect(mockTrackSignUpStarted).toHaveBeenCalledWith("graspful");
   });
 
   it("replaces the sign-up form with a confirmation state when email verification is required", async () => {

@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     "expertise reversal",
     "problem types",
   ],
+  alternates: {
+    canonical: "https://graspful.ai/docs/concepts/learning-staircase",
+  },
 };
 
 const kpLevels = [

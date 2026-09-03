@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Check } from "lucide-react";
+import { AuthLink } from "@/components/navigation/auth-link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useBrand } from "@/lib/brand/context";
-import { trackLandingPricingToggle } from "@/lib/posthog/events";
+import {
+  trackLandingCtaClick,
+  trackLandingPricingToggle,
+} from "@/lib/posthog/events";
 
 const learnerPlans = [
   {
@@ -76,6 +79,8 @@ const creatorPlans = [
 ];
 
 function CreatorPricing() {
+  const brand = useBrand();
+
   return (
     <section id="pricing" className="py-20 px-4 bg-background">
       <div className="mx-auto max-w-4xl">
@@ -123,7 +128,20 @@ function CreatorPricing() {
                 <Button
                   className="w-full"
                   variant={plan.popular ? "default" : "outline"}
-                  render={<Link href="/sign-up" />}
+                  render={
+                    <AuthLink
+                      href="/sign-up"
+                      onClick={() =>
+                        trackLandingCtaClick(
+                          plan.id === "free"
+                            ? "pricing_free"
+                            : "pricing_creator",
+                          brand.id,
+                          "/sign-up",
+                        )
+                      }
+                    />
+                  }
                 >
                   {plan.cta}
                 </Button>
@@ -228,7 +246,7 @@ function LearnerPricing() {
                     <Button
                       variant="outline"
                       className="w-full"
-                      render={<Link href="/sign-up" />}
+                      render={<AuthLink href="/sign-up" />}
                     >
                       Get Started
                     </Button>
@@ -236,7 +254,7 @@ function LearnerPricing() {
                     <Button
                       className="w-full"
                       variant={isPopular ? "default" : "outline"}
-                      render={<Link href="/sign-up" />}
+                      render={<AuthLink href="/sign-up" />}
                     >
                       Start {brand.pricing.trialDays}-Day Free Trial
                     </Button>
@@ -278,7 +296,7 @@ function FreePricing() {
                 </li>
               ))}
             </ul>
-            <Button className="w-full" render={<Link href="/sign-up" />}>
+            <Button className="w-full" render={<AuthLink href="/sign-up" />}>
               Start Learning
             </Button>
           </CardContent>

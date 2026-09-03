@@ -12,6 +12,14 @@ export function trackSignUp(userId: string) {
   posthog.capture("sign_up", { method: "email" });
 }
 
+export function trackSignUpStarted(brandId: string) {
+  if (!isLoaded()) return;
+  posthog.capture("sign_up_started", {
+    method: "email",
+    brand_id: brandId,
+  });
+}
+
 export function trackSignIn(userId: string) {
   if (!isLoaded()) return;
   posthog.identify(userId);
@@ -411,13 +419,23 @@ export function trackStudyTaskDispatched(
 // ── Landing Page ─────────────────────────────────────────────────────
 
 export function trackLandingCtaClick(
-  location: "hero" | "bottom",
+  location:
+    | "header"
+    | "hero"
+    | "pricing_free"
+    | "pricing_creator"
+    | "product_proof_primary"
+    | "product_proof_details"
+    | "bottom"
+    | "footer",
   brandId: string,
+  destination?: string,
 ) {
   if (!isLoaded()) return;
   posthog.capture("landing_cta_clicked", {
     location,
     brand_id: brandId,
+    ...(destination ? { destination } : {}),
   });
 }
 
@@ -440,5 +458,13 @@ export function trackLandingScrollDepth(
   posthog.capture("landing_scroll_depth", {
     depth_percent: depth,
     brand_id: brandId,
+  });
+}
+
+export function trackDocsCodeCopied(title?: string, language?: string) {
+  if (!isLoaded()) return;
+  posthog.capture("docs_code_copied", {
+    ...(title ? { title } : {}),
+    ...(language ? { language } : {}),
   });
 }

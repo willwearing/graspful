@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     "interleaving",
     "spaced repetition",
   ],
+  alternates: {
+    canonical: "https://graspful.ai/docs/concepts/task-selection",
+  },
 };
 
 const priorities = [
