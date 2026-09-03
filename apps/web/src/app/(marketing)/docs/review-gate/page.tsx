@@ -12,6 +12,7 @@ export const metadata: Metadata = {
     "publishing checks",
     "course review",
   ],
+  alternates: { canonical: "https://graspful.ai/docs/review-gate" },
 };
 
 const checks = [

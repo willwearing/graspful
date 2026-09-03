@@ -13,6 +13,7 @@ export const metadata: Metadata = {
     "adaptive learning schema",
     "course authoring",
   ],
+  alternates: { canonical: "https://graspful.ai/docs/course-schema" },
 };
 
 function FieldTable({

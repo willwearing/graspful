@@ -13,12 +13,14 @@ describe("isPublicRoute", () => {
     expect(isPublicRoute("/auth/callback")).toBe(true);
     expect(isPublicRoute("/pricing")).toBe(true);
     expect(isPublicRoute("/agents")).toBe(true);
+    expect(isPublicRoute("/ai-course-builder")).toBe(true);
     expect(isPublicRoute("/academies")).toBe(true);
     expect(isPublicRoute("/docs")).toBe(true);
   });
 
   it("treats academy hosts as learner-only public surfaces", () => {
     expect(isPublicRoute("/pricing", "academy")).toBe(false);
+    expect(isPublicRoute("/ai-course-builder", "academy")).toBe(false);
     expect(isPublicRoute("/docs", "academy")).toBe(false);
     expect(isPublicRoute("/sign-in", "academy")).toBe(true);
   });
@@ -133,6 +135,26 @@ describe("routing decisions", () => {
       action: "redirect",
       to: "https://graspful.ai/academies",
     });
+
+    expect(
+      decideRoute("/ai-course-builder", false, {
+        surface: "app",
+        currentUrl: new URL("https://app.graspful.ai/ai-course-builder"),
+      }),
+    ).toEqual({
+      action: "redirect",
+      to: "https://graspful.ai/ai-course-builder",
+    });
+  });
+
+  it("keeps the AI course builder public on the platform host", () => {
+    expect(
+      decideRoute("/ai-course-builder", false, {
+        brandId: "graspful",
+        surface: "platform",
+        currentUrl: new URL("https://graspful.ai/ai-course-builder"),
+      }),
+    ).toEqual({ action: "next" });
   });
 
   it("keeps academy hosts learner-only and bounces creator routes to the app host", () => {

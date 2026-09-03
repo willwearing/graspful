@@ -47,7 +47,7 @@ export function Hero({ headline, subheadline, ctaText }: HeroProps) {
           <a
             href="/sign-up"
             onClick={() => {
-              trackLandingCtaClick("hero", brand.id);
+              trackLandingCtaClick("hero", brand.id, "/sign-up");
             }}
             className="btn-gradient glow-pulse mt-10 inline-block px-12 py-4 text-base font-medium"
           >

@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { Sun, Moon } from "lucide-react";
+import { AuthLink } from "@/components/navigation/auth-link";
 import { useBrand } from "@/lib/brand/context";
 import { useHostSurface } from "@/lib/host-context";
 import { getPlatformHost } from "@/lib/hosts";
 import { useTheme } from "@/lib/theme/theme-provider";
+import { trackLandingCtaClick } from "@/lib/posthog/events";
 
 const platformLinks = [
   { href: "/agents", label: "Agents" },
@@ -59,20 +61,21 @@ export function MarketingNav() {
           >
             {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           </button>
-          <Link
+          <AuthLink
             href="/sign-in"
-            prefetch={false}
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Sign in
-          </Link>
-          <Link
+          </AuthLink>
+          <AuthLink
             href="/sign-up"
-            prefetch={false}
+            onClick={() =>
+              trackLandingCtaClick("header", brand.id, "/sign-up")
+            }
             className="btn-gradient px-5 py-2 text-sm font-medium"
           >
             {hostSurface === "academy" ? "Enroll" : "Get Started"}
-          </Link>
+          </AuthLink>
         </div>
       </div>
     </nav>

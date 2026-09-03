@@ -15,6 +15,7 @@ export const metadata: Metadata = {
     "FIRe algorithm",
     "MEPE",
   ],
+  alternates: { canonical: "https://graspful.ai/docs/glossary" },
 };
 
 const terms = [

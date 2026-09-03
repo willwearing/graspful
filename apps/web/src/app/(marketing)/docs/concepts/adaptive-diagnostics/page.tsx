@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     "bayesian knowledge tracing",
     "graspful diagnostic",
   ],
+  alternates: {
+    canonical: "https://graspful.ai/docs/concepts/adaptive-diagnostics",
+  },
 };
 
 export default function AdaptiveDiagnosticsPage() {

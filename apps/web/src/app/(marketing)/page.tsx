@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { resolvePageBrand } from "@/lib/brand/resolve";
-import { Hero } from "@/components/marketing/hero";
+import { LandingHeroExperiment } from "@/components/marketing/landing-hero-experiment";
 import { Features } from "@/components/marketing/features";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { FAQ } from "@/components/marketing/faq";
@@ -61,7 +61,8 @@ export default async function LandingPage() {
 
   return (
     <div className="bg-background text-foreground">
-      <Hero
+      <LandingHeroExperiment
+        isGraspful={isGraspful}
         headline={brand.landing.hero.headline}
         subheadline={brand.landing.hero.subheadline}
         ctaText={brand.landing.hero.ctaText}

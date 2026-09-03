@@ -15,6 +15,7 @@ export const metadata: Metadata = {
     "mastery-based learning",
     "how graspful works",
   ],
+  alternates: { canonical: "https://graspful.ai/docs/how-it-works" },
 };
 
 export default function HowItWorksPage() {

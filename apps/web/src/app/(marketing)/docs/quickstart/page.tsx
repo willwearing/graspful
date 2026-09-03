@@ -15,6 +15,7 @@ export const metadata: Metadata = {
     "CLI quickstart",
     "graspful register",
   ],
+  alternates: { canonical: "https://graspful.ai/docs/quickstart" },
 };
 
 export default function QuickstartPage() {

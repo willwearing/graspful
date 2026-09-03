@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { trackDocsCodeCopied } from "@/lib/posthog/events";
 
 export function CodeBlock({
   children,
@@ -15,6 +16,7 @@ export function CodeBlock({
 
   const copy = () => {
     navigator.clipboard.writeText(children);
+    trackDocsCodeCopied(title, language);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { AuthLink } from "@/components/navigation/auth-link";
 import { useBrand } from "@/lib/brand/context";
 import { useHostSurface } from "@/lib/host-context";
+import { trackLandingCtaClick } from "@/lib/posthog/events";
 
 const platformProductLinks = [
   { href: "/agents", label: "AI Agents" },
@@ -16,6 +18,7 @@ const learnerProductLinks = [
 ];
 
 const platformResourceLinks = [
+  { href: "/ai-course-builder", label: "AI Course Builder" },
   { href: "/docs", label: "Documentation" },
   { href: "/docs/quickstart", label: "Quickstart" },
   { href: "/docs/mcp", label: "MCP Server" },
@@ -63,13 +66,31 @@ export function MarketingFooter() {
             <ul className="space-y-2">
               {productLinks.map((link) => (
                 <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    prefetch={false}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {link.label}
-                  </Link>
+                  {link.href === "/sign-up" || link.href === "/sign-in" ? (
+                    <AuthLink
+                      href={link.href}
+                      onClick={() => {
+                        if (link.href === "/sign-up") {
+                          trackLandingCtaClick(
+                            "footer",
+                            brand.id,
+                            "/sign-up",
+                          );
+                        }
+                      }}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {link.label}
+                    </AuthLink>
+                  ) : (
+                    <Link
+                      href={link.href}
+                      prefetch={hostSurface === "app" ? false : undefined}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

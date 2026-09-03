@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeAll } from 'bun:test';
-import { TOOLS, handleToolCall } from '../index';
+import { TOOLS, handleToolCall, mcpDistinctId } from '../index';
 import * as yaml from 'js-yaml';
 
 // Helper: scaffold a course and return the YAML string
@@ -27,6 +27,57 @@ describe('Tool registration', () => {
     expect(names).toContain('graspful_create_brand');
     expect(names).toContain('graspful_import_brand');
     expect(names).toContain('graspful_list_courses');
+  });
+});
+
+describe('MCP analytics identity', () => {
+  test('hashes API keys instead of sending the secret', () => {
+    const originalUserId = process.env.GRASPFUL_USER_ID;
+    const originalKey = process.env.GRASPFUL_API_KEY;
+    delete process.env.GRASPFUL_USER_ID;
+    process.env.GRASPFUL_API_KEY = 'gsk_secret';
+
+    try {
+      const result = mcpDistinctId();
+      expect(result).toStartWith('credential:');
+      expect(result).not.toContain('gsk_secret');
+    } finally {
+      if (originalUserId === undefined) {
+        delete process.env.GRASPFUL_USER_ID;
+      } else {
+        process.env.GRASPFUL_USER_ID = originalUserId;
+      }
+
+      if (originalKey === undefined) {
+        delete process.env.GRASPFUL_API_KEY;
+      } else {
+        process.env.GRASPFUL_API_KEY = originalKey;
+      }
+    }
+  });
+
+  test('does not collapse anonymous MCP processes into a shared constant', () => {
+    const originalUserId = process.env.GRASPFUL_USER_ID;
+    const originalKey = process.env.GRASPFUL_API_KEY;
+    delete process.env.GRASPFUL_USER_ID;
+    delete process.env.GRASPFUL_API_KEY;
+
+    try {
+      expect(mcpDistinctId()).toStartWith('anonymous-mcp:');
+      expect(mcpDistinctId()).not.toBe('anonymous-mcp');
+    } finally {
+      if (originalUserId === undefined) {
+        delete process.env.GRASPFUL_USER_ID;
+      } else {
+        process.env.GRASPFUL_USER_ID = originalUserId;
+      }
+
+      if (originalKey === undefined) {
+        delete process.env.GRASPFUL_API_KEY;
+      } else {
+        process.env.GRASPFUL_API_KEY = originalKey;
+      }
+    }
   });
 });
 

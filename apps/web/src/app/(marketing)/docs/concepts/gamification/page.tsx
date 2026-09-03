@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     "adaptive learning",
     "daily practice",
   ],
+  alternates: {
+    canonical: "https://graspful.ai/docs/concepts/gamification",
+  },
 };
 
 const xpTable = [

@@ -14,6 +14,7 @@ export const metadata: Metadata = {
     "design system",
     "theme presets",
   ],
+  alternates: { canonical: "https://graspful.ai/docs/design-guide" },
 };
 
 const graspfulColors = [

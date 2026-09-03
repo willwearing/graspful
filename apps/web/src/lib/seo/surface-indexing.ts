@@ -45,6 +45,12 @@ export function buildSitemapEntries(
       priority: 0.9,
     },
     {
+      url: `${baseUrl}/ai-course-builder`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
       url: `${baseUrl}/academies`,
       lastModified: now,
       changeFrequency: "weekly",
@@ -64,6 +70,18 @@ export function buildSitemapEntries(
     },
     {
       url: `${baseUrl}/docs/quickstart`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/docs/how-it-works`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/docs/course-creation-guide`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.8,
@@ -100,6 +118,60 @@ export function buildSitemapEntries(
     },
     {
       url: `${baseUrl}/docs/review-gate`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/docs/design-guide`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/docs/glossary`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/docs/concepts/knowledge-graph`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/docs/concepts/mastery-learning`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/docs/concepts/adaptive-diagnostics`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/docs/concepts/spaced-repetition`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/docs/concepts/task-selection`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/docs/concepts/gamification`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/docs/concepts/learning-staircase`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.6,

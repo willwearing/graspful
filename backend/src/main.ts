@@ -15,6 +15,11 @@ import { LoggingInterceptor } from './telemetry/logging.interceptor';
 import { OtelExceptionFilter } from './telemetry/exception.filter';
 import { PostHogService } from './shared/application/posthog.service';
 import { PrismaService } from './prisma/prisma.service';
+import {
+  buildStaticOrigins,
+  createCorsOriginGuard,
+  isOriginAllowed,
+} from './config/cors';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -40,26 +45,11 @@ async function bootstrap() {
     transform: true,
   }));
 
-  const nodeEnv = config.get<string>('NODE_ENV', 'development');
-  const defaultLocalOrigins =
-    nodeEnv === 'production'
-      ? []
-      : [
-        'http://localhost:3001',
-        'http://127.0.0.1:3001',
-        'http://localhost:3002',
-        'http://127.0.0.1:3002',
-      ];
-
-  // Static origins from env var plus local development app hosts.
-  const staticOrigins = new Set(
-    [
-      ...defaultLocalOrigins,
-      ...(config.get<string>('ALLOWED_ORIGINS')?.split(',') ?? []),
-    ]
-      .map((origin) => origin.trim())
-      .filter(Boolean),
-  );
+  // Static origins: the API's own origin, local dev app hosts, and ALLOWED_ORIGINS.
+  const staticOrigins = buildStaticOrigins({
+    nodeEnv: config.get<string>('NODE_ENV', 'development'),
+    allowedOrigins: config.get<string>('ALLOWED_ORIGINS'),
+  });
 
   // Dynamic CORS: static origins are checked first, then brand domains from DB (cached 5 min)
   const prisma = app.get(PrismaService);
@@ -87,16 +77,21 @@ async function bootstrap() {
     return brandDomainCache;
   }
 
+  // Stop disallowed browser origins before a simple request can reach a route.
+  // Return a normal 403 response so expected denials do not enter error tracking.
+  app.use(createCorsOriginGuard(staticOrigins, loadBrandDomains));
+
   app.enableCors({
     origin: async (origin, callback) => {
-      // Allow requests with no origin (server-to-server, curl, etc.)
-      if (!origin) return callback(null, true);
-      if (staticOrigins.has(origin)) return callback(null, true);
+      // Fast paths: no-origin requests (server-to-server, curl) and known
+      // static origins are allowed without touching the DB.
+      if (!origin || staticOrigins.has(origin)) return callback(null, true);
 
       const domains = await loadBrandDomains();
-      if (domains.has(origin)) return callback(null, true);
-
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
+      // Rejections are expected cross-origin traffic, not server errors:
+      // return `false` so the request is denied without throwing (which would
+      // surface as an unhandled 500 in error tracking).
+      callback(null, isOriginAllowed(origin, staticOrigins, domains));
     },
     credentials: true,
   });

@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     "course graph",
     "graspful concepts",
   ],
+  alternates: {
+    canonical: "https://graspful.ai/docs/concepts/knowledge-graph",
+  },
 };
 
 export default function KnowledgeGraphPage() {
