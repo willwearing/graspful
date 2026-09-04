@@ -48,6 +48,9 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Install npm with trusted publishing support
+        run: npm install --global npm@11.8.0
+
       - run: bun install
 
       - name: Determine target
@@ -106,8 +109,6 @@ jobs:
           else
             npm publish --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @graspful/mcp
         if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'mcp') && github.event.inputs.dry_run != 'true'
@@ -119,8 +120,6 @@ jobs:
           else
             npm publish --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Dry run — CLI
         if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli') && github.event.inputs.dry_run == 'true'
