@@ -81,6 +81,10 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: {
       canonical: `https://${canonicalHost}`,
     },
+    verification:
+      surface === "platform"
+        ? { google: "lsbPz9jWgrYXZhVd0aGZypdWNNjrbDgMt3kIADeEtMY" }
+        : undefined,
   };
 }
 
