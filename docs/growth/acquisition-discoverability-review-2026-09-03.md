@@ -446,15 +446,21 @@ Success criteria:
 | `llms.txt` | HTTP 200 in E2E and `text/markdown` content type |
 | Homepage experiment control | Existing unit coverage passed; experiment code was unchanged |
 
-CI and production verification will be added after the pull request deploys.
+## Production verification
+
+- [PR #129](https://github.com/willwearing/graspful/pull/129) merged the acquisition and discoverability improvements. Its full CI suite and production deployment passed.
+- [PR #130](https://github.com/willwearing/graspful/pull/130) fixed CLI and MCP analytics delivery and identity continuity. PostHog received the labeled `course scaffolded` validation event from the built CLI through `posthog-node`.
+- [PR #131](https://github.com/willwearing/graspful/pull/131) added the Google Search Console verification token. The token is live on `https://graspful.ai/`, Google verified ownership, and the resubmitted sitemap reports 24 discovered pages.
+- Bing Webmaster Tools imported the verified property. The canonical sitemap has 24 discovered URLs and entered processing with no errors or warnings. Bing reports four known sitemaps and 40 discovered URLs across the main site and public academies.
+- [PR #132](https://github.com/willwearing/graspful/pull/132) moved CLI and MCP releases to npm Trusted Publishing and preserved their executable mappings. The [release workflow](https://github.com/willwearing/graspful/actions/runs/33888729227) published `@graspful/cli@0.2.7` and `@graspful/mcp@0.2.5` successfully.
+- A clean registry install created both `graspful` and `graspful-mcp` executables. The installed CLI reported version `0.2.7`; the installed MCP package reported version `0.2.5`.
 
 ## Remaining access blockers
 
-- Google Search Console: Required for actual queries, impressions, click-through rate, selected canonicals, index status, and Core Web Vitals field data.
-- Bing Webmaster Tools: Required for Bing discovery and index diagnostics.
+- Google Search Console needs time to process the newly verified property before query, index, selected canonical, and Core Web Vitals reports become available.
+- Bing needs time to process the newly submitted canonical sitemap.
 - A paid keyword data source or Google Ads Keyword Planner: Required for reliable query-volume and difficulty estimates.
 - Backlink index access: Required for a complete domain-authority and referring-domain comparison.
-- Production CLI and MCP environment visibility: Required to confirm why activation events remain absent.
 - Consent and customer assets: Required for case studies, academy links, screenshots, and customer proof.
 
 ## Reference pages
@@ -463,5 +469,7 @@ CI and production verification will be added after the pull request deploys.
 - Production documentation: [Graspful docs](https://graspful.ai/docs)
 - PostHog dashboard: [Acquisition and creator conversion](https://us.posthog.com/project/345138/dashboard/2063181)
 - Active experiment: [Homepage product proof](https://us.posthog.com/project/345138/experiments/460864)
+- npm CLI package: [@graspful/cli](https://www.npmjs.com/package/@graspful/cli)
+- npm MCP package: [@graspful/mcp](https://www.npmjs.com/package/@graspful/mcp)
 - Existing SEO plan: [`docs/growth/seo-growth-plan.md`](./seo-growth-plan.md)
 - Existing experiment plan: [`docs/growth/landing-page-experiment-plan.md`](./landing-page-experiment-plan.md)
