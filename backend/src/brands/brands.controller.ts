@@ -10,8 +10,10 @@ import {
   Logger,
   UseGuards,
 } from '@nestjs/common';
-import { SupabaseAuthGuard, JwtOrApiKeyGuard } from '@/auth';
+import { SupabaseAuthGuard, JwtOrApiKeyGuard, CurrentUser } from '@/auth';
+import type { AuthUser } from '@/auth';
 import { BrandsService } from './brands.service';
+import { BrandAccessService } from './brand-access.service';
 import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
@@ -22,6 +24,7 @@ export class BrandsController {
 
   constructor(
     private readonly brandsService: BrandsService,
+    private readonly brandAccess: BrandAccessService,
     private readonly vercelDomainsService: VercelDomainsService,
   ) {}
 
@@ -52,7 +55,12 @@ export class BrandsController {
 
   @Post()
   @UseGuards(JwtOrApiKeyGuard)
-  async create(@Body() dto: CreateBrandDto) {
+  async create(@Body() dto: CreateBrandDto, @CurrentUser() user: AuthUser) {
+    // The caller must own the org they are claiming, and may not take over a
+    // slug that already belongs to a different org.
+    await this.brandAccess.assertCanManageOrg(user.userId, dto.orgSlug);
+    await this.brandAccess.assertSlugAvailableToOrg(dto.slug, dto.orgSlug);
+
     const brand = await this.brandsService.upsert(dto);
 
     // Provision the normalized domain on Vercel (brand.domain has the
@@ -96,13 +104,19 @@ export class BrandsController {
 
   @Patch(':slug')
   @UseGuards(SupabaseAuthGuard)
-  async update(@Param('slug') slug: string, @Body() dto: UpdateBrandDto) {
+  async update(
+    @Param('slug') slug: string,
+    @Body() dto: UpdateBrandDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    await this.brandAccess.assertCanManageBrand(user.userId, slug);
     return this.brandsService.update(slug, dto);
   }
 
   @Delete(':slug')
   @UseGuards(SupabaseAuthGuard)
-  async delete(@Param('slug') slug: string) {
+  async delete(@Param('slug') slug: string, @CurrentUser() user: AuthUser) {
+    await this.brandAccess.assertCanManageBrand(user.userId, slug);
     return this.brandsService.delete(slug);
   }
 
