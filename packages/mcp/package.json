@@ -5,12 +5,12 @@
   "keywords": ["mcp", "mcp-server", "graspful", "course", "course-creation", "adaptive-learning", "ai-agent", "knowledge-graph", "spaced-repetition", "edtech", "education", "yaml", "lms", "model-context-protocol"],
   "repository": {
     "type": "git",
-    "url": "https://github.com/willwearing/graspful.git",
+    "url": "git+https://github.com/willwearing/graspful.git",
     "directory": "packages/mcp"
   },
   "homepage": "https://graspful.ai",
   "bin": {
-    "graspful-mcp": "./dist/index.js"
+    "graspful-mcp": "dist/index.js"
   },
   "main": "./dist/index.js",
   "files": ["dist"],
