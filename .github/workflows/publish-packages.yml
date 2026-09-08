@@ -75,7 +75,7 @@ jobs:
             sed -i "s|\"workspace:\\*\"|\"^${SHARED_VERSION}\"|g" "$pkg"
           done
 
-      - name: Build and publish @graspful/shared
+      - name: Build @graspful/shared
         run: cd packages/shared && bun run build
 
       - name: Publish @graspful/shared
@@ -88,9 +88,6 @@ jobs:
           else
             npm publish --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Build CLI
         if: steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli'
         run: cd packages/cli && bun run build
