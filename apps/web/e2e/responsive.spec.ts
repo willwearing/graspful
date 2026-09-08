@@ -30,7 +30,7 @@ test.describe("Mobile responsive design", () => {
   test("pricing page renders on mobile viewport", async ({ page }) => {
     await page.goto("/pricing");
     await expect(page.locator("#pricing")).toBeVisible();
-    await expect(page.getByText(/\$\d+|70\/30/).first()).toBeVisible();
+    await expect(page.getByText("Paid subscriptions are not available yet.", { exact: true })).toBeVisible();
   });
 
   test("no horizontal overflow on mobile", async ({ page }) => {

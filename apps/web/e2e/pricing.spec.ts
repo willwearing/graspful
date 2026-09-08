@@ -1,47 +1,14 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Pricing page", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("/pricing");
+  test.beforeEach(async ({ page }) => { await page.goto("/pricing"); });
+  test("shows free account access and paid billing availability", async ({ page }) => {
+    await expect(page.locator("#pricing h1")).toHaveText("Start with a free account");
+    await expect(page.getByText("Paid subscriptions are not available yet.", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: /monthly|yearly|trial/i })).toHaveCount(0);
   });
-
-  test("renders pricing heading and plan details", async ({ page }) => {
-    await expect(page.locator("#pricing h1")).toBeVisible();
-    const priceSignals = page.getByText(/\$\d+|70\/30/);
-    await expect(priceSignals.first()).toBeVisible();
+  test("free account CTA links to sign-up", async ({ page }) => {
+    await expect(page.locator("#pricing").getByRole("link", { name: "Create free account" })).toHaveAttribute("href", /\/sign-up/);
   });
-
-  test("pricing controls or creator plan cards render", async ({ page }) => {
-    const monthlyToggle = page.getByRole("button", { name: /monthly/i });
-    const yearlyToggle = page.getByRole("button", { name: /yearly/i });
-
-    if ((await monthlyToggle.count()) > 0 || (await yearlyToggle.count()) > 0) {
-      const priceElement = page.getByText(/\$\d+/).first();
-      await expect(priceElement).toBeVisible();
-      await yearlyToggle.click();
-      await expect(page.getByText(/\$\d+/).first()).toBeVisible();
-      await monthlyToggle.click();
-      await expect(page.getByText(/\$\d+/).first()).toBeVisible();
-      return;
-    }
-
-    const signUpCtas = page.locator('#pricing a[href="/sign-up"]');
-    expect(await signUpCtas.count()).toBeGreaterThanOrEqual(2);
-  });
-
-  test("CTA button links to sign-up", async ({ page }) => {
-    const ctaLinks = page.getByRole("link", {
-      name: /free trial|get started|start building|start earning|start learning/i,
-    });
-    const count = await ctaLinks.count();
-    expect(count).toBeGreaterThanOrEqual(1);
-
-    const href = await ctaLinks.first().getAttribute("href");
-    expect(href).toMatch(/\/sign-up/);
-  });
-
-  test("has page-specific meta title", async ({ page }) => {
-    const title = await page.title();
-    expect(title.toLowerCase()).toContain("pricing");
-  });
+  test("has page-specific meta title", async ({ page }) => { await expect(page).toHaveTitle(/pricing/i); });
 });

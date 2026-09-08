@@ -1,26 +1,32 @@
-# Brand YAML Files
+# Brand YAML files
 
-Brand configurations define white-label landing pages, themes, pricing, and SEO for Graspful-powered courses.
+Brand configuration defines landing-page copy, theme, SEO, and course scope for Graspful courses. Pricing fields are configuration values. Paid subscriptions and creator payouts require billing setup and verification before customer use.
 
 ## Format
 
-Each `.yaml` file defines a complete brand. See `packages/shared/src/schemas/brand-yaml.schema.ts` for the full Zod schema.
+Each `.yaml` file defines a brand. See the [Zod schema](../../packages/shared/src/schemas/brand-yaml.schema.ts) for the supported fields.
 
-## CLI Usage
+The checked-in YAML files and [frontend defaults](../../apps/web/src/lib/brand/defaults.ts) contain matching landing-page copy. Update both when changing default copy. Imported brand configuration is stored separately and must be updated through an import.
+
+Use claims that the course content and product behavior support. Check the course outline before claiming exam coverage. Publish customer counts, outcome rates, and study-time estimates only when evidence is available.
+
+## CLI usage
 
 ```bash
-# Validate a brand YAML
+# Validate a brand file.
 graspful validate brand.yaml
 
-# Import (create/update) a brand
+# Import the configuration after authentication.
 graspful import brand.yaml
 
-# Generate a new brand from a niche
-graspful create brand --niche "Kubernetes certification"
+# Create a draft brand file, then edit its copy and configuration.
+graspful create brand --niche "Kubernetes certification" -o brand.yaml
 ```
 
-## Theme Presets
+A generated brand file needs review. Set its organization, course scope, copy, and theme for the intended course. A custom domain also needs DNS and hosting configuration.
 
-Available presets: blue, red, green, orange, purple, slate, emerald, rose, amber, indigo
+## Theme presets
 
-Use `theme.preset` instead of specifying individual HSL color values.
+Available presets: blue, red, green, orange, purple, slate, emerald, rose, amber, indigo.
+
+Use `theme.preset` to select a palette, or specify the supported color fields.

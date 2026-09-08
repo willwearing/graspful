@@ -34,6 +34,7 @@ export class StudentModelController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
+    await this.studentState.assertAssessmentAccess(org.userId, org.orgId, courseId);
     return this.studentState.getConceptStates(org.userId, courseId);
   }
 
@@ -42,6 +43,7 @@ export class StudentModelController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
+    await this.studentState.assertAssessmentAccess(org.userId, org.orgId, courseId);
     return this.sectionExamService.getSectionStates(org.userId, courseId);
   }
 
@@ -50,6 +52,7 @@ export class StudentModelController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
+    await this.studentState.assertAssessmentAccess(org.userId, org.orgId, courseId);
     const [profile, sectionStates] = await Promise.all([
       this.studentState.getProfileSummary(org.userId, courseId),
       this.sectionExamService.getSectionStates(org.userId, courseId),

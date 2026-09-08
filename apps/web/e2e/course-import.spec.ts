@@ -6,34 +6,33 @@ import {
   type ApiTestContext,
 } from "./helpers/api-auth";
 
-/** Minimal valid course YAML for testing import/review. */
+/** Complete authored content for draft, review, publication, and replacement tests. */
 function makeTestCourseYaml(slug: string): string {
   return `
 course:
   id: ${slug}
   name: "E2E Test Course ${slug}"
-  description: "A minimal course for e2e testing."
+  description: "Add whole numbers and use subtraction to check a sum."
   estimatedHours: 1
   version: "1.0"
 
 concepts:
   - id: concept-alpha
-    name: "Alpha Concept"
+    name: "Addition"
     difficulty: 1
     estimatedMinutes: 5
     tags: [test]
     knowledgePoints:
       - id: kp-alpha-1
         instruction: >-
-          Basic trivia across three everyday topics: arithmetic addition,
-          sky colour, and water chemistry. Addition combines numbers into a
-          sum. The sky looks blue because of Rayleigh scattering. Water is
-          a compound made of hydrogen and oxygen atoms.
+          Addition combines two amounts into a sum. Start with the first
+          number, then count forward by the second number. Adding zero
+          leaves the first number unchanged. A missing addend is the amount
+          you must add to the known addend to reach the sum.
         workedExample: >-
-          Example addition — 1 plus 1 equals 2, the second option. Example
-          colour fact — the sky appears blue because sunlight scatters off
-          atmosphere molecules. Example chemistry — water, also written H2O,
-          is hydrogen bonded to oxygen.
+          To add 4 and 5, start at 4 and count five steps: 5, 6, 7, 8, 9.
+          The sum is 9. In 4 plus a missing number equals 9, the missing
+          addend is 5. Adding zero to 4 leaves the sum at 4.
         problems:
           - id: p-alpha-1
             type: multiple_choice
@@ -41,19 +40,22 @@ concepts:
             options: ["1", "2", "3", "4"]
             correct: 1
             explanation: "Basic addition: 1 + 1 = 2."
+            difficulty: 1
           - id: p-alpha-2
             type: true_false
-            question: "The sky appears blue because of Rayleigh scattering."
-            correct: "true"
-            explanation: "Sunlight scattering off the atmosphere makes the sky look blue."
+            question: "Adding zero increases a whole number."
+            correct: "false"
+            explanation: "Adding zero takes no counting steps, so the number stays unchanged."
+            difficulty: 2
           - id: p-alpha-3
             type: fill_blank
-            question: "Water is a compound of hydrogen and ___."
-            correct: "oxygen"
-            explanation: "Water (H2O) combines hydrogen and oxygen atoms."
+            question: "If a sum is 9 and one addend is 4, the missing addend is ___."
+            correct: "5"
+            explanation: "Count five steps from 4 to reach 9, so the missing addend is 5."
+            difficulty: 3
 
   - id: concept-beta
-    name: "Beta Concept"
+    name: "Subtraction"
     difficulty: 2
     estimatedMinutes: 10
     tags: [test]
@@ -61,31 +63,34 @@ concepts:
     knowledgePoints:
       - id: kp-beta-1
         instruction: >-
-          More trivia across familiar topics: arithmetic addition, the
-          solar system, and chemical symbols. Addition also covers 2 plus 2.
-          The Earth orbits the Sun once per year. Gold, a metal, uses the
-          chemical symbol Au from the Latin word "aurum".
+          Subtraction finds how much remains after an amount is removed.
+          Start with the total and count backward by the amount removed.
+          Subtracting zero leaves the total unchanged. Check a subtraction
+          by adding the remaining amount and the removed amount.
         workedExample: >-
-          Example addition — 2 plus 2 equals 4. Example orbit fact — Earth
-          travels around the Sun in roughly 365 days. Example chemical
-          symbol — gold is Au on the periodic table, derived from aurum.
+          Start with 9 counters and remove 4 counters. Five counters remain,
+          so 9 minus 4 is 5. Check the result by adding 5 and 4 to get 9.
+          Removing zero counters from a group of 9 leaves all 9 counters.
         problems:
           - id: p-beta-1
             type: multiple_choice
-            question: "What is 2 + 2 in basic addition?"
-            options: ["2", "3", "4", "5"]
+            question: "What remains when you subtract 4 from 9?"
+            options: ["3", "4", "5", "6"]
             correct: 2
-            explanation: "Basic addition: 2 + 2 = 4."
+            explanation: "Removing 4 from 9 leaves 5. Counting backward gives 8, 7, 6, 5."
+            difficulty: 1
           - id: p-beta-2
             type: true_false
-            question: "The Earth orbits the Sun once per year."
+            question: "Subtracting zero from 9 leaves 9."
             correct: "true"
-            explanation: "Earth completes one orbit of the Sun in ~365 days."
+            explanation: "Subtracting zero removes nothing, so the total stays at 9."
+            difficulty: 2
           - id: p-beta-3
             type: fill_blank
-            question: "The chemical symbol for gold, from the Latin aurum, is ___."
-            correct: "Au"
-            explanation: "Gold uses Au as its chemical symbol, from aurum."
+            question: "To check that 9 minus 4 is 5, add 5 and 4. The sum must be ___."
+            correct: "9"
+            explanation: "A subtraction check restores the original total: 5 plus 4 equals 9."
+            difficulty: 3
 `.trim();
 }
 
@@ -128,9 +133,9 @@ test.describe("Course Import", () => {
     );
 
     expect(status).toBe(201);
-    expect(body.passed).toBeDefined();
-    expect(typeof body.passed).toBe("boolean");
-    expect(body.score).toBeTruthy();
+    expect(body.passed, JSON.stringify(body.failures)).toBe(true);
+    expect(body.score).toBe("10/10");
+    expect(body.failures).toEqual([]);
     expect(body.stats).toBeDefined();
     expect(body.stats.concepts).toBe(2);
     expect(body.stats.kps).toBe(2);
@@ -149,9 +154,10 @@ test.describe("Course Import", () => {
 
     expect(status).toBe(201);
     expect(body.courseId).toBeTruthy();
+    expect(body.published).toBe(true);
     expect(body.review).toBeDefined();
-    expect(body.review.passed).toBeDefined();
-    expect(body.review.score).toBeTruthy();
+    expect(body.review.passed, JSON.stringify(body.review.failures)).toBe(true);
+    expect(body.review.score).toBe("10/10");
   });
 
   test("publish draft course", async () => {
@@ -179,6 +185,49 @@ test.describe("Course Import", () => {
     expect(pubRes.body.review.passed).toBe(true);
   });
 
+  test("incomplete content stays draft when imported or published", async () => {
+    const slug = `e2e-unfinished-${Date.now()}`;
+    const yaml = `course:
+  id: ${slug}
+  name: "Unfinished arithmetic course"
+  estimatedHours: 1
+  version: "1.0"
+concepts:
+  - id: addition
+    name: "Addition"
+    difficulty: 1
+    estimatedMinutes: 5
+    knowledgePoints: []
+`;
+    const imported = await apiPost(
+      ctx,
+      `/orgs/${ctx.orgId}/courses/import`,
+      { yaml, publish: true },
+    );
+    expect(imported.status).toBe(201);
+    expect(imported.body.courseId).toBeTruthy();
+    expect(imported.body.published).toBe(false);
+    expect(imported.body.review.passed).toBe(false);
+    expect(imported.body.reviewFailures).toEqual(expect.arrayContaining([
+      expect.objectContaining({ check: "publication_readiness", passed: false }),
+    ]));
+
+    const published = await apiPost(
+      ctx,
+      `/orgs/${ctx.orgId}/courses/${imported.body.courseId}/publish`,
+      {},
+    );
+    expect(published.status).toBe(201);
+    expect(published.body.published).toBe(false);
+    expect(published.body.review.passed).toBe(false);
+
+    const listed = await apiGet(ctx, `/orgs/${ctx.orgId}/courses`);
+    expect(listed.status).toBe(200);
+    const course = listed.body.find((item: { id: string }) => item.id === imported.body.courseId);
+    expect(course).toBeTruthy();
+    expect(course.isPublished).toBe(false);
+  });
+
   test("invalid YAML returns validation error", async () => {
     const { status } = await apiPost(
       ctx,
@@ -186,7 +235,6 @@ test.describe("Course Import", () => {
       { yaml: "this is not: [valid: course: yaml" }
     );
 
-    // Should return a 400 or 500 error, not 200/201
-    expect(status).toBeGreaterThanOrEqual(400);
+    expect(status).toBe(400);
   });
 });

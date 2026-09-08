@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 import {
+  getBrowserAccessToken,
   getSupabaseUserIdByEmail,
   POSTHOG_TEST_BRAND_ID,
   signUpBrandedTestUser,
@@ -8,6 +9,16 @@ import {
 
 const ORG_SLUG = "posthog-tam";
 const prisma = new PrismaClient();
+
+async function enrollInCourse(page: Page, courseId: string) {
+  const token = await getBrowserAccessToken(page);
+  expect(token).toBeTruthy();
+  const response = await page.request.post(
+    `http://localhost:3000/api/v1/orgs/${ORG_SLUG}/courses/${courseId}/enroll`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  expect(response.ok(), await response.text()).toBe(true);
+}
 
 async function grantLearnerMembership(email: string) {
   const userId = await getSupabaseUserIdByEmail(email);
@@ -101,8 +112,12 @@ test.describe("Course browsing (authenticated)", () => {
     await expect(page.getByText("Take Diagnostic")).toBeVisible();
   });
 
-  test("course detail page shows progress summary", async ({ page }) => {
+  test("course detail page shows progress after enrollment", async ({ page }) => {
     const firstCourse = await getFirstBrowseCourseCard(page);
+    const href = await firstCourse.getAttribute("href");
+    expect(href).toMatch(/^\/browse\/[^/]+$/);
+    const courseId = href!.slice("/browse/".length);
+    await enrollInCourse(page, courseId);
     await firstCourse.click();
 
     // Should show progress section
@@ -137,10 +152,9 @@ test.describe("Dashboard features (authenticated)", () => {
 
   test("dashboard browse courses link works", async ({ page }) => {
     const browseLink = page.getByRole("link", { name: /browse/i }).first();
-    if (await browseLink.isVisible()) {
-      await browseLink.click();
-      await expect(page).toHaveURL(/\/browse/);
-    }
+    await expect(browseLink).toBeVisible();
+    await browseLink.click();
+    await expect(page).toHaveURL(/\/browse/);
   });
 });
 
@@ -150,34 +164,34 @@ test.describe("Study and diagnostic routes (authenticated)", () => {
     await grantLearnerMembership(email);
   });
 
-  test("study route loads without error for a valid course", async ({
+  test("study route sends an enrolled learner to a real lesson", async ({
     page,
   }) => {
     const firstCourse = await getFirstBrowseCourseCard(page);
     const href = await firstCourse.getAttribute("href");
-    const courseId = href?.replace("/browse/", "");
-    expect(courseId).toBeTruthy();
+    expect(href).toMatch(/^\/browse\/[^/]+$/);
+    const courseId = href!.slice("/browse/".length);
+    await enrollInCourse(page, courseId);
 
     await page.goto(`/study/${courseId}`);
-    // Should not show a server error
-    await expect(page.locator("body")).not.toContainText("500");
-    await expect(page.locator("body")).not.toContainText(
-      "Internal Server Error"
-    );
+    await expect(page).toHaveURL(new RegExp(`/study/${courseId}/lesson/[^/?]+`));
+    await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeVisible();
+    await expect(page.getByRole("main").getByRole("heading", { level: 2 })).toBeVisible();
   });
 
-  test("diagnostic route loads without error for a valid course", async ({
+  test("diagnostic route shows a question and answer controls", async ({
     page,
   }) => {
     const firstCourse = await getFirstBrowseCourseCard(page);
     const href = await firstCourse.getAttribute("href");
-    const courseId = href?.replace("/browse/", "");
+    expect(href).toMatch(/^\/browse\/[^/]+$/);
+    const courseId = href!.slice("/browse/".length);
 
     await page.goto(`/diagnostic/${courseId}`);
-    await expect(page.locator("body")).not.toContainText("500");
-    await expect(page.locator("body")).not.toContainText(
-      "Internal Server Error"
-    );
+    await expect(page.getByRole("heading", { name: "Diagnostic Assessment" })).toBeVisible();
+    await expect(page.getByText(/^Question 1 of/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "I don't know this yet", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Submit Answer", exact: true })).toBeVisible();
   });
 
   test.afterAll(async () => {

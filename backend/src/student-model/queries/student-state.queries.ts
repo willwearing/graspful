@@ -1,6 +1,52 @@
 import { PrismaService } from '@/prisma/prisma.service';
 import { activeConceptWhere, activeSectionWhere } from '@/knowledge-graph/active-course-content';
-import { MasteryState } from '@prisma/client';
+import { MasteryState, Prisma } from '@prisma/client';
+
+export async function loadAcademyAccess(
+  prisma: PrismaService,
+  userId: string,
+  orgId: string,
+  academyId: string,
+) {
+  return prisma.academy.findFirst({
+    where: {
+      id: academyId,
+      orgId,
+      archivedAt: null,
+      org: { isActive: true },
+      enrollments: { some: { userId } },
+    },
+    select: { id: true, orgId: true },
+  });
+}
+
+/** Read the enrollment and content boundary together before assessment writes. */
+export async function loadAssessmentAccess(
+  prisma: PrismaService,
+  userId: string,
+  orgId: string,
+  courseId: string,
+  conceptId?: string,
+  sectionId?: string,
+) {
+  return prisma.course.findFirst({
+    where: {
+      id: courseId,
+      orgId,
+      archivedAt: null,
+      isPublished: true,
+      org: { isActive: true },
+      academy: { orgId, archivedAt: null },
+      OR: [
+        { enrollments: { some: { userId } } },
+        { academy: { enrollments: { some: { userId } } } },
+      ],
+      ...(conceptId ? { concepts: { some: activeConceptWhere({ id: conceptId }) } } : {}),
+      ...(sectionId ? { sections: { some: activeSectionWhere({ id: sectionId }) } } : {}),
+    },
+    select: { academyId: true },
+  });
+}
 
 export async function loadConceptStatesForCourse(
   prisma: PrismaService,
@@ -10,7 +56,7 @@ export async function loadConceptStatesForCourse(
   return prisma.studentConceptState.findMany({
     where: {
       userId,
-      concept: activeConceptWhere({ courseId }),
+      concept: activeConceptWhere({ courseId, course: { isPublished: true, archivedAt: null } }),
     },
     include: { concept: true },
   });
@@ -25,7 +71,7 @@ export async function loadConceptStatesForAcademy(
     where: {
       userId,
       concept: activeConceptWhere({
-        course: { academyId },
+        course: { academyId, isPublished: true, archivedAt: null },
       }),
     },
     include: { concept: true },
@@ -41,7 +87,7 @@ export async function loadConceptStatesForAcademyCourse(
   return prisma.studentConceptState.findMany({
     where: {
       userId,
-      concept: activeConceptWhere({ courseId, course: { academyId } }),
+      concept: activeConceptWhere({ courseId, course: { academyId, isPublished: true, archivedAt: null } }),
     },
     include: { concept: true },
   });
@@ -55,7 +101,7 @@ export async function loadAcademyCourseMasterySummary(
   const states = await prisma.studentConceptState.findMany({
     where: {
       userId,
-      concept: activeConceptWhere({ course: { academyId } }),
+      concept: activeConceptWhere({ course: { academyId, isPublished: true, archivedAt: null } }),
     },
     select: {
       conceptId: true,
@@ -96,7 +142,7 @@ export async function loadMasteryMapForCourse(
   const states = await prisma.studentConceptState.findMany({
     where: {
       userId,
-      concept: activeConceptWhere({ courseId }),
+      concept: activeConceptWhere({ courseId, course: { isPublished: true, archivedAt: null } }),
     },
     select: { conceptId: true, masteryState: true, memory: true },
   });
@@ -113,7 +159,7 @@ export async function loadMasteryMapForAcademy(
     where: {
       userId,
       concept: activeConceptWhere({
-        course: { academyId },
+        course: { academyId, isPublished: true, archivedAt: null },
       }),
     },
     select: { conceptId: true, masteryState: true, memory: true },
@@ -123,7 +169,7 @@ export async function loadMasteryMapForAcademy(
 }
 
 export async function loadConceptState(
-  prisma: PrismaService,
+  prisma: Prisma.TransactionClient,
   userId: string,
   conceptId: string,
 ) {
@@ -148,7 +194,7 @@ export async function loadConceptStateWithConcept(
 }
 
 export async function loadConceptMemory(
-  prisma: PrismaService,
+  prisma: Prisma.TransactionClient,
   userId: string,
   conceptId: string,
 ): Promise<number> {
@@ -161,7 +207,7 @@ export async function loadConceptMemory(
 }
 
 export async function loadKPState(
-  prisma: PrismaService,
+  prisma: Prisma.TransactionClient,
   userId: string,
   knowledgePointId: string,
 ) {
@@ -171,7 +217,7 @@ export async function loadKPState(
 }
 
 export async function loadKPStatesForIds(
-  prisma: PrismaService,
+  prisma: Prisma.TransactionClient,
   userId: string,
   knowledgePointIds: string[],
 ) {
@@ -209,12 +255,14 @@ export async function countMasteredConcepts(
   userId: string,
   filter: { courseId?: string; academyId?: string },
 ): Promise<number> {
-  const baseWhere: Record<string, unknown> = {};
+  const baseWhere: Prisma.ConceptWhereInput = {
+    course: { isPublished: true, archivedAt: null },
+  };
   if (filter.courseId) {
     baseWhere.courseId = filter.courseId;
   }
   if (filter.academyId) {
-    baseWhere.course = { academyId: filter.academyId };
+    baseWhere.course = { academyId: filter.academyId, isPublished: true, archivedAt: null };
   }
 
   return prisma.studentConceptState.count({
@@ -227,7 +275,7 @@ export async function countMasteredConcepts(
 }
 
 export async function loadSectionState(
-  prisma: PrismaService,
+  prisma: Prisma.TransactionClient,
   userId: string,
   sectionId: string,
 ) {
@@ -246,6 +294,7 @@ export async function loadSectionStatesForCourse(
     where: {
       userId,
       courseId,
+      course: { isPublished: true, archivedAt: null },
       section: activeSectionWhere(),
     },
     select: {
@@ -263,7 +312,7 @@ export async function loadSectionStatesForAcademy(
   return prisma.studentSectionState.findMany({
     where: {
       userId,
-      course: { academyId },
+      course: { academyId, isPublished: true, archivedAt: null },
       section: activeSectionWhere(),
     },
     select: {
@@ -278,14 +327,14 @@ export async function loadSectionStatesForAcademy(
 }
 
 export async function loadConceptStatesForFIRe(
-  prisma: PrismaService,
+  prisma: Prisma.TransactionClient,
   userId: string,
   academyId: string,
 ) {
   return prisma.studentConceptState.findMany({
     where: {
       userId,
-      concept: activeConceptWhere({ course: { academyId } }),
+      concept: activeConceptWhere({ course: { academyId, isPublished: true, archivedAt: null } }),
     },
     select: {
       conceptId: true,
@@ -305,7 +354,7 @@ export async function loadConceptStatesForDecay(
     where: {
       userId,
       concept: activeConceptWhere({
-        course: { academyId },
+        course: { academyId, isPublished: true, archivedAt: null },
       }),
       masteryState: { not: 'unstarted' },
       lastPracticedAt: { not: null },

@@ -191,6 +191,33 @@ describe('DiagnosticSessionService', () => {
       expect(result.isComplete).toBe(false);
     });
 
+    it.each([
+      ['its course is no longer published', [], 'c1'],
+      ['its problem was moved to a hidden concept', [{ id: 'c1', courseId }], 'hidden-concept'],
+    ])('refuses to resume a stored question when %s', async (_reason, visibleConcepts, problemConceptId) => {
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
+        id: 'e1',
+        diagnosticCompleted: false,
+      });
+      mockPrisma.diagnosticSession.findFirst.mockResolvedValue({
+        id: sessionId,
+        userId,
+        courseId,
+        academyId,
+        orgId,
+        status: 'in_progress',
+        currentConceptId: 'c1',
+        currentProblem: makeProblem({ knowledgePoint: { conceptId: problemConceptId } }),
+        updatedAt: new Date(),
+      });
+      mockPrisma.concept.findMany.mockResolvedValue(visibleConcepts);
+
+      await expect(service.startDiagnostic(orgId, userId, academyId))
+        .rejects.toThrow('Diagnostic content is no longer available');
+      expect(mockPrisma.problem.findMany).not.toHaveBeenCalled();
+      expect(mockPrisma.diagnosticSession.create).not.toHaveBeenCalled();
+    });
+
     it('should abandon stale session and start fresh', async () => {
       mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         id: 'e1',
@@ -307,6 +334,61 @@ describe('DiagnosticSessionService', () => {
 
       // With only 1 concept, should complete after answering
       expect(result.isComplete).toBe(true);
+    });
+
+    it.each([
+      ['its course is no longer published', [], 'c1'],
+      ['its problem was moved to a hidden concept', [{ id: 'c1', courseId }], 'hidden-concept'],
+    ])('rejects an answer to a stored question when %s', async (_reason, visibleConcepts, problemConceptId) => {
+      mockPrisma.diagnosticSession.findUnique.mockResolvedValue({
+        id: sessionId,
+        userId,
+        courseId,
+        academyId,
+        orgId,
+        status: 'in_progress',
+        currentConceptId: 'c1',
+        currentProblem: makeProblem({ knowledgePoint: { conceptId: problemConceptId } }),
+        masterySnapshots: [{ conceptId: 'c1', pL: 0.5, tested: false }],
+      });
+      mockPrisma.concept.findMany.mockResolvedValue(visibleConcepts);
+
+      await expect(service.submitAnswer(sessionId, userId, {
+        answer: 'A',
+        responseTimeMs: 5000,
+      })).rejects.toThrow('Diagnostic content is no longer available');
+      expect(mockPrisma.problemAttempt.create).not.toHaveBeenCalled();
+      expect(mockPrisma.diagnosticMasterySnapshot.upsert).not.toHaveBeenCalled();
+      expect(mockStudentState.updateConceptDiagnosticState).not.toHaveBeenCalled();
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it.each([false, true])('excludes stored draft snapshots from selection and completion when tested=%s', async (tested) => {
+      mockPrisma.diagnosticSession.findUnique.mockResolvedValue({
+        id: sessionId, userId, courseId, academyId, orgId,
+        status: 'in_progress', questionCount: 0,
+        currentConceptId: 'c1', currentProblem: makeProblem(), responses: [],
+        masterySnapshots: [
+          { conceptId: 'c1', pL: 0.5, tested: false },
+          { conceptId: 'draft-concept', pL: 0.5, tested },
+        ],
+      });
+      mockPrisma.concept.findMany.mockResolvedValue([{ id: 'c1', difficultyTheta: 0, courseId }]);
+      mockPrisma.prerequisiteEdge.findMany.mockResolvedValue([]);
+      mockPrisma.$transaction.mockResolvedValue([]);
+      mockPrisma.problem.findMany.mockResolvedValue([]);
+
+      const result = await service.submitAnswer(sessionId, userId, {
+        answer: 'A', responseTimeMs: 5000,
+      });
+
+      expect(result.isComplete).toBe(true);
+      expect(mockPrisma.problem.findMany).not.toHaveBeenCalled();
+      expect(mockPrisma.diagnosticMasterySnapshot.upsert).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.diagnosticMasterySnapshot.upsert.mock.calls[0][0].create.conceptId).toBe('c1');
+      expect(mockStudentState.updateConceptDiagnosticState).toHaveBeenCalledTimes(1);
+      expect(mockStudentState.updateConceptDiagnosticState.mock.calls[0][1]).toBe('c1');
+      expect(result).toEqual(expect.objectContaining({ result: expect.objectContaining({ totalConcepts: 1 }) }));
     });
 
     it('should throw NotFoundException for invalid session', async () => {

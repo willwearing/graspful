@@ -4,10 +4,16 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   Min,
 } from 'class-validator';
 
 export class SubmitAnswerDto {
+  /** Keep this UUID unchanged when retrying the same answer request. */
+  @IsOptional()
+  @IsUUID()
+  requestId?: string;
+
   @IsString()
   @IsNotEmpty()
   problemId!: string;
@@ -16,7 +22,7 @@ export class SubmitAnswerDto {
   answer!: unknown;
 
   @IsInt()
-  @Min(0)
+  @Min(1)
   responseTimeMs!: number;
 
   /**

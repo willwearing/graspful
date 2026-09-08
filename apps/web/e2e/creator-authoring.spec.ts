@@ -1,4 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { parse, stringify } from "yaml";
+import { CourseYamlSchema } from "@graspful/shared";
 import {
   signUpAndGetApiContext,
   type ApiTestContext,
@@ -74,6 +77,52 @@ async function setMonacoModelValue(
 }
 
 test.describe("Creator authoring flow", () => {
+  test("the shipped starter downloads as a valid course draft", async ({ page, request }) => {
+    await signUpAndGetApiContext(page, request, "graspful");
+    await page.goto("/creator/manage");
+    await expect(page.getByRole("heading", { name: "New course" })).toBeVisible();
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: "Download YAML" }).click(),
+    ]);
+    const file = await download.path();
+    expect(file).toBeTruthy();
+    const course = CourseYamlSchema.parse(parse(await readFile(file!, "utf8")));
+    expect(course.course.id).toBe("my-course");
+    expect(course.concepts[0].knowledgePoints).toEqual([]);
+  });
+
+  test("brand edits save independently and persist after reload", async ({ page, request }) => {
+    const ctx = await signUpAndGetApiContext(page, request, "graspful");
+    await page.goto("/creator/manage");
+    await page.getByRole("tab", { name: "Brand settings" }).click();
+    await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 20_000 });
+    const brandYaml = await page.evaluate(() => {
+      const monaco = (window as any).monaco;
+      const model = monaco?.editor.getModels().find((item: { getValue: () => string }) => item.getValue().includes("# Settings for"));
+      if (!model) throw new Error("Brand settings editor did not load");
+      return model.getValue() as string;
+    });
+    const settings = parse(brandYaml);
+    settings.tagline = "Brand changes saved through the creator editor.";
+    const updatedYaml = stringify(settings);
+    await setMonacoModelValue(page, "# Settings for", updatedYaml);
+    const [response] = await Promise.all([
+      page.waitForResponse((res) => res.url().endsWith(`/brands/${ctx.orgId}`) && res.request().method() === "PATCH"),
+      page.getByRole("button", { name: "Save brand settings" }).click(),
+    ]);
+    expect(response.ok()).toBeTruthy();
+    expect(response.request().postDataJSON()).toEqual(settings);
+    await expect(page.getByText("Brand settings saved.")).toBeVisible();
+    await page.reload();
+    await page.getByRole("tab", { name: "Brand settings" }).click();
+    await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 20_000 });
+    const persisted = await page.evaluate(() => (window as any).monaco.editor.getModels()
+      .map((model: { getValue: () => string }) => model.getValue()).join("\n"));
+    expect(persisted).toContain(settings.tagline);
+    expect(page.url()).toMatch(/\/creator\/manage$/);
+  });
+
   test("new course UI imports a course and lands on the edit page", async ({
     page,
     request,
@@ -85,14 +134,14 @@ test.describe("Creator authoring flow", () => {
     const yaml = makeUiCourseYaml(slug, title, "Imported through the creator UI.");
 
     await page.goto("/creator/manage");
-    await page.getByRole("tab", { name: "Course Content" }).click();
-    await setMonacoModelValue(page, 'name: "My Course"', yaml);
+    await page.getByRole("tab", { name: "Course content" }).click();
+    await setMonacoModelValue(page, 'name: My course', yaml);
 
-    await page.getByRole("button", { name: /Import to Platform/i }).click();
+    await page.getByRole("button", { name: /Import draft/i }).click();
 
     await page.waitForURL(/\/creator\/manage\//, { timeout: 20_000 });
     await expect(
-      page.getByRole("heading", { name: "Edit Course" }),
+      page.getByRole("heading", { name: "Edit course" }),
     ).toBeVisible();
 
     await page.goto("/creator");
@@ -105,7 +154,7 @@ test.describe("Creator authoring flow", () => {
   }) => {
     const ctx: ApiTestContext = await signUpAndGetApiContext(page, request, "graspful");
     const slug = `ui-edit-${Date.now()}`;
-    const originalTitle = `UI Edit Course ${slug}`;
+    const originalTitle = `UI Edit course ${slug}`;
     const originalDescription = "Original description from the API import.";
     const updatedDescription = "Updated description saved through the UI.";
     const originalYaml = makeUiCourseYaml(slug, originalTitle, originalDescription);
@@ -125,16 +174,22 @@ test.describe("Creator authoring flow", () => {
     const { courseId } = (await importRes.json()) as { courseId: string };
 
     await page.goto(`/creator/manage/${courseId}`);
-    await page.getByRole("tab", { name: "Course Content" }).click();
+    await page.getByRole("tab", { name: "Course content" }).click();
     await setMonacoModelValue(page, originalDescription, updatedYaml);
-    await page.getByRole("button", { name: "Save Changes" }).click();
+    const [response] = await Promise.all([
+      page.waitForResponse((res) => res.url().endsWith(`/orgs/${ctx.orgId}/courses/import`) && res.request().method() === "POST"),
+      page.getByRole("button", { name: "Save course changes" }).click(),
+    ]);
+    expect(response.ok()).toBeTruthy();
+    expect(response.request().postDataJSON()).toEqual({ yaml: updatedYaml, replace: true });
+    expect((await response.json()).courseId).toBe(courseId);
 
-    await expect(page.getByText("Changes saved successfully.")).toBeVisible({
+    await expect(page.getByText("Course changes saved.")).toBeVisible({
       timeout: 15_000,
     });
 
     await page.reload();
-    await page.getByRole("tab", { name: "Course Content" }).click();
+    await page.getByRole("tab", { name: "Course content" }).click();
     await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 20_000 });
 
     const persisted = await page.evaluate(() => {
@@ -160,8 +215,8 @@ test.describe("Creator authoring flow", () => {
     const yaml = makeUiCourseYaml(slug, title, "Downloaded through the creator UI.");
 
     await page.goto("/creator/manage");
-    await page.getByRole("tab", { name: "Course Content" }).click();
-    await setMonacoModelValue(page, 'name: "My Course"', yaml);
+    await page.getByRole("tab", { name: "Course content" }).click();
+    await setMonacoModelValue(page, 'name: My course', yaml);
 
     const [download] = await Promise.all([
       page.waitForEvent("download"),

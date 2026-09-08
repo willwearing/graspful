@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  BadRequestException,
   NotFoundException,
   Logger,
   UseGuards,
@@ -17,6 +18,7 @@ import { BrandAccessService } from './brand-access.service';
 import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
+import { BrandSettingsSchema } from '@graspful/shared';
 
 @Controller('brands')
 export class BrandsController {
@@ -110,6 +112,10 @@ export class BrandsController {
     @CurrentUser() user: AuthUser,
   ) {
     await this.brandAccess.assertCanManageBrand(user.userId, slug);
+    const validation = BrandSettingsSchema.safeParse(dto);
+    if (!validation.success) {
+      throw new BadRequestException(validation.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; '));
+    }
     return this.brandsService.update(slug, dto);
   }
 

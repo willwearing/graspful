@@ -15,9 +15,9 @@ interface FAQProps {
 export function FAQ({ items }: FAQProps) {
   if (!items || items.length === 0) return null;
   return (
-    <section className="mx-auto max-w-3xl px-6 py-24">
+    <section className="mx-auto max-w-3xl px-6 py-14 md:py-20">
       <h2 className="text-center text-3xl font-bold text-foreground mb-12">
-        Frequently Asked Questions
+        Frequently asked questions
       </h2>
       <Accordion className="w-full">
         {items.map((item, i) => (

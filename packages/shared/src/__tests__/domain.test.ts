@@ -313,10 +313,9 @@ describe('runQualityGate', () => {
     expect(alignmentFailure?.details).toMatch(/share no vocabulary/i);
   });
 
-  it('does not fail the teaching-alignment check on a course with stub instructions', () => {
-    // Stub-instruction fixtures (typical of e2e tests and in-progress drafts)
-    // must not trip the teaching-alignment gate. When the KP has almost no
-    // teaching content, the check has nothing to judge against and should skip.
+  it('skips vocabulary alignment for a short draft but blocks its publication', () => {
+    // Short drafts have too little vocabulary for the overlap heuristic.
+    // Publication readiness must still reject their incomplete teaching.
     const stub = JSON.parse(JSON.stringify(MINIMAL_COURSE));
     for (const concept of stub.concepts) {
       for (const kp of concept.knowledgePoints) {
@@ -330,6 +329,8 @@ describe('runQualityGate', () => {
       .find((r: { check: string }) => r.check === 'problem_teaching_alignment');
 
     expect(alignmentCheck).toBeUndefined();
+    expect(result.passed).toBe(false);
+    expect(result.failures.some((failure) => failure.check === 'publication_readiness')).toBe(true);
   });
 
   it('emits a kp_atomicity warning when a KP instruction contains a long parallel list', () => {

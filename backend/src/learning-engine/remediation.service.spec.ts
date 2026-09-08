@@ -104,4 +104,21 @@ describe('RemediationService', () => {
       expect(result).toEqual(new Set(['c2', 'c3']));
     });
   });
+  it('uses the caller transaction for prerequisite reads and remediation writes', async () => {
+    const tx = {
+      course: { findUnique: jest.fn().mockResolvedValue({ academyId: 'academy-1' }) },
+      remediation: {
+        findMany: jest.fn().mockResolvedValue([{ blockedConceptId: 'c2' }]),
+        upsert: jest.fn().mockResolvedValue({ id: 'rem-2' }),
+      },
+    };
+    const result = await service.getBlockedConceptIdsForCourse('u1', 'course-1', tx as any);
+    expect(result).toEqual(new Set(['c2']));
+    await service.createRemediation('u1', 'academy-1', 'c2', 'c1', 'course-1', tx as any);
+    expect(tx.course.findUnique).toHaveBeenCalledTimes(1);
+    expect(tx.remediation.upsert).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.remediation.findMany).not.toHaveBeenCalled();
+    expect(mockPrisma.remediation.upsert).not.toHaveBeenCalled();
+  });
+
 });

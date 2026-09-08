@@ -19,6 +19,8 @@ import {
 import { evaluateAnswer } from './answer-evaluator';
 import { calculateQuizXP } from './xp-calculator';
 import { serializeProblemForClient } from '@/shared/utils/problem-presentation';
+import { AssessmentScopeService } from './assessment-scope.service';
+import { isDeepStrictEqual } from 'node:util';
 
 type SectionExamConfig = {
   enabled?: boolean;
@@ -39,6 +41,7 @@ export class SectionExamService {
     private prisma: PrismaService,
     private xpService: XPService,
     private studentState: StudentStateService,
+    private scope: AssessmentScopeService,
   ) {}
 
   async getReadySectionExam(userId: string, courseId: string) {
@@ -113,7 +116,8 @@ export class SectionExamService {
     );
   }
 
-  async getExamStatus(userId: string, courseId: string, sectionId: string) {
+  async getExamStatus(orgId: string, userId: string, courseId: string, sectionId: string) {
+    await this.scope.assertSection(orgId, userId, courseId, sectionId);
     await this.syncSectionStates(userId, courseId);
 
     const [state, activeSession, latestSession] = await Promise.all([
@@ -165,7 +169,8 @@ export class SectionExamService {
     };
   }
 
-  async startExam(userId: string, courseId: string, sectionId: string) {
+  async startExam(orgId: string, userId: string, courseId: string, sectionId: string) {
+    await this.scope.assertSection(orgId, userId, courseId, sectionId);
     await this.syncSectionStates(userId, courseId);
 
     const section = await this.prisma.courseSection.findFirst({
@@ -330,12 +335,33 @@ export class SectionExamService {
     }
 
     const session = await this.prisma.$transaction(async (tx) => {
+      const currentState = await tx.studentSectionState.update({
+        where: { userId_sectionId: { userId, sectionId } },
+        data: { updatedAt: new Date() },
+      });
+      if (currentState.status !== SectionMasteryState.exam_ready) {
+        throw new BadRequestException('Section exam is no longer available');
+      }
+      const resumed = await tx.sectionExamSession.findFirst({
+        where: { userId, courseId, sectionId, status: ExamSessionStatus.in_progress },
+        include: {
+          questions: {
+            include: { problem: true },
+            orderBy: { sortOrder: 'asc' },
+          },
+        },
+        orderBy: { startedAt: 'desc' },
+      });
+      if (resumed) {
+        return resumed;
+      }
+
       const created = await tx.sectionExamSession.create({
         data: {
           userId,
           courseId,
           sectionId,
-          attemptNumber: state.attempts + 1,
+          attemptNumber: currentState.attempts + 1,
           timeLimitMs: config.timeLimitMinutes * 60 * 1000,
         },
       });
@@ -372,64 +398,80 @@ export class SectionExamService {
   }
 
   async submitAnswer(
+    orgId: string,
     userId: string,
+    courseId: string,
+    sectionId: string,
     sessionId: string,
     problemId: string,
     answer: unknown,
     responseTimeMs: number,
   ) {
-    const session = await this.prisma.sectionExamSession.findUnique({
-      where: { id: sessionId },
-      include: {
-        questions: {
-          where: { problemId },
-          include: { problem: true },
+    await this.scope.assertSection(orgId, userId, courseId, sectionId);
+    if (answer === null || answer === undefined) {
+      throw new BadRequestException('An answer is required');
+    }
+    if (!Number.isInteger(responseTimeMs) || responseTimeMs < 0) {
+      throw new BadRequestException('Response time must be a non-negative integer');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // Serialize answers and completion on the session row. Read questions only
+      // after taking the lock so duplicate requests cannot overwrite an answer.
+      await this.lockSession(tx, userId, courseId, sectionId, sessionId);
+      const session = await tx.sectionExamSession.findUnique({
+        where: { id: sessionId },
+        include: {
+          questions: {
+            where: { problemId },
+            include: { problem: true },
+          },
         },
-      },
-    });
+      });
 
-    if (!session || session.userId !== userId) {
-      throw new NotFoundException('Section exam session not found');
-    }
+      if (!session || session.userId !== userId || session.courseId !== courseId || session.sectionId !== sectionId) {
+        throw new NotFoundException('Section exam session not found');
+      }
+      const question = session.questions[0];
+      if (!question) {
+        throw new NotFoundException('Problem not found in this section exam');
+      }
+      if (question.response !== null) {
+        if (!isDeepStrictEqual(question.response, answer)) {
+          throw new BadRequestException('Problem already answered');
+        }
+        const questions = await tx.sectionExamQuestion.findMany({
+          where: { sessionId },
+          select: { response: true },
+        });
+        return {
+          answeredCount: questions.filter((item) => item.response !== null).length,
+          totalProblems: questions.length,
+        };
+      }
+      if (session.status !== ExamSessionStatus.in_progress) {
+        throw new BadRequestException('Section exam session is already complete');
+      }
+      if (this.hasExpired(session)) {
+        throw new BadRequestException('Section exam time has expired');
+      }
 
-    if (session.status !== ExamSessionStatus.in_progress) {
-      throw new BadRequestException('Section exam session is already complete');
-    }
-
-    const question = session.questions[0];
-    if (!question) {
-      throw new NotFoundException('Problem not found in this section exam');
-    }
-
-    if (question.response !== null) {
-      throw new BadRequestException('Problem already answered');
-    }
-
-    if (
-      session.timeLimitMs &&
-      Date.now() - session.startedAt.getTime() > session.timeLimitMs
-    ) {
-      throw new BadRequestException('Section exam time has expired');
-    }
-
-    const evaluation = evaluateAnswer(
-      question.problem.type,
-      answer,
-      question.problem.correctAnswer,
-      question.problem.explanation ?? undefined,
-      question.problem.options as unknown[] | null,
-    );
-
-    await this.prisma.$transaction([
-      this.prisma.sectionExamQuestion.update({
+      const evaluation = evaluateAnswer(
+        question.problem.type,
+        answer,
+        question.problem.correctAnswer,
+        question.problem.explanation ?? undefined,
+        question.problem.options as unknown[] | null,
+      );
+      await tx.sectionExamQuestion.update({
         where: { id: question.id },
         data: {
           response: answer as Prisma.InputJsonValue,
           correct: evaluation.correct,
           responseTimeMs,
         },
-      }),
-      this.prisma.problemAttempt.create({
+      });
+      await tx.problemAttempt.create({
         data: {
           userId,
           problemId,
@@ -438,89 +480,111 @@ export class SectionExamService {
           responseTimeMs,
           xpAwarded: 0,
         },
-      }),
-    ]);
+      });
 
-    const questions = await this.prisma.sectionExamQuestion.findMany({
-      where: { sessionId },
-      select: { response: true },
+      const questions = await tx.sectionExamQuestion.findMany({
+        where: { sessionId },
+        select: { response: true },
+      });
+      return {
+        answeredCount: questions.filter((item) => item.response !== null).length,
+        totalProblems: questions.length,
+      };
     });
-    const answeredCount = questions.filter(
-      (question) => question.response !== null,
-    ).length;
-    const totalProblems = questions.length;
-
-    return {
-      answeredCount,
-      totalProblems,
-    };
   }
 
-  async completeExam(userId: string, courseId: string, sectionId: string, sessionId: string) {
-    const session = await this.prisma.sectionExamSession.findUnique({
-      where: { id: sessionId },
-      include: {
-        section: true,
-        questions: {
-          include: {
-            concept: { select: { id: true, name: true } },
-            problem: true,
+  async completeExam(
+    orgId: string,
+    userId: string,
+    courseId: string,
+    sectionId: string,
+    sessionId: string,
+  ) {
+    await this.scope.assertSection(orgId, userId, courseId, sectionId);
+
+    const completion = await this.prisma.$transaction(async (tx) => {
+      await this.lockSession(tx, userId, courseId, sectionId, sessionId);
+      const session = await tx.sectionExamSession.findUnique({
+        where: { id: sessionId },
+        include: {
+          section: true,
+          questions: {
+            include: {
+              concept: { select: { id: true, name: true } },
+              problem: true,
+            },
+            orderBy: { sortOrder: 'asc' },
           },
-          orderBy: { sortOrder: 'asc' },
         },
-      },
-    });
+      });
 
-    if (!session || session.userId !== userId || session.courseId !== courseId || session.sectionId !== sectionId) {
-      throw new NotFoundException('Section exam session not found');
-    }
-
-    if (session.status !== ExamSessionStatus.in_progress) {
-      throw new BadRequestException('Section exam session is already complete');
-    }
-
-    const config = this.parseConfig(session.section.sectionExamConfig);
-    const totalCount = session.questions.length;
-    const correctCount = session.questions.filter((question) => question.correct).length;
-    const score = totalCount > 0 ? correctCount / totalCount : 0;
-    const passed = score >= config.passingScore;
-
-    const conceptBreakdownMap = new Map<
-      string,
-      { conceptId: string; conceptName: string; correct: number; total: number }
-    >();
-    for (const question of session.questions) {
-      const entry = conceptBreakdownMap.get(question.conceptId) ?? {
-        conceptId: question.conceptId,
-        conceptName: question.concept.name,
-        correct: 0,
-        total: 0,
-      };
-      entry.total += 1;
-      if (question.correct) {
-        entry.correct += 1;
+      if (!session || session.userId !== userId || session.courseId !== courseId || session.sectionId !== sectionId) {
+        throw new NotFoundException('Section exam session not found');
       }
-      conceptBreakdownMap.set(question.conceptId, entry);
-    }
 
-    const conceptBreakdown = [...conceptBreakdownMap.values()];
-    const failedConcepts = conceptBreakdown
-      .filter((entry) => entry.correct / entry.total < 0.5)
-      .map((entry) => entry.conceptId);
+      const alreadyCompleted = session.status !== ExamSessionStatus.in_progress;
+      const expired = this.hasExpired(session);
+      const totalCount = session.questions.length;
+      if (totalCount === 0) {
+        throw new BadRequestException('Section exam has no assigned questions');
+      }
+      if (!alreadyCompleted && !expired && session.questions.some((question) => question.response === null)) {
+        throw new BadRequestException('Answer every assigned question before completing the section exam');
+      }
 
-    const xpResult = calculateQuizXP(totalCount, correctCount);
+      const config = this.parseConfig(session.section.sectionExamConfig);
+      const correctCount = session.questions.filter((question) => question.response !== null && question.correct === true).length;
+      const score = alreadyCompleted ? (session.score ?? 0) : correctCount / totalCount;
+      const passed = alreadyCompleted ? (session.passed ?? false) : score >= config.passingScore;
+      const conceptBreakdownMap = new Map<
+        string,
+        { conceptId: string; conceptName: string; correct: number; total: number }
+      >();
+      for (const question of session.questions) {
+        const entry = conceptBreakdownMap.get(question.conceptId) ?? {
+          conceptId: question.conceptId,
+          conceptName: question.concept.name,
+          correct: 0,
+          total: 0,
+        };
+        entry.total += 1;
+        if (question.response !== null && question.correct === true) {
+          entry.correct += 1;
+        }
+        conceptBreakdownMap.set(question.conceptId, entry);
+      }
+      const conceptBreakdown = [...conceptBreakdownMap.values()];
+      const failedConcepts = conceptBreakdown
+        .filter((entry) => entry.correct / entry.total < 0.5)
+        .map((entry) => entry.conceptId);
+      const result = {
+        sessionId,
+        sectionId,
+        passed,
+        score,
+        correctCount,
+        totalCount,
+        alreadyCompleted,
+        failedConcepts,
+        conceptBreakdown,
+        results: session.questions.map((question) => ({
+          problemId: question.problemId,
+          correct: question.response !== null && question.correct === true,
+        })),
+      };
+      if (alreadyCompleted) {
+        return result;
+      }
 
-    await this.prisma.$transaction(async (tx) => {
       await tx.sectionExamSession.update({
         where: { id: sessionId },
         data: {
-          status: ExamSessionStatus.completed,
+          status: expired ? ExamSessionStatus.expired : ExamSessionStatus.completed,
           score,
           passed,
           completedAt: new Date(),
         },
       });
-
       if (passed) {
         await tx.studentSectionState.update({
           where: { userId_sectionId: { userId, sectionId } },
@@ -529,7 +593,6 @@ export class SectionExamService {
             examPassedAt: new Date(),
           },
         });
-
         const nextSection = await tx.courseSection.findFirst({
           where: activeSectionWhere({
             courseId,
@@ -538,7 +601,6 @@ export class SectionExamService {
           orderBy: { sortOrder: 'asc' },
           select: { id: true },
         });
-
         if (nextSection) {
           await tx.studentSectionState.updateMany({
             where: {
@@ -546,27 +608,22 @@ export class SectionExamService {
               sectionId: nextSection.id,
               status: SectionMasteryState.locked,
             },
-            data: {
-              status: SectionMasteryState.lesson_in_progress,
-            },
+            data: { status: SectionMasteryState.lesson_in_progress },
           });
         }
       } else {
         await tx.studentSectionState.update({
           where: { userId_sectionId: { userId, sectionId } },
-          data: {
-            status: SectionMasteryState.needs_review,
-          },
+          data: { status: SectionMasteryState.needs_review },
         });
+        if (failedConcepts.length > 0) {
+          await this.studentState.markConceptsNeedsReview(userId, failedConcepts, tx);
+        }
       }
+      return result;
     });
 
-    // Mark failed concepts as needs_review outside the transaction
-    // (StudentModel owns concept state; avoid cross-boundary writes in tx)
-    if (!passed && failedConcepts.length > 0) {
-      await this.studentState.markConceptsNeedsReview(userId, failedConcepts);
-    }
-
+    const xpResult = calculateQuizXP(completion.totalCount, completion.correctCount);
     let awardedXP = 0;
     if (xpResult.xp > 0) {
       const recorded = await this.xpService.recordXPEvent({
@@ -574,27 +631,36 @@ export class SectionExamService {
         courseId,
         source: 'quiz',
         amount: xpResult.xp,
+        idempotencyKey: `section-exam:${sessionId}`,
       });
       awardedXP = recorded.amount;
     }
-
     await this.syncSectionStates(userId, courseId);
+    return { ...completion, xpAwarded: awardedXP };
+  }
 
-    return {
-      sessionId,
-      sectionId,
-      passed,
-      score,
-      correctCount,
-      totalCount,
-      xpAwarded: awardedXP,
-      failedConcepts,
-      conceptBreakdown,
-      results: session.questions.map((question) => ({
-        problemId: question.problemId,
-        correct: question.correct ?? false,
-      })),
-    };
+  private async lockSession(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    courseId: string,
+    sectionId: string,
+    sessionId: string,
+  ) {
+    await tx.sectionExamSession.updateMany({
+      where: {
+        id: sessionId,
+        userId,
+        courseId,
+        sectionId,
+        status: ExamSessionStatus.in_progress,
+      },
+      data: { updatedAt: new Date() },
+    });
+  }
+
+  private hasExpired(session: { timeLimitMs: number | null; startedAt: Date }) {
+    return session.timeLimitMs !== null &&
+      Date.now() - session.startedAt.getTime() >= session.timeLimitMs;
   }
 
   async syncSectionStates(userId: string, courseId: string) {
@@ -612,27 +678,15 @@ export class SectionExamService {
     const conceptIds = sections.flatMap((section) =>
       section.concepts.map((concept) => concept.id),
     );
-    const [conceptStates, sectionStates] = await Promise.all([
+    const [conceptStateMap, sectionStates] = await Promise.all([
       conceptIds.length === 0
-        ? Promise.resolve([])
-        : this.prisma.studentConceptState.findMany({
-            where: {
-              userId,
-              conceptId: { in: conceptIds },
-            },
-            select: {
-              conceptId: true,
-              masteryState: true,
-            },
-          }),
+        ? Promise.resolve(new Map<string, string>())
+        : this.studentState.getConceptMasteryForIds(userId, conceptIds),
       this.prisma.studentSectionState.findMany({
         where: { userId, courseId },
       }),
     ]);
 
-    const conceptStateMap = new Map(
-      conceptStates.map((state) => [state.conceptId, state.masteryState]),
-    );
     const sectionStateMap = new Map(
       sectionStates.map((state) => [state.sectionId, state]),
     );
@@ -721,7 +775,10 @@ export class SectionExamService {
     session: {
       id: string;
       timeLimitMs: number | null;
+      startedAt: Date;
       questions: Array<{
+        problemId: string;
+        response: Prisma.JsonValue | null;
         problem: {
           id: string;
           questionText: string;
@@ -737,6 +794,13 @@ export class SectionExamService {
       sessionId: session.id,
       totalProblems: session.questions.length,
       timeLimitMs: session.timeLimitMs ?? config.timeLimitMinutes * 60 * 1000,
+      startedAt: session.startedAt,
+      expiresAt: session.timeLimitMs === null
+        ? null
+        : new Date(session.startedAt.getTime() + session.timeLimitMs).toISOString(),
+      answeredProblemIds: session.questions
+        .filter((question) => question.response !== null)
+        .map((question) => question.problemId),
       instructions: config.instructions,
       passingScore: config.passingScore,
       problems: session.questions.map((question) =>

@@ -8,6 +8,7 @@ describe('LessonService', () => {
   let service: LessonService;
   let mockPrisma: any;
   let mockRemediationService: any;
+  let mockStudentState: any;
 
   beforeEach(() => {
     mockPrisma = {
@@ -68,7 +69,8 @@ describe('LessonService', () => {
       getBlockedConceptIdsForCourse: jest.fn().mockResolvedValue(new Set()),
     };
 
-    const mockStudentState = {
+    mockStudentState = {
+      assertAssessmentAccess: jest.fn().mockResolvedValue({ academyId: 'academy-1' }),
       getSectionState: jest.fn().mockResolvedValue(null),
       getConceptState: jest.fn().mockImplementation((...args: any[]) =>
         mockPrisma.studentConceptState.findUnique({ where: { userId_conceptId: { userId: args[0], conceptId: args[1] } } }),
@@ -156,7 +158,7 @@ describe('LessonService', () => {
         failCount: 0,
       });
 
-      await service.completeLesson('u1', 'course-1', 'c2');
+      await service.completeLesson('u1', 'org-1', 'course-1', 'c2');
 
       expect(mockPrisma.studentConceptState.update).toHaveBeenCalledWith({
         where: { userId_conceptId: { userId: 'u1', conceptId: 'c2' } },
@@ -174,7 +176,7 @@ describe('LessonService', () => {
         failCount: 0,
       });
 
-      await service.completeLesson('u1', 'course-1', 'c2');
+      await service.completeLesson('u1', 'org-1', 'course-1', 'c2');
 
       expect(mockPrisma.studentConceptState.update).toHaveBeenCalledWith({
         where: { userId_conceptId: { userId: 'u1', conceptId: 'c2' } },
@@ -188,7 +190,7 @@ describe('LessonService', () => {
       mockPrisma.studentConceptState.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.completeLesson('u1', 'course-1', 'c2'),
+        service.completeLesson('u1', 'org-1', 'course-1', 'c2'),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -201,8 +203,31 @@ describe('LessonService', () => {
       });
 
       await expect(
-        service.completeLesson('u1', 'course-1', 'c2'),
+        service.completeLesson('u1', 'org-1', 'course-1', 'c2'),
       ).rejects.toThrow(BadRequestException);
     });
+  });
+
+  describe('lesson access boundary', () => {
+    it.each(['startLesson', 'completeLesson'] as const)(
+      'checks the user, organization, course, and concept before %s touches learning state',
+      async (method) => {
+        mockStudentState.assertAssessmentAccess.mockRejectedValue(new NotFoundException('Assessment content or enrollment not found'));
+        // A stale or previously created concept state does not grant access.
+        mockPrisma.studentConceptState.findUnique.mockResolvedValue({
+          userId: 'u1', conceptId: 'known-concept', masteryState: 'in_progress',
+        });
+
+        await expect(service[method]('u1', 'own-org', 'foreign-course', 'known-concept'))
+          .rejects.toThrow(NotFoundException);
+
+        expect(mockStudentState.assertAssessmentAccess).toHaveBeenCalledWith('u1', 'own-org', 'foreign-course', 'known-concept');
+        expect(mockPrisma.concept.findFirst).not.toHaveBeenCalled();
+        expect(mockPrisma.studentConceptState.findUnique).not.toHaveBeenCalled();
+        expect(mockPrisma.studentConceptState.update).not.toHaveBeenCalled();
+        expect(mockPrisma.knowledgePoint.findMany).not.toHaveBeenCalled();
+        expect(mockRemediationService.getBlockedConceptIdsForCourse).not.toHaveBeenCalled();
+      },
+    );
   });
 });

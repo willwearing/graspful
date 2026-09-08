@@ -77,6 +77,13 @@ export async function startDiagnosticSession(
 
     if (hoursSinceUpdate < STALE_SESSION_HOURS) {
       const concepts = await loadAcademyDiagnosticConcepts(prisma, academyId);
+      if (
+        !concepts.some((concept) => concept.id === existing.currentConceptId) ||
+        (existing.currentProblem &&
+          existing.currentProblem.knowledgePoint.conceptId !== existing.currentConceptId)
+      ) {
+        throw new NotFoundException('Diagnostic content is no longer available');
+      }
 
       let problem: DiagnosticProblemRecord | null =
         (existing.currentProblem as DiagnosticProblemRecord | null) ?? null;
@@ -221,10 +228,18 @@ export async function submitDiagnosticAnswer(
   }
 
   const concepts = await loadAcademyDiagnosticConcepts(prisma, session.academyId);
+  if (
+    !concepts.some((concept) => concept.id === currentConceptId) ||
+    currentProblem.knowledgePoint.conceptId !== currentConceptId
+  ) {
+    throw new NotFoundException('Diagnostic content is no longer available');
+  }
   const edges = await loadAcademyDiagnosticEdges(prisma, session.academyId);
   const masteries = new Map<string, number>();
   const testedConceptIds = new Set<string>();
+  const publishedConceptIds = new Set(concepts.map((concept) => concept.id));
   for (const snapshot of session.masterySnapshots) {
+    if (!publishedConceptIds.has(snapshot.conceptId)) continue;
     masteries.set(snapshot.conceptId, snapshot.pL);
     if (snapshot.tested) {
       testedConceptIds.add(snapshot.conceptId);

@@ -15,14 +15,28 @@ interface SubscriptionInfo {
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
   maxMembers: number;
+  billing?: {
+    checkoutAvailable: boolean;
+    portalAvailable: boolean;
+  };
 }
 
 export function BillingSettings({ orgId }: { orgId: string }) {
   const token = useAuthToken();
   const [sub, setSub] = useState<SubscriptionInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [pendingAction, setPendingAction] = useState<"checkout" | "portal" | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setLoadError(false);
+    setSub(null);
+    setActionError(null);
+    setPendingAction(null);
     if (!token) return;
     async function load() {
       try {
@@ -30,40 +44,53 @@ export function BillingSettings({ orgId }: { orgId: string }) {
           `/orgs/${orgId}/billing/subscription`,
           token!,
         );
-        setSub(data);
+        if (active) setSub(data);
       } catch {
-        setSub({ plan: "free", status: "active", trialEndsAt: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, maxMembers: 1 });
+        if (active) setLoadError(true);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
     load();
-  }, [orgId, token]);
+    return () => { active = false; };
+  }, [orgId, token, loadAttempt]);
 
   const handleManage = async () => {
-    if (!token) return;
-
-    trackBillingPortalOpened();
-
-    const { url } = await apiClientFetch<{ url: string }>(
-      `/orgs/${orgId}/billing/portal`,
-      token,
-      { method: "POST", body: JSON.stringify({ returnUrl: window.location.origin + "/settings" }) },
-    );
-    window.location.href = url;
+    if (!token || !sub?.billing?.portalAvailable || pendingAction) return;
+    setPendingAction("portal");
+    setActionError(null);
+    try {
+      const { url } = await apiClientFetch<{ url: string }>(
+        `/orgs/${orgId}/billing/portal`,
+        token,
+        { method: "POST", body: JSON.stringify({ returnUrl: "/settings" }) },
+      );
+      if (!url) throw new Error("Missing billing portal URL");
+      trackBillingPortalOpened();
+      window.location.href = url;
+    } catch {
+      setActionError("We could not open subscription management. Please try again.");
+      setPendingAction(null);
+    }
   };
 
   const handleUpgrade = async (plan: "individual" | "team") => {
-    if (!token) return;
-
-    trackCheckoutInitiated(plan);
-
-    const { url } = await apiClientFetch<{ url: string }>(
-      `/orgs/${orgId}/billing/checkout`,
-      token,
-      { method: "POST", body: JSON.stringify({ plan, returnUrl: window.location.origin }) },
-    );
-    window.location.href = url;
+    if (!token || !sub?.billing?.checkoutAvailable || pendingAction) return;
+    setPendingAction("checkout");
+    setActionError(null);
+    try {
+      const { url } = await apiClientFetch<{ url: string }>(
+        `/orgs/${orgId}/billing/checkout`,
+        token,
+        { method: "POST", body: JSON.stringify({ plan, returnUrl: "/settings" }) },
+      );
+      if (!url) throw new Error("Missing checkout URL");
+      trackCheckoutInitiated(plan);
+      window.location.href = url;
+    } catch {
+      setActionError("We could not open checkout. Please try again.");
+      setPendingAction(null);
+    }
   };
 
   if (loading) {
@@ -77,16 +104,34 @@ export function BillingSettings({ orgId }: { orgId: string }) {
     );
   }
 
+  if (loadError || !sub) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Billing</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p role="alert" className="text-sm text-destructive">
+            We could not load your subscription details.
+          </p>
+          <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)} variant="outline" size="sm">
+            Try again
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const statusLabel =
-    sub?.status === "trialing"
+    sub.status === "trialing"
       ? "Trial"
-      : sub?.status === "active"
+      : sub.status === "active"
         ? "Active"
-        : sub?.status === "past_due"
-          ? "Past Due"
-          : sub?.status === "canceled"
+        : sub.status === "past_due"
+          ? "Past due"
+          : sub.status === "canceled"
             ? "Canceled"
-            : sub?.status ?? "Free";
+            : sub.status;
 
   return (
     <Card>
@@ -96,10 +141,10 @@ export function BillingSettings({ orgId }: { orgId: string }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Current Plan</span>
+          <span className="text-sm text-muted-foreground">Current plan</span>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-foreground capitalize">
-              {sub?.plan ?? "free"}
+              {sub.plan}
             </span>
             <Badge>{statusLabel}</Badge>
           </div>
@@ -107,7 +152,7 @@ export function BillingSettings({ orgId }: { orgId: string }) {
 
         {sub?.trialEndsAt && (
           <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">Trial Ends</span>
+            <span className="text-sm text-muted-foreground">Trial ends</span>
             <span className="text-sm text-foreground">
               {new Date(sub.trialEndsAt).toLocaleDateString()}
             </span>
@@ -116,7 +161,7 @@ export function BillingSettings({ orgId }: { orgId: string }) {
 
         {sub?.currentPeriodEnd && (
           <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">Next Billing Date</span>
+            <span className="text-sm text-muted-foreground">Current period ends</span>
             <span className="text-sm text-foreground">
               {new Date(sub.currentPeriodEnd).toLocaleDateString()}
             </span>
@@ -129,15 +174,25 @@ export function BillingSettings({ orgId }: { orgId: string }) {
           </p>
         )}
 
-        <div className="flex gap-2 pt-2">
-          {sub?.plan === "free" ? (
-            <Button onClick={() => handleUpgrade("individual")} size="sm">
-              Upgrade to Individual
-            </Button>
+        {actionError && <p role="alert" className="text-sm text-destructive">{actionError}</p>}
+
+        <div className="pt-2">
+          {sub.plan === "free" ? (
+            sub.billing?.checkoutAvailable ? (
+              <Button onClick={() => handleUpgrade("individual")} disabled={pendingAction !== null} size="sm">
+                {pendingAction === "checkout" ? "Opening checkout..." : "Upgrade to Individual"}
+              </Button>
+            ) : (
+              <p className="text-sm text-muted-foreground">Paid subscriptions are not available yet.</p>
+            )
           ) : (
-            <Button onClick={handleManage} variant="outline" size="sm">
-              Manage Subscription
-            </Button>
+            sub.billing?.portalAvailable ? (
+              <Button onClick={handleManage} disabled={pendingAction !== null} variant="outline" size="sm">
+                {pendingAction === "portal" ? "Opening subscription management..." : "Manage subscription"}
+              </Button>
+            ) : (
+              <p className="text-sm text-muted-foreground">Subscription management is not available yet.</p>
+            )
           )}
         </div>
       </CardContent>

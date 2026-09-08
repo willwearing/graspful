@@ -44,7 +44,9 @@ export class AcademyGraphController {
 
   @Get()
   async listAcademies(@CurrentOrg() org: OrgContext) {
-    return this.courseReads.listAcademies(org.orgId);
+    return this.courseReads.listAcademies(org.orgId, {
+      includeDrafts: org.role === 'owner' || org.role === 'admin',
+    });
   }
 
   @Get('slug/:academySlug')
@@ -52,7 +54,9 @@ export class AcademyGraphController {
     @Param('academySlug') academySlug: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.courseReads.getAcademyBySlug(org.orgId, academySlug);
+    return this.courseReads.getAcademyBySlug(org.orgId, academySlug, {
+      includeDrafts: org.role === 'owner' || org.role === 'admin',
+    });
   }
 
   @Get(':academyId')
@@ -60,7 +64,9 @@ export class AcademyGraphController {
     @Param('academyId') academyId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.courseReads.getAcademy(org.orgId, academyId);
+    return this.courseReads.getAcademy(org.orgId, academyId, {
+      includeDrafts: org.role === 'owner' || org.role === 'admin',
+    });
   }
 
   @Get(':academyId/structure')
@@ -68,7 +74,9 @@ export class AcademyGraphController {
     @Param('academyId') academyId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.courseReads.getAcademyGraph(org.orgId, academyId);
+    return this.courseReads.getAcademyGraph(org.orgId, academyId, {
+      includeDrafts: org.role === 'owner' || org.role === 'admin',
+    });
   }
 
   @Post(':academyId/validate')
@@ -85,7 +93,9 @@ export class AcademyGraphController {
     @Param('academyId') academyId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.courseReads.listAcademyCourses(org.orgId, academyId);
+    return this.courseReads.listAcademyCourses(org.orgId, academyId, {
+      includeDrafts: org.role === 'owner' || org.role === 'admin',
+    });
   }
 
   @Get(':academyId/graph/frontier')

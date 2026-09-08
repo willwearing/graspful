@@ -1,11 +1,10 @@
-import { redirect } from "next/navigation";
-import { apiFetch } from "@/lib/api";
 import { requireLearnAccess, resolveCourseBySlug } from "@/lib/learn-server";
 import {
   getLearnCourseHref,
   getLearnCourseStudyHref,
 } from "@/lib/learn-routes";
-import { SectionExamFlow } from "@/components/app/section-exam-flow";
+import { SectionExamFlow, type SectionExamData } from "@/components/app/section-exam-flow";
+import { StudyRouter } from "@/components/app/study-router";
 
 export default async function LearnSectionExamPage({
   params,
@@ -16,14 +15,14 @@ export default async function LearnSectionExamPage({
   const { token, serverApiFetch } = await requireLearnAccess(orgSlug);
   const course = await resolveCourseBySlug(orgSlug, courseSlug, serverApiFetch);
 
-  let examData: any;
+  let examData: SectionExamData;
   try {
-    examData = await apiFetch<any>(
+    examData = await serverApiFetch<SectionExamData>(
       `/orgs/${orgSlug}/courses/${course.id}/sections/${sectionId}/exam/start`,
       { method: "POST" },
     );
   } catch {
-    redirect(getLearnCourseStudyHref(orgSlug, courseSlug));
+    return <StudyRouter courseId={course.id} task={null} loadFailed emptyStateHref={getLearnCourseHref(orgSlug, courseSlug)} emptyStateLabel="Back to Course" />;
   }
 
   return (

@@ -1,22 +1,23 @@
-import { QuizService } from './quiz.service';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { QuizService, type QuizSession } from './quiz.service';
 
 describe('QuizService', () => {
   let service: QuizService;
-  let mockPrisma: any;
-  let mockXPService: any;
-  let mockRemediationService: any;
+  let prisma: any;
+  let xp: any;
+  let studentState: any;
+  let remediation: any;
+  let scope: any;
 
-  const mockConceptStates = [
-    { conceptId: 'c1', masteryState: 'mastered', concept: { id: 'c1', courseId: 'course-1' } },
-    { conceptId: 'c2', masteryState: 'in_progress', concept: { id: 'c2', courseId: 'course-1' } },
-    { conceptId: 'c3', masteryState: 'mastered', concept: { id: 'c3', courseId: 'course-1' } },
+  const conceptStates = [
+    { conceptId: 'c1', masteryState: 'mastered' },
+    { conceptId: 'c2', masteryState: 'in_progress' },
+    { conceptId: 'c3', masteryState: 'mastered' },
   ];
-
-  const mockProblems = [
+  const problems = [
     {
       id: 'p1', type: 'multiple_choice', questionText: 'Q1', options: ['A', 'B'],
-      correctAnswer: 'A', explanation: 'Exp1', difficulty: 3, isReviewVariant: false,
+      correctAnswer: '0', explanation: 'Exp1', difficulty: 3, isReviewVariant: false,
       knowledgePoint: { conceptId: 'c1' },
     },
     {
@@ -31,276 +32,343 @@ describe('QuizService', () => {
     },
   ];
 
+  const generate = () => service.generateQuiz('org-1', 'user-1', 'course-1');
+  const submit = (quizId: string, problemId: string, answer: unknown = '0') =>
+    service.submitQuizAnswer('org-1', 'user-1', 'course-1', quizId, problemId, answer, 5000);
+  const complete = (quizId: string) => service.completeQuiz('org-1', 'user-1', 'course-1', quizId);
+  const session = (quizId: string): QuizSession => (service as any).sessions.get(quizId);
+  const expire = (quizId: string) => { session(quizId).startedAt = Date.now() - 15 * 60 * 1000; };
+  async function answerAll(quizId: string, correct = true) {
+    for (const problem of problems) {
+      await submit(quizId, problem.id, correct ? problem.correctAnswer : 'wrong');
+    }
+  }
+
   beforeEach(() => {
-    mockPrisma = {
-      courseEnrollment: {
-        findUnique: jest.fn().mockResolvedValue({ userId: 'user-1', courseId: 'course-1', totalXPEarned: 200 }),
-        update: jest.fn().mockResolvedValue({}),
-      },
-      course: {
-        findUnique: jest.fn().mockResolvedValue({ academyId: 'academy-1' }),
-      },
-      studentConceptState: {
-        findMany: jest.fn().mockResolvedValue(mockConceptStates),
-        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-      },
-      problem: {
-        findMany: jest.fn().mockResolvedValue(mockProblems),
-      },
+    prisma = {
+      problem: { findMany: jest.fn().mockResolvedValue(problems) },
       problemAttempt: {
-        create: jest.fn().mockResolvedValue({ id: 'attempt-1' }),
+        upsert: jest.fn().mockImplementation(async ({ create }: any) => create),
       },
     };
-
-    mockXPService = {
-      recordXPEvent: jest.fn().mockResolvedValue({ amount: 20 }),
+    xp = { recordXPEvent: jest.fn().mockResolvedValue({ amount: 20 }) };
+    studentState = {
+      getConceptStatesForCourse: jest.fn().mockResolvedValue(conceptStates),
+      markConceptsNeedsReview: jest.fn().mockResolvedValue({ count: 3 }),
     };
-
-    const mockStudentState = {
-      markConceptsNeedsReview: jest.fn().mockImplementation((...args: any[]) =>
-        mockPrisma.studentConceptState.updateMany({ where: { userId: args[0], conceptId: { in: args[1] } }, data: { masteryState: 'needs_review' } }),
-      ),
-    };
-
-    mockRemediationService = {
-      createRemediation: jest.fn().mockResolvedValue({}),
-      getActiveRemediations: jest.fn().mockResolvedValue([]),
-      getBlockedConceptIds: jest.fn().mockResolvedValue(new Set()),
-      resolveRemediationsForPrerequisite: jest.fn().mockResolvedValue({}),
-    };
-    service = new QuizService(
-      mockPrisma,
-      mockXPService,
-      mockStudentState as any,
-      mockRemediationService as any,
-    );
+    remediation = { createRemediation: jest.fn().mockResolvedValue({}) };
+    scope = { assertCourse: jest.fn().mockResolvedValue({ academyId: 'academy-1' }) };
+    service = new QuizService(prisma, xp, studentState, remediation, scope);
   });
 
+  afterEach(() => { jest.restoreAllMocks(); });
+
   describe('generateQuiz', () => {
-    it('should generate a quiz with problems', async () => {
-      const result = await service.generateQuiz('user-1', 'course-1');
-
-      expect(result.quizId).toBeDefined();
-      expect(result.totalProblems).toBeGreaterThan(0);
-      expect(result.timeLimitMs).toBe(15 * 60 * 1000);
-      expect(result.problems[0]?.options).toEqual([
-        { id: '0', text: 'A' },
-        { id: '1', text: 'B' },
-      ]);
-      // Should not include correct answers
-      for (const p of result.problems) {
-        expect((p as any).correctAnswer).toBeUndefined();
+    it('returns a unique quiz and server expiry without answer keys', async () => {
+      const now = Date.now();
+      jest.spyOn(Date, 'now').mockReturnValue(now);
+      const first = await generate();
+      const second = await generate();
+      expect(first.quizId).not.toBe(second.quizId);
+      expect(first.quizId).toMatch(/^[0-9a-f-]{36}$/);
+      expect(first).toMatchObject({ totalProblems: 3, startedAt: now, expiresAt: now + 900000 });
+      expect(first.problems[0].options).toEqual([{ id: '0', text: 'A' }, { id: '1', text: 'B' }]);
+      for (const problem of first.problems) {
+        expect(problem).not.toHaveProperty('correctAnswer');
+        expect(problem).not.toHaveProperty('explanation');
       }
+      expect(scope.assertCourse).toHaveBeenCalledWith('org-1', 'user-1', 'course-1');
+      expect(studentState.getConceptStatesForCourse).toHaveBeenCalledWith('user-1', 'course-1');
     });
 
-    it('should throw when not enrolled', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue(null);
-
-      await expect(
-        service.generateQuiz('user-1', 'course-1'),
-      ).rejects.toThrow(NotFoundException);
+    it('rejects unavailable or non-entitled course access before reading content', async () => {
+      scope.assertCourse.mockRejectedValue(new ForbiddenException('Course access required'));
+      await expect(generate()).rejects.toThrow(ForbiddenException);
+      expect(studentState.getConceptStatesForCourse).not.toHaveBeenCalled();
+      expect(prisma.problem.findMany).not.toHaveBeenCalled();
     });
 
-    it('should throw when no concepts available', async () => {
-      mockPrisma.studentConceptState.findMany.mockResolvedValue([]);
+    it('rejects courses without eligible concepts', async () => {
+      studentState.getConceptStatesForCourse.mockResolvedValue([{ conceptId: 'c1', masteryState: 'unstarted' }]);
+      await expect(generate()).rejects.toThrow('No concepts available for quiz');
+    });
 
-      await expect(
-        service.generateQuiz('user-1', 'course-1'),
-      ).rejects.toThrow(BadRequestException);
+    it('rejects courses with too few assigned problems', async () => {
+      prisma.problem.findMany.mockResolvedValue(problems.slice(0, 1));
+      await expect(generate()).rejects.toThrow('found 1, need 3');
+    });
+
+    it('removes sessions after the expiry retention window', async () => {
+      const quiz = await generate();
+      session(quiz.quizId).startedAt = Date.now() - 26 * 60 * 60 * 1000;
+      await generate();
+      await expect(complete(quiz.quizId)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('caller scope', () => {
+    it.each([
+      ['org-2', 'user-1', 'course-1'],
+      ['org-1', 'user-2', 'course-1'],
+      ['org-1', 'user-1', 'course-2'],
+    ])('rejects foreign quiz reads and writes for %s/%s/%s', async (orgId, userId, courseId) => {
+      const quiz = await generate();
+      await expect(service.submitQuizAnswer(orgId, userId, courseId, quiz.quizId, 'p1', '0', 5000))
+        .rejects.toThrow(NotFoundException);
+      await expect(service.completeQuiz(orgId, userId, courseId, quiz.quizId))
+        .rejects.toThrow(NotFoundException);
+      expect(prisma.problemAttempt.upsert).not.toHaveBeenCalled();
+      expect(studentState.markConceptsNeedsReview).not.toHaveBeenCalled();
+      expect(xp.recordXPEvent).not.toHaveBeenCalled();
+    });
+
+    it('checks fresh entitlement before accepting an answer or completing', async () => {
+      const quiz = await generate();
+      scope.assertCourse.mockRejectedValue(new ForbiddenException('Access revoked'));
+      await expect(submit(quiz.quizId, 'p1')).rejects.toThrow('Access revoked');
+      expire(quiz.quizId);
+      await expect(complete(quiz.quizId)).rejects.toThrow('Access revoked');
+      expect(prisma.problemAttempt.upsert).not.toHaveBeenCalled();
+      expect(xp.recordXPEvent).not.toHaveBeenCalled();
+    });
+
+    it('checks scope before returning a cached completion', async () => {
+      const quiz = await generate();
+      await answerAll(quiz.quizId);
+      await complete(quiz.quizId);
+      scope.assertCourse.mockRejectedValue(new ForbiddenException('Access revoked'));
+      await expect(complete(quiz.quizId)).rejects.toThrow('Access revoked');
+      expect(xp.recordXPEvent).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('submitQuizAnswer', () => {
-    it('should record answer without feedback', async () => {
-      const quiz = await service.generateQuiz('user-1', 'course-1');
-      const firstProblem = quiz.problems[0];
-
-      const result = await service.submitQuizAnswer(
-        quiz.quizId,
-        firstProblem.id,
-        'A',
-        5000,
-      );
-
-      expect(result.answeredCount).toBe(1);
-      expect(result.totalProblems).toBe(quiz.totalProblems);
-      // No feedback during quiz
-      expect((result as any).feedback).toBeUndefined();
-      expect((result as any).correct).toBeUndefined();
+    it('persists an answer and returns progress without feedback', async () => {
+      const quiz = await generate();
+      expect(await submit(quiz.quizId, 'p1')).toEqual({ answeredCount: 1, totalProblems: 3 });
+      expect(prisma.problemAttempt.upsert).toHaveBeenCalledWith(expect.objectContaining({
+        create: expect.objectContaining({ userId: 'user-1', problemId: 'p1', correct: true, xpAwarded: 0 }),
+        update: {},
+      }));
     });
 
-    it('should throw for non-existent quiz', async () => {
-      await expect(
-        service.submitQuizAnswer('fake-quiz', 'p1', 'A', 5000),
-      ).rejects.toThrow(NotFoundException);
+    it('rejects an unknown quiz or unassigned problem', async () => {
+      await expect(submit('unknown', 'p1')).rejects.toThrow(NotFoundException);
+      const quiz = await generate();
+      await expect(submit(quiz.quizId, 'unassigned')).rejects.toThrow(NotFoundException);
+      expect(prisma.problemAttempt.upsert).not.toHaveBeenCalled();
     });
 
-    it('should throw for already answered problem', async () => {
-      const quiz = await service.generateQuiz('user-1', 'course-1');
-      const firstProblem = quiz.problems[0];
-
-      await service.submitQuizAnswer(quiz.quizId, firstProblem.id, 'A', 5000);
-
-      await expect(
-        service.submitQuizAnswer(quiz.quizId, firstProblem.id, 'A', 5000),
-      ).rejects.toThrow(BadRequestException);
+    it('replays the original acknowledgement after a later question is answered', async () => {
+      const quiz = await generate();
+      const original = await submit(quiz.quizId, 'p1');
+      await submit(quiz.quizId, 'p2', true);
+      expect(await submit(quiz.quizId, 'p1')).toEqual(original);
+      expect(original).toEqual({ answeredCount: 1, totalProblems: 3 });
+      expect(prisma.problemAttempt.upsert).toHaveBeenCalledTimes(2);
     });
 
-    it('should throw when quiz time has expired', async () => {
-      const quiz = await service.generateQuiz('user-1', 'course-1');
-      const firstProblem = quiz.problems[0];
-
-      // Fast-forward past the time limit by manipulating the session
-      const session = (service as any).sessions.get(quiz.quizId);
-      session.startedAt = Date.now() - 16 * 60 * 1000; // 16 minutes ago
-
-      await expect(
-        service.submitQuizAnswer(quiz.quizId, firstProblem.id, 'A', 5000),
-      ).rejects.toThrow('Quiz time has expired');
+    it('rejects a changed answer to an answered question', async () => {
+      const quiz = await generate();
+      await submit(quiz.quizId, 'p1');
+      await expect(submit(quiz.quizId, 'p1', '1')).rejects.toThrow('Problem already answered with a different answer');
+      expect(prisma.problemAttempt.upsert).toHaveBeenCalledTimes(1);
     });
 
-    it('should throw when submitting to a completed quiz', async () => {
-      const quiz = await service.generateQuiz('user-1', 'course-1');
-      const firstProblem = quiz.problems[0];
-
-      await service.submitQuizAnswer(quiz.quizId, firstProblem.id, 'A', 5000);
-      await service.completeQuiz(quiz.quizId);
-
-      await expect(
-        service.submitQuizAnswer(quiz.quizId, quiz.problems[1]?.id || 'p2', 'A', 5000),
-      ).rejects.toThrow(NotFoundException); // session deleted after completion
+    it('acknowledges concurrent same-answer submissions with one stored attempt', async () => {
+      const quiz = await generate();
+      const results = await Promise.all([submit(quiz.quizId, 'p1'), submit(quiz.quizId, 'p1')]);
+      expect(results).toEqual([
+        { answeredCount: 1, totalProblems: 3 },
+        { answeredCount: 1, totalProblems: 3 },
+      ]);
+      expect(prisma.problemAttempt.upsert).toHaveBeenCalledTimes(1);
+      expect(session(quiz.quizId).answers).toHaveLength(1);
     });
 
-    it('should throw for problem not in this quiz', async () => {
-      const quiz = await service.generateQuiz('user-1', 'course-1');
-
-      await expect(
-        service.submitQuizAnswer(quiz.quizId, 'nonexistent-problem', 'A', 5000),
-      ).rejects.toThrow(NotFoundException);
+    it('rejects the changed answer in concurrent submissions', async () => {
+      const quiz = await generate();
+      const results = await Promise.allSettled([submit(quiz.quizId, 'p1'), submit(quiz.quizId, 'p1', '1')]);
+      expect(results.map((result) => result.status)).toEqual(['fulfilled', 'rejected']);
+      expect(prisma.problemAttempt.upsert).toHaveBeenCalledTimes(1);
     });
 
-    it('should create problem attempt record', async () => {
-      const quiz = await service.generateQuiz('user-1', 'course-1');
-      const firstProblem = quiz.problems[0];
+    it('compares structured answers by value and rejects changes', async () => {
+      const quiz = await generate();
+      const original = await submit(quiz.quizId, 'p1', { left: 'right', up: 'down' });
+      expect(await submit(quiz.quizId, 'p1', { up: 'down', left: 'right' })).toEqual(original);
+      await expect(submit(quiz.quizId, 'p1', { up: 'left', left: 'right' }))
+        .rejects.toThrow('Problem already answered with a different answer');
+      expect(prisma.problemAttempt.upsert).toHaveBeenCalledTimes(1);
+    });
 
-      await service.submitQuizAnswer(quiz.quizId, firstProblem.id, 'A', 5000);
+    it('allows retry after failed persistence without inventing an answer', async () => {
+      const quiz = await generate();
+      prisma.problemAttempt.upsert.mockRejectedValueOnce(new Error('Database unavailable'));
+      await expect(submit(quiz.quizId, 'p1')).rejects.toThrow('Database unavailable');
+      expect(session(quiz.quizId).answers).toHaveLength(0);
+      expect(await submit(quiz.quizId, 'p1')).toEqual({ answeredCount: 1, totalProblems: 3 });
+      const [first, retry] = prisma.problemAttempt.upsert.mock.calls;
+      expect(retry[0].where.id).toBe(first[0].where.id);
+    });
 
-      expect(mockPrisma.problemAttempt.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            userId: 'user-1',
-            problemId: firstProblem.id,
-            xpAwarded: 0,
-          }),
-        }),
-      );
+    it('uses the first persisted answer after an ambiguous database failure', async () => {
+      const quiz = await generate();
+      let stored: any;
+      prisma.problemAttempt.upsert
+        .mockImplementationOnce(async ({ create }: any) => {
+          stored = create;
+          throw new Error('Response lost after commit');
+        })
+        .mockImplementationOnce(async () => stored);
+      await expect(submit(quiz.quizId, 'p1', 'wrong')).rejects.toThrow('Response lost after commit');
+      await expect(submit(quiz.quizId, 'p1', '0')).rejects.toThrow('Problem already answered with a different answer');
+      expect(session(quiz.quizId).answers[0].correct).toBe(false);
+      expect(await submit(quiz.quizId, 'p1', 'wrong')).toEqual({ answeredCount: 1, totalProblems: 3 });
+      expect(prisma.problemAttempt.upsert).toHaveBeenCalledTimes(2);
+    });
+
+    it('rejects an answer at the expiry boundary', async () => {
+      const quiz = await generate();
+      expire(quiz.quizId);
+      await expect(submit(quiz.quizId, 'p1')).rejects.toThrow('Quiz time has expired');
+      expect(prisma.problemAttempt.upsert).not.toHaveBeenCalled();
+    });
+
+    it('replays a saved answer after expiry', async () => {
+      const quiz = await generate();
+      const original = await submit(quiz.quizId, 'p1');
+      expire(quiz.quizId);
+      expect(await submit(quiz.quizId, 'p1')).toEqual(original);
+      await expect(submit(quiz.quizId, 'p1', '1')).rejects.toThrow('Problem already answered with a different answer');
+      expect(prisma.problemAttempt.upsert).toHaveBeenCalledTimes(1);
+    });
+
+    it('replays a saved answer after completion and rejects a changed answer', async () => {
+      const quiz = await generate();
+      await answerAll(quiz.quizId);
+      await complete(quiz.quizId);
+      expect(await submit(quiz.quizId, 'p1')).toEqual({ answeredCount: 1, totalProblems: 3 });
+      await expect(submit(quiz.quizId, 'p1', '1')).rejects.toThrow('Problem already answered with a different answer');
+      expect(prisma.problemAttempt.upsert).toHaveBeenCalledTimes(3);
+    });
+
+    it('rejects a new answer after an expired quiz has completed', async () => {
+      const quiz = await generate();
+      expire(quiz.quizId);
+      await complete(quiz.quizId);
+      await expect(submit(quiz.quizId, 'p1')).rejects.toThrow('Quiz is already complete');
+    });
+
+    it.each([-1, NaN, Infinity, 1.5])('rejects invalid response time %s', async (responseTimeMs) => {
+      const quiz = await generate();
+      await expect(service.submitQuizAnswer('org-1', 'user-1', 'course-1', quiz.quizId, 'p1', '0', responseTimeMs))
+        .rejects.toThrow(BadRequestException);
+      expect(prisma.problemAttempt.upsert).not.toHaveBeenCalled();
     });
   });
 
   describe('completeQuiz', () => {
-    it('should complete quiz and return results with feedback', async () => {
-      const quiz = await service.generateQuiz('user-1', 'course-1');
-
-      // Answer all problems
-      for (const p of quiz.problems) {
-        await service.submitQuizAnswer(quiz.quizId, p.id, 'A', 5000);
-      }
-
-      const result = await service.completeQuiz(quiz.quizId);
-
-      expect(result.quizId).toBe(quiz.quizId);
-      expect(result.totalCount).toBe(quiz.totalProblems);
-      expect(result.xpAwarded).toBeGreaterThan(0);
-      expect(result.results).toHaveLength(quiz.totalProblems);
-      // Results should include feedback now
-      for (const r of result.results) {
-        expect(r.feedback).toBeDefined();
-      }
+    it('requires every assigned answer before expiry', async () => {
+      const quiz = await generate();
+      await submit(quiz.quizId, 'p1');
+      await expect(complete(quiz.quizId)).rejects.toThrow('Answer every quiz question before completing');
+      expect(session(quiz.quizId).isComplete).toBe(false);
+      expect(xp.recordXPEvent).not.toHaveBeenCalled();
+      expect(studentState.markConceptsNeedsReview).not.toHaveBeenCalled();
+      await submit(quiz.quizId, 'p2', true);
+      await submit(quiz.quizId, 'p3', '42');
+      expect((await complete(quiz.quizId)).score).toBe(1);
     });
 
-    it('should mark failed concepts as needs_review', async () => {
-      const quiz = await service.generateQuiz('user-1', 'course-1');
-
-      // Answer all wrong (the MC problem expects 'A', we give 'Z')
-      for (const p of quiz.problems) {
-        await service.submitQuizAnswer(quiz.quizId, p.id, 'Z', 5000);
-      }
-
-      const result = await service.completeQuiz(quiz.quizId);
-
-      // All wrong means score 0, all concepts failed
-      expect(result.score).toBe(0);
-      expect(result.failedConcepts.length).toBeGreaterThan(0);
-      expect(mockPrisma.studentConceptState.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: { masteryState: 'needs_review' },
-        }),
-      );
+    it('returns a perfect result with no remediation for all correct answers', async () => {
+      const quiz = await generate();
+      await answerAll(quiz.quizId);
+      const result = await complete(quiz.quizId);
+      expect(result).toMatchObject({ score: 1, correctCount: 3, totalCount: 3, xpAwarded: 20, failedConcepts: [] });
+      expect(result.results).toEqual(problems.map((problem) => ({ problemId: problem.id, correct: true, feedback: 'Correct!' })));
+      expect(remediation.createRemediation).not.toHaveBeenCalled();
+      expect(studentState.markConceptsNeedsReview).not.toHaveBeenCalled();
+      expect(xp.recordXPEvent).toHaveBeenCalledWith(expect.objectContaining({
+        userId: 'user-1', academyId: 'academy-1', courseId: 'course-1',
+        source: 'quiz', idempotencyKey: `quiz:${quiz.quizId}`,
+      }));
     });
 
-    it('should award XP based on score', async () => {
-      const quiz = await service.generateQuiz('user-1', 'course-1');
-
-      for (const p of quiz.problems) {
-        await service.submitQuizAnswer(quiz.quizId, p.id, 'A', 5000);
-      }
-
-      const result = await service.completeQuiz(quiz.quizId);
-
-      expect(result.xpAwarded).toBeGreaterThan(0);
-      expect(mockXPService.recordXPEvent).toHaveBeenCalled();
+    it('scores unanswered questions as incorrect on expiry and creates remediation', async () => {
+      const quiz = await generate();
+      await submit(quiz.quizId, 'p1');
+      expire(quiz.quizId);
+      const result = await complete(quiz.quizId);
+      expect(result).toMatchObject({ score: 1 / 3, correctCount: 1, totalCount: 3, failedConcepts: ['c2', 'c3'] });
+      expect(result.conceptBreakdown).toEqual({ c1: { correct: 1, total: 1 }, c2: { correct: 0, total: 1 }, c3: { correct: 0, total: 1 } });
+      expect(result.results).toHaveLength(3);
+      expect(result.results[1]).toMatchObject({ problemId: 'p2', correct: false, feedback: 'Unanswered. Exp2' });
+      expect(studentState.markConceptsNeedsReview).toHaveBeenCalledWith('user-1', ['c2', 'c3']);
+      expect(remediation.createRemediation.mock.calls).toEqual([
+        ['user-1', 'academy-1', 'c2', 'c2', 'course-1'],
+        ['user-1', 'academy-1', 'c3', 'c3', 'course-1'],
+      ]);
     });
 
-    it('should throw for non-existent quiz', async () => {
-      await expect(
-        service.completeQuiz('fake-quiz'),
-      ).rejects.toThrow(NotFoundException);
+    it('scores a fully unanswered expired quiz as zero', async () => {
+      const quiz = await generate();
+      expire(quiz.quizId);
+      const result = await complete(quiz.quizId);
+      expect(result).toMatchObject({ score: 0, correctCount: 0, totalCount: 3, failedConcepts: ['c1', 'c2', 'c3'] });
+      expect(result.xpAwarded).toBe(0);
+      expect(xp.recordXPEvent).not.toHaveBeenCalled();
+      expect(remediation.createRemediation).toHaveBeenCalledTimes(3);
     });
 
-    // Slice 3 — Math Academy Way, Ch 21 p.300:
-    // "Whenever they miss a question on a quiz, we immediately follow up
-    //  with a remedial review on the corresponding topic."
-    it('should create a Remediation for every concept with a missed question', async () => {
-      const quiz = await service.generateQuiz('user-1', 'course-1');
-
-      // Answer all wrong
-      for (const p of quiz.problems) {
-        await service.submitQuizAnswer(quiz.quizId, p.id, 'Z', 5000);
-      }
-
-      await service.completeQuiz(quiz.quizId);
-
-      // One remediation per missed concept
-      expect(mockRemediationService.createRemediation).toHaveBeenCalled();
-      const calls = mockRemediationService.createRemediation.mock.calls;
-      // Every call uses the missed concept as both blocked and weak prereq
-      for (const call of calls) {
-        const [, , blockedConceptId, weakPrerequisiteId] = call;
-        expect(blockedConceptId).toBe(weakPrerequisiteId);
-      }
+    it('replays sequential and concurrent completions without repeated effects', async () => {
+      const quiz = await generate();
+      await answerAll(quiz.quizId, false);
+      const results = await Promise.all([complete(quiz.quizId), complete(quiz.quizId)]);
+      expect(await complete(quiz.quizId)).toEqual(results[0]);
+      expect(results[0]).toEqual(results[1]);
+      expect(xp.recordXPEvent).toHaveBeenCalledTimes(1);
+      expect(studentState.markConceptsNeedsReview).toHaveBeenCalledTimes(1);
+      expect(remediation.createRemediation).toHaveBeenCalledTimes(3);
     });
 
-    it('should not create remediations when all quiz answers are correct', async () => {
-      const quiz = await service.generateQuiz('user-1', 'course-1');
+    it('waits for an in-flight final answer before completing', async () => {
+      const quiz = await generate();
+      await submit(quiz.quizId, 'p1');
+      await submit(quiz.quizId, 'p2', true);
+      const [answerResult, result] = await Promise.all([submit(quiz.quizId, 'p3', '42'), complete(quiz.quizId)]);
+      expect(answerResult.answeredCount).toBe(3);
+      expect(result.score).toBe(1);
+      expect(xp.recordXPEvent).toHaveBeenCalledTimes(1);
+    });
 
-      // The MC expects 'A' (i.e. option id '0'); submit the correct answers.
-      for (const p of quiz.problems) {
-        // Use whatever the correct answer would be for the mock
-        const correct = p.id === 'p1' ? '0' : p.id === 'p2' ? true : '42';
-        await service.submitQuizAnswer(quiz.quizId, p.id, correct, 5000);
-      }
+    it('retries failed remediation without repeating earlier completed phases', async () => {
+      const quiz = await generate();
+      await answerAll(quiz.quizId, false);
+      remediation.createRemediation.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('Remediation failed'));
+      await expect(complete(quiz.quizId)).rejects.toThrow('Remediation failed');
+      expect(xp.recordXPEvent).not.toHaveBeenCalled();
+      expect(session(quiz.quizId).result).toBeUndefined();
+      await complete(quiz.quizId);
+      expect(studentState.markConceptsNeedsReview).toHaveBeenCalledTimes(1);
+      expect(remediation.createRemediation.mock.calls.map((call: any[]) => call[2])).toEqual(['c1', 'c2', 'c2', 'c3']);
+      expect(xp.recordXPEvent).toHaveBeenCalledTimes(1);
+    });
 
-      await service.completeQuiz(quiz.quizId);
-      // Only fires when there's at least one miss.
-      // With perfect MC mocks answers may not all grade correct, so we
-      // just check consistency: createRemediation calls <= missed concepts.
-      // The key assertion: no remediation is created for a concept that
-      // wasn't missed.
-      const missedConceptIds = new Set<string>();
-      // (smoke test — explicit count check is fragile against evaluator logic)
-      expect(
-        mockRemediationService.createRemediation.mock.calls.length,
-      ).toBeLessThanOrEqual(3);
+    it('retries failed XP with the same idempotency key and retains zero capped XP', async () => {
+      const quiz = await generate();
+      await answerAll(quiz.quizId, false);
+      xp.recordXPEvent.mockRejectedValueOnce(new Error('XP failed')).mockResolvedValueOnce({ amount: 0 });
+      await expect(complete(quiz.quizId)).rejects.toThrow('XP failed');
+      expect((await complete(quiz.quizId)).xpAwarded).toBe(0);
+      expect((await complete(quiz.quizId)).xpAwarded).toBe(0);
+      expect(xp.recordXPEvent).toHaveBeenCalledTimes(2);
+      expect(xp.recordXPEvent.mock.calls[0]).toEqual(xp.recordXPEvent.mock.calls[1]);
+      expect(remediation.createRemediation).toHaveBeenCalledTimes(3);
+    });
+
+    it('rejects completion of an unknown quiz', async () => {
+      await expect(complete('unknown')).rejects.toThrow(NotFoundException);
     });
   });
 });

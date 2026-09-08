@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { XPService } from '@/gamification/xp.service';
@@ -6,14 +8,24 @@ import { StudentStateService } from '@/student-model/student-state.service';
 import { RemediationService } from '@/learning-engine/remediation.service';
 import { evaluateAnswer } from './answer-evaluator';
 import { calculateQuizXP } from './xp-calculator';
-import {
-  activeConceptWhere,
-  activeProblemWhere,
-} from '@/knowledge-graph/active-course-content';
+import { activeProblemWhere } from '@/knowledge-graph/active-course-content';
 import { serializeProblemForClient } from '@/shared/utils/problem-presentation';
+import { AssessmentScopeService } from './assessment-scope.service';
+
+export interface QuizResult {
+  quizId: string;
+  score: number;
+  correctCount: number;
+  totalCount: number;
+  xpAwarded: number;
+  failedConcepts: string[];
+  conceptBreakdown: Record<string, { correct: number; total: number }>;
+  results: Array<{ problemId: string; correct: boolean; feedback: string }>;
+}
 
 export interface QuizSession {
   quizId: string;
+  orgId: string;
   userId: string;
   courseId: string;
   problems: Array<{
@@ -29,123 +41,127 @@ export interface QuizSession {
   answers: Array<{
     problemId: string;
     conceptId: string;
+    answer: unknown;
     correct: boolean;
     responseTimeMs: number;
+    acknowledgement: { answeredCount: number; totalProblems: number };
   }>;
+  attemptIds: Map<string, string>;
   startedAt: number;
   timeLimitMs: number;
   isComplete: boolean;
+  completedAt?: number;
+  result?: QuizResult;
+  completionProgress: {
+    needsReviewMarked: boolean;
+    remediatedConceptIds: Set<string>;
+    xpAwarded?: number;
+  };
 }
 
-const QUIZ_TIME_LIMIT_MS = 15 * 60 * 1000; // 15 minutes
+const QUIZ_TIME_LIMIT_MS = 15 * 60 * 1000;
+// Keep expired sessions long enough to finish and replay completion requests.
+const SESSION_RETENTION_MS = 24 * 60 * 60 * 1000;
 const MIN_QUIZ_QUESTIONS = 10;
 const MAX_QUIZ_QUESTIONS = 15;
 
 @Injectable()
 export class QuizService {
   private sessions = new Map<string, QuizSession>();
+  private mutations = new Map<string, Promise<void>>();
 
   constructor(
     private prisma: PrismaService,
     private xpService: XPService,
     private studentState: StudentStateService,
     private remediationService: RemediationService,
+    private scope: AssessmentScopeService,
   ) {}
 
-  async generateQuiz(userId: string, courseId: string) {
-    // Get the enrollment to check XP
-    const enrollment = await this.prisma.courseEnrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
+  async generateQuiz(orgId: string, userId: string, courseId: string) {
+    await this.scope.assertCourse(orgId, userId, courseId);
+    this.cleanupSessions();
 
-    if (!enrollment) {
-      throw new NotFoundException('Not enrolled in this course');
-    }
-
-    // Get concepts with mastery state for this student
-    const conceptStates = await this.prisma.studentConceptState.findMany({
-      where: {
-        userId,
-        concept: activeConceptWhere({ courseId }),
-        masteryState: { in: ['in_progress', 'mastered'] },
-      },
-      include: { concept: true },
-    });
+    const conceptStates = (
+      await this.studentState.getConceptStatesForCourse(userId, courseId)
+    ).filter((state) => ['in_progress', 'mastered'].includes(state.masteryState));
 
     if (conceptStates.length === 0) {
       throw new BadRequestException('No concepts available for quiz');
     }
 
-    // Select concepts near the student's ability level (~80% expected score)
-    // Shuffle and pick from concepts that are in_progress or mastered
-    const shuffled = conceptStates.sort(() => Math.random() - 0.5);
+    const shuffled = [...conceptStates];
+    for (let index = shuffled.length - 1; index > 0; index--) {
+      const other = Math.floor(Math.random() * (index + 1));
+      [shuffled[index], shuffled[other]] = [shuffled[other], shuffled[index]];
+    }
     const selectedConceptIds = shuffled
       .slice(0, MAX_QUIZ_QUESTIONS)
-      .map((s) => s.conceptId);
+      .map((state) => state.conceptId);
 
-    // Get one problem per selected concept
     const problems = await this.prisma.problem.findMany({
       where: activeProblemWhere({
         knowledgePoint: {
           conceptId: { in: selectedConceptIds },
+          concept: { courseId },
         },
       }),
       include: {
-        knowledgePoint: {
-          select: { conceptId: true },
-        },
+        knowledgePoint: { select: { conceptId: true } },
       },
     });
 
-    // Pick one problem per concept, preferring non-review variants
-    const conceptProblemMap = new Map<string, typeof problems[0]>();
+    const conceptProblemMap = new Map<string, (typeof problems)[0]>();
     for (const problem of problems) {
-      const cid = problem.knowledgePoint.conceptId;
-      const existing = conceptProblemMap.get(cid);
+      const conceptId = problem.knowledgePoint.conceptId;
+      const existing = conceptProblemMap.get(conceptId);
       if (!existing || (existing.isReviewVariant && !problem.isReviewVariant)) {
-        conceptProblemMap.set(cid, problem);
+        conceptProblemMap.set(conceptId, problem);
       }
     }
 
-    const quizProblems = Array.from(conceptProblemMap.values()).slice(
-      0,
-      MAX_QUIZ_QUESTIONS,
-    );
-
-    if (quizProblems.length < Math.min(MIN_QUIZ_QUESTIONS, conceptStates.length)) {
+    const quizProblems = Array.from(conceptProblemMap.values()).slice(0, MAX_QUIZ_QUESTIONS);
+    const requiredQuestions = Math.min(MIN_QUIZ_QUESTIONS, conceptStates.length);
+    if (quizProblems.length < requiredQuestions) {
       throw new BadRequestException(
-        `Not enough problems for a quiz (found ${quizProblems.length}, need ${MIN_QUIZ_QUESTIONS})`,
+        `Not enough problems for a quiz (found ${quizProblems.length}, need ${requiredQuestions})`,
       );
     }
 
-    const quizId = `quiz-${userId}-${courseId}-${Date.now()}`;
+    const quizId = randomUUID();
     const session: QuizSession = {
       quizId,
+      orgId,
       userId,
       courseId,
-      problems: quizProblems.map((p) => ({
-        id: p.id,
-        conceptId: p.knowledgePoint.conceptId,
-        questionText: p.questionText,
-        type: p.type,
-        options: p.options,
-        difficulty: p.difficulty,
-        correctAnswer: p.correctAnswer,
-        explanation: p.explanation,
+      problems: quizProblems.map((problem) => ({
+        id: problem.id,
+        conceptId: problem.knowledgePoint.conceptId,
+        questionText: problem.questionText,
+        type: problem.type,
+        options: problem.options,
+        difficulty: problem.difficulty,
+        correctAnswer: problem.correctAnswer,
+        explanation: problem.explanation,
       })),
       answers: [],
+      attemptIds: new Map(),
       startedAt: Date.now(),
       timeLimitMs: QUIZ_TIME_LIMIT_MS,
       isComplete: false,
+      completionProgress: {
+        needsReviewMarked: false,
+        remediatedConceptIds: new Set(),
+      },
     };
-
     this.sessions.set(quizId, session);
 
-    // Return problems WITHOUT correct answers (closed-book)
     return {
       quizId,
       totalProblems: session.problems.length,
       timeLimitMs: QUIZ_TIME_LIMIT_MS,
+      startedAt: session.startedAt,
+      expiresAt: session.startedAt + session.timeLimitMs,
       problems: session.problems.map((problem) =>
         serializeProblemForClient({
           id: problem.id,
@@ -159,177 +175,207 @@ export class QuizService {
   }
 
   async submitQuizAnswer(
+    orgId: string,
+    userId: string,
+    courseId: string,
     quizId: string,
     problemId: string,
     answer: unknown,
     responseTimeMs: number,
   ) {
-    const session = this.sessions.get(quizId);
-    if (!session) {
-      throw new NotFoundException(`Quiz ${quizId} not found`);
-    }
+    const session = this.getSession(orgId, userId, courseId, quizId);
+    return this.withMutation(quizId, async () => {
+      await this.scope.assertCourse(orgId, userId, courseId);
+      const savedAnswer = session.answers.find((candidate) => candidate.problemId === problemId);
+      if (savedAnswer) {
+        if (!isDeepStrictEqual(savedAnswer.answer, answer)) {
+          throw new BadRequestException('Problem already answered with a different answer');
+        }
+        return savedAnswer.acknowledgement;
+      }
+      if (session.isComplete) {
+        throw new BadRequestException('Quiz is already complete');
+      }
+      if (Date.now() - session.startedAt >= session.timeLimitMs) {
+        throw new BadRequestException('Quiz time has expired');
+      }
+      const problem = session.problems.find((candidate) => candidate.id === problemId);
+      if (!problem) {
+        throw new NotFoundException(`Problem ${problemId} not in this quiz`);
+      }
+      if (!Number.isSafeInteger(responseTimeMs) || responseTimeMs < 0) {
+        throw new BadRequestException('Response time must be a non-negative integer');
+      }
 
-    if (session.isComplete) {
-      throw new BadRequestException('Quiz is already complete');
-    }
+      const evaluation = evaluateAnswer(
+        problem.type,
+        answer,
+        problem.correctAnswer,
+        problem.explanation ?? undefined,
+        problem.options as unknown[] | null,
+      );
 
-    // Check time limit
-    const elapsed = Date.now() - session.startedAt;
-    if (elapsed > session.timeLimitMs) {
-      throw new BadRequestException('Quiz time has expired');
-    }
+      // A stable row ID also handles a retry after the database commits but its
+      // response is lost. The first stored response remains authoritative.
+      const attemptId = session.attemptIds.get(problemId) ?? randomUUID();
+      session.attemptIds.set(problemId, attemptId);
+      const attempt = await this.prisma.problemAttempt.upsert({
+        where: { id: attemptId },
+        create: {
+          id: attemptId,
+          userId,
+          problemId,
+          answer: answer as Prisma.InputJsonValue,
+          correct: evaluation.correct,
+          responseTimeMs,
+          xpAwarded: 0,
+        },
+        update: {},
+      });
 
-    // Find the problem in the session
-    const problem = session.problems.find((p) => p.id === problemId);
-    if (!problem) {
-      throw new NotFoundException(`Problem ${problemId} not in this quiz`);
-    }
-
-    // Check if already answered
-    if (session.answers.some((a) => a.problemId === problemId)) {
-      throw new BadRequestException('Problem already answered');
-    }
-
-    // Evaluate (but no feedback during quiz)
-    const evaluation = evaluateAnswer(
-      problem.type,
-      answer,
-      problem.correctAnswer,
-      problem.explanation ?? undefined,
-      problem.options as unknown[] | null,
-    );
-
-    session.answers.push({
-      problemId,
-      conceptId: problem.conceptId,
-      correct: evaluation.correct,
-      responseTimeMs,
-    });
-
-    // Create ProblemAttempt record
-    await this.prisma.problemAttempt.create({
-      data: {
-        userId: session.userId,
+      // Only count an answer after persistence succeeds.
+      const acknowledgement = {
+        answeredCount: session.answers.length + 1,
+        totalProblems: session.problems.length,
+      };
+      session.answers.push({
         problemId,
-        answer: answer as any,
-        correct: evaluation.correct,
-        responseTimeMs,
-        xpAwarded: 0, // XP awarded on quiz completion, not per question
-      },
+        conceptId: problem.conceptId,
+        answer: attempt.answer,
+        correct: attempt.correct,
+        responseTimeMs: attempt.responseTimeMs,
+        acknowledgement,
+      });
+      if (!isDeepStrictEqual(attempt.answer, answer)) {
+        throw new BadRequestException('Problem already answered with a different answer');
+      }
+      return acknowledgement;
     });
-
-    return {
-      answeredCount: session.answers.length,
-      totalProblems: session.problems.length,
-      // No feedback during quiz (closed-book)
-    };
   }
 
-  async completeQuiz(quizId: string) {
-    const session = this.sessions.get(quizId);
-    if (!session) {
-      throw new NotFoundException(`Quiz ${quizId} not found`);
-    }
-
-    session.isComplete = true;
-
-    const correctCount = session.answers.filter((a) => a.correct).length;
-    const totalCount = session.answers.length;
-    const score = totalCount > 0 ? correctCount / totalCount : 0;
-
-    // Per-concept breakdown
-    const conceptResults = new Map<
-      string,
-      { correct: number; total: number }
-    >();
-    for (const answer of session.answers) {
-      const existing = conceptResults.get(answer.conceptId) || {
-        correct: 0,
-        total: 0,
-      };
-      existing.total++;
-      if (answer.correct) existing.correct++;
-      conceptResults.set(answer.conceptId, existing);
-    }
-
-    // Failed concepts: schedule for review
-    const failedConcepts: string[] = [];
-    for (const [conceptId, result] of conceptResults) {
-      if (result.correct / result.total < 0.5) {
-        failedConcepts.push(conceptId);
+  async completeQuiz(orgId: string, userId: string, courseId: string, quizId: string) {
+    const session = this.getSession(orgId, userId, courseId, quizId);
+    return this.withMutation(quizId, async (): Promise<QuizResult> => {
+      const { academyId } = await this.scope.assertCourse(orgId, userId, courseId);
+      if (session.result) return session.result;
+      if (
+        session.answers.length !== session.problems.length &&
+        Date.now() - session.startedAt < session.timeLimitMs
+      ) {
+        throw new BadRequestException('Answer every quiz question before completing');
       }
-    }
+      // Seal the answers while completion effects run or await a retry.
+      session.isComplete = true;
 
-    // Mark failed concepts as needs_review
-    if (failedConcepts.length > 0) {
-      await this.studentState.markConceptsNeedsReview(session.userId, failedConcepts);
-    }
+      const answers = new Map(session.answers.map((answer) => [answer.problemId, answer]));
+      const conceptResults = new Map<string, { correct: number; total: number }>();
+      const missedConceptIds = new Set<string>();
+      let correctCount = 0;
+      for (const problem of session.problems) {
+        const correct = answers.get(problem.id)?.correct ?? false;
+        const conceptResult = conceptResults.get(problem.conceptId) ?? { correct: 0, total: 0 };
+        conceptResult.total++;
+        if (correct) {
+          correctCount++;
+          conceptResult.correct++;
+        } else {
+          missedConceptIds.add(problem.conceptId);
+        }
+        conceptResults.set(problem.conceptId, conceptResult);
+      }
+      const totalCount = session.problems.length;
+      const score = correctCount / totalCount;
+      const failedConcepts = Array.from(conceptResults)
+        .filter(([, result]) => result.correct / result.total < 0.5)
+        .map(([conceptId]) => conceptId);
+      const progress = session.completionProgress;
 
-    // Slice 3 — Math Academy Way, Ch 21 p.300: "Whenever they miss a question
-    // on a quiz, we immediately follow up with a remedial review on the
-    // corresponding topic." Every missed question spawns a remediation. The
-    // existing task-selector gives remediation P1, so the next `GET /next-task`
-    // call will serve these as the top priority.
-    const missedConceptIds = new Set(
-      session.answers.filter((a) => !a.correct).map((a) => a.conceptId),
-    );
-    if (missedConceptIds.size > 0) {
-      const course = await this.prisma.course.findUnique({
-        where: { id: session.courseId },
-        select: { academyId: true },
-      });
-      if (course?.academyId) {
-        for (const conceptId of missedConceptIds) {
-          try {
-            await this.remediationService.createRemediation(
-              session.userId,
-              course.academyId,
-              conceptId,
-              conceptId,
-              session.courseId,
-            );
-          } catch {
-            // Best-effort; do not block quiz completion on remediation failure.
-          }
+      if (!progress.needsReviewMarked) {
+        if (failedConcepts.length > 0) {
+          await this.studentState.markConceptsNeedsReview(userId, failedConcepts);
+        }
+        progress.needsReviewMarked = true;
+      }
+      for (const conceptId of missedConceptIds) {
+        if (progress.remediatedConceptIds.has(conceptId)) continue;
+        await this.remediationService.createRemediation(
+          userId, academyId, conceptId, conceptId, courseId,
+        );
+        progress.remediatedConceptIds.add(conceptId);
+      }
+      if (progress.xpAwarded === undefined) {
+        const requestedXP = session.answers.length > 0
+          ? calculateQuizXP(totalCount, correctCount).xp
+          : 0;
+        if (requestedXP > 0) {
+          const recorded = await this.xpService.recordXPEvent({
+            userId,
+            academyId,
+            courseId,
+            source: 'quiz',
+            amount: requestedXP,
+            idempotencyKey: `quiz:${session.quizId}`,
+          });
+          progress.xpAwarded = recorded.amount;
+        } else {
+          progress.xpAwarded = 0;
         }
       }
+
+      session.result = {
+        quizId,
+        score,
+        correctCount,
+        totalCount,
+        xpAwarded: progress.xpAwarded,
+        failedConcepts,
+        conceptBreakdown: Object.fromEntries(conceptResults),
+        results: session.problems.map((problem) => {
+          const answer = answers.get(problem.id);
+          const correct = answer?.correct ?? false;
+          const feedback = correct ? 'Correct!' : answer ? 'Incorrect.' : 'Unanswered.';
+          return {
+            problemId: problem.id,
+            correct,
+            feedback: `${feedback}${!correct && problem.explanation ? ' ' + problem.explanation : ''}`,
+          };
+        }),
+      };
+      session.completedAt = Date.now();
+      return session.result;
+    });
+  }
+
+  private getSession(orgId: string, userId: string, courseId: string, quizId: string) {
+    this.cleanupSessions();
+    const session = this.sessions.get(quizId);
+    if (!session || session.orgId !== orgId || session.userId !== userId || session.courseId !== courseId) {
+      throw new NotFoundException(`Quiz ${quizId} not found`);
     }
+    return session;
+  }
 
-    // Calculate and award quiz XP
-    const xpResult = calculateQuizXP(totalCount, correctCount);
-
-    if (xpResult.xp > 0) {
-      const recorded = await this.xpService.recordXPEvent({
-        userId: session.userId,
-        courseId: session.courseId,
-        source: 'quiz',
-        amount: xpResult.xp,
-      });
-      xpResult.xp = recorded.amount; // May be clamped by daily cap
+  private async withMutation<T>(quizId: string, operation: () => Promise<T>): Promise<T> {
+    const previous = this.mutations.get(quizId) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => { release = resolve; });
+    this.mutations.set(quizId, current);
+    await previous;
+    try {
+      return await operation();
+    } finally {
+      release();
+      if (this.mutations.get(quizId) === current) this.mutations.delete(quizId);
     }
+  }
 
-    // Clean up session
-    this.sessions.delete(quizId);
-
-    return {
-      quizId,
-      score,
-      correctCount,
-      totalCount,
-      xpAwarded: xpResult.xp,
-      failedConcepts,
-      conceptBreakdown: Object.fromEntries(conceptResults),
-      // Now include feedback for each question
-      results: session.answers.map((a) => {
-        const problem = session.problems.find((p) => p.id === a.problemId);
-        return {
-          problemId: a.problemId,
-          correct: a.correct,
-          feedback: a.correct
-            ? 'Correct!'
-            : `Incorrect.${problem?.explanation ? ' ' + problem.explanation : ''}`,
-        };
-      }),
-    };
+  private cleanupSessions() {
+    const now = Date.now();
+    for (const [quizId, session] of this.sessions) {
+      const retainFrom = session.completedAt ?? session.startedAt + session.timeLimitMs;
+      if (now - retainFrom >= SESSION_RETENTION_MS && !this.mutations.has(quizId)) {
+        this.sessions.delete(quizId);
+      }
+    }
   }
 }

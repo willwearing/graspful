@@ -1021,6 +1021,7 @@ model ProblemAttempt {
   correct        Boolean
   responseTimeMs Int      @map("response_time_ms")
   xpAwarded      Int      @default(0) @map("xp_awarded")
+  submissionReceipt Json? @map("submission_receipt")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)

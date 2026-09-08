@@ -2,6 +2,7 @@
 
 import { useBrand } from "@/lib/brand/context";
 import { trackLandingCtaClick } from "@/lib/posthog/events";
+import { LessonPreview } from "./lesson-preview";
 
 interface HeroProps {
   headline: string;
@@ -11,49 +12,28 @@ interface HeroProps {
 
 export function Hero({ headline, subheadline, ctaText }: HeroProps) {
   const brand = useBrand();
-  const words = headline.split(" ");
+  const isGraspful = brand.id === "graspful";
+  const ctaHref = isGraspful ? "/docs/quickstart" : "/sign-up";
 
   return (
-    <section className="relative min-h-[70vh] flex items-center">
-      <div className="gradient-mesh overflow-hidden">
-        <div className="orb-1" />
-        <div className="orb-2" />
-        <div className="orb-3" />
-        <div className="orb-4" />
-      </div>
-
-      <div className="relative z-10 mx-auto max-w-5xl px-6 py-20 text-center md:py-32">
-        <h1 className="text-7xl font-bold tracking-[-0.045em] leading-[1.08] sm:text-8xl lg:text-9xl">
-          {words.map((word, i) => (
-            <span
-              key={`${word}-${i}`}
-              className={`inline-block animate-word-enter ${
-                i >= words.length - 1 ? "text-gradient" : "text-foreground"
-              }`}
-              style={{ animationDelay: `${0.15 + i * 0.14}s` }}
-            >
-              {word}
-              {i < words.length - 1 ? <span>&nbsp;</span> : null}
-            </span>
-          ))}
-        </h1>
-        <p
-          className="animate-fade-up mx-auto mt-8 max-w-xl text-xl leading-relaxed text-muted-foreground md:text-2xl"
-          style={{ animationDelay: "0.6s" }}
-        >
-          {subheadline}
-        </p>
-        <div className="animate-fade-up" style={{ animationDelay: "0.8s" }}>
+    <section className="border-b border-border bg-background pt-20">
+      <div className={`mx-auto max-w-6xl gap-10 px-6 py-12 md:py-20 ${isGraspful ? "grid lg:grid-cols-2 lg:items-center" : "text-center"}`}>
+        <div>
+          <h1 className="text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+            {headline}
+          </h1>
+          <p className={`mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground ${isGraspful ? "" : "mx-auto"}`}>
+            {subheadline}
+          </p>
           <a
-            href="/sign-up"
-            onClick={() => {
-              trackLandingCtaClick("hero", brand.id, "/sign-up");
-            }}
-            className="btn-gradient glow-pulse mt-10 inline-block px-12 py-4 text-base font-medium"
+            href={ctaHref}
+            onClick={() => trackLandingCtaClick("hero", brand.id, ctaHref)}
+            className="mt-7 inline-block rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             {ctaText}
           </a>
         </div>
+        {isGraspful && <LessonPreview />}
       </div>
     </section>
   );

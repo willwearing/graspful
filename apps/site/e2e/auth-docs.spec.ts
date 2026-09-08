@@ -51,5 +51,8 @@ test.describe("Auth and docs", () => {
     await expect(
       page.getByRole("heading", { name: "Reference", exact: true }),
     ).toBeVisible();
+    await expect(page.getByText(/An import without --publish saves a draft for review/)).toBeVisible();
+    await expect(page.getByText(/Confirm published: true in the response/)).toBeVisible();
+    await expect(page.getByText(/Paid subscriptions are not available yet/)).toBeVisible();
   });
 });

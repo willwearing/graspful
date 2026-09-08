@@ -7,7 +7,7 @@ Review specification for course quality validation. This document defines both t
 ```bash
 graspful review course.yaml              # Run all 10 checks offline
 graspful review course.yaml --format json # Machine-readable output
-graspful import course.yaml --publish     # Runs review gate inline
+graspful import course.yaml --org <org-slug> --publish     # Runs review gate inline
 ```
 
 ## Structural Review (Agent Review)
@@ -180,24 +180,26 @@ How to fix duplicates:
 - Callout blocks should highlight key rules, common mistakes, or memory aids — not repeat the instruction.
 - Link blocks should point to authoritative external resources that the learner can use for deeper exploration.
 
-## Mechanical Quality Gate
+## Automated quality gate
 
-The following 10 checks are automated and run by `graspful review`:
+The following checks run in the shared reviewer used by the CLI, MCP server, and publication endpoint. The source of truth is [QUALITY_CHECK_METADATA](../packages/shared/src/quality-gate.ts). The [public review guide](https://graspful.ai/docs/review-gate) renders that registry directly.
 
-| # | Check | What It Does |
-|---|-------|-------------|
-| 1 | yaml_parses | YAML loads and validates against CourseYamlSchema |
-| 2 | unique_problem_ids | No duplicate problem IDs across the course |
-| 3 | prerequisites_valid | All prerequisite references resolve to real concept IDs |
-| 4 | question_deduplication | No near-identical questions at the same cognitive level |
-| 5 | difficulty_staircase | Each concept has problems at 2+ cognitive levels |
-| 6 | problem_teaching_alignment | Problems only test vocabulary and operations introduced in the lesson path |
-| 7 | problem_variant_depth | Each authored KP has >=3 practice problems |
-| 8 | instruction_formatting | No wall-of-text instructions >100 words without content blocks |
-| 9 | worked_example_coverage | >=50% of concepts have worked examples |
-| 10 | import_dry_run | DAG validation succeeds (no cycles, valid refs) |
+| # | Check | What it does |
+|---|-------|--------------|
+| 1 | yaml_parses | Validates the course schema and type-specific answer contracts |
+| 2 | unique_problem_ids | Requires unique problem IDs across the course |
+| 3 | publication_readiness | Rejects empty concepts, known scaffold markers, and missing teaching content |
+| 4 | question_deduplication | Rejects matching normalized question text at the same difficulty |
+| 5 | difficulty_staircase | Requires at least two numeric problem difficulty levels per concept |
+| 6 | problem_teaching_alignment | Uses vocabulary overlap to flag questions that appear unrelated to their teaching path |
+| 7 | problem_variant_depth | Requires at least three problems per knowledge point |
+| 8 | instruction_formatting | Requires content blocks with instructions longer than 100 words |
+| 9 | worked_example_coverage | Requires a worked example in at least half of authored concepts |
+| 10 | import_dry_run | Checks IDs, prerequisite references, and cycles |
 
-**Current state:** Checks 1-3 and 10 are automated by the importer and load script. Checks 4-9 are run manually by the review agent. If the manual checks repeatedly catch the same failures, or if agent-authored courses keep shipping with the same quality issues, consider building automation for checks 4-9 as a single mechanical pass. The decision point: if the review agent has to flag the same class of issue (e.g., duplicate questions) on 3+ courses, automate that check into a script so it can't be missed.
+A score of 10/10 means the automated checks passed. It does not establish factual accuracy, teaching quality, exam coverage, or learner mastery. Numeric difficulty levels and vocabulary overlap are heuristics. The source review and learner walkthrough above remain necessary.
+
+Draft scaffolds can validate while they are incomplete. Publication requires completed concepts, teaching content, and answerable questions. Review all warnings and failures. Confirm `published: true` in the publication response before sharing the course as published. Imports can still fail for permissions, conflicting IDs, or service errors.
 
 ## Self-Improvement Loop (Autoresearch Pattern)
 

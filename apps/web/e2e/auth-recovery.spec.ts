@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
+import { getE2eEnvironment } from "../../../scripts/e2e-env";
 
-const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  "https://tzftjqpnisalltnkrykg.supabase.co";
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const testEnv = getE2eEnvironment(process.env);
+const SUPABASE_URL = testEnv.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_KEY = testEnv.SUPABASE_SERVICE_ROLE_KEY;
 
 async function createConfirmedUser(email: string, password: string) {
   if (!SERVICE_KEY) {
@@ -125,8 +125,6 @@ test.describe("Auth recovery", () => {
     page,
     browser,
   }) => {
-    test.skip(!SERVICE_KEY, "SUPABASE_SERVICE_ROLE_KEY not set");
-
     const email = `e2e-reset-${Date.now()}@test.example.com`;
     const oldPassword = "TestPassword123!";
     const newPassword = "UpdatedPassword123!";

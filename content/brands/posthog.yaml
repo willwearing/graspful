@@ -2,62 +2,61 @@ brand:
   id: posthog
   name: PostHog TAM
   domain: posthog-tam.vercel.app
-  tagline: "Master PostHog. Technically."
+  tagline: Practice PostHog technical concepts
   logoUrl: /images/logo-firefighter.svg
   faviconUrl: /favicon.ico
   ogImageUrl: /images/og-firefighter.png
   orgSlug: posthog-tam
-
 theme:
   preset: orange
-  radius: "0.5rem"
-
+  radius: 0.5rem
 landing:
   hero:
-    headline: "Master PostHog. Technically."
-    subheadline: "Technical onboarding for PostHog TAMs -- data models, ingestion pipelines, identification, group analytics, and more."
-    ctaText: "Start Learning"
+    headline: Practice PostHog technical concepts
+    subheadline: Technical study material for PostHog TAMs, including data models, ingestion, and identification.
+    ctaText: Create an account
   features:
-    heading: "What You'll Master"
-    subheading: "Deep technical fluency with PostHog's core systems."
+    heading: What you can study
+    subheading: Read or listen to lessons, answer practice questions, and return for review.
     items:
-      - title: "Data Model Foundations"
-        description: "Learn entities, attributes, keys, and relationships before diving into PostHog specifics."
+      - title: Data model foundations
+        description: Study entities, attributes, keys, and relationships before PostHog-specific topics.
         icon: Database
-        wide: true
-      - title: "Ingestion Pipeline Deep-Dive"
-        description: "Understand how events flow from SDKs through Kafka to ClickHouse -- with architecture diagrams."
+      - title: Ingestion pipeline
+        description: Trace events from SDKs through the ingestion pipeline.
         icon: Workflow
-      - title: "Identification Mastery"
-        description: "Anonymous vs identified events, person merging, distinct_id -- the concepts customers struggle with most."
+      - title: Identification
+        description: Work through anonymous events, identified events, person merging, and distinct IDs.
         icon: UserCheck
-      - title: "Adaptive Learning"
-        description: "AI-driven spaced repetition focuses on your weak areas. 37 concepts, 149 practice problems."
+      - title: Practice and review
+        description: Answer questions and return to earlier topics when they are due for review.
         icon: Brain
-        wide: true
   howItWorks:
-    heading: "How It Works"
+    heading: How it works
     items:
-      - title: "Take a Diagnostic"
-        description: "Quick assessment identifies what PostHog concepts you already know."
-      - title: "Study Adaptively"
-        description: "Lessons build from data modeling fundamentals to PostHog-specific architecture."
-      - title: "Help Customers"
-        description: "Deep technical understanding means faster, better customer conversations."
+      - title: Check your starting point
+        description: Answer diagnostic questions to estimate which concepts need practice.
+      - title: Work through the concepts
+        description: Study explanations and examples from data modeling to PostHog architecture.
+      - title: Apply the material
+        description: Use the examples to reason through technical customer questions.
   faq:
-    - question: "Who is this for?"
-      answer: "PostHog Technical Account Managers who want deep technical fluency with the product's data model, ingestion pipeline, and identification system."
-    - question: "What does it cover?"
-      answer: "8 sections: Data Modeling, Pipelines, PostHog Data Model, Ingestion Pipeline, Identification, Group Analytics, CDP, and Querying."
-    - question: "How long does it take?"
-      answer: "Estimated 12 hours total. Study at your own pace -- the adaptive engine adjusts to what you already know."
+    - question: Who is this for?
+      answer: >-
+        PostHog Technical Account Managers who want to study the product data model, ingestion pipeline, and
+        identification system.
+    - question: What does it cover?
+      answer: The course outline includes data modeling, pipelines, identification, group analytics, CDP, and querying.
+    - question: How long does it take?
+      answer: >-
+        Study time depends on your prior knowledge and how much practice you need. You can return to the course at your
+        own pace.
   bottomCta:
-    headline: "Ready to Start Learning?"
-    subheadline: "Deep technical understanding means faster, better customer conversations."
-
+    headline: Explore the course
+    subheadline: Use explanations and practice questions to check your technical understanding.
 seo:
-  title: "PostHog TAM Technical Onboarding"
-  description: "Master PostHog's data model, ingestion pipeline, and identification system with adaptive learning."
+  title: PostHog TAM technical study material
+  description: Study PostHog data models, ingestion, and identification through explanations, examples, and practice questions.
   keywords:
     - posthog
     - technical account manager
@@ -65,7 +64,6 @@ seo:
     - data model
     - ingestion pipeline
     - analytics
-
 pricing:
   monthly: 0
   currency: usd

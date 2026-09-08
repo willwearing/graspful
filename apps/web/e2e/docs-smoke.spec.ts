@@ -62,9 +62,36 @@ test.describe("Docs Pages Smoke Tests", () => {
     expect(content).toContain("import_course");
   });
 
-  test("docs/billing has revenue share info", async ({ page }) => {
+  test("quickstart separates authoring, draft import, and confirmed publication", async ({ page }) => {
+    await page.goto("/docs/quickstart");
+    const headings = await page.getByRole("heading", { level: 2 }).allTextContents();
+    expect(headings.slice(0, 6).map((heading) => heading.trim())).toEqual([
+      "1. Install the CLI",
+      "2. Plan and author the course",
+      "3. Validate and review",
+      "4. Register before importing",
+      "5. Import as a draft",
+      "6. Publish and confirm the result",
+    ]);
+    const content = await page.textContent("body");
+    expect(content).toContain("published: false");
+    expect(content).toContain("published: true");
+    expect(content).toContain("cannot pass the publication review");
+    expect(content).toContain("external agent");
+    expect(content).not.toMatch(/course is live!|under 5 minutes/i);
+  });
+
+  test("review gate documents the active checks", async ({ page }) => {
+    await page.goto("/docs/review-gate");
+    const content = await page.textContent("body");
+    expect(content).toContain("publication_readiness");
+    expect(content).toContain("problem_teaching_alignment");
+    expect(content).not.toContain("cross_concept_coverage");
+  });
+
+  test("docs/billing states that paid subscriptions are unavailable", async ({ page }) => {
     await page.goto("/docs/billing");
     const content = await page.textContent("body");
-    expect(content).toMatch(/70.*30|30.*70/);
+    expect(content).toContain("Paid subscriptions are not available yet");
   });
 });

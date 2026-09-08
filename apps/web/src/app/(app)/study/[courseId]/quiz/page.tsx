@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
 import { resolvePageBrand } from "@/lib/brand/resolve";
-import { QuizFlow } from "@/components/app/quiz-flow";
+import { QuizFlow, type QuizData } from "@/components/app/quiz-flow";
+import { StudyRouter } from "@/components/app/study-router";
 
 export default async function QuizPage({
   params,
@@ -22,14 +23,14 @@ export default async function QuizPage({
   const brand = await resolvePageBrand();
   const orgSlug = brand.orgSlug;
 
-  let quizData: any;
+  let quizData: QuizData;
   try {
-    quizData = await apiFetch<any>(
+    quizData = await apiFetch<QuizData>(
       `/orgs/${orgSlug}/courses/${courseId}/quizzes/generate`,
       { method: "POST" }
     );
   } catch {
-    redirect(`/study/${courseId}`);
+    return <StudyRouter courseId={courseId} task={null} loadFailed emptyStateHref={`/browse/${courseId}`} emptyStateLabel="Back to Course" />;
   }
 
   return (

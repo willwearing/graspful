@@ -63,6 +63,6 @@ export class GamificationController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.courseProgressReads.getGraph(org.userId, courseId);
+    return this.courseProgressReads.getGraph(org.userId, courseId, org.orgId);
   }
 }

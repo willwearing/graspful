@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, startTransition } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { apiClientFetch } from "@/lib/api-client";
 import { ProblemRenderer } from "@/components/app/problems/problem-renderer";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,11 @@ import { Clock, Loader2 } from "lucide-react";
 import { useTimer } from "@/lib/hooks/use-timer";
 import { trackQuizComplete, trackQuizStarted, trackQuizQuestionAnswered, trackQuizTimedOut } from "@/lib/posthog/events";
 
-interface QuizData {
+export interface QuizData {
   quizId: string;
   totalProblems: number;
   timeLimitMs: number;
+  expiresAt?: number;
   problems: Problem[];
 }
 
@@ -47,11 +48,17 @@ export function QuizFlow({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<QuizResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ kind: "answer" | "completion"; message: string } | null>(null);
   const questionStartRef = useRef(Date.now());
   const finishCalledRef = useRef(false);
   const answeredCountRef = useRef(0);
+  const answerRequestRef = useRef<Promise<unknown> | null>(null);
+  const lastAnswerRef = useRef<ProblemAnswer | null>(null);
+  const [initialTimeMs] = useState(() => quizData.expiresAt !== undefined
+    ? Math.max(0, quizData.expiresAt - Date.now())
+    : quizData.timeLimitMs);
 
   const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
 
@@ -66,7 +73,11 @@ export function QuizFlow({
   const handleFinish = useCallback(async () => {
     if (finishCalledRef.current) return;
     finishCalledRef.current = true;
+    setFinishing(true);
+    setError(null);
     try {
+      // The server must receive the pending answer before it calculates a score.
+      await answerRequestRef.current?.catch(() => undefined);
       const res = await apiClientFetch<QuizResult>(
         `${basePath}/quizzes/${quizData.quizId}/complete`,
         token,
@@ -79,24 +90,17 @@ export function QuizFlow({
         res.score,
       );
     } catch {
-      setError("Something went wrong. Please try again.");
-      // Show minimal result
-      setResult({
-        quizId: quizData.quizId,
-        score: 0,
-        correctCount: 0,
-        totalCount: quizData.totalProblems,
-        xpAwarded: 0,
-        failedConcepts: [],
-        conceptBreakdown: [],
-        results: [],
-      });
+      finishCalledRef.current = false;
+      setError({ kind: "completion", message: "Could not load your quiz result. Retry completion to check your saved answers." });
+    } finally {
+      setFinishing(false);
     }
-  }, [basePath, quizData.quizId, quizData.totalProblems, token]);
+  }, [basePath, quizData.quizId, token]);
 
   const { remainingMs: timeLeftMs } = useTimer({
-    timeLimitMs: quizData.timeLimitMs,
+    timeLimitMs: initialTimeMs,
     onExpire: () => {
+      if (finishCalledRef.current) return;
       trackQuizTimedOut(quizData.quizId, answeredCountRef.current, quizData.totalProblems);
       handleFinish();
     },
@@ -110,29 +114,18 @@ export function QuizFlow({
   }
 
   async function handleSubmit(answer: ProblemAnswer) {
-    if (submitting) return;
+    if (answerRequestRef.current || finishCalledRef.current || result || timeLeftMs <= 0 || answeredCount >= quizData.totalProblems) return;
     const submittedIndex = currentIndex;
-    const previousAnsweredCount = answeredCount;
     const nextIndex = Math.min(submittedIndex + 1, quizData.problems.length - 1);
     const canAdvance = submittedIndex < quizData.problems.length - 1;
     const responseTimeMs = Date.now() - questionStartRef.current;
 
     setSubmitting(true);
     setError(null);
-
-    startTransition(() => {
-      setAnsweredCount((prev) => prev + 1);
-      if (canAdvance) {
-        setCurrentIndex(nextIndex);
-      }
-    });
-
-    if (canAdvance) {
-      questionStartRef.current = Date.now();
-    }
+    lastAnswerRef.current = answer;
 
     try {
-      const response = await apiClientFetch<{ answeredCount: number; totalProblems: number }>(
+      const request = apiClientFetch<{ answeredCount: number; totalProblems: number }>(
         `${basePath}/quizzes/${quizData.quizId}/answer`,
         token,
         {
@@ -144,6 +137,8 @@ export function QuizFlow({
           }),
         }
       );
+      answerRequestRef.current = request;
+      const response = await request;
 
       trackQuizQuestionAnswered(
         quizData.quizId,
@@ -151,15 +146,18 @@ export function QuizFlow({
         responseTimeMs,
       );
       setAnsweredCount(response.answeredCount);
+      answeredCountRef.current = response.answeredCount;
+      if (canAdvance) {
+        setCurrentIndex(nextIndex);
+        questionStartRef.current = Date.now();
+      }
+      lastAnswerRef.current = null;
     } catch {
-      startTransition(() => {
-        setAnsweredCount(previousAnsweredCount);
-        setCurrentIndex(submittedIndex);
-      });
-      questionStartRef.current = Date.now();
-      setError("Something went wrong. Please try again.");
+      setError({ kind: "answer", message: "Could not save your answer. Your selection is still here. Try again." });
+    } finally {
+      answerRequestRef.current = null;
+      setSubmitting(false);
     }
-    setSubmitting(false);
   }
 
   // Results screen
@@ -213,9 +211,15 @@ export function QuizFlow({
       <Progress value={((currentIndex + 1) / quizData.totalProblems) * 100} className="h-2" />
 
       {error && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-          {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
+        <div role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          {error.message}
+          {error.kind === "answer" && timeLeftMs > 0 && (
+            <Button variant="outline" className="mt-3" disabled={submitting || finishing} onClick={() => {
+              if (lastAnswerRef.current !== null) void handleSubmit(lastAnswerRef.current);
+            }}>
+              Retry answer
+            </Button>
+          )}
         </div>
       )}
 
@@ -223,7 +227,7 @@ export function QuizFlow({
         key={problem.id}
         problem={problem}
         onSubmit={handleSubmit}
-        disabled={submitting}
+        disabled={submitting || finishing || isLastAnswered || timeLeftMs <= 0}
         loading={submitting}
       />
 
@@ -234,9 +238,9 @@ export function QuizFlow({
         </div>
       ) : null}
 
-      {isLast && isLastAnswered && (
-        <Button onClick={handleFinish} className="w-full" variant="default" disabled={submitting}>
-          {submitting ? "Saving final answer..." : "Finish Quiz"}
+      {((isLast && isLastAnswered) || timeLeftMs <= 0 || error?.kind === "completion") && (
+        <Button onClick={handleFinish} className="w-full" variant="default" disabled={submitting || finishing}>
+          {finishing ? "Loading result..." : error?.kind === "completion" ? "Retry completion" : "Finish Quiz"}
         </Button>
       )}
     </div>

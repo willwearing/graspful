@@ -1,4 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import { getE2eEnvironment } from "../../scripts/e2e-env";
+
+const testEnv = getE2eEnvironment(process.env);
+Object.assign(process.env, testEnv);
 
 export default defineConfig({
   testDir: "./e2e",
@@ -19,8 +23,9 @@ export default defineConfig({
   ],
   webServer: {
     command: "bun run dev",
+    env: testEnv,
     url: "http://localhost:3002",
-    reuseExistingServer: true,
-    timeout: 30_000,
+    reuseExistingServer: process.env.E2E_REUSE_EXISTING_SERVER === "1",
+    timeout: 120_000,
   },
 });

@@ -286,7 +286,7 @@ export default function CLIReferencePage() {
       <CommandSection
         name="graspful review"
         synopsis="graspful review <file>"
-        description="Run all 10 mechanical quality checks on a course YAML. Returns a score (e.g., 8/10) with details on each failure. A score of 10/10 is required for publishing. See the Review Gate docs for details on each check."
+        description="Run all 10 mechanical quality checks on a course YAML. Returns a score (e.g., 8/10) with details on each failure. A score of 10/10 means the automated checks passed. Review source accuracy, answer keys, and teaching quality before publishing. See the review gate docs for each check and its limits."
         examples={[
           {
             label: "Run review",
@@ -314,11 +314,11 @@ export default function CLIReferencePage() {
   ],
   "warnings": [],
   "stats": {
-    "concepts": 42,
+    "concepts": 5,
     "kps": 10,
     "problems": 30,
     "authoredConcepts": 5,
-    "stubConcepts": 37
+    "stubConcepts": 0
   }
 }`}
       />
@@ -328,7 +328,7 @@ export default function CLIReferencePage() {
         synopsis={`graspful import <file> \\
   --org <slug> \\
   [--publish]`}
-        description="Import a course or brand YAML into a Graspful organization. Auto-detects the file type. For courses, use --publish to publish immediately — this runs the review gate server-side. If review fails, the course is imported as a draft with failure details."
+        description="Import course, academy, or brand YAML into an organization. A new course is a draft by default. The --publish flag requests publication after server review. Check published: true before reporting success. A failed publication returns failure details and a nonzero exit status; a course imported during that request can remain a draft."
         options={[
           { flag: "<file>", description: "Path to the YAML file (course or brand)" },
           { flag: "--org <slug>", description: "Organization slug (required for courses)" },
@@ -358,7 +358,7 @@ export default function CLIReferencePage() {
       <CommandSection
         name="graspful publish"
         synopsis="graspful publish <courseId> --org <slug>"
-        description="Publish a draft course (sets isPublished = true). The server runs the review gate — the course must pass all 10 quality checks."
+        description="Request publication of a draft course. The server runs the review gate. Confirm published: true in the result. A failed publication reports its failures and returns a nonzero exit status."
         options={[
           { flag: "<courseId>", description: "The course ID (UUID) to publish" },
           { flag: "--org <slug>", description: "Organization slug (required)" },

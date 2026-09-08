@@ -146,9 +146,27 @@ export function evaluateMatching(
   answer: unknown,
   correctAnswer: unknown,
   explanation?: string,
+  options?: unknown[] | null,
 ): EvaluationResult {
   const studentPairs = toPairMap(answer);
-  const correctPairs = toPairMap(correctAnswer);
+  // Older imports stored a permutation of the right-hand option labels.
+  // Resolve that representation to the same labels sent to the matching UI.
+  let expected = correctAnswer;
+  if (typeof correctAnswer === 'string' && Array.isArray(options)) {
+    const pairs = options.map((option) => String(option).split('|').map((label) => label.trim()));
+    const parts = correctAnswer.split(',').map((part) => part.trim());
+    const indices = parts.map(Number);
+    if (pairs.length === 0 || parts.length !== pairs.length ||
+        parts.some((part) => !/^\d+$/.test(part)) ||
+        pairs.some((pair) => pair.length !== 2 || !pair[0] || !pair[1]) ||
+        new Set(pairs.map((pair) => pair[0])).size !== pairs.length ||
+        new Set(indices).size !== pairs.length ||
+        indices.some((index) => !Number.isInteger(index) || index < 0 || index >= pairs.length)) {
+      return { correct: false, feedback: 'Invalid answer format.' };
+    }
+    expected = Object.fromEntries(pairs.map((pair, index) => [pair[0], pairs[indices[index]][1]]));
+  }
+  const correctPairs = toPairMap(expected);
 
   if (!studentPairs || !correctPairs) {
     return { correct: false, feedback: 'Invalid answer format.' };
@@ -204,7 +222,7 @@ export function evaluateAnswer(
     case 'ordering':
       return evaluateOrdering(answer, correctAnswer, explanation, options);
     case 'matching':
-      return evaluateMatching(answer, correctAnswer, explanation);
+      return evaluateMatching(answer, correctAnswer, explanation, options);
     case 'scenario':
       return evaluateScenario(answer, correctAnswer, explanation);
     default:

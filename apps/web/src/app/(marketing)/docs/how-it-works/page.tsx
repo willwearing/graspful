@@ -164,15 +164,15 @@ export default function HowItWorksPage() {
           3. Mastery-Based Progression
         </h2>
         <p className="mt-2 text-muted-foreground">
-          Graspful never advances a student to a new concept until all its
-          prerequisites are mastered. The set of concepts a student can work on
+          The learning engine selects new concepts whose prerequisites meet
+          the configured mastery threshold. The set of concepts a student can work on
           at any moment is called the{" "}
           <strong className="text-foreground">knowledge frontier</strong>: the
-          unmastered concepts whose prerequisites are all mastered. This
-          guarantees students always have the foundation they need. If a student
+          unmastered concepts whose prerequisites meet the mastery threshold.
+          These states are estimates based on learner answers. If a student
           gets stuck (two or more consecutive failures), the engine detects a{" "}
           <strong className="text-foreground">plateau</strong> and automatically
-          identifies the weak prerequisite causing the block. It then assigns{" "}
+          selects a weak prerequisite to revisit based on recorded performance. It then assigns{" "}
           <strong className="text-foreground">remediation</strong> — targeted
           practice on that prerequisite — before returning the student to the
           original concept.
@@ -361,22 +361,28 @@ export default function HowItWorksPage() {
           The Two-YAML Workflow
         </h2>
         <p className="mt-2 text-muted-foreground">
-          Every Graspful product is defined by two files. A{" "}
+          Course content and brand settings use separate YAML files. An academy
+          manifest can group several courses. A{" "}
           <strong className="text-foreground">course YAML</strong> defines the
           knowledge graph, concepts, knowledge points, and practice problems. A{" "}
           <strong className="text-foreground">brand YAML</strong> configures the
           product: theme, landing page copy, pricing, SEO, and custom domain.
-          Import both, and you have a live white-label learning product with
-          adaptive diagnostics, spaced repetition, and Stripe billing. No code
-          required.
+          Review and publish the course, then import the brand and verify the
+          domain. Paid access requires completed billing setup.
         </p>
         <CodeBlock language="bash">
-          {`# 1. Create and import the course
-graspful create course --topic "JavaScript Fundamentals" -o js-course.yaml
-graspful import js-course.yaml --org my-org --publish
+          {`# 1. Review an authored course, then import a draft.
+# Follow the quickstart to install, author the content, and authenticate.
+graspful validate js-course.yaml
+graspful review js-course.yaml
+graspful import js-course.yaml --org my-org --format json
 
-# 2. Create and import the brand
-graspful create brand --name "JS Mastery" --domain js.graspful.ai -o js-brand.yaml
+# 2. Use the returned courseId and confirm published: true.
+graspful publish <course-id> --org my-org --format json
+
+# 3. Create, edit, and import the brand.
+graspful create brand --niche tech --name "JS Mastery" --org my-org --domain js.graspful.ai -o js-brand.yaml
+# Replace generated landing-page placeholders before importing.
 graspful import js-brand.yaml`}
         </CodeBlock>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -418,9 +424,9 @@ graspful import js-brand.yaml`}
               @graspful/cli
             </code>
             ) and an MCP server. Both accept YAML as input and return structured
-            JSON. The fastest path to creating a course is:{" "}
+            JSON. The authoring sequence is:{" "}
             <code className="rounded-md bg-muted px-1.5 py-0.5 text-sm font-mono">
-              create &rarr; fill &rarr; review &rarr; import
+              create &rarr; author &rarr; validate &rarr; review &rarr; import &rarr; publish
             </code>
             .
           </p>
@@ -436,7 +442,7 @@ graspful import js-brand.yaml`}
             className="group flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowRight className="h-3.5 w-3.5 text-primary" />
-            <span>Quickstart — create your first course in 5 minutes</span>
+            <span>Quickstart: author, review, and publish your first course</span>
           </Link>
           <Link
             href="/docs/course-creation-guide"

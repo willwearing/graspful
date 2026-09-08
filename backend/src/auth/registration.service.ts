@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PrismaService } from '@/prisma/prisma.service';
 import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
+import { PostHogService } from '@/shared/application/posthog.service';
 import { ApiKeyService } from './api-key/api-key.service';
 import * as crypto from 'crypto';
 
@@ -24,6 +25,7 @@ export class RegistrationService {
     private apiKeyService: ApiKeyService,
     private config: ConfigService,
     private vercelDomains: VercelDomainsService,
+    private posthog: PostHogService,
   ) {
     this.supabase = createClient(
       this.config.getOrThrow('SUPABASE_URL'),
@@ -118,7 +120,15 @@ export class RegistrationService {
           data: { orgId: org.id, userId: user.id, name: 'default', keyHash, keyPrefix },
         });
 
-        return { userId: user.id, orgSlug: org.slug, apiKey: rawApiKey, domain };
+        return { userId: user.id, orgId: org.id, orgSlug: org.slug, apiKey: rawApiKey, domain };
+      });
+
+      this.posthog.recordAccountCreated({
+        userId: txResult.userId,
+        email,
+        orgId: txResult.orgId,
+        orgSlug: txResult.orgSlug,
+        source: 'registration',
       });
 
       // Provision the subdomain on Vercel (non-blocking — registration shouldn't fail if Vercel is down)

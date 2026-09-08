@@ -9,6 +9,7 @@ import { ProblemSubmissionService } from './problem-submission.service';
 import { ReviewService } from './review.service';
 import { QuizService } from './quiz.service';
 import { SectionExamService } from './section-exam.service';
+import { AssessmentScopeService } from './assessment-scope.service';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { SectionExamService } from './section-exam.service';
     RemediationCoreModule,
   ],
   controllers: [AssessmentController],
-  providers: [ProblemSubmissionService, ReviewService, QuizService, SectionExamService],
+  providers: [ProblemSubmissionService, ReviewService, QuizService, SectionExamService, AssessmentScopeService],
   exports: [ProblemSubmissionService, ReviewService, QuizService, SectionExamService],
 })
 export class AssessmentModule {}

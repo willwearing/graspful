@@ -22,7 +22,7 @@ test.describe("Agent Discovery — llms-full.txt", () => {
 
   test("has Authentication section before CLI Commands", async () => {
     const authIdx = llmsFullContent.indexOf("## Authentication");
-    const cliIdx = llmsFullContent.indexOf("## CLI Commands");
+    const cliIdx = llmsFullContent.indexOf("## CLI commands");
 
     expect(authIdx).toBeGreaterThan(-1);
     expect(cliIdx).toBeGreaterThan(-1);
@@ -32,7 +32,7 @@ test.describe("Agent Discovery — llms-full.txt", () => {
   test("Authentication section mentions graspful register and GRASPFUL_API_KEY", async () => {
     const authSection = llmsFullContent.substring(
       llmsFullContent.indexOf("## Authentication"),
-      llmsFullContent.indexOf("## CLI Commands")
+      llmsFullContent.indexOf("## CLI commands")
     );
 
     expect(authSection).toContain("graspful register");
@@ -40,7 +40,7 @@ test.describe("Agent Discovery — llms-full.txt", () => {
   });
 
   test("Quick Start includes register step", async () => {
-    const quickStartIdx = llmsFullContent.indexOf("## Quick Start");
+    const quickStartIdx = llmsFullContent.indexOf("## Quickstart");
     const authIdx = llmsFullContent.indexOf("## Authentication");
     const quickStartSection = llmsFullContent.substring(quickStartIdx, authIdx);
 
@@ -48,7 +48,7 @@ test.describe("Agent Discovery — llms-full.txt", () => {
   });
 
   test("MCP Tools section does not advertise a broken register tool", async () => {
-    const mcpIdx = llmsFullContent.indexOf("## MCP Tools");
+    const mcpIdx = llmsFullContent.indexOf("## MCP tools");
     const mcpSection = llmsFullContent.substring(mcpIdx);
 
     expect(mcpSection).not.toContain("### graspful_register");
@@ -56,7 +56,7 @@ test.describe("Agent Discovery — llms-full.txt", () => {
   });
 
   test("auth-gated MCP tools are marked as AUTH REQUIRED", async () => {
-    const mcpIdx = llmsFullContent.indexOf("## MCP Tools");
+    const mcpIdx = llmsFullContent.indexOf("## MCP tools");
     const mcpSection = llmsFullContent.substring(mcpIdx);
 
     expect(mcpSection).toContain("graspful_import_course (AUTH REQUIRED)");
@@ -65,11 +65,12 @@ test.describe("Agent Discovery — llms-full.txt", () => {
     expect(mcpSection).toContain("graspful_list_courses (AUTH REQUIRED)");
   });
 
-  test("Typical Agent Workflow starts with authentication guidance", async () => {
-    const workflowIdx = llmsFullContent.indexOf("## Typical Agent Workflow");
+  test("Agent workflow starts with sources and authenticates before import", async () => {
+    const workflowIdx = llmsFullContent.indexOf("## Agent workflow");
     const workflowSection = llmsFullContent.substring(workflowIdx);
 
-    expect(workflowSection).toContain("1. **Register**");
+    expect(workflowSection).toContain("1. **Plan from sources.**");
+    expect(workflowSection).toContain("4. **Authenticate before import.**");
     expect(workflowSection).toContain("graspful register");
   });
 });
@@ -93,7 +94,7 @@ test.describe("Agent Discovery — /agents.md", () => {
 test.describe("Agent Discovery — /agents page", () => {
   test("lists import/auth requirements without a register MCP tool", async ({ page }) => {
     await page.goto("/agents");
-    await expect(page.locator("code").getByText("import_course", { exact: true })).toBeVisible();
+    await expect(page.locator("code").getByText("graspful_import_course", { exact: true })).toBeVisible();
     await expect(
       page.getByText("Authenticate for import and publish")
     ).toBeVisible();

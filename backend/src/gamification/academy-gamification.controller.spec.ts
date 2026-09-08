@@ -145,6 +145,7 @@ describe('AcademyGamificationController', () => {
     expect(mockCourseProgressReadService.getAcademyGraph).toHaveBeenCalledWith(
       'user-1',
       'academy-1',
+      'org-1',
     );
   });
 });

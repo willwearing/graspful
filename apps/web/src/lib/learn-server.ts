@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { apiFetch, createApiFetcher, type ApiFetcher } from "@/lib/api";
+import { apiFetch, createApiFetcher, ApiError, type ApiFetcher } from "@/lib/api";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 interface AuthSessionResult {
@@ -67,9 +67,14 @@ export async function resolveAcademyBySlug(
   academySlug: string,
   fetcher: ApiFetcher = apiFetch,
 ): Promise<LearnAcademyRecord> {
-  return fetcher<LearnAcademyRecord>(
-    `/orgs/${orgSlug}/academies/slug/${academySlug}`,
-  );
+  try {
+    return await fetcher<LearnAcademyRecord>(
+      `/orgs/${orgSlug}/academies/slug/${academySlug}`,
+    );
+  } catch (error) {
+    if (error instanceof ApiError && error.statusCode === 404) notFound();
+    throw error;
+  }
 }
 
 export async function resolveCourseBySlug(
@@ -77,5 +82,10 @@ export async function resolveCourseBySlug(
   courseSlug: string,
   fetcher: ApiFetcher = apiFetch,
 ): Promise<LearnCourseRecord> {
-  return fetcher<LearnCourseRecord>(`/orgs/${orgSlug}/courses/slug/${courseSlug}`);
+  try {
+    return await fetcher<LearnCourseRecord>(`/orgs/${orgSlug}/courses/slug/${courseSlug}`);
+  } catch (error) {
+    if (error instanceof ApiError && error.statusCode === 404) notFound();
+    throw error;
+  }
 }

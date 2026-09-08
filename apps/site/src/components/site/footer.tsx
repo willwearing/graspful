@@ -15,8 +15,8 @@ export async function SiteFooter() {
               {siteName}
             </span>
             <p className="mt-2 text-sm text-muted-foreground max-w-xs">
-              Turn your expertise into adaptive courses that prove students
-              actually learned.
+              Author courses with your AI agent. Review lessons and questions,
+              then publish them for learners to practice.
             </p>
           </div>
           <div>

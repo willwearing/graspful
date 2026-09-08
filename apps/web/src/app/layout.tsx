@@ -125,7 +125,7 @@ export default async function RootLayout({
                 price: "0",
                 priceCurrency: "USD",
                 description:
-                  "Free to create and publish. 70/30 revenue share when learners subscribe.",
+                  "Free account creation. Paid subscriptions are not available yet.",
               },
               creator: {
                 "@type": "Organization",

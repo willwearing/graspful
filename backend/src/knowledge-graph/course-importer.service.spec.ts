@@ -1,3 +1,5 @@
+import { dump as dumpYaml } from 'js-yaml';
+import { Prisma } from '@prisma/client';
 import { CourseImporterService } from './course-importer.service';
 import { GraphValidationService } from './graph-validation.service';
 
@@ -1140,5 +1142,129 @@ concepts:
       expect(archivedConcept?.isArchived).toBe(false);
       expect(archivedKP?.isArchived).toBe(false);
     });
+  });
+});
+
+function publicationReadyCourse() {
+  return {
+    course: { id: 'fractions', name: 'Adding fractions', estimatedHours: 1, version: '1' },
+    concepts: [{
+      id: 'fractions-addition', name: 'Fractions with equal denominators', difficulty: 2, estimatedMinutes: 5,
+      knowledgePoints: [{
+        id: 'sum',
+        instruction: 'To add fractions with equal denominators, add the numerators and keep the denominator unchanged.',
+        workedExample: 'For the fractions 1/5 + 2/5, add 1 + 2 to get 3 and keep the denominator 5. The sum is 3/5.',
+        problems: [
+          { id: 'sum-one', type: 'multiple_choice', question: 'What is the sum of the fractions 1/5 and 2/5?', options: ['3/5', '3/10'], correct: 0, difficulty: 1 },
+          { id: 'sum-two', type: 'multiple_choice', question: 'What is the denominator when adding the fractions 2/7 and 3/7?', options: ['7', '14'], correct: 0, difficulty: 2 },
+          { id: 'sum-three', type: 'multiple_choice', question: 'Which fractions addition changes only the numerator?', options: ['1/3 + 1/3 = 2/3', '1/3 + 1/3 = 2/6'], correct: 0, difficulty: 3 },
+        ],
+      }],
+    }],
+  };
+}
+
+describe('Publication integrity during replacement', () => {
+  it('reports concurrent write conflicts as retryable import failures', async () => {
+    const prisma = createMockPrisma();
+    prisma.$transaction.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError('Transaction conflict', {
+      code: 'P2034', clientVersion: 'test',
+    }));
+    const service = new CourseImporterService(prisma as any, new GraphValidationService());
+
+    await expect(service.importFromYaml(dumpYaml(publicationReadyCourse()), 'org-1')).rejects.toThrow('course changed during import');
+    expect(prisma._created.createdCourses).toHaveLength(0);
+  });
+
+  it.each([undefined, false, true])('rejects unfinished replacement of a live course before writing, isPublished=%s', async (isPublished) => {
+    const prisma = createMockPrisma();
+    const service = new CourseImporterService(prisma as any, new GraphValidationService());
+    const original = publicationReadyCourse();
+    const first = await service.importFromYaml(dumpYaml(original), 'org-1', { isPublished: true });
+    expect(first.published).toBe(true);
+    const before = JSON.stringify(prisma._created);
+    const invalid = publicationReadyCourse();
+    invalid.course.name = 'Changed course title';
+    invalid.concepts[0].knowledgePoints[0].instruction = 'TODO: Write the fractions lesson';
+
+    await expect(service.importFromYaml(dumpYaml(invalid), 'org-1', {
+      replace: true, isPublished,
+    })).rejects.toThrow('Fix the review failures before replacing its live content');
+
+    expect(JSON.stringify(prisma._created)).toBe(before);
+  });
+
+  it('rejects an empty archived replacement of a live course without removing its lessons', async () => {
+    const prisma = createMockPrisma();
+    const service = new CourseImporterService(prisma as any, new GraphValidationService());
+    await service.importFromYaml(dumpYaml(publicationReadyCourse()), 'org-1', { isPublished: true });
+    const before = JSON.stringify(prisma._created);
+
+    await expect(service.importFromYaml(dumpYaml({ ...publicationReadyCourse(), concepts: [] }), 'org-1', {
+      replace: true, archiveMissing: true,
+    })).rejects.toThrow('published');
+
+    expect(JSON.stringify(prisma._created)).toBe(before);
+  });
+
+  it('preserves publication and existing IDs when a complete replacement passes review', async () => {
+    const prisma = createMockPrisma();
+    const service = new CourseImporterService(prisma as any, new GraphValidationService());
+    const first = await service.importFromYaml(dumpYaml(publicationReadyCourse()), 'org-1', { isPublished: true });
+    const conceptId = prisma._created.createdConcepts[0].id;
+    const replacement = publicationReadyCourse();
+    replacement.course.name = 'Practice adding fractions';
+    replacement.concepts[0].knowledgePoints[0].instruction += ' Write the final answer as a single fraction.';
+
+    const updated = await service.importFromYaml(dumpYaml(replacement), 'org-1', { replace: true });
+
+    expect(updated.published).toBe(true);
+    expect(updated.courseId).toBe(first.courseId);
+    expect(prisma._created.createdConcepts[0].id).toBe(conceptId);
+    expect(prisma._created.createdCourses[0].name).toBe('Practice adding fractions');
+    expect(prisma._created.createdKPs[0].instructionText).toContain('single fraction');
+  });
+
+  it('keeps unfinished drafts editable and blocks direct import publication without review', async () => {
+    const prisma = createMockPrisma();
+    const service = new CourseImporterService(prisma as any, new GraphValidationService());
+    const draft = publicationReadyCourse();
+    draft.concepts[0].knowledgePoints[0].instruction = 'TODO: Write this lesson';
+    const imported = await service.importFromYaml(dumpYaml(draft), 'org-1');
+    expect(imported.published).toBe(false);
+    const replaced = await service.importFromYaml(dumpYaml(draft), 'org-1', { replace: true });
+    expect(replaced.published).toBe(false);
+    expect(prisma._created.createdCourses[0].isPublished).toBe(false);
+    await expect(service.importFromYaml(dumpYaml(draft), 'org-1', { replace: true, isPublished: true })).rejects.toThrow('Fix the review failures before publishing');
+  });
+
+  it('reviews published academy replacements after their full graph was validated', async () => {
+    const prisma = createMockPrisma();
+    const service = new CourseImporterService(prisma as any, new GraphValidationService());
+    await service.importFromYaml(dumpYaml(publicationReadyCourse()), 'org-1', { isPublished: true });
+    const incoming = publicationReadyCourse();
+    Object.assign(incoming.concepts[0], { prerequisites: ['earlier-course:foundation'] });
+
+    const result = await prisma.$transaction((tx) => service.syncCourseStructure(
+      tx, service.parseCourseYaml(dumpYaml(incoming)), 'org-1', { replace: true },
+      { academyId: prisma._created.academies[0].id },
+    ));
+
+    expect(result.published).toBe(true);
+    expect(prisma._created.createdCourses[0].isPublished).toBe(true);
+  });
+
+  it.each(['expectedCourseName', 'expectedCourseDescription'])('reviews the persisted academy override: %s', async (field) => {
+    const prisma = createMockPrisma();
+    const service = new CourseImporterService(prisma as any, new GraphValidationService());
+    await service.importFromYaml(dumpYaml(publicationReadyCourse()), 'org-1', { isPublished: true });
+    const before = JSON.stringify(prisma._created);
+
+    await expect(prisma.$transaction((tx) => service.syncCourseStructure(
+      tx, service.parseCourseYaml(dumpYaml(publicationReadyCourse())), 'org-1', { replace: true },
+      { academyId: prisma._created.academies[0].id, [field]: 'TODO: Write course metadata' },
+    ))).rejects.toThrow('Fix the review failures before replacing its live content');
+
+    expect(JSON.stringify(prisma._created)).toBe(before);
   });
 });

@@ -8,7 +8,6 @@ import {
   Layers,
   CheckCircle,
   Palette,
-  DollarSign,
   BookOpen,
   Sparkles,
   ArrowRight,
@@ -20,11 +19,11 @@ import { AuthLink } from "@/components/navigation/auth-link";
 export const metadata: Metadata = {
   title: "AI Agents",
   description:
-    "Build adaptive learning courses with AI agents. Define courses as YAML, import via CLI or MCP, and launch a complete product in minutes.",
+    "Build adaptive learning courses with AI agents. Define courses as YAML, import via CLI or MCP, and review and publish a course from your source material.",
   openGraph: {
     title: "Build courses with AI agents — Graspful",
     description:
-      "Define courses as YAML, import via CLI or MCP, and get a live product with a landing page, knowledge graph, spaced repetition, and billing.",
+      "Define courses as YAML, import via CLI or MCP, and publish reviewed lessons with a knowledge graph, practice problems, and scheduled review.",
     url: "https://graspful.ai/agents",
     images: [
       {
@@ -39,7 +38,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Build courses with AI agents — Graspful",
     description:
-      "Define courses as YAML, import via CLI or MCP, and launch a complete product with adaptive learning in minutes.",
+      "Define courses as YAML, import via CLI or MCP, and review and publish adaptive learning courses.",
     images: ["/images/og-graspful.png"],
   },
   alternates: {
@@ -48,7 +47,7 @@ export const metadata: Metadata = {
 };
 
 const agents = [
-  { name: "Claude Code", description: "Full MCP support via claude_desktop_config.json" },
+  { name: "Claude Code", description: "MCP tools through Claude Code" },
   { name: "Cursor", description: "MCP integration in Composer" },
   { name: "OpenAI Codex", description: "CLI tool use with MCP" },
   { name: "ChatGPT", description: "Browse llms.txt for context" },
@@ -59,27 +58,27 @@ const agents = [
 
 const mcpTools = [
   {
-    name: "create_course",
-    description: "Scaffold a course skeleton from a topic and source document",
+    name: "graspful_scaffold_course",
+    description: "Create a course skeleton for your agent to fill from source material",
   },
   {
-    name: "fill_concept",
-    description: "Generate knowledge points and problems for a single concept",
+    name: "graspful_fill_concept",
+    description: "Add knowledge point and problem stubs for your agent to author",
   },
   {
-    name: "review_course",
-    description: "Run 10 quality checks — duplicates, difficulty staircase, worked examples",
+    name: "graspful_review_course",
+    description: "Run 10 automated checks, including problem depth and publication readiness",
   },
   {
-    name: "validate_course",
+    name: "graspful_validate",
     description: "Quick schema validation against the course YAML spec",
   },
   {
-    name: "import_course",
+    name: "graspful_import_course",
     description: "Import a course YAML to the platform, optionally publishing immediately (auth required)",
   },
   {
-    name: "create_brand",
+    name: "graspful_create_brand",
     description: "Generate a brand YAML with landing page, theme, pricing, and SEO",
   },
 ];
@@ -103,7 +102,7 @@ const workflowSteps = [
     icon: Rocket,
     title: "3. Import & Launch",
     description:
-      "One command imports both YAMLs and publishes a live product with billing, adaptive learning, and spaced repetition.",
+      "Import the reviewed course and brand files, then confirm course publication and domain verification. Billing requires separate setup.",
     file: null,
   },
 ];
@@ -121,26 +120,27 @@ export default function AgentsPage() {
         <div className="relative z-10 mx-auto max-w-5xl px-6 py-32 text-center md:py-40">
           <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-border/50 bg-card/50 px-4 py-1.5 text-sm text-muted-foreground mb-8 backdrop-blur-sm">
             <Bot className="h-4 w-4" />
-            Works with any AI agent
+            CLI and MCP tools for AI agents
           </div>
           <h1 className="text-5xl font-bold tracking-[-0.04em] leading-[1.1] sm:text-6xl lg:text-7xl">
             <span className="text-foreground">Build courses with AI agents.</span>
             <br />
-            <span className="text-gradient">Launch in minutes.</span>
+            <span className="text-gradient">Review before you publish.</span>
           </h1>
           <p className="animate-fade-up mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl" style={{ animationDelay: "0.3s" }}>
-            Define a course as YAML. Import it via CLI or MCP. Get a live product
-            with a landing page, knowledge graph, spaced repetition, and billing.
+            Give your source material to an external AI agent. It writes course
+            YAML with Graspful tools. Review the lessons and answers, then import
+            a draft and confirm publication.
           </p>
           <div className="animate-fade-up mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center" style={{ animationDelay: "0.5s" }}>
             <code className="rounded-lg border border-border/50 bg-card px-6 py-3 font-mono text-sm text-foreground">
-              npx @graspful/cli init
+              bun add -g @graspful/cli
             </code>
             <AuthLink
               href="/sign-up"
               className="btn-gradient px-8 py-3 text-sm font-medium"
             >
-              Get Started Free
+              Get started Free
             </AuthLink>
           </div>
         </div>
@@ -153,7 +153,7 @@ export default function AgentsPage() {
             Works with your tools
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-xl mx-auto">
-            Any agent that supports MCP or can read llms.txt can build Graspful courses.
+            An agent with MCP or terminal access can use Graspful tools. The llms.txt reference supplies documentation to other assistants.
           </p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {agents.map((agent) => (
@@ -220,7 +220,7 @@ export default function AgentsPage() {
             </h2>
           </div>
           <p className="text-center text-muted-foreground mb-12 max-w-xl mx-auto">
-            Every CLI command is exposed as an MCP tool. Your agent calls them directly — no shell needed.
+            MCP tools cover scaffolding, content stubs, validation, review, and import. Browser authentication creates the credentials for publishing.
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             {mcpTools.map((tool) => (
@@ -253,7 +253,7 @@ export default function AgentsPage() {
                 step: "0",
                 title: "Authenticate for import and publish",
                 description:
-                  "Run graspful register in a terminal to finish browser auth, then restart MCP with GRASPFUL_API_KEY set. Scaffold and review work without auth; import and publish do.",
+                  "Install the CLI, then run graspful register when you are ready to import. For MCP, configure GRASPFUL_API_KEY in your agent. Local scaffolding and review work without an account.",
               },
               {
                 icon: BookOpen,
@@ -274,14 +274,14 @@ export default function AgentsPage() {
                 step: "3",
                 title: "Review catches quality issues",
                 description:
-                  "The review gate runs 10 checks: duplicate questions, difficulty staircase violations, missing worked examples, and more. Fix issues before publishing.",
+                  "The review gate checks content readiness, question variants, teaching alignment, and structure. A passing result still needs source and answer-key review.",
               },
               {
                 icon: Sparkles,
                 step: "4",
                 title: "Import and publish",
                 description:
-                  "Import the course YAML and brand YAML. The platform creates the landing page, sets up billing, and starts serving adaptive learning sessions.",
+                  "Import a course draft, request publication, and confirm published: true in the result. Import brand settings separately. Paid subscriptions are not available yet.",
               },
             ].map((item) => {
               const Icon = item.icon;
@@ -322,22 +322,22 @@ export default function AgentsPage() {
             {[
               {
                 title: "Knowledge Graph",
-                description: "Every concept connected by prerequisites and encompassing edges. Students can't advance without mastering foundations.",
+                description: "Prerequisite links guide which concepts a learner can study next, based on recorded mastery estimates.",
                 href: "/docs/concepts/knowledge-graph",
               },
               {
                 title: "Adaptive Diagnostics",
-                description: "20-60 questions map what a student already knows. No wasted time on material they've mastered.",
+                description: "Adaptive questions estimate which concepts a learner knows and where to begin practice.",
                 href: "/docs/concepts/adaptive-diagnostics",
               },
               {
                 title: "Mastery-Based Progression",
-                description: "Bayesian Knowledge Tracing ensures students truly understand before moving forward.",
+                description: "Bayesian Knowledge Tracing updates mastery estimates from learner answers. These estimates guide progression.",
                 href: "/docs/concepts/mastery-learning",
               },
               {
                 title: "Spaced Repetition",
-                description: "The FIRe algorithm schedules reviews at the optimal time. Students never forget what they've learned.",
+                description: "The FIRe algorithm adjusts review intervals using recorded answers and related practice.",
                 href: "/docs/concepts/spaced-repetition",
               },
               {
@@ -373,33 +373,11 @@ export default function AgentsPage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section className="py-24 md:py-32 bg-background">
-        <div className="mx-auto max-w-3xl px-6 text-center">
-          <DollarSign className="h-10 w-10 text-primary mx-auto mb-4" />
-          <h2 className="text-3xl font-bold tracking-[-0.03em] text-foreground sm:text-4xl mb-4">
-            Free to create. Revenue share when learners pay.
-          </h2>
-          <p className="text-muted-foreground mb-8 max-w-xl mx-auto leading-relaxed">
-            Build unlimited courses, run unlimited reviews, import as many times as you want.
-            When you publish a paid course and learners subscribe, Graspful takes a 30% platform
-            fee. You keep 70%.
-          </p>
-          <div className="inline-flex items-center gap-6 rounded-2xl border border-border/50 bg-card p-8">
-            <div className="text-left">
-              <div className="text-4xl font-bold text-foreground">70 / 30</div>
-              <div className="text-sm text-muted-foreground mt-1">
-                You keep 70%. Graspful takes 30%.
-              </div>
-            </div>
-            <div className="h-16 w-px bg-border/50" />
-            <div className="text-left">
-              <div className="text-4xl font-bold text-foreground">$0</div>
-              <div className="text-sm text-muted-foreground mt-1">
-                To create, review, and import courses.
-              </div>
-            </div>
-          </div>
+      <section className="bg-background px-6 py-16">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-3xl font-bold text-foreground">Start with local authoring</h2>
+          <p className="mt-4 text-muted-foreground">Local authoring and review are free. Paid subscriptions are not available yet. We will publish plan and payout details when billing is ready.</p>
+          <Link href="/pricing" className="mt-4 inline-block text-primary underline">See current availability</Link>
         </div>
       </section>
 
@@ -411,20 +389,20 @@ export default function AgentsPage() {
         </div>
         <div className="relative z-10 mx-auto max-w-4xl px-6 text-center">
           <h2 className="text-3xl font-bold tracking-[-0.03em] text-foreground sm:text-4xl lg:text-5xl mb-4">
-            Ship a course today.
+            Start with one course draft.
           </h2>
           <p className="text-muted-foreground mb-8">
-            Install the CLI, point your agent at a source document, and launch.
+            Install the CLI and give your source document to your agent. Author, review, import, then confirm publication.
           </p>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <code className="rounded-lg border border-border/50 bg-card px-6 py-3 font-mono text-sm text-foreground">
-              npx @graspful/cli init
+              bun add -g @graspful/cli
             </code>
             <AuthLink
               href="/sign-up"
               className="btn-gradient inline-flex items-center gap-2 px-8 py-3 text-sm font-medium"
             >
-              Get Started <ArrowRight className="h-4 w-4" />
+              Get started <ArrowRight className="h-4 w-4" />
             </AuthLink>
           </div>
           <div className="mt-6 flex items-center justify-center gap-6 text-sm text-muted-foreground">
@@ -443,7 +421,7 @@ export default function AgentsPage() {
 
       <SoftwareApplicationJsonLd
         name="Graspful"
-        description="The course creation platform for AI agents. Define courses as YAML, import via CLI or MCP, and get adaptive learning with knowledge graphs, spaced repetition, and billing."
+        description="Author and review course YAML with AI agents. Import via CLI or MCP, confirm publication, and offer lessons, practice problems, and scheduled review."
         url="https://graspful.ai"
         applicationCategory="EducationalApplication"
         operatingSystem="Web"

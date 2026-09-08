@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PostHog } from 'posthog-node';
 import type { Request } from 'express';
@@ -10,6 +10,7 @@ export interface PostHogContext {
 
 @Injectable()
 export class PostHogService implements OnModuleDestroy {
+  private readonly logger = new Logger(PostHogService.name);
   private client: PostHog | null = null;
 
   constructor(private readonly config: ConfigService) {
@@ -47,6 +48,37 @@ export class PostHogService implements OnModuleDestroy {
   identify(distinctId: string, properties: Record<string, unknown> = {}) {
     if (!this.client) return;
     this.client.identify({ distinctId, properties });
+  }
+
+  /** Emit only after the transaction that creates the account's first org commits. */
+  recordAccountCreated(account: {
+    userId: string;
+    email: string;
+    orgId: string;
+    orgSlug: string;
+    source: 'provision' | 'registration';
+  }): void {
+    if (!this.client) return;
+
+    try {
+      this.client.identify({ distinctId: account.userId, properties: { email: account.email } });
+      this.client.capture({
+        // Supabase user IDs are UUIDs. Reusing this event ID lets ingestion deduplicate retries.
+        uuid: account.userId,
+        distinctId: account.userId,
+        event: 'account_created',
+        properties: {
+          email: account.email,
+          org_id: account.orgId,
+          org_slug: account.orgSlug,
+          source: account.source,
+          environment: this.config.get<string>('NODE_ENV') || 'development',
+        },
+      });
+    } catch {
+      // An analytics outage must not undo a committed account or block sign-in.
+      this.logger.warn('Could not queue the account_created event');
+    }
   }
 
   captureException(error: Error, distinctId: string, properties: Record<string, unknown> = {}) {

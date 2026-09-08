@@ -208,7 +208,7 @@ export default function GlossaryPage() {
             className="group flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowRight className="h-3.5 w-3.5 text-primary" />
-            <span>Quickstart — create a course in 5 minutes</span>
+            <span>Quickstart: author, review, and publish a course</span>
           </Link>
         </div>
       </section>

@@ -1,4 +1,3 @@
-import { apiFetch } from "@/lib/api";
 import { requireLearnAccess, resolveCourseBySlug } from "@/lib/learn-server";
 import {
   getLearnCourseHref,
@@ -18,10 +17,21 @@ export default async function LearnCourseStudyPage({
   const course = await resolveCourseBySlug(orgSlug, courseSlug, serverApiFetch);
 
   let task: NextTask | null = null;
+  let taskHref: string | null = null;
+  let loadFailed = false;
   try {
-    task = await apiFetch<NextTask>(`/orgs/${orgSlug}/courses/${course.id}/next-task`);
+    task = await serverApiFetch<NextTask>(`/orgs/${orgSlug}/courses/${course.id}/next-task`);
+    if (task) {
+      let targetCourseSlug: string | undefined = courseSlug;
+      // Course study uses the academy scheduler, which may select another course.
+      if (task.courseId && task.courseId !== course.id) {
+        const courses = await serverApiFetch<Array<{ id: string; slug: string }>>(`/orgs/${orgSlug}/courses`);
+        targetCourseSlug = courses.find((candidate) => candidate.id === task?.courseId)?.slug;
+      }
+      taskHref = targetCourseSlug ? getLearnTaskHref(orgSlug, targetCourseSlug, task) : null;
+    }
   } catch {
-    // No task available.
+    loadFailed = true;
   }
 
   return (
@@ -29,7 +39,8 @@ export default async function LearnCourseStudyPage({
       <StudyRouter
         courseId={course.id}
         task={task}
-        resolveTaskHref={(_courseId, nextTask) => getLearnTaskHref(orgSlug, courseSlug, nextTask)}
+        taskHref={taskHref}
+        loadFailed={loadFailed}
         emptyStateHref={getLearnCourseHref(orgSlug, courseSlug)}
         emptyStateLabel="Back to Course"
       />

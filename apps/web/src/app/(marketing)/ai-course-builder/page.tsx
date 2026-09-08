@@ -66,7 +66,7 @@ const workflow = [
     icon: ShieldCheck,
     title: "Validate course quality",
     description:
-      "Ten automated checks find weak coverage, duplicate questions, missing explanations, and broken prerequisite links.",
+      "Ten automated checks assess content readiness, question variants, teaching alignment, and structure. Review the source facts and answers too.",
   },
   {
     icon: Brain,
@@ -82,7 +82,7 @@ const differentiators = [
   "Multiple assessment types and quality checks",
   "Adaptive diagnostics and mastery-based progression",
   "Spaced review based on learner performance",
-  "A branded course site with billing and analytics",
+  "A branded course site with learner progress tracking",
 ];
 
 const faqs = [
@@ -114,7 +114,7 @@ const faqs = [
   {
     question: "How much does course creation cost?",
     answer:
-      "Course creation and testing are free. When you sell access to a published course, you keep 70% of learner revenue and Graspful keeps 30%.",
+      "Local authoring, validation, and review are free. Paid subscriptions are not available yet. The planned revenue split is 70% for the creator and 30% for Graspful, subject to completed billing setup.",
   },
 ];
 
@@ -136,9 +136,9 @@ export default function AiCourseBuilderPage() {
             <span className="text-gradient">learning that adapts.</span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg lg:text-xl">
-            Give source material to your AI agent. Graspful turns it into a
-            validated knowledge graph, active practice, and an adaptive course
-            for each learner.
+            Give source material to your external AI agent. It writes lessons and
+            practice problems with Graspful tools. Review the content and checks
+            before you publish an adaptive course for your learners.
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <TrackedMarketingLink
@@ -158,7 +158,7 @@ export default function AiCourseBuilderPage() {
             </TrackedMarketingLink>
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
-            Build and validate locally. No account required until publishing.
+            Build and validate locally. Sign in when you are ready to import or publish.
           </p>
         </div>
       </section>
@@ -183,17 +183,18 @@ export default function AiCourseBuilderPage() {
                 <span className="ml-2">Terminal</span>
               </div>
               <pre className="overflow-x-auto text-left text-sm leading-7 text-slate-200">
-                <code>{`npx @graspful/cli init
+                <code>{`bun add -g @graspful/cli
 
 graspful create course \\
   --topic "Your subject" \\
   --source "source-material.pdf" \\
   --output course.yaml
 
-# Ask your AI agent to author the lessons and problems
+# Ask your external agent to author lessons and problems.
+# Check the source facts and answer keys.
+graspful validate course.yaml
 graspful review course.yaml
-# PASS
-# Score: 10`}</code>
+# Fix each failure and repeat these checks before import.`}</code>
               </pre>
             </div>
           </div>

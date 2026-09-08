@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { THEME_PRESETS } from "@graspful/shared";
 import { fetchBrandByDomain, clearBrandCache } from "../resolve-db";
 import { defaultBrand } from "../defaults";
 
@@ -93,19 +94,73 @@ describe("fetchBrandByDomain", () => {
   });
 
   describe("theme merge with defaults", () => {
-    it("fills entire default theme when theme has preset only (no light/dark)", async () => {
-      const mockBrand = makeMockApiResponse({
-        theme: { preset: "blue" },
-      });
+    it("applies a distinct palette for every preset supported by the authoring schema", async () => {
+      const primaryColors = new Set<string>();
+      const darkPrimaryColors = new Set<string>();
+      for (const preset of THEME_PRESETS) {
+        (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(makeMockApiResponse({ theme: { preset } })),
+        });
+        const result = await fetchBrandByDomain(`preset-${preset}.example`);
+        expect(result).not.toBeNull();
+        const { theme } = result!;
+        expect(theme.light.primary).not.toBe(defaultBrand.theme.light.primary);
+        expect(theme.dark.primary).not.toBe(defaultBrand.theme.dark.primary);
+        expect(theme.gradient).not.toEqual(defaultBrand.theme.gradient);
+        expect(theme.light.ring).toBe(theme.light.primary);
+        expect(theme.dark.ring).toBe(theme.dark.primary);
+        expect(theme.light.background).toBe(defaultBrand.theme.light.background);
+        expect(theme.dark.background).toBe(defaultBrand.theme.dark.background);
+        expect(theme.radius).toBe(defaultBrand.theme.radius);
+        primaryColors.add(theme.light.primary);
+        darkPrimaryColors.add(theme.dark.primary);
+      }
+      expect(primaryColors.size).toBe(THEME_PRESETS.length);
+      expect(darkPrimaryColors.size).toBe(THEME_PRESETS.length);
+    });
+
+    it.each([undefined, null, "", "unknown", "__proto__", "constructor", 7])(
+      "preserves the default theme for an absent or unknown preset: %s",
+      async (preset) => {
+        const mockBrand = makeMockApiResponse({
+          theme: { preset },
+        });
+        (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockBrand),
+        });
+        const result = await fetchBrandByDomain("test-preset.com");
+        expect(result!.theme).toEqual(defaultBrand.theme);
+      },
+    );
+
+    it("uses explicit light, dark, gradient, and radius values over the selected preset", async () => {
+      const originalDefaultTheme = structuredClone(defaultBrand.theme);
       (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockBrand),
+        json: () => Promise.resolve(makeMockApiResponse({ theme: { preset: "emerald" } })),
       });
-      const result = await fetchBrandByDomain("test-preset.com");
-      expect(result!.theme.light.primary).toBe(defaultBrand.theme.light.primary);
-      expect(result!.theme.dark.primary).toBe(defaultBrand.theme.dark.primary);
-      expect(result!.theme.gradient).toEqual(defaultBrand.theme.gradient);
-      expect(result!.theme.radius).toBe(defaultBrand.theme.radius);
+      const presetBrand = await fetchBrandByDomain("preset-reference.example");
+      const explicit = {
+        preset: "emerald",
+        light: { primary: "200 80% 30%", background: "0 0% 98%" },
+        dark: { primary: "200 80% 80%", ring: "200 80% 70%" },
+        gradient: { start: "#123456", accent: "#ABCDEF" },
+        radius: "1rem",
+      };
+      (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(makeMockApiResponse({ theme: explicit })),
+      });
+      const result = await fetchBrandByDomain("preset-custom.example");
+      expect(result!.theme).toEqual({
+        light: { ...presetBrand!.theme.light, ...explicit.light },
+        dark: { ...presetBrand!.theme.dark, ...explicit.dark },
+        gradient: { ...presetBrand!.theme.gradient, ...explicit.gradient },
+        radius: explicit.radius,
+      });
+      expect(defaultBrand.theme).toEqual(originalDefaultTheme);
     });
 
     it("fills gradient from defaults when theme has light/dark but no gradient", async () => {

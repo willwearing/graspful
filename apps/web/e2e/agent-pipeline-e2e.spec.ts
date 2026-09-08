@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
+import { runQualityGate } from "@graspful/shared";
+import { parse } from "yaml";
+import { getE2eEnvironment } from "../../../scripts/e2e-env";
 
-const BACKEND_URL = "http://localhost:3000/api/v1";
+const testEnv = getE2eEnvironment(process.env);
+const BACKEND_URL = testEnv.NEXT_PUBLIC_BACKEND_URL;
 const GRASPFUL_BRAND = "graspful";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -9,19 +13,27 @@ const UUID_RE =
 
 let creatorApiKey: string;
 let creatorOrgSlug: string;
-let creatorUserId: string;
 let creatorEmail: string;
 const creatorPassword = "TestPassword123!";
 
-let learnerApiKey: string;
 let learnerJwt: string;
 let learnerEmail: string;
 const learnerPassword = "TestPassword123!";
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321";
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const SUPABASE_URL = testEnv.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = testEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 let courseId: string;
 let academyId: string;
+let diagnosticSessionId: string;
+let diagnosticQuestionNumber: number;
+let diagnosticQuestion: DiagnosticQuestion;
+
+interface DiagnosticQuestion {
+  id: string;
+  type: "multiple_choice" | "true_false" | "fill_blank";
+  questionText: string;
+  options?: Array<{ id: string; text: string }>;
+}
 
 const courseSlug = `e2e-pipeline-${Date.now()}`;
 
@@ -61,7 +73,7 @@ concepts:
     prerequisites: []
     knowledgePoints:
       - id: ru-kp1
-        instruction: "In REST, a resource is any entity or concept the API exposes — users, orders, products. Each resource is identified by a URI (Uniform Resource Identifier). URIs should use nouns, not verbs, because HTTP methods already express the action."
+        instruction: "In REST, a resource is an entity or concept the API exposes, such as a user, order, or product. A URI (Uniform Resource Identifier) identifies each resource. Use nouns in URIs; HTTP methods express the action. Nested URIs such as /orders/789/items identify related resources, here the items belonging to order 789."
         workedExample: "Good: GET /api/users/42 retrieves user 42. Bad: GET /api/getUser?id=42 — the verb 'get' is redundant since GET already means 'retrieve.' The noun-based URI /api/users/42 is cleaner and follows REST conventions."
         problems:
           - id: ru-kp1-p1
@@ -144,19 +156,19 @@ concepts:
             difficulty: 3
 
       - id: rep-kp2
-        instruction: "JSON is the dominant format for modern REST APIs. When designing responses, include the resource's own URI as a self-link so clients can reference it. Avoid exposing internal database IDs directly; prefer opaque or UUID-based identifiers."
-        workedExample: "A good response for GET /api/products/15 includes fields like id (prod_xk9v2), name (Widget), price (29.99), and a self-link (/api/products/15). The opaque ID and self-link make the API more robust."
+        instruction: "JSON is a common format for REST APIs. A self-link gives clients the resource URI so they can follow it without building the URL themselves. Opaque identifiers, such as UUIDs, make sequential resource IDs harder to guess. The server must still check the caller's permission to access each resource."
+        workedExample: "GET /api/products/prod_xk9v2 returns an id (prod_xk9v2), name (Widget), price (29.99), and self-link (/api/products/prod_xk9v2). The client can follow the self-link. The server checks access even when the client supplies a valid opaque ID."
         problems:
           - id: rep-kp2-p1
             type: multiple_choice
             question: "Why is it recommended to use opaque identifiers (like UUIDs) instead of auto-increment integers in REST APIs?"
-            options: ["They are shorter to type", "They prevent clients from guessing valid resource IDs", "They sort alphabetically", "They are required by the HTTP specification"]
+            options: ["They are shorter to type", "They make sequential resource IDs harder to guess", "They sort alphabetically", "They are required by the HTTP specification"]
             correct: 1
-            explanation: "Opaque IDs prevent enumeration attacks where clients guess /users/1, /users/2, etc. They also avoid leaking information about database size."
+            explanation: "Opaque IDs make sequential guesses such as /users/1 and /users/2 less useful. Every request still needs an access check; an opaque ID does not grant permission."
             difficulty: 3
           - id: rep-kp2-p2
             type: fill_blank
-            question: "The most widely used data format for modern REST API responses is ___."
+            question: "The lesson describes ___ as a common data format for REST API responses."
             correct: "JSON"
             explanation: "JSON (JavaScript Object Notation) is lightweight, human-readable, and supported by virtually every programming language and HTTP client."
             difficulty: 1
@@ -319,6 +331,8 @@ test.describe.serial(
     }) => {
       creatorEmail = `e2e-creator-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.example.com`;
 
+      // Local test setup only. Production registration uses browser auth;
+      // the password-based API endpoint returns 410 in production.
       const res = await request.post(`${BACKEND_URL}/auth/register`, {
         data: { email: creatorEmail, password: creatorPassword },
         headers: { "Content-Type": "application/json" },
@@ -333,7 +347,6 @@ test.describe.serial(
 
       creatorApiKey = body.apiKey;
       creatorOrgSlug = body.orgSlug;
-      creatorUserId = body.userId;
     });
 
     // ── Step 2: Brand auto-created ─────────────────────────────────
@@ -347,21 +360,14 @@ test.describe.serial(
         { headers: { "Content-Type": "application/json" } }
       );
 
-      // Brand may be auto-created at import time, not at registration.
-      // If 404, we check again after import in a later step.
-      if (res.status() === 404) {
-        // Brand will be created on first course import — skip for now
-        return;
-      }
-
       expect(res.status()).toBe(200);
 
       const body = await res.json();
       expect(body.orgSlug).toBe(creatorOrgSlug);
     });
 
-    // ── Step 2b: Brand quality — not placeholder garbage ────────────
-    test("step 2b: brand landing content is not placeholder garbage", async ({
+    // Step 2b: Registration provides readable default brand content.
+    test("step 2b: default brand has a readable name and landing text", async ({
       request,
     }) => {
       const domain = `${creatorOrgSlug}.graspful.ai`;
@@ -370,11 +376,6 @@ test.describe.serial(
         `${BACKEND_URL}/brands/by-domain/${domain}`,
         { headers: { "Content-Type": "application/json" } }
       );
-
-      if (res.status() === 404) {
-        // Brand not yet created — skip (will be verified after import)
-        return;
-      }
 
       expect(res.status()).toBe(200);
 
@@ -398,11 +399,13 @@ test.describe.serial(
       expect(brand.tagline.length).toBeGreaterThanOrEqual(10);
     });
 
-    // ── Step 3: Scaffold — verify skeleton structure ───────────────
-    test("step 3: scaffold produces valid skeleton structure", async () => {
-      // We construct the YAML directly (most reliable).
-      // Verify the scaffold-like structure is correct.
+    // Step 3: Validate the authored fixture before importing it.
+    test("step 3: authored course passes the full local quality gate", async () => {
       const yaml = buildFullCourseYaml();
+      const review = runQualityGate(parse(yaml));
+      expect(review.failures).toEqual([]);
+      expect(review.passed).toBe(true);
+      expect(review.score).toBe("10/10");
 
       expect(yaml).toContain(`id: ${courseSlug}`);
       expect(yaml).toContain("resources-and-uris");
@@ -473,8 +476,8 @@ test.describe.serial(
       expect(body.stats.problems).toBe(24);
     });
 
-    // ── Step 6: Review — must score at least 8/10 ──────────────────
-    test("step 6: review scores at least 8/10", async ({ request }) => {
+    // Step 6: Publication requires all quality checks to pass.
+    test("step 6: review passes all 10 quality checks", async ({ request }) => {
       const yaml = buildFullCourseYaml();
 
       const res = await request.post(
@@ -489,14 +492,9 @@ test.describe.serial(
 
       const body = await res.json();
 
-      // Parse score "N/10" to verify at least 8
-      const scoreMatch = body.score?.match(/^(\d+)\/10$/);
-      expect(scoreMatch).toBeTruthy();
-      const numericScore = parseInt(scoreMatch![1], 10);
-      expect(numericScore).toBeGreaterThanOrEqual(8);
-
-      // cross_concept_coverage may legitimately fail for a small 4-concept
-      // course, so we accept 8/10 instead of requiring 10/10.
+      expect(body.failures).toEqual([]);
+      expect(body.passed).toBe(true);
+      expect(body.score).toBe("10/10");
       expect(body.stats.concepts).toBe(4);
       expect(body.stats.kps).toBe(8);
       expect(body.stats.problems).toBe(24);
@@ -525,24 +523,9 @@ test.describe.serial(
       expect(importBody.knowledgePointCount).toBe(8);
       expect(importBody.problemCount).toBe(24);
       expect(importBody.warnings).toEqual([]);
+      expect(importBody.published, JSON.stringify(importBody.reviewFailures)).toBe(true);
 
       courseId = importBody.courseId;
-
-      // If publish: true didn't set published (review gate), publish separately
-      if (!importBody.published) {
-        const publishRes = await request.post(
-          `${BACKEND_URL}/orgs/${creatorOrgSlug}/courses/${courseId}/publish`,
-          {
-            data: {},
-            headers: creatorAuthHeaders(),
-          }
-        );
-        expect(publishRes.status()).toBe(201);
-        const publishBody = await publishRes.json();
-        expect(publishBody.published).toBe(true);
-      } else {
-        expect(importBody.published).toBe(true);
-      }
 
       // Retrieve the course to get the academyId
       const coursesRes = await request.get(
@@ -579,8 +562,6 @@ test.describe.serial(
       const body = await res.json();
       expect(body.apiKey).toMatch(/^gsk_/);
       expect(body.userId).toMatch(UUID_RE);
-
-      learnerApiKey = body.apiKey;
 
       // Get a Supabase JWT — needed for learner endpoints that use SupabaseAuthGuard
       const signInRes = await fetch(
@@ -631,90 +612,45 @@ test.describe.serial(
         { headers: learnerAuthHeaders() }
       );
 
-      // Diagnostic may use the course-level endpoint instead
-      if (res.status() === 404) {
-        // Try the course-level diagnostic endpoint
-        const courseRes = await request.post(
-          `${BACKEND_URL}/orgs/${creatorOrgSlug}/courses/${courseId}/diagnostic/start`,
-          { headers: learnerAuthHeaders() }
-        );
-
-        if (courseRes.status() !== 201) {
-          // Diagnostic not available — skip
-          return;
-        }
-
-        const session = await courseRes.json();
-        expect(session.sessionId).toBeTruthy();
-        expect(session.isComplete).toBe(false);
-        validateDiagnosticQuestion(session.question);
-        return;
-      }
-
-      expect(res.status()).toBe(201);
+      expect(res.status(), await res.text()).toBe(201);
 
       const session = await res.json();
-      expect(session.sessionId).toBeTruthy();
+      expect(session.sessionId).toMatch(UUID_RE);
       expect(session.isComplete).toBe(false);
+      expect(session.questionNumber).toBe(1);
+      expect(session.totalEstimated).toBe(4);
 
-      // Verify the first question has real content
       validateDiagnosticQuestion(session.question);
+      diagnosticSessionId = session.sessionId;
+      diagnosticQuestionNumber = session.questionNumber;
+      diagnosticQuestion = session.question;
     });
 
     // ── Step 11: Answer a question ─────────────────────────────────
     test("step 11: submit answer — next question also has real text", async ({
       request,
     }) => {
-      // Start a fresh diagnostic to get a sessionId
-      let sessionId: string | undefined;
-      let firstQuestion: any;
-
-      // Try academy endpoint first
+      // Starting again must resume the same pending diagnostic question.
       const startRes = await request.post(
         `${BACKEND_URL}/orgs/${creatorOrgSlug}/academies/${academyId}/diagnostic/start`,
         { headers: learnerAuthHeaders() }
       );
 
-      if (startRes.status() === 201) {
-        const session = await startRes.json();
-        sessionId = session.sessionId;
-        firstQuestion = session.question;
-      } else {
-        // Try course-level endpoint
-        const courseStartRes = await request.post(
-          `${BACKEND_URL}/orgs/${creatorOrgSlug}/courses/${courseId}/diagnostic/start`,
-          { headers: learnerAuthHeaders() }
-        );
+      expect(startRes.status(), await startRes.text()).toBe(201);
+      const resumed = await startRes.json();
+      expect(resumed.sessionId).toBe(diagnosticSessionId);
+      expect(resumed.question.id).toBe(diagnosticQuestion.id);
+      expect(resumed.questionNumber).toBe(diagnosticQuestionNumber);
 
-        if (courseStartRes.status() !== 201) {
-          // Diagnostic not available — skip
-          return;
-        }
+      const answer = diagnosticQuestion.type === "multiple_choice"
+        ? diagnosticQuestion.options![0].id
+        : diagnosticQuestion.type === "true_false" ? true : "test answer";
 
-        const session = await courseStartRes.json();
-        sessionId = session.sessionId;
-        firstQuestion = session.question;
-      }
-
-      expect(sessionId).toBeTruthy();
-      expect(firstQuestion).toBeTruthy();
-
-      // Submit an answer (pick option index 0 for MC, "true" for T/F, "test" for fill_blank)
-      let answer: unknown;
-      if (firstQuestion.type === "multiple_choice") {
-        answer = 0;
-      } else if (firstQuestion.type === "true_false") {
-        answer = "true";
-      } else {
-        answer = "test answer";
-      }
-
-      // Try academy answer endpoint first
-      let answerRes = await request.post(
+      const answerRes = await request.post(
         `${BACKEND_URL}/orgs/${creatorOrgSlug}/academies/${academyId}/diagnostic/answer`,
         {
           data: {
-            sessionId,
+            sessionId: diagnosticSessionId,
             answer,
             responseTimeMs: 3000,
           },
@@ -722,37 +658,25 @@ test.describe.serial(
         }
       );
 
-      if (answerRes.status() === 404) {
-        // Fallback to course-level
-        answerRes = await request.post(
-          `${BACKEND_URL}/orgs/${creatorOrgSlug}/courses/${courseId}/diagnostic/answer`,
-          {
-            data: {
-              sessionId,
-              answer,
-              responseTimeMs: 3000,
-            },
-            headers: learnerAuthHeaders(),
-          }
-        );
-      }
-
-      expect([200, 201]).toContain(answerRes.status());
+      expect(answerRes.status(), await answerRes.text()).toBe(201);
 
       const nextState = await answerRes.json();
-
-      // If the diagnostic isn't complete, verify the next question
-      if (!nextState.isComplete && nextState.question) {
-        validateDiagnosticQuestion(nextState.question);
-      }
+      expect(nextState.sessionId).toBe(diagnosticSessionId);
+      expect(nextState.isComplete).toBe(false);
+      expect(typeof nextState.wasCorrect).toBe("boolean");
+      expect(nextState.questionNumber).toBe(diagnosticQuestionNumber + 1);
+      validateDiagnosticQuestion(nextState.question);
+      expect(nextState.question.id).not.toBe(diagnosticQuestion.id);
+      diagnosticQuestionNumber = nextState.questionNumber;
+      diagnosticQuestion = nextState.question;
     });
 
     // ══════════════════════════════════════════════════════════════════
     //  BROWSER VERIFICATION (Playwright)
     // ══════════════════════════════════════════════════════════════════
 
-    // ── Step 12: Browse page — academy card appears ────────────────
-    test("step 12: browse page shows academy with course name", async ({
+    // Step 12: Creator dashboard shows the published course.
+    test("step 12: creator dashboard shows the published course", async ({
       page,
     }) => {
       // Sign in as the creator (who has membership in the org)
@@ -765,14 +689,11 @@ test.describe.serial(
         },
       ]);
 
-      await page.goto("/sign-in");
+      await page.goto("/sign-in?redirect=%2Fcreator");
       await page.getByLabel("Email").fill(creatorEmail);
       await page.getByLabel("Password").fill(creatorPassword);
       await page.getByRole("button", { name: "Sign In" }).click();
-      await page.waitForURL(/\/(creator|dashboard)/, { timeout: 15_000 });
-
-      // Navigate to creator dashboard to verify the course appears
-      await page.goto("/creator");
+      await page.waitForURL(/\/creator$/, { timeout: 15_000 });
       await expect(
         page.getByText("REST API Design")
       ).toBeVisible({ timeout: 15_000 });
@@ -792,83 +713,68 @@ test.describe.serial(
         },
       ]);
 
-      await page.goto("/sign-in");
+      const diagnosticPath = `/academy/${academyId}/diagnostic`;
+      await page.goto(`/sign-in?redirect=${encodeURIComponent(diagnosticPath)}`);
       await page.getByLabel("Email").fill(learnerEmail);
       await page.getByLabel("Password").fill(learnerPassword);
       await page.getByRole("button", { name: "Sign In" }).click();
-      await page.waitForURL(/\/(dashboard|creator)/, { timeout: 15_000 });
+      await page.waitForURL((url) => url.pathname.endsWith("/diagnostic"), { timeout: 15_000 });
 
-      // Navigate to diagnostic page
-      await page.goto(`/academy/${academyId}/diagnostic`);
-
-      // Wait for either the diagnostic to load or an "unavailable" message
-      const diagnosticText = page.getByText("Diagnostic Assessment");
-      const unavailableText = page.getByText(/Diagnostic Unavailable/);
-
-      await expect(diagnosticText.or(unavailableText)).toBeVisible({
+      await expect(page.getByRole("heading", { name: "Diagnostic Assessment" })).toBeVisible({
         timeout: 15_000,
       });
+      await expect(page.getByText(`Question ${diagnosticQuestionNumber} of ~4`, { exact: true })).toBeVisible();
+      await expect(page.getByText(diagnosticQuestion.questionText, { exact: true })).toBeVisible();
 
-      const hasDiagnostic = await diagnosticText
-        .isVisible()
-        .catch(() => false);
-
-      if (!hasDiagnostic) {
-        // Diagnostic not available in the UI — acceptable for small courses
-        return;
-      }
-
-      // Verify question text is real (not a TODO placeholder)
-      // The diagnostic may take a moment to fetch and render the first question
-      const questionHeader = page.getByText("Question 1 of");
-      const isQuestionVisible = await questionHeader
-        .isVisible({ timeout: 15_000 })
-        .catch(() => false);
-      if (!isQuestionVisible) {
-        // Diagnostic loaded but question didn't render — skip remaining assertions
-        return;
-      }
-
-      // The question text container should not contain TODO
-      const pageContent = await page.textContent("body");
-      expect(pageContent).not.toContain("TODO");
-
-      // Check that option buttons exist and have real text
-      const optionButtons = page.locator("button.rounded-lg.border-2");
       const submitButton = page.getByRole("button", { name: "Submit Answer" });
-      const trueButton = page.getByRole("button", { name: "True" });
-      const falseButton = page.getByRole("button", { name: "False" });
+      let submitAnswer: () => Promise<void>;
 
-      // Either MC options or True/False buttons should be visible
-      const hasMcOptions = await optionButtons
-        .first()
-        .isVisible({ timeout: 2_000 })
-        .catch(() => false);
-      const hasTrueFalse = await trueButton
-        .isVisible({ timeout: 1_000 })
-        .catch(() => false);
-
-      if (hasMcOptions) {
-        const optionCount = await optionButtons.count();
-        expect(optionCount).toBeGreaterThanOrEqual(2);
-
-        // Verify each option has real text (not "Option A" etc.)
-        for (let i = 0; i < optionCount; i++) {
-          const text = await optionButtons.nth(i).textContent();
-          expect(text).toBeTruthy();
-          expect(text!.length).toBeGreaterThan(1);
-          expect(text).not.toMatch(/^Option [A-D]$/);
+      if (diagnosticQuestion.type === "multiple_choice") {
+        const optionButtons = page.getByRole("radio");
+        await expect(optionButtons).toHaveCount(diagnosticQuestion.options!.length);
+        for (const option of diagnosticQuestion.options!) {
+          await expect(page.getByRole("radio", { name: option.text, exact: true })).toBeVisible();
         }
-
-        // Submit button should exist
+        await optionButtons.first().click();
         await expect(submitButton).toBeVisible();
-      } else if (hasTrueFalse) {
+        await expect(submitButton).toBeEnabled();
+        submitAnswer = () => submitButton.click();
+      } else if (diagnosticQuestion.type === "true_false") {
+        const trueButton = page.getByRole("button", { name: "True", exact: true });
+        const falseButton = page.getByRole("button", { name: "False", exact: true });
         await expect(trueButton).toBeVisible();
         await expect(falseButton).toBeVisible();
+        submitAnswer = () => trueButton.click();
       } else {
-        // Fill-in-the-blank or "I don't know" — just verify no placeholder text
-        const bodyText = await page.textContent("body");
-        expect(bodyText).not.toMatch(/Option [A-D]/);
+        expect(diagnosticQuestion.type).toBe("fill_blank");
+        const answerInput = page.getByRole("textbox", { name: "Your answer" });
+        await expect(answerInput).toBeVisible();
+        await answerInput.fill("test answer");
+        await expect(submitButton).toBeEnabled();
+        submitAnswer = () => submitButton.click();
+      }
+
+      const answerPath = `/orgs/${creatorOrgSlug}/academies/${academyId}/diagnostic/answer`;
+      const [answerRes] = await Promise.all([
+        page.waitForResponse((response) =>
+          response.url().endsWith(answerPath) && response.request().method() === "POST"),
+        submitAnswer(),
+      ]);
+      expect(answerRes.status(), await answerRes.text()).toBe(201);
+      const nextState = await answerRes.json();
+      expect(nextState.sessionId).toBe(diagnosticSessionId);
+
+      if (nextState.isComplete === true) {
+        expect(nextState.questionsAnswered).toBe(diagnosticQuestionNumber);
+        expect(nextState.result.totalConcepts).toBe(4);
+        await expect(page.getByRole("heading", { name: "Diagnostic Complete" })).toBeVisible();
+        await expect(page.getByText(`You answered ${diagnosticQuestionNumber} questions across 4 concepts.`, { exact: true })).toBeVisible();
+      } else {
+        expect(nextState.isComplete).toBe(false);
+        expect(nextState.questionNumber).toBe(diagnosticQuestionNumber + 1);
+        validateDiagnosticQuestion(nextState.question);
+        await expect(page.getByText(nextState.question.questionText, { exact: true })).toBeVisible();
+        await expect(page.getByText(`Question ${nextState.questionNumber} of ~4`, { exact: true })).toBeVisible();
       }
     });
   }
@@ -876,20 +782,23 @@ test.describe.serial(
 
 // ─── Validation helper ────────────────────────────────────────────────────────
 
-function validateDiagnosticQuestion(question: any) {
+function validateDiagnosticQuestion(question: DiagnosticQuestion) {
   expect(question).toBeTruthy();
+  expect(question.id).toMatch(UUID_RE);
+  expect(["multiple_choice", "true_false", "fill_blank"]).toContain(question.type);
   expect(question.questionText).toBeTruthy();
   expect(question.questionText.length).toBeGreaterThan(15);
   expect(question.questionText).not.toContain("TODO");
   expect(question.questionText).not.toContain("Write question");
 
-  if (question.type === "multiple_choice" && question.options) {
-    expect(question.options.length).toBeGreaterThanOrEqual(2);
-    for (const opt of question.options) {
-      const text = typeof opt === "string" ? opt : opt.text;
-      expect(text).toBeTruthy();
-      expect(text.length).toBeGreaterThan(1);
-      expect(text).not.toMatch(/^Option [A-D]$/);
+  if (question.type === "multiple_choice") {
+    expect(question.options).toBeDefined();
+    expect(question.options!.length).toBeGreaterThanOrEqual(2);
+    for (const option of question.options!) {
+      expect(option.id).toEqual(expect.any(String));
+      expect(option.text).toBeTruthy();
+      expect(option.text.length).toBeGreaterThan(1);
+      expect(option.text).not.toMatch(/^Option [A-D]$/);
     }
   }
 }

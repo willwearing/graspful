@@ -40,6 +40,7 @@ export class AcademyStudentModelController {
     @Param('academyId') academyId: string,
     @CurrentOrg() org: OrgContext,
   ) {
+    await this.studentState.assertAcademyAccess(org.userId, org.orgId, academyId);
     return this.studentState.getConceptStatesForAcademy(org.userId, academyId);
   }
 
@@ -48,6 +49,7 @@ export class AcademyStudentModelController {
     @Param('academyId') academyId: string,
     @CurrentOrg() org: OrgContext,
   ) {
+    await this.studentState.assertAcademyAccess(org.userId, org.orgId, academyId);
     return this.academyProgressQuery.getCourseMasterySummary(
       org.userId,
       academyId,
@@ -59,6 +61,7 @@ export class AcademyStudentModelController {
     @Param('academyId') academyId: string,
     @CurrentOrg() org: OrgContext,
   ) {
+    await this.studentState.assertAcademyAccess(org.userId, org.orgId, academyId);
     return this.academyProgressQuery.getProfileSummary(org.userId, academyId);
   }
 }

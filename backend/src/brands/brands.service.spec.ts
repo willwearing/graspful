@@ -226,7 +226,7 @@ describe('BrandsService', () => {
               slug: 'nfpa-1001',
               name: 'NFPA 1001',
               description: null,
-              courseCount: 2,
+              courseCount: 1,
               publishedCourseCount: 1,
               courses: [
                 {
@@ -241,6 +241,96 @@ describe('BrandsService', () => {
           ],
         },
       ]);
+    });
+
+    it('excludes scoped drafts and limits counts to the published courses visible on the brand', async () => {
+      prisma.brand.findMany.mockResolvedValue([
+        {
+          slug: 'field-academy',
+          name: 'Field Academy',
+          domain: 'field-academy.graspful.ai',
+          orgSlug: 'field-org',
+          contentScope: { courseIds: ['field-basics', 'draft-track'] },
+        },
+      ]);
+      const publishedCourse = {
+        slug: 'field-basics',
+        name: 'Field basics',
+        description: null,
+        sortOrder: 0,
+        isPublished: true,
+      };
+      prisma.academy.findMany.mockResolvedValue([
+        {
+          slug: 'field-work',
+          name: 'Field work',
+          description: null,
+          org: { slug: 'field-org' },
+          courses: [
+            publishedCourse,
+            { ...publishedCourse, slug: 'draft-track', isPublished: false },
+            { ...publishedCourse, slug: 'other-published-track' },
+          ],
+        },
+      ]);
+
+      const result = await service.getPublicAcademyCatalog();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].academies).toEqual([
+        {
+          slug: 'field-work',
+          name: 'Field work',
+          description: null,
+          courseCount: 1,
+          publishedCourseCount: 1,
+          courses: [publishedCourse],
+        },
+      ]);
+      expect(prisma.academy.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            archivedAt: null,
+            org: { isActive: true, slug: { in: ['field-org'] } },
+          },
+          select: expect.objectContaining({
+            courses: expect.objectContaining({
+              where: { archivedAt: null, isPublished: true },
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('omits a scoped brand when it has no published courses in scope', async () => {
+      prisma.brand.findMany.mockResolvedValue([
+        {
+          slug: 'field-academy',
+          name: 'Field Academy',
+          domain: 'field-academy.graspful.ai',
+          orgSlug: 'field-org',
+          contentScope: { courseIds: ['draft-track'] },
+        },
+      ]);
+      prisma.academy.findMany.mockResolvedValue([
+        {
+          slug: 'field-work',
+          name: 'Field work',
+          description: null,
+          org: { slug: 'field-org' },
+          courses: [
+            {
+              slug: 'draft-track',
+              name: 'Unfinished track',
+              description: null,
+              sortOrder: 0,
+              isPublished: false,
+            },
+          ],
+        },
+      ]);
+
+      await expect(service.getPublicAcademyCatalog()).resolves.toEqual([]);
     });
 
     it('shows default org brand when it is the only brand for an org with published courses', async () => {

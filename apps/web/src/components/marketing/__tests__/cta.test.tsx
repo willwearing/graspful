@@ -5,10 +5,10 @@ import { CTA } from "../cta";
 describe("CTA", () => {
   it("renders headline and subheadline from props", () => {
     render(
-      <CTA ctaText="Start Now" headline="Ready?" subheadline="Join thousands." />,
+      <CTA ctaText="Start Now" headline="Ready?" subheadline="Review your source material." />,
     );
     expect(screen.getByText("Ready?")).toBeTruthy();
-    expect(screen.getByText("Join thousands.")).toBeTruthy();
+    expect(screen.getByText("Review your source material.")).toBeTruthy();
   });
 
   it("renders CTA button with correct text", () => {
@@ -17,7 +17,7 @@ describe("CTA", () => {
     );
     const link = screen.getByRole("link", { name: /get started/i });
     expect(link).toBeTruthy();
-    expect(link.getAttribute("href")).toBe("/sign-up");
+    expect(link.getAttribute("href")).toBe("/docs/quickstart");
   });
 
   it("renders free-to-start subtext", () => {

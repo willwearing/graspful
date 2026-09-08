@@ -1,28 +1,38 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { HomePage } from "../home-page";
 
 describe("HomePage", () => {
-  it("renders the product hero and primary sections", () => {
+  it("explains authoring, draft import, and explicit publication", () => {
     render(<HomePage />);
 
-    // Hero headline is split into word spans, check the h1 contains the text
-    const h1 = screen.getByRole("heading", { level: 1 });
-    expect(h1).toBeVisible();
-    expect(h1.textContent).toMatch(/build.*courses.*where.*students.*actually.*learn/i);
-
-    expect(
-      screen.getByRole("heading", { name: /what we do for you/i }),
-    ).toBeVisible();
-    expect(
-      screen.getByRole("heading", { name: /three commands/i }),
-    ).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Turn your source material into lessons and practice.");
+    expect(screen.getByRole("heading", { name: "Author, review, then publish" })).toBeVisible();
+    expect(screen.getByText(/Importing without --publish saves a draft/)).toBeVisible();
+    expect(screen.getByText(/Confirm that the response contains published: true/)).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Paid subscriptions are not available yet" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Create free account" })).toHaveAttribute("href", "/sign-up");
   });
 
-  it("renders hero calls to action", () => {
+  it("labels the lesson as an example and explains an incorrect answer before retry", () => {
     render(<HomePage />);
 
-    expect(
-      screen.getAllByRole("link", { name: /create free account/i }).length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("complementary", { name: "Illustrative lesson" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "2/9" }));
+    expect(screen.getByText(/Convert 1\/3 to 2\/6 first/)).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "1/2" }));
+    expect(screen.getByText(/Correct\. 1\/3 equals 2\/6/)).toBeVisible();
+  });
+
+  it("reports a clipboard failure without claiming the command was copied", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: vi.fn().mockRejectedValue(new Error("denied")) },
+    });
+    render(<HomePage />);
+    fireEvent.click(screen.getByRole("button", { name: "Copy install command" }));
+
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Copy failed. Select and copy the command."));
+    expect(screen.getByRole("button", { name: "Copy install command" })).toHaveTextContent("Copy");
+    expect(screen.queryByText("Copied", { exact: true })).not.toBeInTheDocument();
   });
 });

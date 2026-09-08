@@ -2,13 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { PrismaService } from '@/prisma/prisma.service';
+import { billingConfigured, billingReturnUrl, billingUnavailable } from './billing-configuration';
 
 /** Platform fee percentage applied to learner subscriptions via Stripe Connect */
 export const PLATFORM_FEE_PERCENT = 30;
 
 @Injectable()
 export class ConnectService {
-  private stripe!: Stripe;
+  private stripe?: Stripe;
 
   constructor(
     private prisma: PrismaService,
@@ -21,18 +22,21 @@ export class ConnectService {
   }
 
   private getStripe(): Stripe {
-    if (!this.stripe) throw new Error('Stripe is not configured');
+    if (!this.stripe) throw billingUnavailable('Payment setup is not available yet.');
     return this.stripe;
   }
 
   async createConnectAccount(orgId: string): Promise<{ url: string }> {
+    if (!billingConfigured(this.config)) throw billingUnavailable('Payment setup is not available yet.');
+    const refreshUrl = billingReturnUrl(this.config, '/settings?connect=refresh');
+    const returnUrl = billingReturnUrl(this.config, '/settings?connect=returned');
     const org = await this.prisma.organization.findUniqueOrThrow({ where: { id: orgId } });
 
     if (org.stripeConnectAccountId) {
       const accountLink = await this.getStripe().accountLinks.create({
         account: org.stripeConnectAccountId,
-        refresh_url: `${this.config.getOrThrow('APP_URL')}/settings/billing/connect?refresh=true`,
-        return_url: `${this.config.getOrThrow('APP_URL')}/settings/billing/connect?success=true`,
+        refresh_url: refreshUrl,
+        return_url: returnUrl,
         type: 'account_onboarding',
       });
       return { url: accountLink.url };
@@ -50,8 +54,8 @@ export class ConnectService {
 
     const accountLink = await this.getStripe().accountLinks.create({
       account: account.id,
-      refresh_url: `${this.config.getOrThrow('APP_URL')}/settings/billing/connect?refresh=true`,
-      return_url: `${this.config.getOrThrow('APP_URL')}/settings/billing/connect?success=true`,
+      refresh_url: refreshUrl,
+      return_url: returnUrl,
       type: 'account_onboarding',
     });
 
@@ -75,6 +79,7 @@ export class ConnectService {
   async getConnectStatus(orgId: string) {
     const org = await this.prisma.organization.findUniqueOrThrow({ where: { id: orgId } });
     return {
+      setupAvailable: billingConfigured(this.config),
       hasConnectAccount: !!org.stripeConnectAccountId,
       onboardingComplete: org.connectOnboardingComplete,
     };
@@ -109,13 +114,19 @@ export class ConnectService {
     const platformFee = Math.round(grossAmountCents * (PLATFORM_FEE_PERCENT / 100));
     const creatorPayout = grossAmountCents - platformFee;
 
-    await this.prisma.revenueEvent.create({
-      data: { orgId, stripeInvoiceId, grossAmount: grossAmountCents, platformFee, creatorPayout, currency, learnerId },
+    // Stripe retries webhook deliveries. One invoice must produce one revenue row.
+    await this.prisma.revenueEvent.upsert({
+      where: { stripeInvoiceId },
+      create: { orgId, stripeInvoiceId, grossAmount: grossAmountCents, platformFee, creatorPayout, currency, learnerId },
+      update: {},
     });
   }
 
   async isPublishAllowed(orgId: string, hasPricing: boolean): Promise<{ allowed: boolean; reason?: string }> {
     if (!hasPricing) return { allowed: true };
+    if (!billingConfigured(this.config)) {
+      return { allowed: false, reason: 'Payments are not available yet. Complete the platform Stripe setup before publishing paid courses.' };
+    }
     const org = await this.prisma.organization.findUniqueOrThrow({ where: { id: orgId } });
     if (!org.connectOnboardingComplete) {
       return { allowed: false, reason: 'Stripe Connect onboarding must be completed before publishing paid courses.' };

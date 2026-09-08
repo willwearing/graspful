@@ -1,418 +1,233 @@
+import { QUALITY_CHECK_METADATA } from "@graspful/shared";
+
 function generateLlmsFullTxt(): string {
-  return `# Graspful — Complete Platform Documentation
+  const checks = QUALITY_CHECK_METADATA.map(
+    (check, index) => `${index + 1}. **${check.name}**: ${check.description}\n   Fix: ${check.fix}`,
+  ).join("\n\n");
 
-> Agent-first adaptive learning platform. Courses defined as YAML knowledge graphs.
+  return `# Graspful documentation for agents
 
-Graspful is an adaptive learning platform where AI agents create, validate, and publish courses. Courses are defined as YAML knowledge graphs with concepts, prerequisites, and problems. The platform handles adaptive diagnostics (BKT mastery model), spaced repetition (FIRe algorithm), mastery-based progression, white-label sites, and Stripe billing with a 70/30 revenue share.
+Graspful provides CLI and MCP tools for authoring adaptive courses as YAML. Published courses use a prerequisite graph, lessons, practice problems, mastery estimates, and scheduled review.
 
-Graspful provides a CLI and MCP server so AI agents can scaffold, fill, validate, review, and publish courses without any manual steps.
+Give PDFs, official references, and notes to your external AI agent. The agent reads the source and writes course content. Graspful scaffold and fill commands produce unfinished drafts and TODO stubs. Source-reference fields record metadata; the external agent performs source reading and content authoring.
 
----
+## Quickstart
 
-## Quick Start
+Start with an official source, its version, the intended learner, and the academy's course boundaries. Follow https://graspful.ai/docs/course-creation-guide before authoring.
 
 \`\`\`bash
-# 1. Initialize (zero-config, auto-configures MCP)
-npx @graspful/cli init
+# 1. Install the CLI. Local authoring and review need no account.
+bun add -g @graspful/cli
+graspful --help
 
-# 2. Register to get an API key (required before import/publish)
-graspful register
+# 2. Scaffold an academy plan and its first course.
+# Replace the topic and source reference with your actual details.
+graspful create academy --topic "Your Topic" -o academy.yaml
+graspful create course --topic "Your Topic" --source "Official source title, edition, and year" -o course.yaml
 
-# 3. Scaffold the academy plan
-graspful create academy --topic "Linear Algebra" -o academy.yaml
+# 3. Edit the graph, then add stubs to one empty concept.
+# Use an ID from your YAML if you changed the generated graph.
+graspful fill concept course.yaml your-topic-intro --kps 3 --problems 4
 
-# 4. Scaffold each course graph, then fill concepts
-mkdir -p courses
-graspful create course --topic "Linear Algebra Foundations" -o courses/linear-algebra-foundations.yaml
-graspful fill concept courses/linear-algebra-foundations.yaml concept-id
+# 4. Author each concept from the source material.
+# Replace every TODO with teaching, worked examples, and distinct problems.
+# Check source accuracy and answer keys, then fix and repeat these checks.
+graspful validate course.yaml
+graspful review course.yaml
 
-# 5. Review the course (runs 10 quality checks)
-graspful review courses/linear-algebra-foundations.yaml
+# 5. Register before import, or use graspful login for an existing account.
+graspful register --email you@example.com
 
-# 6. Import and publish the academy to an organization
-graspful import academy.yaml --org my-org --course-dir . --publish
+# 6. Use the organization slug returned by authentication.
+# A new course import is a draft by default.
+graspful import course.yaml --org my-org --format json
+
+# 7. Replace <course-id> with the returned courseId.
+# Confirm published: true in the result before sharing the course.
+graspful publish <course-id> --org my-org --format json
 \`\`\`
 
----
+An empty scaffold cannot pass publication review. A new draft import reports published: false. Publication is confirmed only by published: true. When publication fails, report the failure details, correct the local content, run validation and review again, replace the draft, and retry publication:
+
+\`\`\`bash
+graspful import course.yaml --org my-org --replace --format json
+graspful publish <course-id> --org my-org --format json
+\`\`\`
+
+For an academy, edit the manifest to reference the actual course files and review each file. Import with \`graspful import academy.yaml --org my-org --course-dir . --format json\`. Adding \`--publish\` requests publication for each imported course. Read publishedCourseIds and publishFailures to confirm which courses published. An academy can be partially published.
+
+Open the URL returned by course import and test a lesson and an incorrect answer as a learner. Configure the brand and verify its domain separately. Full guide: https://graspful.ai/docs/quickstart
 
 ## Authentication
 
-**You MUST register before importing or publishing.** Scaffold, validate, fill, and review all work without auth.
+Local create, fill, validate, review, and describe operations work without authentication. Importing, publishing, and listing courses require an API key.
 
-### How to authenticate
+- New account: install the CLI, then run \`graspful register\` in a terminal. Complete the browser authentication flow. The CLI saves a key in \`~/.graspful/credentials.json\`.
+- Existing account: run \`graspful login\` in a terminal to authenticate.
+- MCP: set \`GRASPFUL_API_KEY\` in your MCP client's private server configuration before starting the server.
+- Keep API keys out of course files, public messages, and source control.
 
-1. **CLI (recommended for first-time setup):**
-   \`\`\`bash
-   graspful register
-   \`\`\`
-   This opens browser auth, completes email verification / MFA on the web side, then saves an API key to \`~/.graspful/credentials.json\`.
+## CLI commands
 
-2. **MCP / agents:**
-   Set \`GRASPFUL_API_KEY=gsk_...\` before starting the MCP server.
+CLI file arguments are local file paths. Use \`--format json\` for structured command output. Use \`graspful <command> --help\` for installed-version flags.
 
-3. **Environment variable:**
-   Set \`GRASPFUL_API_KEY=gsk_...\` before starting the MCP server or CLI.
+| Command | Purpose | Key flags |
+|---------|---------|-----------|
+| \`graspful create academy\` | Create an academy manifest draft | \`--topic\`, repeatable \`--course\`, \`--version\`, \`-o\` |
+| \`graspful create course\` | Create an unfinished course graph | \`--topic\`, \`--hours\`, \`--source\`, \`-o\` |
+| \`graspful fill concept <file> <conceptId>\` | Add TODO stubs to a concept with no knowledge points | \`--kps\`, \`--problems\` |
+| \`graspful validate <file>\` | Validate a course, academy, or brand schema | \`--format json\` |
+| \`graspful review <file>\` | Run automated course publication checks | \`--format json\` |
+| \`graspful describe <file>\` | Show local course structure and missing content | \`--format json\` |
+| \`graspful register\` | Create an account through browser authentication | \`--email\`, \`--no-browser\` |
+| \`graspful login\` | Authenticate an existing account | \`--token\`, \`--no-browser\` |
+| \`graspful import <file>\` | Import course, academy, or brand YAML | \`--org\`, \`--publish\`, \`--replace\`, \`--course-dir\` |
+| \`graspful publish <courseId>\` | Request publication and return its result | \`--org\` |
+| \`graspful create brand\` | Create brand settings to edit before import | \`--niche\`, \`--name\`, \`--topic\`, \`--domain\`, \`--org\`, \`-o\` |
 
-### Which operations need auth?
+The \`--source\` flag records the source reference in course metadata. You or your external agent must read that source and author the content. A successful schema validation can describe an unfinished draft. Before publication, the course must also pass review and receive content review from the author.
 
-| Operation | Auth required? |
-|-----------|:-:|
-| Create academy, scaffold course, fill, validate, review, describe, create brand | No |
-| Import academy, import course, publish course, import brand, list courses | **Yes** |
+Importing a brand uses \`graspful import brand.yaml\`. Inspect its domain verification result and any DNS instructions. See https://graspful.ai/docs/cli and https://graspful.ai/docs/brand-schema
 
----
+## MCP setup
 
-## CLI Commands
+The MCP package is \`@graspful/mcp\`. Its stdio command is \`bunx @graspful/mcp\`. Configure it in the external agent that will read your source files and author the YAML.
 
-| Command | Auth? | Description | Key Flags |
-|---------|:---:|-------------|-----------|
-| \`graspful init\` | No | Initialize project, browser-auth, and auto-configure MCP | \`--email\`, \`--no-browser\` |
-| \`graspful register\` | No | Create account + API key via browser auth | \`--email <email>\`, \`--no-browser\` |
-| \`graspful create academy\` | No | Scaffold an academy plan with source, landing-page, graph, and review gates | \`--topic <topic>\`, \`--course <name>\`, \`--version <version>\` |
-| \`graspful create course\` | No | Scaffold a new course YAML | \`--topic <topic>\`, \`--hours <n>\`, \`--source <file>\` |
-| \`graspful fill concept <yaml> <conceptId>\` | No | Generate knowledge points and problems for a concept | \`--force\` overwrite existing |
-| \`graspful validate <yaml>\` | No | Validate course YAML against schema | — |
-| \`graspful review <yaml>\` | No | Run all 10 quality checks | \`--fix\` auto-fix issues |
-| \`graspful describe <yaml>\` | No | Describe course structure | — |
-| \`graspful create brand\` | No | Scaffold a brand YAML | \`--niche <niche>\`, \`--name <name>\`, \`--domain <domain>\`, \`--org <slug>\` |
-| \`graspful import <yaml>\` | **Yes** | Import an academy manifest or course to platform | \`--org <slug>\`, \`--publish\`, \`--course-dir <dir>\` |
-| \`graspful publish <courseId>\` | **Yes** | Publish an imported course | \`--org <slug>\` |
-| \`graspful import-brand <yaml>\` | **Yes** | Import brand config to platform | \`--org <slug>\` |
-| \`graspful list courses\` | **Yes** | List courses in an org | \`--org <slug>\` |
-| \`graspful login\` | No | Browser sign-in or save an API key/JWT | \`--token\`, \`--email\`, \`--no-browser\` |
+Claude Code, after replacing the key placeholder:
 
----
+\`\`\`bash
+claude mcp add --scope user graspful --env GRASPFUL_API_KEY=gsk_your_key_here -- bunx @graspful/mcp
+\`\`\`
 
-## MCP Tools
+Codex, after replacing the key placeholder:
 
-Graspful exposes 12 MCP tools for AI agents. Tools marked (AUTH REQUIRED) need
-an API key in \`GRASPFUL_API_KEY\`.
+\`\`\`bash
+codex mcp add graspful --env GRASPFUL_API_KEY=gsk_your_key_here -- bunx @graspful/mcp
+\`\`\`
+
+For Cursor, VS Code, and further client setup, use https://graspful.ai/docs/mcp. VS Code uses a \`servers\` root in its mcp.json configuration. Client configuration differs by editor.
+
+## MCP tools
+
+MCP \`yaml\` arguments contain the full YAML text. Read the local file first and send its contents. The \`manifestYaml\` argument also contains YAML text; \`courseYamls\` maps manifest file paths to their full YAML contents.
+
+Tools marked AUTH REQUIRED need GRASPFUL_API_KEY. For course and academy operations, the organization input is named \`org\`. Brand creation uses \`orgSlug\` and stores it in the generated brand YAML.
 
 ### graspful_create_academy
-Generate an academy manifest with planning layers and authoring gates.
-- \`topic\` (string, required) — Academy topic
-- \`courseNames\` (string[], optional) — Ordered course names. Defaults to foundations, core structures, operational flows, and applied judgment
-- \`version\` (string, optional) — Academy version string
+**Required inputs:** \`topic\`.
+**Optional inputs:** \`courseNames\`, \`version\`.
+Creates an academy manifest draft. courseNames is an ordered array of names; version is a string. Resolve the source, learner promise, course boundaries, and referenced files before import.
 
 ### graspful_scaffold_course
-Scaffold a new course YAML from a topic.
-- \`topic\` (string, required) — The subject to create a course for
-- \`hours\` (number, optional) — Estimated course duration in hours
-- \`source\` (string, optional) — Path to source document for content extraction
+**Required inputs:** \`topic\`.
+**Optional inputs:** \`estimatedHours\`, \`sourceDocument\`.
+Returns unfinished course YAML. estimatedHours is a number; sourceDocument is a source-reference string. Authoring and publication review are separate steps.
 
 ### graspful_fill_concept
-Generate knowledge points and problems for a single concept.
-- \`yaml\` (string, required) — Path to the course YAML file
-- \`conceptId\` (string, required) — ID of the concept to fill
+**Required inputs:** \`yaml\`, \`conceptId\`.
+**Optional inputs:** \`kps\`, \`problemsPerKp\`.
+Adds TODO stubs to an existing concept with no knowledge points and returns the updated YAML text. kps and problemsPerKp are numbers. Replace the stubs with source-based teaching and questions before review.
 
 ### graspful_validate
-Validate a course YAML file against the schema.
-- \`yaml\` (string, required) — Path to the course YAML file
+**Required inputs:** \`yaml\`.
+**Optional inputs:** none.
+Validates course, academy, or brand YAML. Check valid and errors in the response. A valid draft can still fail publication review.
 
 ### graspful_review_course
-Run all 10 quality checks on a course.
-- \`yaml\` (string, required) — Path to the course YAML file
+**Required inputs:** \`yaml\`.
+**Optional inputs:** none.
+Runs the automated checks listed below. Read passed, score, failures, and warnings. Review factual accuracy and teaching quality against the source separately.
 
 ### graspful_import_course (AUTH REQUIRED)
-Import a course YAML to the Graspful platform. Set \`GRASPFUL_API_KEY\` first if not authenticated.
-- \`yaml\` (string, required) — Path to the course YAML file
-- \`orgSlug\` (string, required) — Organization slug
-- \`publish\` (boolean, optional) — Publish immediately after import
+**Required inputs:** \`yaml\`, \`org\`.
+**Optional inputs:** \`publish\`.
+Imports a course draft by default. Set publish to true to request publication after server review. Confirm published: true before reporting publication. A failed request can preserve an imported draft and return isError with publicationFailures.
 
 ### graspful_import_academy (AUTH REQUIRED)
-Import an academy manifest and referenced course YAMLs. Set \`GRASPFUL_API_KEY\` first if not authenticated.
-- \`manifestYaml\` (string, required) — Full academy manifest YAML
-- \`courseYamls\` (object, required) — Map of course file paths to course YAML strings
-- \`org\` (string, required) — Organization slug
-- \`publish\` (boolean, optional) — Publish imported courses after import
+**Required inputs:** \`manifestYaml\`, \`courseYamls\`, \`org\`.
+**Optional inputs:** \`publish\`, \`replace\`, \`archiveMissing\`.
+Imports a manifest and the referenced course YAML strings. The optional inputs are booleans. If publish is true, inspect publishedCourseIds and publishFailures for every course. Some courses can publish while others fail.
 
 ### graspful_publish_course (AUTH REQUIRED)
-Publish an already-imported course. Set \`GRASPFUL_API_KEY\` first if not authenticated.
-- \`courseId\` (string, required) — ID of the course to publish
-- \`orgSlug\` (string, required) — Organization slug
+**Required inputs:** \`courseId\`, \`org\`.
+**Optional inputs:** none.
+Requests publication of a draft. courseId is the identifier returned by import. Confirm published: true and report the failures if publication does not succeed.
 
 ### graspful_describe_course
-Describe the structure of a course YAML.
-- \`yaml\` (string, required) — Path to the course YAML file
+**Required inputs:** \`yaml\`.
+**Optional inputs:** none.
+Returns local course statistics, including authored concepts, stubs, knowledge points, and problems. Use this to inspect authoring progress.
 
 ### graspful_create_brand
-Create a new brand YAML for a white-label site.
-- \`niche\` (string, required) — The niche/vertical for the brand
-- \`name\` (string, optional) — Brand name
-- \`domain\` (string, optional) — Custom domain
-- \`orgSlug\` (string, optional) — Organization slug
+**Required inputs:** \`niche\`.
+**Optional inputs:** \`name\`, \`topic\`, \`domain\`, \`orgSlug\`.
+Creates brand YAML for editing. Use a supported niche: education, healthcare, finance, tech, or legal. Write landing-page copy for the actual learner and course before import.
 
 ### graspful_import_brand (AUTH REQUIRED)
-Import a brand YAML to the platform. Set \`GRASPFUL_API_KEY\` first if not authenticated.
-- \`yaml\` (string, required) — Path to the brand YAML file
-- \`orgSlug\` (string, required) — Organization slug
+**Required inputs:** \`yaml\`.
+**Optional inputs:** none.
+Imports full brand YAML text. The organization is stored in brand.orgSlug in that YAML. Inspect the returned domain verification information separately from course publication.
 
 ### graspful_list_courses (AUTH REQUIRED)
-List all courses in an organization. Set \`GRASPFUL_API_KEY\` first if not authenticated.
-- \`orgSlug\` (string, required) — Organization slug
+**Required inputs:** \`org\`.
+**Optional inputs:** none.
+Lists an organization's courses and their publication state.
 
----
+## YAML schema reference
 
-## Course YAML Schema
+Use the current schema documentation when authoring:
 
-\`\`\`yaml
-course:
-  id: "linear-algebra-101"          # Unique identifier (kebab-case)
-  name: "Linear Algebra 101"        # Display name
-  description: "Introduction to..."  # Course description
-  estimatedHours: 20                 # Estimated completion time
-  version: 1                         # Schema version
-  sourceDocument: "textbook.pdf"     # Optional source reference
+- Course schema: https://graspful.ai/docs/course-schema
+- Brand schema: https://graspful.ai/docs/brand-schema
+- Academy planning and authoring: https://graspful.ai/docs/course-creation-guide
 
-concepts:
-  - id: "vectors"                    # Unique concept ID (kebab-case)
-    name: "Vectors"                  # Display name
-    difficulty: 2                    # 1-5 scale (1=easiest, 5=hardest)
-    estimatedMinutes: 45             # Time to learn concept
-    tags: ["algebra", "geometry"]    # Categorization tags
-    prerequisites: []                # IDs of prerequisite concepts
-    sourceRef: "Chapter 1"           # Optional reference to source
-    knowledgePoints:
-      - id: "vector-addition"        # Unique KP ID
-        instruction: |               # Teaching content (markdown)
-          A vector is a quantity with both magnitude and direction...
-        problems:
-          - id: "vec-add-1"          # Unique problem ID
-            type: "multiple_choice"  # multiple_choice | true_false | fill_blank
-            question: "What is [2,3] + [1,4]?"
-            options:                  # Required for multiple_choice
-              - "[3,7]"
-              - "[2,12]"
-              - "[3,4]"
-              - "[1,1]"
-            correct: "[3,7]"         # Must match an option exactly
-            explanation: |           # Shown after answering
-              Add component-wise: [2+1, 3+4] = [3,7]
-            difficulty: 2            # Optional, 1-5 scale
+Course YAML has top-level course and concepts fields, with optional sections. course.version is a string. Concept difficulty is an integer from 1 through 10; problem difficulty is an integer from 1 through 5. Knowledge points can use instruction and workedExample text, with typed instructionContent and workedExampleContent blocks for media and callouts.
 
-  - id: "matrices"
-    name: "Matrices"
-    difficulty: 3
-    estimatedMinutes: 60
-    tags: ["algebra"]
-    prerequisites: ["vectors"]       # Must reference existing concept IDs
-    knowledgePoints:
-      - id: "matrix-mult"
-        instruction: "Matrix multiplication..."
-        problems:
-          - id: "mat-mult-1"
-            type: "true_false"
-            question: "Matrix multiplication is commutative."
-            correct: "false"         # "true" or "false" for true_false
-            explanation: "AB != BA in general."
-          - id: "mat-mult-2"
-            type: "fill_blank"
-            question: "A 2x3 matrix multiplied by a 3x4 matrix produces a ___x___ matrix."
-            correct: "2x4"           # Expected answer for fill_blank
-            explanation: "The result has rows of A and columns of B."
-\`\`\`
+Problem answer contracts:
 
-### Field Constraints
+- multiple_choice and scenario: correct is a zero-based integer index within the available options. Four options allow indices 0 through 3.
+- true_false: correct is true or false, as a boolean or string.
+- fill_blank: correct is nonempty text, a number, or an object with answer and optional alternatives.
+- ordering: correct lists every option text once in the correct order, or uses a comma-separated index order containing every option once.
+- matching: options use left|right pairs. correct maps every left label to an offered right label, or uses a full comma-separated index order.
 
-| Field | Type | Required | Constraints |
-|-------|------|----------|-------------|
-| \`course.id\` | string | yes | kebab-case, unique |
-| \`course.name\` | string | yes | — |
-| \`course.description\` | string | yes | — |
-| \`course.estimatedHours\` | number | yes | > 0 |
-| \`course.version\` | number | yes | integer |
-| \`course.sourceDocument\` | string | no | — |
-| \`concepts[].id\` | string | yes | kebab-case, unique within course |
-| \`concepts[].difficulty\` | number | yes | 1-5 integer |
-| \`concepts[].estimatedMinutes\` | number | yes | > 0 |
-| \`concepts[].tags\` | string[] | yes | at least 1 tag |
-| \`concepts[].prerequisites\` | string[] | yes | must reference valid concept IDs |
-| \`knowledgePoints[].id\` | string | yes | unique within course |
-| \`knowledgePoints[].instruction\` | string | yes | markdown content |
-| \`problems[].id\` | string | yes | unique within course |
-| \`problems[].type\` | string | yes | multiple_choice, true_false, or fill_blank |
-| \`problems[].question\` | string | yes | — |
-| \`problems[].options\` | string[] | conditional | required if type=multiple_choice |
-| \`problems[].correct\` | string | yes | must match an option for multiple_choice |
-| \`problems[].explanation\` | string | yes | — |
-| \`problems[].difficulty\` | number | no | 1-5 integer |
+Use at least three distinct practice problems per knowledge point and problems at more than one difficulty level per concept. Add teaching and worked examples, replace scaffold markers, and validate after edits. Refer to the schema for the full required fields and answer forms.
 
----
+## Quality checks
 
-## Brand YAML Schema
+The CLI review command and graspful_review_course run these ${QUALITY_CHECK_METADATA.length} automated checks from the shared registry:
 
-\`\`\`yaml
-brand:
-  id: "my-brand"                     # Unique brand ID
-  name: "My Learning Platform"       # Display name
-  domain: "learn.example.com"        # Custom domain
-  tagline: "Master anything."        # Short tagline
-  orgSlug: "my-org"                  # Organization slug
+${checks}
 
-theme:
-  preset: "zinc"                     # Color preset
-  radius: 0.5                        # Border radius multiplier
+A score of ${QUALITY_CHECK_METADATA.length}/${QUALITY_CHECK_METADATA.length} means all automated checks passed. These checks do not verify source facts, complete curriculum coverage, or learner outcomes. Review the source, answer keys, teaching, and learner experience before publication.
 
-landing:
-  hero:
-    heading: "Learn Smarter"
-    subheading: "Adaptive courses that meet you where you are."
-    cta: "Get Started"
-  features:
-    heading: "Why Choose Us"
-    subheading: "Built for real learning."
-    items:
-      - title: "Adaptive"
-        description: "Courses adapt to your knowledge level."
-      - title: "Spaced Repetition"
-        description: "Never forget what you learn."
-      - title: "AI-Powered"
-        description: "Created and curated by AI agents."
-  howItWorks:
-    heading: "How It Works"
-    steps:
-      - title: "Take a Diagnostic"
-        description: "We assess what you already know."
-      - title: "Learn Adaptively"
-        description: "Focus on what you need to learn."
-      - title: "Stay Sharp"
-        description: "Spaced repetition keeps knowledge fresh."
-  faq:
-    - question: "How much does it cost?"
-      answer: "Pricing depends on the course creator."
-    - question: "How does adaptive learning work?"
-      answer: "We use Bayesian Knowledge Tracing to model your mastery."
+## Agent workflow
 
-seo:
-  title: "My Learning Platform — Master Anything"
-  description: "Adaptive courses powered by AI."
-  keywords: ["learning", "adaptive", "AI", "courses"]
-\`\`\`
+1. **Plan from sources.** Identify official source material, its version, the intended learner, and course boundaries. Give the material to the external agent.
+2. **Scaffold and author.** Create the academy plan and course graph, then author each concept. Scaffold and fill output need teaching content before publication.
+3. **Validate and review.** Correct schema and gate failures. Check source accuracy and answer keys separately.
+4. **Authenticate before import.** Run graspful register or graspful login, or configure GRASPFUL_API_KEY if you have a key already.
+5. **Import a draft.** Save the courseId and URL returned by import.
+6. **Request and confirm publication.** Confirm published: true for each course. Keep partial results and report failures when an academy only partially publishes.
+7. **Verify the learner experience.** Test a lesson and incorrect-answer recovery. Import and verify the brand and domain separately.
 
----
+## Billing availability
 
-## Quality Checks
+Paid subscriptions are not available yet. Stripe setup and payment-flow verification are still required before paid access can open. Course publication and brand import do not complete billing setup. Current status: https://graspful.ai/docs/billing
 
-The \`graspful review\` command (and \`graspful_review_course\` MCP tool) runs 10 quality checks:
+## Environment variables
 
-1. **YAML Schema Validation** — Course YAML conforms to the required schema
-2. **Unique Problem IDs** — Every problem ID is unique across the entire course
-3. **Valid Prerequisites** — All referenced prerequisite concept IDs exist in the course
-4. **No DAG Cycles** — The prerequisite graph is a valid DAG (no circular dependencies)
-5. **Minimum 1 KP per Concept** — Every concept has at least one knowledge point
-6. **Minimum 2 Problems per KP** — Every knowledge point has at least two problems
-7. **Difficulty Distribution** — Not all concepts have the same difficulty level
-8. **Explanation Coverage** — Every problem has an explanation
-9. **Question Deduplication** — No duplicate questions across the course
-10. **Tag Coverage** — Every concept has at least one tag
+- GRASPFUL_API_KEY: authentication for API operations. Keep this private.
+- GRASPFUL_API_URL: optional API base URL override. Default: https://api.graspful.ai
 
-Each check returns pass/fail with details. Fix failures before importing.
+## Learning behavior
 
----
-
-## MCP Configuration
-
-### Claude Code (\`~/.claude.json\`)
-
-\`\`\`json
-{
-  "mcpServers": {
-    "graspful": {
-      "command": "npx",
-      "args": ["@graspful/cli", "mcp"],
-      "env": {
-        "GRASPFUL_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-\`\`\`
-
-### Cursor (\`.cursor/mcp.json\`)
-
-\`\`\`json
-{
-  "mcpServers": {
-    "graspful": {
-      "command": "npx",
-      "args": ["@graspful/cli", "mcp"],
-      "env": {
-        "GRASPFUL_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-\`\`\`
-
-### Codex
-
-\`\`\`json
-{
-  "mcpServers": {
-    "graspful": {
-      "command": "npx",
-      "args": ["@graspful/cli", "mcp"],
-      "env": {
-        "GRASPFUL_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-\`\`\`
-
----
-
-## Environment Variables
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| \`GRASPFUL_API_KEY\` | Yes (for API ops) | — | API key for authentication. Get one from your org settings. |
-| \`GRASPFUL_API_URL\` | No | \`https://api.graspful.ai\` | API base URL. Override for self-hosted or dev. |
-
----
-
-## Typical Agent Workflow
-
-1. **Register** — Run \`graspful register\` in a terminal to complete browser auth and get an API key. This is required before importing or publishing. Skip if you already have GRASPFUL_API_KEY set.
-2. **Plan the academy** — Use \`graspful_create_academy(topic: "Your Topic")\` to generate the academy manifest, planning layers, and authoring gates.
-3. **Resolve the plan** — Fill in source material, learner promise, landing-page proof, and course dependencies before writing knowledge points.
-4. **Scaffold course graphs** — Use \`graspful_scaffold_course(topic: "Your Course", estimatedHours: 10)\` for each course referenced by the academy.
-5. **Fill concepts** — For each concept, call \`graspful_fill_concept(yaml, conceptId)\` to generate knowledge points and problems.
-6. **Review** — Call \`graspful_review_course(yaml)\` to run quality checks. Fix any failures.
-7. **Import academy** — Call \`graspful_import_academy(manifestYaml, courseYamls, org, publish: true)\` to push the connected product to platform.
-8. **Create brand** — Use \`graspful_create_brand(niche: "Your Niche", topic: "Your Topic")\` to generate the landing page config.
-9. **Import brand** — Use \`graspful_import_brand(yaml, orgSlug)\` to deploy the site.
-
-### Tips for Agents
-
-- Always run \`review\` before \`import\` — the API will reject courses that fail validation.
-- Fill concepts one at a time for better quality. Don't try to fill the entire course in one call.
-- Use \`describe\` to inspect a course YAML before making changes.
-- The \`--source\` flag on \`create course\` extracts structure from an existing document (PDF, markdown, etc).
-- Problem IDs must be globally unique within a course. Use a consistent naming pattern like \`{concept-id}-{kp-index}-{problem-index}\`.
-
----
-
-## Platform Concepts
-
-### Adaptive Diagnostics (BKT)
-Graspful uses Bayesian Knowledge Tracing (BKT) to model student mastery. When a learner starts a course, a diagnostic session estimates their prior knowledge by asking targeted questions selected via Maximum Expected Posterior Entropy (MEPE). The diagnostic stops when mastery estimates converge.
-
-### Spaced Repetition (FIRe)
-The Flashcard-based Item Repetition (FIRe) algorithm schedules reviews based on retention probability. Items are reviewed just before the model predicts they'll be forgotten, maximizing long-term retention with minimal review sessions.
-
-### Mastery-Based Progression
-Learners must demonstrate mastery of prerequisite concepts before advancing. The knowledge graph defines the prerequisite structure, and the learning engine enforces it. No skipping ahead.
-
-### Revenue Share
-Course creators earn 70% of subscription revenue from their courses. Graspful takes 30%. Billing is handled via Stripe Connect.
+The learner's recorded answers update mastery estimates. Prerequisite rules use those estimates to select available lessons. Review intervals adjust to answers and related practice. These estimates guide practice and can change as new evidence arrives.
 `;
 }
 
 export async function GET() {
-  const content = generateLlmsFullTxt();
-
-  return new Response(content, {
+  return new Response(generateLlmsFullTxt(), {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "public, max-age=86400",

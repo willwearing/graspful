@@ -53,12 +53,11 @@ describe("MarketingNav", () => {
     expect(signIn.getAttribute("href")).toBe("/sign-in");
   });
 
-  it("renders Get Started CTA with gradient pill styling", () => {
+  it("renders an account creation CTA", () => {
     renderNav();
     const cta = screen.getByRole("link", { name: /get started/i });
     expect(cta).toBeTruthy();
     expect(cta.getAttribute("href")).toBe("/sign-up");
-    expect(cta.className).toContain("btn-gradient");
   });
 
   it("uses direct platform links on the app surface", () => {

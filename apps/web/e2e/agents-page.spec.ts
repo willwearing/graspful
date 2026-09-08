@@ -10,22 +10,22 @@ test.describe("Agents Page", () => {
 
   test("agents page has MCP tools section", async ({ page }) => {
     await page.goto("/agents");
-    await expect(page.getByText("MCP Tools")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "MCP Tools", exact: true })).toBeVisible();
 
     // Verify specific tool names are rendered
-    await expect(page.getByText("create_course")).toBeVisible();
-    await expect(page.getByText("fill_concept")).toBeVisible();
-    await expect(page.getByText("review_course")).toBeVisible();
-    await expect(page.getByText("validate_course")).toBeVisible();
-    await expect(page.getByText("import_course")).toBeVisible();
-    await expect(page.getByText("create_brand")).toBeVisible();
+    await expect(page.getByText("graspful_scaffold_course")).toBeVisible();
+    await expect(page.getByText("graspful_fill_concept")).toBeVisible();
+    await expect(page.getByText("graspful_review_course")).toBeVisible();
+    await expect(page.getByText("graspful_validate")).toBeVisible();
+    await expect(page.getByText("graspful_import_course")).toBeVisible();
+    await expect(page.getByText("graspful_create_brand")).toBeVisible();
   });
 
   test("agents page shows supported agents", async ({ page }) => {
     await page.goto("/agents");
     await expect(page.getByText("Works with your tools")).toBeVisible();
-    await expect(page.getByText("Claude Code")).toBeVisible();
-    await expect(page.getByText("Cursor")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Claude Code", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Cursor", exact: true })).toBeVisible();
   });
 
   test("agents page has workflow section", async ({ page }) => {
@@ -36,20 +36,14 @@ test.describe("Agents Page", () => {
     await expect(page.getByText(/import/i).first()).toBeVisible();
   });
 
-  test("agents page has pricing section", async ({ page }) => {
+  test("agents page states current billing availability", async ({ page }) => {
     await page.goto("/agents");
-    await expect(page.getByText("70 / 30")).toBeVisible();
-    await expect(
-      page.getByText("Revenue share when learners pay", { exact: false })
-    ).toBeVisible();
+    await expect(page.getByText("Local authoring and review are free. Paid subscriptions are not available yet. We will publish plan and payout details when billing is ready.", { exact: true })).toBeVisible();
   });
 
-  test("agents page has CTA with CLI init command", async ({ page }) => {
+  test("agents page has a CLI installation command", async ({ page }) => {
     await page.goto("/agents");
-    const cliCommand = page.getByText("npx @graspful/cli init");
-    // Should appear in both hero and bottom CTA
-    const count = await cliCommand.count();
-    expect(count).toBeGreaterThanOrEqual(2);
+    await expect(page.getByText("bun add -g @graspful/cli").first()).toBeVisible();
   });
 
   test("agents page has sign-up links", async ({ page }) => {

@@ -1,11 +1,14 @@
 import { LearningEngineController } from './learning-engine.controller';
 import { LearningEngineService } from './learning-engine.service';
 import { LessonService } from './lesson.service';
+import { NotFoundException } from '@nestjs/common';
 
 describe('LearningEngineController', () => {
   let controller: LearningEngineController;
   let mockEngine: any;
   let mockLesson: any;
+  let mockStudentState: any;
+  let mockPosthog: any;
 
   const orgCtx = {
     orgId: 'org-1',
@@ -52,8 +55,9 @@ describe('LearningEngineController', () => {
       }),
     };
 
-    const mockPosthog = { capture: jest.fn() };
-    controller = new LearningEngineController(mockEngine, mockLesson, mockPosthog as any);
+    mockPosthog = { capture: jest.fn() };
+    mockStudentState = { assertAssessmentAccess: jest.fn().mockResolvedValue({ academyId: 'academy-1' }) };
+    controller = new LearningEngineController(mockEngine, mockLesson, mockPosthog, mockStudentState);
   });
 
   describe('GET /next-task', () => {
@@ -63,6 +67,7 @@ describe('LearningEngineController', () => {
       expect(result.taskType).toBe('lesson');
       expect(result.conceptId).toBe('c2');
       expect(mockEngine.getNextTaskForCourse).toHaveBeenCalledWith('u1', 'course-1');
+      expect(mockStudentState.assertAssessmentAccess).toHaveBeenCalledWith('u1', 'org-1', 'course-1');
     });
   });
 
@@ -105,9 +110,28 @@ describe('LearningEngineController', () => {
       expect(result.status).toBe('lesson_complete');
       expect(mockLesson.completeLesson).toHaveBeenCalledWith(
         'u1',
+        'org-1',
         'course-1',
         'c2',
       );
     });
+  });
+
+  it.each(['getNextTask', 'getStudySession'] as const)(
+    'rejects %s outside the route organization or enrollment before selecting or mutating tasks',
+    async (method) => {
+      mockStudentState.assertAssessmentAccess.mockRejectedValue(new NotFoundException('Access denied'));
+      await expect(controller[method]('foreign-course', orgCtx as any)).rejects.toThrow(NotFoundException);
+      expect(mockStudentState.assertAssessmentAccess).toHaveBeenCalledWith('u1', 'org-1', 'foreign-course');
+      expect(mockEngine.getNextTaskForCourse).not.toHaveBeenCalled();
+      expect(mockEngine.getStudySessionForCourse).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not report lesson completion when the scoped service rejects it', async () => {
+    mockLesson.completeLesson.mockRejectedValue(new NotFoundException('Access denied'));
+    await expect(controller.completeLesson('foreign-course', 'c2', orgCtx as any)).rejects.toThrow(NotFoundException);
+    expect(mockLesson.completeLesson).toHaveBeenCalledWith('u1', 'org-1', 'foreign-course', 'c2');
+    expect(mockPosthog.capture).not.toHaveBeenCalled();
   });
 });

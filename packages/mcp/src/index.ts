@@ -11,6 +11,7 @@ import { PostHog } from 'posthog-node';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   CourseYamlSchema,
+  QUALITY_CHECK_METADATA,
   validateParsedYaml,
   runQualityGate,
   describeCourse,
@@ -18,6 +19,8 @@ import {
   scaffoldCourseObject,
   scaffoldBrandObject,
   fillConceptInRaw,
+  publicationFailures,
+  type CoursePublicationResponse,
 } from '@graspful/shared';
 
 // ─── PostHog analytics ──────────────────────────────────────────────────────
@@ -223,21 +226,12 @@ Run this before graspful_import_course to catch errors early.`,
   },
   {
     name: 'graspful_review_course',
-    description: `Run all 10 mechanical quality checks on a course YAML. Returns a score (e.g., "8/10") with details on each failure.
+    description: `Run all ${QUALITY_CHECK_METADATA.length} automated quality checks on a course YAML. Returns a score with details on each failure.
 
-The 10 checks are:
-1. yaml_parses — Valid Zod schema
-2. unique_problem_ids — No duplicate problem IDs across the course
-3. prerequisites_valid — All prerequisite refs point to real concepts
-4. question_deduplication — No near-duplicate questions at the same difficulty
-5. difficulty_staircase — Each concept has problems at 2+ difficulty levels
-6. problem_teaching_alignment — Problems only assess material introduced in the current lesson path
-7. problem_variant_depth — Each KP has 3+ problems
-8. instruction_formatting — Long instructions have content blocks
-9. worked_example_coverage — 50%+ of authored concepts have worked examples
-10. import_dry_run — DAG is valid (no cycles, valid refs)
+The checks are:
+${QUALITY_CHECK_METADATA.map((check, index) => `${index + 1}. ${check.name}: ${check.description}`).join('\n')}
 
-A score of 10/10 is required for publishing. Run this before graspful_import_course --publish.`,
+All automated checks must pass before publishing. Check factual accuracy against your sources separately. Run this before graspful_import_course with publish=true.`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -252,7 +246,7 @@ A score of 10/10 is required for publishing. Run this before graspful_import_cou
 
 IMPORTANT: Requires authentication. If not authenticated, run \`graspful register\` in a terminal first or set the \`GRASPFUL_API_KEY\` environment variable. Without auth, this tool will fail.
 
-If publish=true, Graspful imports the academy first and then attempts to publish each imported course. Returns the academy result plus publishedCourseIds and publishFailures.`,
+If publish=true, Graspful imports the academy first and then attempts to publish each imported course. Returns the academy result plus confirmed publishedCourseIds and publishFailures. If any requested publication fails, isError is true and the result preserves the imported academy and successful publications.`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -277,7 +271,7 @@ IMPORTANT: Requires authentication. If not authenticated, run \`graspful registe
 
 If publish=true, the server runs the review gate first - the course must pass all 10 quality checks to be published. If review fails, the course is imported as a draft and failures are returned.
 
-Returns { courseId, url, published, reviewFailures? }.`,
+Returns { courseId, url, published, review?, reviewFailures? }. If requested publication fails, isError is true and the result includes publicationFailures and status: imported_but_not_published.`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -294,7 +288,7 @@ Returns { courseId, url, published, reviewFailures? }.`,
 
 IMPORTANT: Requires authentication. If not authenticated, run \`graspful register\` in a terminal first or set the \`GRASPFUL_API_KEY\` environment variable. Without auth, this tool will fail.
 
-Returns { courseId, published }.`,
+Returns { courseId, published, url, review }. Publication is successful only when published is true. Otherwise isError is true and publicationFailures explains the review failures.`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -492,12 +486,18 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
         if (args.publish) {
           for (const courseResult of result.courseResults) {
             try {
-              await apiFetch(
+              const publication = await apiFetch<CoursePublicationResponse>(
                 'POST',
                 `/api/v1/orgs/${args.org}/courses/${courseResult.courseId}/publish`,
                 {},
               );
-              publishedCourseIds.push(courseResult.courseId);
+              if (publication.published === true) {
+                publishedCourseIds.push(courseResult.courseId);
+              } else {
+                publishFailures.push(
+                  `${courseResult.courseId}: ${publicationFailures(publication).join('; ')}`,
+                );
+              }
             } catch (error) {
               publishFailures.push(
                 `${courseResult.courseId}: ${error instanceof Error ? error.message : String(error)}`,
@@ -512,12 +512,16 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
           course_count: result.courseCount,
           published_count: publishedCourseIds.length,
         });
-        return textResult(
+        const resultMessage = publishFailures.length > 0 ? errorResult : textResult;
+        return resultMessage(
           JSON.stringify(
             {
               ...result,
               publishedCourseIds,
               publishFailures,
+              ...(publishFailures.length > 0 ? {
+                status: publishedCourseIds.length > 0 ? 'partially_published' : 'imported_but_not_published',
+              } : {}),
             },
             null,
             2,
@@ -531,12 +535,19 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
     case 'graspful_import_course': {
       try {
         requireApiAuth();
-        const result = await apiFetch<{ courseId: string; url: string; published: boolean; reviewFailures?: string[] }>(
+        const result = await apiFetch<CoursePublicationResponse>(
           'POST',
           `/api/v1/orgs/${args.org}/courses/import`,
           { yaml: args.yaml, publish: args.publish ?? false },
         );
         mcpCapture('course imported', { course_id: result.courseId, org: args.org, published: result.published });
+        if (args.publish && result.published !== true) {
+          return errorResult(JSON.stringify({
+            ...result,
+            status: 'imported_but_not_published',
+            publicationFailures: publicationFailures(result),
+          }, null, 2));
+        }
         return textResult(JSON.stringify(result, null, 2));
       } catch (e) {
         return errorResult(`Import failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -546,12 +557,19 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
     case 'graspful_publish_course': {
       try {
         requireApiAuth();
-        const result = await apiFetch<{ courseId: string; published: boolean }>(
+        const result = await apiFetch<CoursePublicationResponse>(
           'POST',
           `/api/v1/orgs/${args.org}/courses/${args.courseId}/publish`,
           {},
         );
-        mcpCapture('course published', { course_id: result.courseId, org: args.org, published: result.published });
+        if (result.published !== true) {
+          return errorResult(JSON.stringify({
+            ...result,
+            status: 'not_published',
+            publicationFailures: publicationFailures(result),
+          }, null, 2));
+        }
+        mcpCapture('course published', { course_id: result.courseId, org: args.org, published: true });
         return textResult(JSON.stringify(result, null, 2));
       } catch (e) {
         return errorResult(`Publish failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -599,11 +617,14 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
           domain: brandSection.domain,
           tagline: brandSection.tagline || '',
           logoUrl: (brandSection.logoUrl as string) || '/logo.svg',
+          faviconUrl: brandSection.faviconUrl,
+          ogImageUrl: brandSection.ogImageUrl,
           orgSlug: brandSection.orgSlug,
           theme: parsed.theme || {},
           landing: parsed.landing || {},
           seo: parsed.seo || {},
           pricing: parsed.pricing || {},
+          contentScope: parsed.contentScope,
         };
         const result = await apiFetch<{ slug: string; domain: string; verificationStatus: string }>(
           'POST',
@@ -644,7 +665,7 @@ if (require.main === module) {
   const server = new Server(
     {
       name: 'graspful',
-      version: '0.2.4',
+      version: '0.2.6',
     },
     {
       capabilities: {

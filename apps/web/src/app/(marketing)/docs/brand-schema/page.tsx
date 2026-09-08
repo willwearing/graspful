@@ -351,7 +351,7 @@ landing:
     heading: "How It Works"
     items:
       - title: "Take a diagnostic"
-        description: "We assess your current AWS knowledge in 15 minutes."
+        description: "Answer adaptive questions to estimate which AWS topics need practice."
       - title: "Study adaptively"
         description: "Focus on gaps. Skip what you know."
       - title: "Pass the exam"

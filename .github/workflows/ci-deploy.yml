@@ -14,6 +14,11 @@ jobs:
   unit-component-tests:
     name: Unit & Component Tests
     runs-on: ubuntu-latest
+    env:
+      POSTHOG_PERSONAL_API_KEY: ""
+      POSTHOG_PROJECT_ID: ""
+      POSTHOG_API_KEY: ""
+      NEXT_PUBLIC_POSTHOG_KEY: ""
     steps:
       - uses: actions/checkout@v5
 
@@ -22,7 +27,10 @@ jobs:
           bun-version: "1.3.6"
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
+
+      - name: Test E2E environment safety
+        run: bun test scripts/e2e-env.test.ts
 
       - name: Build shared package
         run: cd packages/shared && bun run build
@@ -57,6 +65,9 @@ jobs:
       - name: Run backend tests
         run: cd backend && bun run test
 
+      - name: Test published-course remediation
+        run: bun test backend/scripts/__tests__/audit-published-courses.test.ts
+
       - name: Run frontend tests
         run: cd apps/web && bun run test
 
@@ -74,6 +85,11 @@ jobs:
     needs: unit-component-tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      POSTHOG_PERSONAL_API_KEY: ""
+      POSTHOG_PROJECT_ID: ""
+      POSTHOG_API_KEY: ""
+      NEXT_PUBLIC_POSTHOG_KEY: ""
     steps:
       - uses: actions/checkout@v5
 
@@ -83,25 +99,51 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.90.0
 
-      - name: Start local Supabase
+      - name: Start isolated local Supabase
         run: |
-          # Move RLS migration aside — it references Prisma tables that don't exist yet
-          mv supabase/migrations/00002_rls_policies.sql /tmp/00002_rls_policies.sql
-          supabase start
-          # Will apply RLS after Prisma migrations
+          # Keep test auth settings and signing keys outside the deployment config.
+          supabase_dir="$RUNNER_TEMP/graspful-e2e-supabase"
+          mkdir -p "$supabase_dir"
+          supabase init --workdir "$supabase_dir"
+          SUPABASE_TEST_DIR="$supabase_dir" python3 - <<'PYCONFIG'
+          import os
+          from pathlib import Path
 
-      - name: Extract Supabase keys
+          config = Path(os.environ["SUPABASE_TEST_DIR"]) / "supabase/config.toml"
+          contents = config.read_text()
+          contents = contents.replace('site_url = "http://127.0.0.1:3000"', 'site_url = "http://localhost:3001"')
+          contents = contents.replace('additional_redirect_urls = ["https://127.0.0.1:3000"]', 'additional_redirect_urls = ["http://localhost:3001/**", "http://localhost:3002/**", "http://graspful.ai:3001/**", "http://app.graspful.ai:3001/**"]')
+          contents = contents.replace('# signing_keys_path = "./signing_keys.json"', 'signing_keys_path = "./signing_keys.json"')
+          assert 'signing_keys_path = "./signing_keys.json"' in contents
+          assert 'site_url = "http://localhost:3001"' in contents
+          assert 'http://localhost:3002/**' in contents
+          config.write_text(contents)
+          (config.parent / "signing_keys.json").write_text("[]")
+          PYCONFIG
+          chmod 600 "$supabase_dir/supabase/signing_keys.json"
+          supabase gen signing-key --workdir "$supabase_dir" >/dev/null 2>&1
+          # Prisma owns the public schema, so apply SQL migrations after Prisma.
+          supabase start --workdir "$supabase_dir" -x realtime,storage-api,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor > "$RUNNER_TEMP/supabase-start.log" 2>&1
+
+      - name: Extract local Supabase keys
         id: supabase
         run: |
-          echo "SUPABASE_URL=$(supabase status --output json | jq -r '.API_URL')" >> "$GITHUB_OUTPUT"
-          echo "ANON_KEY=$(supabase status --output json | jq -r '.ANON_KEY')" >> "$GITHUB_OUTPUT"
-          echo "SERVICE_ROLE_KEY=$(supabase status --output json | jq -r '.SERVICE_ROLE_KEY')" >> "$GITHUB_OUTPUT"
-          echo "DB_URL=$(supabase status --output json | jq -r '.DB_URL')" >> "$GITHUB_OUTPUT"
+          supabase status --workdir "$RUNNER_TEMP/graspful-e2e-supabase" --output json > "$RUNNER_TEMP/supabase-status.json"
+          for key in ANON_KEY SERVICE_ROLE_KEY; do
+            value=$(jq -er ".$key" "$RUNNER_TEMP/supabase-status.json")
+            echo "::add-mask::$value"
+            echo "$key=$value" >> "$GITHUB_OUTPUT"
+          done
+          echo "SUPABASE_URL=$(jq -er '.API_URL' "$RUNNER_TEMP/supabase-status.json")" >> "$GITHUB_OUTPUT"
+          echo "DB_URL=$(jq -er '.DB_URL' "$RUNNER_TEMP/supabase-status.json")" >> "$GITHUB_OUTPUT"
+          # The backend verifies asymmetric JWTs through Supabase JWKS.
+          supabase_url=$(jq -er '.API_URL' "$RUNNER_TEMP/supabase-status.json")
+          curl --fail --silent "$supabase_url/auth/v1/.well-known/jwks.json" | jq -e '.keys | length > 0'
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Build shared package
         run: cd packages/shared && bun run build
@@ -115,8 +157,13 @@ jobs:
           DATABASE_URL: ${{ steps.supabase.outputs.DB_URL }}
           DIRECT_URL: ${{ steps.supabase.outputs.DB_URL }}
 
-      - name: Apply RLS policies
-        run: psql "${{ steps.supabase.outputs.DB_URL }}" -f /tmp/00002_rls_policies.sql
+      - name: Apply auth triggers and RLS policies
+        run: |
+          for migration in supabase/migrations/*.sql; do
+            psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file "$migration"
+          done
+        env:
+          DATABASE_URL: ${{ steps.supabase.outputs.DB_URL }}
 
       - name: Seed database
         run: cd backend && bun x prisma db seed
@@ -140,43 +187,70 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.supabase.outputs.ANON_KEY }}
           NEXT_PUBLIC_BACKEND_URL: http://localhost:3000/api/v1
 
-      - name: Install Playwright browsers
-        run: cd apps/web && bun x playwright install --with-deps chromium
-
-      - name: Start services and run E2E tests
-        run: |
-          # Start backend (subshell so cd doesn't affect parent)
-          (cd backend && bun run start:prod) &
-
-          # Start frontend on port 3001
-          (cd apps/web && PORT=3001 bun run start) &
-
-          # Wait for both
-          timeout 60 bash -c 'until curl -sf http://localhost:3000/api/v1/health 2>/dev/null; do sleep 2; done'
-          echo "Backend ready"
-          timeout 120 bash -c 'until curl -sf http://localhost:3001 2>/dev/null; do sleep 2; done'
-          echo "Frontend ready"
-
-          # Run Playwright
-          cd apps/web && bun run test:e2e
+      - name: Build site
+        run: cd apps/site && bun run build
         env:
-          CI: "true"
-          DATABASE_URL: ${{ steps.supabase.outputs.DB_URL }}
-          DIRECT_URL: ${{ steps.supabase.outputs.DB_URL }}
-          SUPABASE_URL: ${{ steps.supabase.outputs.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ steps.supabase.outputs.SERVICE_ROLE_KEY }}
-          ALLOWED_ORIGINS: http://localhost:3001
           NEXT_PUBLIC_SUPABASE_URL: ${{ steps.supabase.outputs.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.supabase.outputs.ANON_KEY }}
           NEXT_PUBLIC_BACKEND_URL: http://localhost:3000/api/v1
 
-      - name: Upload Playwright report
+      - name: Install Playwright browsers
+        run: cd apps/web && bun x playwright install --with-deps chromium
+
+      - name: Start services and run both E2E suites
+        run: |
+          # Migrations ran above. Start the compiled API without start:prod's migration side effect.
+          (cd backend && TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/main.js) > "$RUNNER_TEMP/backend-e2e.log" 2>&1 &
+          backend_pid=$!
+          (cd apps/web && NODE_ENV=production PORT=3001 bun run start) > "$RUNNER_TEMP/web-e2e.log" 2>&1 &
+          web_pid=$!
+          (cd apps/site && NODE_ENV=production bun run start) > "$RUNNER_TEMP/site-e2e.log" 2>&1 &
+          site_pid=$!
+          trap 'kill "$backend_pid" "$web_pid" "$site_pid" 2>/dev/null || true' EXIT
+
+          timeout 60 bash -c 'until curl -sf http://localhost:3000/api/v1/health >/dev/null; do sleep 2; done'
+          timeout 120 bash -c 'until curl -sf http://localhost:3001 >/dev/null; do sleep 2; done'
+          timeout 120 bash -c 'until curl -sf http://localhost:3002 >/dev/null; do sleep 2; done'
+
+          # Run both suites even when the first fails, so both reports are available.
+          web_status=0
+          (cd apps/web && bun run test:e2e) || web_status=$?
+          site_status=0
+          (cd apps/site && bun run test:e2e) || site_status=$?
+          if [ "$web_status" -ne 0 ] || [ "$site_status" -ne 0 ]; then
+            exit 1
+          fi
+        env:
+          CI: "true"
+          E2E_REUSE_EXISTING_SERVER: "1"
+          NODE_ENV: development
+          DATABASE_URL: ${{ steps.supabase.outputs.DB_URL }}
+          DIRECT_URL: ${{ steps.supabase.outputs.DB_URL }}
+          SUPABASE_URL: ${{ steps.supabase.outputs.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ steps.supabase.outputs.SERVICE_ROLE_KEY }}
+          APP_URL: http://localhost:3001
+          ALLOWED_ORIGINS: http://localhost:3001,http://localhost:3002,http://graspful.ai:3001,http://app.graspful.ai:3001
+          NEXT_PUBLIC_SUPABASE_URL: ${{ steps.supabase.outputs.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.supabase.outputs.ANON_KEY }}
+          NEXT_PUBLIC_BACKEND_URL: http://localhost:3000/api/v1
+
+      - name: Upload Playwright reports
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report
-          path: apps/web/playwright-report/
+          name: playwright-reports
+          path: |
+            apps/web/playwright-report/
+            apps/site/playwright-report/
           retention-days: 14
+
+      - name: Upload service logs on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-service-logs
+          path: ${{ runner.temp }}/*-e2e.log
+          retention-days: 7
 
   deploy-backend:
     name: Deploy Backend
@@ -188,11 +262,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.6"
 
       - name: Deploy backend to Railway
-        run: railway up --service ${{ vars.RAILWAY_SERVICE_NAME }}
+        run: bun x @railway/cli up --service ${{ vars.RAILWAY_SERVICE_NAME }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 

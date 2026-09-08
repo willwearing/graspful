@@ -1,93 +1,70 @@
 # Graspful
 
-> Create adaptive learning academies and courses with AI agents. Launch in minutes.
+Build courses with lessons, practice questions, and scheduled review.
 
-## What Is Graspful?
+Graspful stores academies, courses, and brand configuration in YAML files. You or an external agent, such as Claude or Codex, author the content through CLI commands or MCP tools. The CLI creates draft scaffolds. The author supplies the source material, writes the lessons and questions, and reviews the facts before publication.
 
-Graspful is an agent-first academy creation platform. Academies and courses are defined as YAML files with knowledge graphs, validated by schema, and imported via CLI or MCP server -- no UI clicking required. Agents (or humans) scaffold an academy, break it into prerequisite-aware courses, fill in content concept by concept, run quality checks, and publish. The platform handles the rest: adaptive diagnostics, mastery-based progression, spaced repetition, white-label landing pages, and Stripe billing.
+Learners work through explanations, examples, and questions. Their answers update progress estimates. Prerequisites guide lesson order, and the system schedules later review.
 
-## How It Works
+## How it works
 
-1. **Plan academy** -- `graspful create academy --topic "CKA Exam"` generates the academy layers, course map, and authoring gates
-2. **Scaffold courses** -- `graspful create course --topic "Cluster Networking"` generates each course graph
-3. **Fill** -- `graspful fill concept course.yaml networking` adds KPs and practice problems
-4. **Review** -- `graspful review course.yaml` runs 10 quality checks, including whether problems only assess taught material
-5. **Import** -- `graspful import academy.yaml --org k8s-cert --course-dir . --publish` goes live
-6. **Brand** -- `graspful create brand --niche "Kubernetes" --topic "CKA Exam"` generates the landing page that actually sells the academy
+1. **Plan the academy.** Define its audience, source material, course scope, and prerequisites.
+2. **Create draft files.** Use the CLI or MCP tools to scaffold the academy and its courses. Scaffold and fill commands generate placeholders for the author to complete.
+3. **Write and review.** Replace all placeholders with sourced explanations, worked examples, and practice questions. Check the answer explanations against the sources.
+4. **Validate.** Run `graspful validate` and `graspful review`. Automated checks report structural problems. The author still checks accuracy and teaching quality.
+5. **Import a draft.** Import the reviewed files, inspect the result, then publish when ready. Importing without `--publish` saves a draft.
+6. **Configure the brand.** Import a brand YAML file for the landing page, theme, and copy. Custom domains require domain and hosting setup.
 
-Three YAMLs (academy + courses + brand) produce one live product with adaptive learning, spaced repetition, and Stripe billing.
+Read [the course authoring runbook](docs/adding-a-course.md) before building a course.
 
-## Quick Start
+## Quickstart
 
 ```bash
-npx @graspful/cli init
-# opens browser auth, then saves an API key locally
-graspful register --email you@example.com
-graspful create academy --topic "Your Topic" -o academy.yaml
+bun add -g @graspful/cli
+
+# Create a local draft scaffold.
+bunx @graspful/cli create academy --topic "Your topic" -o academy.yaml
 mkdir -p courses
-graspful create course --topic "Foundations" -o courses/foundations.yaml
+bunx @graspful/cli create course --topic "Foundations" -o courses/foundations.yaml
 ```
 
-## Tech Stack
+These files need authoring and review before import. Follow the [runbook](docs/adding-a-course.md) to complete the content and match the academy manifest to its course files.
 
-- **Backend:** NestJS, Prisma, PostgreSQL (Supabase-hosted)
-- **Frontend:** Next.js (App Router), React, Tailwind CSS, shadcn/ui
-- **CLI:** `@graspful/cli` (commander.js)
-- **MCP Server:** `@graspful/mcp` for AI agent integration
-- **Auth:** Supabase Auth (JWT) + API keys for agents
-- **Billing:** Stripe + Stripe Connect (70/30 revenue share)
-- **Monorepo:** Turborepo, bun
-
-## Architecture
-
-```
-graspful/
-├── apps/web/          # Next.js frontend
-├── backend/           # NestJS API
-├── packages/
-│   ├── shared/        # Zod schemas, types, quality gate
-│   ├── cli/           # @graspful/cli
-│   └── mcp/           # @graspful/mcp server
-├── content/
-│   ├── courses/       # Course YAML files
-│   ├── brands/        # Brand YAML files
-│   └── academies/     # Multi-course academy manifests
-└── docs/              # Documentation
-```
-
-## CLI Commands
-
-| Command | Auth? | Description |
-|---------|:---:|-------------|
-| `graspful register` | No | Create account + API key via browser auth |
-| `graspful login` | No | Authenticate with existing credentials |
-| `graspful create academy` | No | Generate academy plan and manifest skeleton |
-| `graspful create course` | No | Generate course YAML skeleton |
-| `graspful create brand` | No | Generate brand YAML with theme presets |
-| `graspful fill concept` | No | Add KPs and problems to a concept |
-| `graspful validate` | No | Offline schema + DAG validation |
-| `graspful review` | No | 10 mechanical quality checks, including teaching alignment |
-| `graspful describe` | No | Course statistics |
-| `graspful import` | **Yes** | Push YAML to Graspful instance |
-| `graspful publish` | **Yes** | Publish a draft course |
-
-Run `graspful register [--email <email>]` before `import` or `publish`. The browser flow mints an API key and saves it to `~/.graspful/credentials.json`. For MCP, restart the server with `GRASPFUL_API_KEY` set if your client does not reuse the saved CLI credentials automatically.
-
-## MCP Server
-
-For AI agent integration (Claude Code, Cursor, Codex):
+Register before using import or publish commands:
 
 ```bash
-npx @graspful/cli init  # Auto-configures MCP for your editor
+bunx @graspful/cli register --email you@example.com
 ```
 
-Or manually add to your MCP config:
+Registration opens browser authentication and saves an API key locally. If your MCP client does not reuse the saved CLI credentials, restart its Graspful server with `GRASPFUL_API_KEY` set.
+
+## CLI commands
+
+| Command | Auth required | Purpose |
+|---------|:-------------:|---------|
+| `graspful register` | No | Register through browser authentication and save an API key |
+| `graspful login` | No | Authenticate an existing account |
+| `graspful create academy` | No | Create an academy plan and manifest scaffold |
+| `graspful create course` | No | Create a course YAML scaffold |
+| `graspful create brand` | No | Create brand YAML with theme presets |
+| `graspful fill concept` | No | Add placeholder knowledge points and questions |
+| `graspful validate` | No | Validate the YAML schema and prerequisite graph |
+| `graspful review` | No | Run mechanical quality checks |
+| `graspful describe` | No | Show course statistics |
+| `graspful import` | Yes | Import YAML, saving a draft unless publication is requested and succeeds |
+| `graspful publish` | Yes | Request publication of a reviewed draft |
+
+Check the command result to confirm whether publication succeeded.
+
+## MCP server
+
+`graspful init` authenticates through the browser and configures detected clients. For local authoring before registration, configure the MCP server directly. This example uses the Claude Desktop and Cursor format; see the linked MCP guide for other clients:
 
 ```json
 {
   "mcpServers": {
     "graspful": {
-      "command": "npx",
+      "command": "bunx",
       "args": ["@graspful/mcp"],
       "env": { "GRASPFUL_API_KEY": "gsk_..." }
     }
@@ -95,70 +72,60 @@ Or manually add to your MCP config:
 }
 ```
 
-### MCP Tools
+The external agent writes the course content and uses Graspful tools to scaffold, validate, review, import, and publish it. The MCP server performs structured course operations. See the [MCP documentation](https://graspful.ai/docs/mcp) for setup and the tool reference.
 
-| Tool | Auth? | Description |
-|------|:---:|-------------|
-| `graspful_scaffold_course` | No | Generate course YAML skeleton |
-| `graspful_create_academy` | No | Generate academy plan and manifest scaffold |
-| `graspful_fill_concept` | No | Add KPs and problems to a concept |
-| `graspful_validate` | No | Validate YAML against schema |
-| `graspful_review_course` | No | Run 10 quality checks, including teaching alignment |
-| `graspful_describe_course` | No | Course statistics |
-| `graspful_create_brand` | No | Generate brand YAML |
-| `graspful_import_course` | **Yes** | Import course to platform |
-| `graspful_import_academy` | **Yes** | Import academy manifest plus course YAMLs |
-| `graspful_publish_course` | **Yes** | Publish a draft course |
-| `graspful_import_brand` | **Yes** | Import brand config |
-| `graspful_list_courses` | **Yes** | List org courses |
+## Billing status
 
-Auth-gated tools return a prescriptive error if unauthenticated, telling the agent to run `graspful register` or set `GRASPFUL_API_KEY` before starting MCP.
+Stripe and Stripe Connect integration code exists. Paid subscriptions and creator payouts are not ready for customers. Live credentials, price configuration, creator onboarding, webhook setup, and payment verification are required before accepting payments.
+
+The repository contains proposed pricing and revenue-share settings. Treat those as configuration under development, rather than an offer to customers.
+
+## Tech stack
+
+- **Backend:** NestJS, Prisma, PostgreSQL
+- **Frontend:** Next.js App Router, React, Tailwind CSS, shadcn/ui
+- **CLI:** `@graspful/cli`
+- **MCP server:** `@graspful/mcp`
+- **Authentication:** Supabase Auth and API keys
+- **Billing integration:** Stripe and Stripe Connect, pending setup
+- **Workspace:** Turborepo and bun
+
+## Repository layout
+
+```text
+graspful/
+├── apps/web/          # Next.js frontend
+├── backend/          # NestJS API
+├── packages/
+│   ├── shared/       # Schemas, types, quality checks
+│   ├── cli/          # CLI
+│   └── mcp/          # MCP server
+├── content/
+│   ├── courses/      # Course YAML files
+│   ├── brands/       # Brand YAML files
+│   └── academies/    # Academy manifests
+└── docs/             # Documentation
+```
 
 ## Development
 
 ```bash
-# Install dependencies
 bun install
-
-# Start development servers
 bun run dev
-
-# Backend (port 3000)
-cd backend && bun run dev
-
-# Frontend (port 3001)
-cd apps/web && bun run dev
-
-# Build
 bun run build
-
-# Test
 bun run test
-
-# E2E tests
-cd apps/web && npx playwright test
 ```
 
-## Revenue Model
-
-70/30 revenue share (Apple model):
-
-- Free to create and publish courses
-- When learners subscribe, Graspful collects payment
-- Graspful keeps 30%, creator receives 70% via Stripe Connect
-- No upfront cost, no monthly platform fee
+Run the frontend browser tests from `apps/web` with `bun run test:e2e`. See [AGENTS.md](AGENTS.md) for service setup and test requirements.
 
 ## Documentation
 
-- [Adding a Course](docs/adding-a-course.md) -- Step-by-step course creation guide
-- [Course Review Gate](docs/course-review-gate.md) -- Quality checks and review specification
-- [CLI Agent Strategy](docs/cli-agent-strategy.md) -- Full platform strategy and architecture
-- [Content Guide](content/README.md) -- YAML schema reference and authoring guidelines
+- [Course authoring runbook](docs/adding-a-course.md)
+- [Course review gate](docs/course-review-gate.md)
+- [Course content format](content/README.md)
+- [Brand configuration](content/brands/README.md)
+- [Platform FAQ](docs/marketing/faq.md)
 
 ## License
 
-[O'Saasy License](LICENSE.md) -- MIT with one restriction: you can't offer this as a competing SaaS.
-
-**Why this license?** The adaptive learning science behind Graspful (BKT, spaced repetition, knowledge graphs) is built on open academic work. It should stay open. You can view the code, self-host it, learn from it, contribute to it. The one thing you can't do is take it and run a competing hosted service. That feels fair -- I'm trying to bring all these ideas together into something useful, and I'd like to get rewarded for that work.
-
-If you think there's a better way to do this, [open an issue](https://github.com/willwearing/graspful/issues). I'm genuinely interested in getting the balance right.
+See [LICENSE.md](LICENSE.md) for the license terms.

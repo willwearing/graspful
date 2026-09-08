@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { QUALITY_CHECKS } from "@graspful/shared";
 import { CodeBlock, InlineCode } from "@/components/docs/code-block";
 
 export const metadata: Metadata = {
   title: "MCP Server — Graspful Docs",
   description:
-    "Set up the Graspful MCP server for Claude Code, Cursor, Codex, VS Code, and other AI agents. All 10 tools with schemas and configuration examples.",
+    "Set up the Graspful MCP server for Claude Code, Cursor, Codex, VS Code, and other AI agents. Tool schemas and configuration examples.",
   keywords: [
     "graspful mcp",
     "mcp server",
@@ -93,7 +94,9 @@ export default function MCPPage() {
       <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
         The <InlineCode>@graspful/mcp</InlineCode> package is a Model Context
         Protocol server that exposes all Graspful operations as tools. Any
-        MCP-compatible agent can create, validate, review, and publish courses.
+        MCP-compatible agent can scaffold, validate, review, and publish courses.
+        The scaffold and fill tools create drafts and TODO stubs. Your external
+        agent reads the source material and writes the actual teaching content.
       </p>
 
       {/* Getting your API key */}
@@ -103,7 +106,10 @@ export default function MCPPage() {
         </h2>
         <p className="mt-2 text-muted-foreground">
           The MCP server requires a <InlineCode>GRASPFUL_API_KEY</InlineCode> to
-          call the Graspful API. There are three ways to get one:
+          import or publish. Local scaffold, fill, validate, and review tools
+          work without a key. Install the CLI first with
+          <InlineCode>bun add -g @graspful/cli</InlineCode>. You can get a key
+          through browser registration or the creator dashboard:
         </p>
         <div className="mt-4 space-y-3">
           <div className="flex items-start gap-4 rounded-lg border border-border/30 bg-card px-4 py-3">
@@ -174,21 +180,11 @@ export default function MCPPage() {
           Claude Code
         </h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          Add to your <InlineCode>claude_desktop_config.json</InlineCode>:
+          Run this after replacing the placeholder with your API key. User
+          scope keeps the configuration outside the course repository:
         </p>
-        <CodeBlock language="json" title="claude_desktop_config.json">
-          {`{
-  "mcpServers": {
-    "graspful": {
-      "command": "npx",
-      "args": ["-y", "@graspful/mcp"],
-      "env": {
-        "GRASPFUL_API_KEY": "gsk_your_key_here",
-        "GRASPFUL_ORG": "your-org-slug"
-      }
-    }
-  }
-}`}
+        <CodeBlock language="bash">
+          {`claude mcp add --scope user graspful --env GRASPFUL_API_KEY=gsk_your_key_here -- bunx @graspful/mcp`}
         </CodeBlock>
 
         <h3
@@ -219,21 +215,10 @@ export default function MCPPage() {
           OpenAI Codex
         </h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          Codex supports MCP tool use via its CLI configuration:
+          Add the server with the Codex CLI. Replace the API key placeholder:
         </p>
-        <CodeBlock language="json" title="codex_config.json">
-          {`{
-  "mcpServers": {
-    "graspful": {
-      "command": "npx",
-      "args": ["-y", "@graspful/mcp"],
-      "env": {
-        "GRASPFUL_API_KEY": "gsk_your_key_here",
-        "GRASPFUL_ORG": "your-org-slug"
-      }
-    }
-  }
-}`}
+        <CodeBlock language="bash">
+          {`codex mcp add graspful --env GRASPFUL_API_KEY=gsk_your_key_here -- bunx @graspful/mcp`}
         </CodeBlock>
 
         <h3
@@ -243,17 +228,28 @@ export default function MCPPage() {
           VS Code (Copilot Agent Mode)
         </h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          Add to your VS Code settings for MCP support in agent mode:
+          Open MCP: Open User Configuration from the Command Palette and add
+          the server below. Use the input prompt to enter your API key. See the{" "}
+          <a href="https://code.visualstudio.com/docs/agent-customization/mcp-servers" className="text-primary hover:underline">VS Code MCP guide</a>
+          {" "}for workspace and remote setup.
         </p>
-        <CodeBlock language="json" title=".vscode/settings.json">
+        <CodeBlock language="json" title="mcp.json (user configuration)">
           {`{
-  "github.copilot.chat.mcpServers": {
+  "inputs": [
+    {
+      "id": "graspful-api-key",
+      "type": "promptString",
+      "description": "Graspful API key",
+      "password": true
+    }
+  ],
+  "servers": {
     "graspful": {
-      "command": "npx",
-      "args": ["-y", "@graspful/mcp"],
+      "type": "stdio",
+      "command": "bunx",
+      "args": ["@graspful/mcp"],
       "env": {
-        "GRASPFUL_API_KEY": "gsk_your_key_here",
-        "GRASPFUL_ORG": "your-org-slug"
+        "GRASPFUL_API_KEY": "\${input:graspful-api-key}"
       }
     }
   }
@@ -267,9 +263,10 @@ export default function MCPPage() {
           The two-YAML workflow
         </h2>
         <p className="mt-2 text-muted-foreground max-w-2xl">
-          Agents use MCP tools in sequence to build a complete product. The
-          workflow mirrors the CLI quickstart but operates on YAML strings
-          instead of files.
+          Give source material to your external agent and plan the academy first.
+          The agent then uses these tools with YAML strings. Between filling and
+          review, it must replace the generated stubs with authored lessons,
+          worked examples, and practice problems.
         </p>
         <div className="mt-6 space-y-3">
           {[
@@ -281,7 +278,7 @@ export default function MCPPage() {
             {
               step: "2",
               tool: "graspful_fill_concept",
-              desc: "Add KPs and problems to each concept (repeat per concept)",
+              desc: "Add stubs, then author and verify their content (repeat per concept)",
             },
             {
               step: "3",
@@ -296,7 +293,7 @@ export default function MCPPage() {
             {
               step: "5",
               tool: "graspful_import_course",
-              desc: "Import and optionally publish",
+              desc: "Import a draft, or request publication and confirm published: true",
             },
             {
               step: "6",
@@ -335,7 +332,7 @@ export default function MCPPage() {
           Tools
         </h2>
         <p className="mt-2 text-muted-foreground">
-          The MCP server exposes 10 tools. Tools that call the Graspful API
+          The tools below cover course and brand authoring. Tools that call the Graspful API
           require the <InlineCode>GRASPFUL_API_KEY</InlineCode> environment
           variable.
         </p>
@@ -344,7 +341,7 @@ export default function MCPPage() {
           name="graspful_scaffold_course"
           description={`Generate a course YAML skeleton with sections, concepts, and prerequisite edges. Returns a minimal valid YAML structure with TODO placeholders.
 
-This is step 1 of the two-YAML workflow. The scaffold contains NO learning content — just the graph structure. Edit the returned YAML to add more concepts, adjust prerequisites, and set difficulty levels before calling graspful_fill_concept.`}
+The scaffold is an unfinished draft and cannot pass publication review. Edit the graph, prerequisites, and difficulty levels before calling graspful_fill_concept. Author every concept before reviewing for publication.`}
           inputs={[
             { name: "topic", type: "string", description: 'Course topic name (e.g., "Linear Algebra")' },
             { name: "estimatedHours", type: "number", description: "Estimated total course hours (default: 10)" },
@@ -385,9 +382,9 @@ For course YAML, also checks that all prerequisite references point to existing 
           name="graspful_review_course"
           description={`Run all 10 mechanical quality checks on a course YAML. Returns a score (e.g., "8/10") with details on each failure.
 
-The 10 checks: yaml_parses, unique_problem_ids, prerequisites_valid, question_deduplication, difficulty_staircase, cross_concept_coverage, problem_variant_depth, instruction_formatting, worked_example_coverage, import_dry_run.
+The checks: ${QUALITY_CHECKS.join(", ")}.
 
-A score of 10/10 is required for publishing.`}
+A score of 10/10 means the automated checks passed. Review source accuracy, answer keys, and teaching quality before publishing.`}
           inputs={[
             { name: "yaml", type: "string", description: "The full course YAML string to review" },
           ]}
@@ -399,7 +396,7 @@ A score of 10/10 is required for publishing.`}
           name="graspful_import_course"
           description={`Import a course YAML into a Graspful organization. Creates the course as a draft by default.
 
-If publish=true, the server runs the review gate first. If review fails, the course is imported as a draft and failure details are returned. Requires GRASPFUL_API_KEY.`}
+If publish=true, the server runs the review gate first. A failed publication can leave the imported course as a draft and returns failure details. Confirm published: true before reporting success. Requires GRASPFUL_API_KEY.`}
           inputs={[
             { name: "yaml", type: "string", description: "The full course YAML string" },
             { name: "org", type: "string", description: 'Organization slug (e.g., "acme-learning")' },
@@ -411,7 +408,7 @@ If publish=true, the server runs the review gate first. If review fails, the cou
 
         <ToolCard
           name="graspful_publish_course"
-          description={`Publish a draft course. The server runs the review gate — the course must pass all 10 quality checks. Requires GRASPFUL_API_KEY.`}
+          description={`Request publication of a draft course. The server runs the review gate. Confirm published: true in the result and report failure details if publication fails. Requires GRASPFUL_API_KEY.`}
           inputs={[
             { name: "courseId", type: "string", description: "The course ID (UUID) to publish" },
             { name: "org", type: "string", description: "Organization slug" },

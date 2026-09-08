@@ -30,7 +30,9 @@ export class KnowledgeGraphController {
 
   @Get()
   async listCourses(@CurrentOrg() org: OrgContext) {
-    return this.courseReads.listCourses(org.orgId);
+    return this.courseReads.listCourses(org.orgId, {
+      includeDrafts: org.role === 'owner' || org.role === 'admin',
+    });
   }
 
   @Get('slug/:courseSlug')
@@ -38,7 +40,9 @@ export class KnowledgeGraphController {
     @Param('courseSlug') courseSlug: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.courseReads.getCourseBySlug(org.orgId, courseSlug);
+    return this.courseReads.getCourseBySlug(org.orgId, courseSlug, {
+      includeDrafts: org.role === 'owner' || org.role === 'admin',
+    });
   }
 
   @Get(':courseId/graph')
@@ -46,7 +50,9 @@ export class KnowledgeGraphController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.courseReads.getCourseGraph(org.orgId, courseId);
+    return this.courseReads.getCourseGraph(org.orgId, courseId, {
+      includeDrafts: org.role === 'owner' || org.role === 'admin',
+    });
   }
 
   @Get(':courseId/concepts')
@@ -54,7 +60,9 @@ export class KnowledgeGraphController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.courseReads.listConcepts(org.orgId, courseId);
+    return this.courseReads.listConcepts(org.orgId, courseId, {
+      includeDrafts: org.role === 'owner' || org.role === 'admin',
+    });
   }
 
   @Get(':courseId/concepts/:conceptId')
@@ -63,7 +71,9 @@ export class KnowledgeGraphController {
     @Param('conceptId') conceptId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.courseReads.getConceptDetail(org.orgId, courseId, conceptId);
+    return this.courseReads.getConceptDetail(org.orgId, courseId, conceptId, {
+      includeDrafts: org.role === 'owner' || org.role === 'admin',
+    });
   }
 
   @Delete(':courseId')
@@ -84,6 +94,7 @@ export class KnowledgeGraphController {
   }
 
   @Get(':courseId/yaml')
+  @MinRole('admin')
   async exportCourseYaml(
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,

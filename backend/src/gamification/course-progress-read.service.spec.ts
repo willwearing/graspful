@@ -1,9 +1,18 @@
+import { NotFoundException } from '@nestjs/common';
 import { CourseProgressReadService } from './course-progress-read.service';
 import {
   activeConceptWhere,
-  activePrerequisiteEdgeWhere,
-  activePrerequisiteEdgeWhereAcademy,
 } from '@/knowledge-graph/active-course-content';
+
+const publishedCourse = {
+  orgId: 'org-1',
+  isPublished: true,
+  archivedAt: null,
+  academy: { orgId: 'org-1', archivedAt: null },
+  org: { isActive: true },
+};
+const courseConcept = activeConceptWhere({ courseId: 'course-1', course: publishedCourse });
+const academyConcept = activeConceptWhere({ course: { academyId: 'academy-1', ...publishedCourse } });
 
 describe('CourseProgressReadService', () => {
   let service: CourseProgressReadService;
@@ -26,6 +35,8 @@ describe('CourseProgressReadService', () => {
     };
 
     mockStudentState = {
+      assertAcademyAccess: jest.fn(),
+      assertAssessmentAccess: jest.fn(),
       getConceptMasteryForIds: jest.fn().mockResolvedValue(
         new Map([['concept-1', 'mastered']]),
       ),
@@ -37,7 +48,7 @@ describe('CourseProgressReadService', () => {
   });
 
   it('returns graph data with learner mastery overlay', async () => {
-    await expect(service.getGraph('user-1', 'course-1')).resolves.toEqual({
+    await expect(service.getGraph('user-1', 'course-1', 'org-1')).resolves.toEqual({
       concepts: [
         { id: 'concept-1', name: 'Grounding', masteryState: 'mastered' },
         { id: 'concept-2', name: 'Bonding', masteryState: 'unstarted' },
@@ -48,12 +59,12 @@ describe('CourseProgressReadService', () => {
     });
 
     expect(mockPrisma.concept.findMany).toHaveBeenCalledWith({
-      where: activeConceptWhere({ courseId: 'course-1' }),
+      where: courseConcept,
       select: { id: true, name: true, sectionId: true },
       orderBy: { sortOrder: 'asc' },
     });
     expect(mockPrisma.prerequisiteEdge.findMany).toHaveBeenCalledWith({
-      where: activePrerequisiteEdgeWhere('course-1'),
+      where: { sourceConcept: courseConcept, targetConcept: courseConcept },
       select: { sourceConceptId: true, targetConceptId: true },
     });
   });
@@ -71,7 +82,7 @@ describe('CourseProgressReadService', () => {
       new Map([['concept-1', 'mastered']]),
     );
 
-    const result = await service.getAcademyGraph('user-1', 'academy-1');
+    const result = await service.getAcademyGraph('user-1', 'academy-1', 'org-1');
 
     expect(result.concepts).toHaveLength(3);
     expect(result.concepts[0]).toEqual({
@@ -89,12 +100,12 @@ describe('CourseProgressReadService', () => {
     expect(result.edges).toHaveLength(1);
 
     expect(mockPrisma.concept.findMany).toHaveBeenCalledWith({
-      where: activeConceptWhere({ course: { academyId: 'academy-1' } }),
+      where: academyConcept,
       select: { id: true, name: true, courseId: true, sectionId: true },
       orderBy: { sortOrder: 'asc' },
     });
     expect(mockPrisma.prerequisiteEdge.findMany).toHaveBeenCalledWith({
-      where: activePrerequisiteEdgeWhereAcademy('academy-1'),
+      where: { sourceConcept: academyConcept, targetConcept: academyConcept },
       select: { sourceConceptId: true, targetConceptId: true },
     });
   });
@@ -117,7 +128,7 @@ describe('CourseProgressReadService', () => {
         ]),
       );
 
-      const result = await service.getGraph('user-1', 'course-1');
+      const result = await service.getGraph('user-1', 'course-1', 'org-1');
 
       expect(result.concepts).toEqual([
         { id: 'c1', name: 'Locked Concept', masteryState: 'unstarted' },
@@ -148,7 +159,7 @@ describe('CourseProgressReadService', () => {
         ]),
       );
 
-      const result = await service.getGraph('user-1', 'course-1');
+      const result = await service.getGraph('user-1', 'course-1', 'org-1');
 
       expect(result.concepts).toEqual([
         { id: 'c1', name: 'In Progress', masteryState: 'in_progress' },
@@ -170,7 +181,7 @@ describe('CourseProgressReadService', () => {
         new Map([['c1', 'mastered']]),
       );
 
-      const result = await service.getGraph('user-1', 'course-1');
+      const result = await service.getGraph('user-1', 'course-1', 'org-1');
 
       expect(result.concepts).toEqual([
         { id: 'c1', name: 'No Section', masteryState: 'mastered' },
@@ -194,7 +205,7 @@ describe('CourseProgressReadService', () => {
         ]),
       );
 
-      const result = await service.getAcademyGraph('user-1', 'academy-1');
+      const result = await service.getAcademyGraph('user-1', 'academy-1', 'org-1');
 
       expect(result.concepts).toEqual([
         { id: 'c1', name: 'Locked', courseId: 'course-1', masteryState: 'unstarted' },
@@ -214,11 +225,32 @@ describe('CourseProgressReadService', () => {
         new Map([['c1', 'mastered']]),
       );
 
-      const result = await service.getAcademyGraph('user-1', 'academy-1');
+      const result = await service.getAcademyGraph('user-1', 'academy-1', 'org-1');
 
       expect(result.concepts).toEqual([
         { id: 'c1', name: 'No Section', courseId: 'course-1', masteryState: 'mastered' },
       ]);
     });
   });
+
+  it('denies cross-org, draft, or unenrolled course graph reads before reading or hydrating state', async () => {
+    mockStudentState.assertAssessmentAccess.mockRejectedValue(new NotFoundException());
+    await expect(service.getGraph('user-1', 'course-1', 'org-1')).rejects.toThrow(NotFoundException);
+    expect(mockStudentState.assertAssessmentAccess).toHaveBeenCalledWith('user-1', 'org-1', 'course-1');
+    expect(mockPrisma.concept.findMany).not.toHaveBeenCalled();
+    expect(mockPrisma.prerequisiteEdge.findMany).not.toHaveBeenCalled();
+    expect(mockStudentState.getSectionStatesForCourse).not.toHaveBeenCalled();
+    expect(mockStudentState.getConceptMasteryForIds).not.toHaveBeenCalled();
+  });
+
+  it('denies cross-org or unenrolled academy graph reads before reading or hydrating state', async () => {
+    mockStudentState.assertAcademyAccess.mockRejectedValue(new NotFoundException());
+    await expect(service.getAcademyGraph('user-1', 'academy-1', 'org-1')).rejects.toThrow(NotFoundException);
+    expect(mockStudentState.assertAcademyAccess).toHaveBeenCalledWith('user-1', 'org-1', 'academy-1');
+    expect(mockPrisma.concept.findMany).not.toHaveBeenCalled();
+    expect(mockPrisma.prerequisiteEdge.findMany).not.toHaveBeenCalled();
+    expect(mockStudentState.getSectionStatesForAcademy).not.toHaveBeenCalled();
+    expect(mockStudentState.getConceptMasteryForIds).not.toHaveBeenCalled();
+  });
+
 });

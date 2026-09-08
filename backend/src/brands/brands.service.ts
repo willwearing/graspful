@@ -77,6 +77,7 @@ export class BrandsService {
       where: {
         archivedAt: null,
         org: {
+          isActive: true,
           slug: {
             in: orgSlugs,
           },
@@ -94,6 +95,7 @@ export class BrandsService {
         courses: {
           where: {
             archivedAt: null,
+            isPublished: true,
           },
           orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
           select: {
@@ -148,11 +150,13 @@ export class BrandsService {
         const academiesForBrand = orgAcademies
           .map((academy) => {
             const visibleCourses = academy.courses.filter((course) => {
+              if (!course.isPublished) return false;
+
               if (scopedCourseIds.size > 0) {
                 return scopedCourseIds.has(course.slug);
               }
 
-              return course.isPublished;
+              return true;
             });
 
             if (visibleCourses.length === 0) return null;
@@ -161,8 +165,8 @@ export class BrandsService {
               slug: academy.slug,
               name: academy.name,
               description: academy.description,
-              courseCount: academy.courses.length,
-              publishedCourseCount: academy.courses.filter((course) => course.isPublished).length,
+              courseCount: visibleCourses.length,
+              publishedCourseCount: visibleCourses.length,
               courses: visibleCourses,
             } satisfies PublicCatalogAcademy;
           })

@@ -1,4 +1,4 @@
-import { Controller, Post, Req, Res, Logger } from '@nestjs/common';
+import { Controller, Post, Req, Res, Logger, ServiceUnavailableException } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import Stripe from 'stripe';
 import { PostHogService } from '@/shared/application/posthog.service';
@@ -31,6 +31,9 @@ export class StripeWebhookController {
     try {
       event = this.billing.constructWebhookEvent(rawBody, signature);
     } catch (err) {
+      if (err instanceof ServiceUnavailableException) {
+        return res.status(503).json(err.getResponse());
+      }
       const message = err instanceof Error ? err.message : String(err);
       this.logger.error(`Webhook signature verification failed: ${message}`);
       return res.status(400).json({ error: 'Webhook signature verification failed' });
@@ -54,8 +57,9 @@ export class StripeWebhookController {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const orgId = session.metadata?.orgId;
-        if (orgId) {
-          this.posthog.capture({ distinctId: orgId }, 'subscription activated', {
+        if (!event.account && orgId && session.mode === 'subscription' &&
+          ['paid', 'no_payment_required'].includes(session.payment_status)) {
+          this.posthog.capture({ distinctId: orgId }, 'subscription checkout completed', {
             org_id: orgId,
             plan: session.metadata?.plan,
           });
@@ -82,8 +86,8 @@ export class StripeWebhookController {
         break;
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice;
-        const orgId = invoice.metadata?.orgId;
-        if (orgId && invoice.id && invoice.amount_paid > 0) {
+        const orgId = invoice.parent?.subscription_details?.metadata?.orgId;
+        if (event.account && orgId && invoice.id && invoice.amount_paid > 0) {
           await this.connect.recordRevenueEvent(
             orgId,
             invoice.id,

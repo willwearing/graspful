@@ -27,6 +27,7 @@ export class LessonService {
     courseId: string,
     conceptId: string,
   ) {
+    await this.studentState.assertAssessmentAccess(userId, orgId, courseId, conceptId);
     // Verify concept exists and belongs to org/course
     const concept = await this.prisma.concept.findFirst({
       where: activeConceptWhere({ id: conceptId, courseId, orgId }),
@@ -113,7 +114,8 @@ export class LessonService {
     };
   }
 
-  async completeLesson(userId: string, courseId: string, conceptId: string) {
+  async completeLesson(userId: string, orgId: string, courseId: string, conceptId: string) {
+    await this.studentState.assertAssessmentAccess(userId, orgId, courseId, conceptId);
     const conceptState = await this.studentState.getConceptState(userId, conceptId);
     if (!conceptState) {
       throw new NotFoundException(

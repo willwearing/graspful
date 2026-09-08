@@ -1,5 +1,5 @@
 import { ProblemSubmissionService } from './problem-submission.service';
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 
 describe('ProblemSubmissionService', () => {
   let service: ProblemSubmissionService;
@@ -8,6 +8,8 @@ describe('ProblemSubmissionService', () => {
   let mockXPService: any;
   let mockSectionExamService: any;
   let mockStudentState: any;
+  let mockScope: any;
+  let savedAttempts: Map<string, any>;
 
   const mockProblem = {
     id: 'prob-1',
@@ -47,6 +49,7 @@ describe('ProblemSubmissionService', () => {
   };
 
   beforeEach(() => {
+    savedAttempts = new Map();
     mockPrisma = {
       problem: {
         findUnique: jest.fn().mockResolvedValue(mockProblem),
@@ -94,12 +97,27 @@ describe('ProblemSubmissionService', () => {
         }),
       },
       problemAttempt: {
-        create: jest.fn().mockResolvedValue({ id: 'attempt-1' }),
+        findUnique: jest.fn().mockImplementation(({ where }: any) => savedAttempts.get(where.id) ?? null),
+        create: jest.fn().mockImplementation(({ data }: any) => {
+          savedAttempts.set(data.id, data);
+          return data;
+        }),
+        update: jest.fn().mockImplementation(({ where, data }: any) => {
+          const updated = { ...savedAttempts.get(where.id), ...data };
+          savedAttempts.set(where.id, updated);
+          return updated;
+        }),
       },
       courseEnrollment: {
         update: jest.fn().mockResolvedValue({}),
       },
     };
+
+    mockPrisma.$transaction = jest.fn().mockImplementation(async (work: any) => {
+      const before = new Map(savedAttempts);
+      try { return await work(mockPrisma); }
+      catch (error) { savedAttempts = before; throw error; }
+    });
 
     mockFireUpdate = {
       updateAfterReview: jest.fn().mockResolvedValue(undefined),
@@ -141,6 +159,7 @@ describe('ProblemSubmissionService', () => {
       resolveRemediationsForPrerequisite: jest.fn().mockResolvedValue({}),
     };
 
+    mockScope = { assertConcept: jest.fn().mockResolvedValue({ academyId: 'academy-1' }) };
     service = new ProblemSubmissionService(
       mockPrisma,
       mockFireUpdate,
@@ -148,11 +167,15 @@ describe('ProblemSubmissionService', () => {
       mockSectionExamService,
       mockStudentState as any,
       mockRemediationService as any,
+      mockScope,
     );
   });
 
   it('should evaluate a correct MC answer and create attempt', async () => {
     const result = await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
       userId: 'user-1',
       problemId: 'prob-1',
       answer: 'opt-b',
@@ -176,6 +199,9 @@ describe('ProblemSubmissionService', () => {
 
   it('should evaluate an incorrect answer', async () => {
     const result = await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
       userId: 'user-1',
       problemId: 'prob-1',
       answer: 'opt-a',
@@ -193,6 +219,9 @@ describe('ProblemSubmissionService', () => {
 
     await expect(
       service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
         userId: 'user-1',
         problemId: 'nonexistent',
         answer: 'A',
@@ -207,6 +236,9 @@ describe('ProblemSubmissionService', () => {
 
     await expect(
       service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
         userId: 'user-1',
         problemId: 'prob-1',
         answer: 'opt-b',
@@ -218,6 +250,9 @@ describe('ProblemSubmissionService', () => {
 
   it('should update KP state on correct answer', async () => {
     await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
       userId: 'user-1',
       problemId: 'prob-1',
       answer: 'opt-b',
@@ -232,6 +267,7 @@ describe('ProblemSubmissionService', () => {
       true,
       undefined, // no existing state
       expect.any(String), // sessionId
+      mockPrisma,
     );
   });
 
@@ -243,6 +279,9 @@ describe('ProblemSubmissionService', () => {
     });
 
     await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
       userId: 'user-1',
       problemId: 'prob-1',
       answer: 'opt-a',
@@ -256,6 +295,7 @@ describe('ProblemSubmissionService', () => {
       false,
       expect.objectContaining({ consecutiveCorrect: 1, passed: false }),
       expect.any(String),
+      mockPrisma,
     );
   });
 
@@ -267,6 +307,9 @@ describe('ProblemSubmissionService', () => {
     });
 
     await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
       userId: 'user-1',
       problemId: 'prob-1',
       answer: 'opt-b',
@@ -280,11 +323,15 @@ describe('ProblemSubmissionService', () => {
       true,
       expect.objectContaining({ consecutiveCorrect: 1, passed: false }),
       expect.any(String),
+      mockPrisma,
     );
   });
 
   it('should update speed parameters on concept state', async () => {
     await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
       userId: 'user-1',
       problemId: 'prob-1',
       answer: 'opt-b',
@@ -306,6 +353,9 @@ describe('ProblemSubmissionService', () => {
     });
 
     const result = await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
       userId: 'user-1',
       problemId: 'prob-1',
       answer: 'opt-a',
@@ -323,6 +373,9 @@ describe('ProblemSubmissionService', () => {
     });
 
     const result = await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
       userId: 'user-1',
       problemId: 'prob-1',
       answer: 'opt-a',
@@ -347,10 +400,13 @@ describe('ProblemSubmissionService', () => {
     });
 
     // All KPs are passed
-    mockPrisma.knowledgePoint.findMany.mockResolvedValue([{ id: 'kp-1' }]);
+    mockPrisma.knowledgePoint.findMany.mockResolvedValue([{ id: 'kp-1', sortOrder: 0, problems: [{ id: 'prob-1' }] }]);
     mockStudentState.getKPStatesForIds.mockResolvedValue([{ passed: true }]);
 
     const result = await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
       userId: 'user-1',
       problemId: 'prob-1',
       answer: 'opt-b',
@@ -363,6 +419,9 @@ describe('ProblemSubmissionService', () => {
 
   it('should award XP and increment enrollment total', async () => {
     await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
       userId: 'user-1',
       problemId: 'prob-1',
       answer: 'opt-b',
@@ -376,11 +435,15 @@ describe('ProblemSubmissionService', () => {
         courseId: 'course-1',
         source: 'lesson',
       }),
+      mockPrisma,
     );
   });
 
   it('should not award XP for anti-gaming triggered answers', async () => {
     const result = await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
       userId: 'user-1',
       problemId: 'prob-1',
       answer: 'opt-b',
@@ -397,6 +460,9 @@ describe('ProblemSubmissionService', () => {
   it('should throw BadRequestException for non-positive responseTimeMs', async () => {
     await expect(
       service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
         userId: 'user-1',
         problemId: 'prob-1',
         answer: 'opt-b',
@@ -407,6 +473,9 @@ describe('ProblemSubmissionService', () => {
 
     await expect(
       service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
         userId: 'user-1',
         problemId: 'prob-1',
         answer: 'opt-b',
@@ -426,6 +495,9 @@ describe('ProblemSubmissionService', () => {
 
     // Submit incorrect — should reset to 0
     await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
       userId: 'user-1',
       problemId: 'prob-1',
       answer: 'opt-a', // wrong
@@ -439,12 +511,16 @@ describe('ProblemSubmissionService', () => {
       false,
       expect.objectContaining({ consecutiveCorrect: 1, passed: false }),
       expect.any(String),
+      mockPrisma,
     );
   });
 
   describe('nextProblemHint (Slice 1 — KP-level more practice)', () => {
     it('should return a hint targeting the same KP after a wrong answer', async () => {
       const result = await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
         userId: 'user-1',
         problemId: 'prob-1',
         answer: 'opt-a', // wrong
@@ -462,6 +538,9 @@ describe('ProblemSubmissionService', () => {
 
     it('should not reopen worked example twice for the same KP', async () => {
       const result = await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
         userId: 'user-1',
         problemId: 'prob-1b',
         answer: 'opt-a',
@@ -476,6 +555,9 @@ describe('ProblemSubmissionService', () => {
 
     it('should not compute a hint for non-lesson activity types', async () => {
       const result = await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
         userId: 'user-1',
         problemId: 'prob-1',
         answer: 'opt-b',
@@ -499,6 +581,9 @@ describe('ProblemSubmissionService', () => {
       });
 
       const result = await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
         userId: 'user-1',
         problemId: 'prob-1',
         answer: 'opt-b',
@@ -533,6 +618,9 @@ describe('ProblemSubmissionService', () => {
       mockPrisma.problem.findUnique.mockResolvedValueOnce(correctProblem);
 
       const result = await service.submitAnswer({
+      orgId: 'org-1',
+      courseId: 'course-1',
+      conceptId: 'concept-1',
         userId: 'user-1',
         problemId: 'prob-2',
         answer: 'opt-b',
@@ -545,4 +633,119 @@ describe('ProblemSubmissionService', () => {
       expect(result.nextProblemHint!.nextProblemId).toBeNull();
     });
   });
+
+  describe('lesson and review scope', () => {
+    const input = {
+      userId: 'user-1', orgId: 'org-1', courseId: 'course-1', conceptId: 'concept-1',
+      problemId: 'prob-1', answer: 'opt-b', responseTimeMs: 5000, activityType: 'lesson' as const,
+    };
+
+    it.each(['conceptId', 'courseId'] as const)('rejects a problem outside the route %s before writing an attempt', async (field) => {
+      await expect(service.submitAnswer({ ...input, [field]: 'unrelated' })).rejects.toThrow(NotFoundException);
+      expect(mockPrisma.problemAttempt.create).not.toHaveBeenCalled();
+      expect(mockStudentState.upsertKPState).not.toHaveBeenCalled();
+    });
+
+    it('rejects absent enrollment before writing an attempt', async () => {
+      mockStudentState.getConceptState.mockResolvedValue(null);
+      await expect(service.submitAnswer(input)).rejects.toThrow(NotFoundException);
+      expect(mockPrisma.problemAttempt.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects denied organization scope before loading the problem', async () => {
+      mockScope.assertConcept.mockRejectedValue(new NotFoundException());
+      await expect(service.submitAnswer(input)).rejects.toThrow(NotFoundException);
+      expect(mockPrisma.problem.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('does not promote mastery from a single answer during a review', async () => {
+      mockStudentState.getConceptState.mockResolvedValue({ ...mockConceptState, masteryState: 'needs_review' });
+      mockStudentState.getKPStatesForIds.mockResolvedValue([{ passed: true }]);
+      const result = await service.submitAnswer({ ...input, activityType: 'review' });
+      expect(result.updatedMasteryState).toBe('needs_review');
+      expect(mockStudentState.updateConceptAfterPractice).toHaveBeenCalledWith('user-1', 'concept-1', expect.objectContaining({ masteryState: 'needs_review' }), mockPrisma);
+    });
+  });
+
+  describe('durable retry protection', () => {
+    const input = {
+      requestId: '06f232e6-dac9-4915-a372-c9d91651c795',
+      orgId: 'org-1', userId: 'user-1', courseId: 'course-1', conceptId: 'concept-1',
+      problemId: 'prob-1', answer: 'opt-b', responseTimeMs: 5000, activityType: 'lesson' as const,
+    };
+
+    it('returns the saved result without repeating any scoring effects', async () => {
+      const first = await service.submitAnswer(input);
+      const second = await service.submitAnswer(input);
+      expect(second).toEqual(first);
+      expect(savedAttempts.size).toBe(1);
+      expect(mockPrisma.problemAttempt.create).toHaveBeenCalledTimes(1);
+      expect(mockStudentState.upsertKPState).toHaveBeenCalledTimes(1);
+      expect(mockStudentState.updateConceptAfterPractice).toHaveBeenCalledTimes(1);
+      expect(mockXPService.recordXPEvent).toHaveBeenCalledTimes(1);
+      expect(mockFireUpdate.propagateImplicitRepetition).toHaveBeenCalledTimes(1);
+      expect([...savedAttempts.values()][0].xpAwarded).toBe(first.xpAwarded);
+      expect(mockScope.assertConcept).toHaveBeenCalledTimes(2);
+    });
+
+    it('rejects an altered payload using the same request ID', async () => {
+      await service.submitAnswer(input);
+      await expect(service.submitAnswer({ ...input, answer: 'opt-a' })).rejects.toThrow(ConflictException);
+      await expect(service.submitAnswer({ ...input, responseTimeMs: 5001 })).rejects.toThrow(ConflictException);
+      expect(mockPrisma.problemAttempt.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('records a new intentional attempt at the same problem', async () => {
+      await service.submitAnswer(input);
+      await service.submitAnswer({ ...input, requestId: '49e9d313-a0e0-426e-aae7-7f83a98bda56' });
+      expect(savedAttempts.size).toBe(2);
+      expect(mockStudentState.upsertKPState).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps another learner with the same client UUID separate', async () => {
+      await service.submitAnswer(input);
+      await service.submitAnswer({ ...input, userId: 'user-2' });
+      expect(savedAttempts.size).toBe(2);
+    });
+
+    it('checks current enrollment before returning a saved result', async () => {
+      await service.submitAnswer(input);
+      mockScope.assertConcept.mockRejectedValueOnce(new NotFoundException('Enrollment removed'));
+      await expect(service.submitAnswer(input)).rejects.toThrow(NotFoundException);
+      expect(mockPrisma.problemAttempt.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries a failed derived section sync without applying the answer twice', async () => {
+      mockSectionExamService.syncSectionStates.mockRejectedValueOnce(new Error('sync unavailable'));
+      await expect(service.submitAnswer(input)).rejects.toThrow('sync unavailable');
+      expect(savedAttempts.size).toBe(1);
+      const result = await service.submitAnswer(input);
+      expect(result.correct).toBe(true);
+      expect(mockStudentState.upsertKPState).toHaveBeenCalledTimes(1);
+      expect(mockXPService.recordXPEvent).toHaveBeenCalledTimes(1);
+      expect(mockSectionExamService.syncSectionStates).toHaveBeenCalledTimes(2);
+    });
+
+    it('rolls the attempt back if FIRe fails and passes the same transaction to every scoring write', async () => {
+      mockFireUpdate.propagateImplicitRepetition.mockRejectedValueOnce(new Error('FIRe unavailable'));
+      await expect(service.submitAnswer(input)).rejects.toThrow('FIRe unavailable');
+      expect(savedAttempts.size).toBe(0);
+      expect(mockSectionExamService.syncSectionStates).not.toHaveBeenCalled();
+      await service.submitAnswer(input);
+      expect(savedAttempts.size).toBe(1);
+      expect(mockStudentState.upsertKPState.mock.calls.every((call: any[]) => call.at(-1) === mockPrisma)).toBe(true);
+      expect(mockStudentState.updateConceptAfterPractice.mock.calls.every((call: any[]) => call.at(-1) === mockPrisma)).toBe(true);
+      expect(mockXPService.recordXPEvent.mock.calls.every((call: any[]) => call.at(-1) === mockPrisma)).toBe(true);
+      expect(mockFireUpdate.propagateImplicitRepetition.mock.calls.every((call: any[]) => call.at(-1) === mockPrisma)).toBe(true);
+    });
+
+    it('retries a transaction conflict with the same durable attempt ID', async () => {
+      mockPrisma.$transaction.mockRejectedValueOnce(Object.assign(new Error('write conflict'), { code: 'P2034' }));
+      const result = await service.submitAnswer(input);
+      expect(result.correct).toBe(true);
+      expect(savedAttempts.size).toBe(1);
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(2);
+    });
+  });
+
 });

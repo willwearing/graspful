@@ -13,15 +13,15 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: `${siteName}: Turn Your Expertise Into a Course Business`,
+    default: `${siteName}: Author courses with your AI agent`,
     template: `%s | ${siteName}`,
   },
   description:
-    "Your expertise. AI's scaffolding. Every course gets adaptive diagnostics, mastery tracking, and spaced review. Launch a live product in minutes, not months.",
+    "Use your source material and a coding agent to author course YAML. Review lessons, worked examples, and questions before you publish with Graspful.",
   openGraph: {
-    title: `${siteName}: Turn Your Expertise Into a Course Business`,
+    title: `${siteName}: Author courses with your AI agent`,
     description:
-      "Your expertise. AI's scaffolding. Every course gets adaptive diagnostics, mastery tracking, and spaced review.",
+      "Author and review courses with CLI or MCP tools. Publish lessons with diagnostics, practice questions, and scheduled review.",
     type: "website",
   },
 };

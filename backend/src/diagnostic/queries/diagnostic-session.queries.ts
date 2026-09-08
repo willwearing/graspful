@@ -1,4 +1,5 @@
 import { PrismaService } from '@/prisma/prisma.service';
+import type { Prisma } from '@prisma/client';
 import {
   activeConceptWhere,
   activeKnowledgePointWhere,
@@ -10,13 +11,20 @@ import type {
   DiagnosticProblemRecord,
 } from '../domain/diagnostic-session.types';
 
+const PUBLISHED_DIAGNOSTIC_COURSE_FILTER = {
+  isPublished: true,
+  archivedAt: null,
+  academy: { archivedAt: null },
+  org: { isActive: true },
+} satisfies Prisma.CourseWhereInput;
+
 export async function loadAcademyDiagnosticConcepts(
   prisma: PrismaService,
   academyId: string,
 ): Promise<DiagnosticConceptRecord[]> {
   return prisma.concept.findMany({
     where: activeConceptWhere({
-      course: { academyId },
+      course: { academyId, ...PUBLISHED_DIAGNOSTIC_COURSE_FILTER },
     }),
     select: { id: true, slug: true, difficultyTheta: true, courseId: true },
   });
@@ -29,10 +37,10 @@ export async function loadAcademyDiagnosticEdges(
   const prereqEdges = await prisma.prerequisiteEdge.findMany({
     where: {
       sourceConcept: activeConceptWhere({
-        course: { academyId },
+        course: { academyId, ...PUBLISHED_DIAGNOSTIC_COURSE_FILTER },
       }),
       targetConcept: activeConceptWhere({
-        course: { academyId },
+        course: { academyId, ...PUBLISHED_DIAGNOSTIC_COURSE_FILTER },
       }),
     },
   });
@@ -80,7 +88,10 @@ export async function loadDiagnosticProblemsForConcept(
 ): Promise<DiagnosticProblemRecord[]> {
   return prisma.problem.findMany({
     where: {
-      knowledgePoint: activeKnowledgePointWhere({ conceptId }),
+      knowledgePoint: activeKnowledgePointWhere({
+        conceptId,
+        concept: { course: PUBLISHED_DIAGNOSTIC_COURSE_FILTER },
+      }),
       isArchived: false,
       isReviewVariant: false,
     },
@@ -99,7 +110,10 @@ export async function loadDiagnosticConceptCourseMap(
   }
 
   const concepts = await prisma.concept.findMany({
-    where: { id: { in: conceptIds } },
+    where: activeConceptWhere({
+      id: { in: conceptIds },
+      course: PUBLISHED_DIAGNOSTIC_COURSE_FILTER,
+    }),
     select: { id: true, courseId: true, course: { select: { name: true } } },
   });
 
@@ -121,7 +135,7 @@ export async function loadDiagnosticCourseNames(
   academyId: string,
 ): Promise<Map<string, DiagnosticCourseRecord>> {
   const courses = await prisma.course.findMany({
-    where: { academyId },
+    where: { academyId, ...PUBLISHED_DIAGNOSTIC_COURSE_FILTER },
     select: { id: true, name: true },
   });
 

@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { activeConceptWhere } from '@/knowledge-graph/active-course-content';
+import { Prisma } from '@prisma/client';
 
 export async function getAcademyIdForCourse(
   prisma: PrismaService,
@@ -23,10 +24,39 @@ export async function ensureConceptStatesForAcademy(
   userId: string,
   academyId: string,
 ): Promise<void> {
+  const academy = await prisma.academy.findFirst({
+    where: { id: academyId, archivedAt: null, org: { isActive: true } },
+    select: {
+      orgId: true,
+      enrollments: { where: { userId }, select: { id: true } },
+    },
+  });
+  if (!academy) {
+    throw new NotFoundException('Academy or enrollment not found');
+  }
+
+  const courseScope: Prisma.CourseWhereInput = {
+    academyId,
+    orgId: academy.orgId,
+    archivedAt: null,
+    isPublished: true,
+  };
+  if (academy.enrollments.length === 0) {
+    // Legacy course enrollments authorize only those courses, not their siblings.
+    courseScope.enrollments = { some: { userId } };
+    const enrolledCourse = await prisma.course.findFirst({
+      where: courseScope,
+      select: { id: true },
+    });
+    if (!enrolledCourse) {
+      throw new NotFoundException('Academy or enrollment not found');
+    }
+  }
+
   const [concepts, existingStates] = await Promise.all([
     prisma.concept.findMany({
       where: activeConceptWhere({
-        course: { academyId },
+        course: courseScope,
       }),
       select: { id: true },
     }),
@@ -34,7 +64,7 @@ export async function ensureConceptStatesForAcademy(
       where: {
         userId,
         concept: activeConceptWhere({
-          course: { academyId },
+          course: courseScope,
         }),
       },
       select: { conceptId: true },

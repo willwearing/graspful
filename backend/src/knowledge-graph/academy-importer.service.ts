@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import * as yaml from 'js-yaml';
 import { PrismaService } from '@/prisma/prisma.service';
 import { buildQualifiedConceptRef, parseConceptRef } from './concept-ref';
@@ -121,7 +122,12 @@ export class AcademyImporterService {
       }
 
       return { academy, courseResults };
-    }, { timeout: 60_000 });
+    }, { timeout: 60_000, isolationLevel: Prisma.TransactionIsolationLevel.Serializable }).catch((error: unknown) => {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+        throw new ConflictException('The academy changed during import. Reload the current version and retry your changes.');
+      }
+      throw error;
+    });
 
     return {
       academyId: academy.id,

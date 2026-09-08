@@ -117,6 +117,25 @@ describe('AcademyGraphController', () => {
     await expect(
       controller.getAcademyBySlug('posthog-tam', orgCtx as any),
     ).resolves.toEqual(academy);
-    expect(mockCourseReads.getAcademyBySlug).toHaveBeenCalledWith('org-1', 'posthog-tam');
+    expect(mockCourseReads.getAcademyBySlug).toHaveBeenCalledWith('org-1', 'posthog-tam', { includeDrafts: false });
   });
+
+  it.each([
+    ['member', false],
+    ['admin', true],
+    ['owner', true],
+  ])('limits draft academy contents to creator roles: %s', async (role, includeDrafts) => {
+    const org = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role } as any;
+    await controller.listAcademies(org);
+    await controller.getAcademyBySlug('academy', org);
+    await controller.getAcademy('a1', org);
+    await controller.getAcademyGraph('a1', org);
+    await controller.listAcademyCourses('a1', org);
+    expect(mockCourseReads.listAcademies).toHaveBeenCalledWith('org-1', { includeDrafts });
+    expect(mockCourseReads.getAcademyBySlug).toHaveBeenCalledWith('org-1', 'academy', { includeDrafts });
+    expect(mockCourseReads.getAcademy).toHaveBeenCalledWith('org-1', 'a1', { includeDrafts });
+    expect(mockCourseReads.getAcademyGraph).toHaveBeenCalledWith('org-1', 'a1', { includeDrafts });
+    expect(mockCourseReads.listAcademyCourses).toHaveBeenCalledWith('org-1', 'a1', { includeDrafts });
+  });
+
 });

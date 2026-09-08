@@ -18,7 +18,14 @@ export class EnrollmentService {
   async enrollStudent(orgId: string, userId: string, courseId: string) {
     return this.prisma.$transaction(async (tx) => {
       const course = await tx.course.findFirst({
-        where: { id: courseId, orgId },
+        where: {
+          id: courseId,
+          orgId,
+          isPublished: true,
+          archivedAt: null,
+          org: { isActive: true },
+          academy: { orgId, archivedAt: null },
+        },
         select: { id: true, academyId: true },
       });
       if (!course) {
@@ -67,10 +74,15 @@ export class EnrollmentService {
     academyId: string,
   ) {
     const academy = await tx.academy.findFirst({
-      where: { id: academyId, orgId, archivedAt: null },
+      where: {
+        id: academyId,
+        orgId,
+        archivedAt: null,
+        org: { isActive: true },
+      },
       include: {
         courses: {
-          where: { archivedAt: null },
+          where: { orgId, archivedAt: null, isPublished: true },
           orderBy: { sortOrder: 'asc' },
           include: {
             sections: {
@@ -87,7 +99,7 @@ export class EnrollmentService {
       },
     });
 
-    if (!academy) {
+    if (!academy || academy.courses.length === 0) {
       throw new NotFoundException('Academy not found');
     }
 

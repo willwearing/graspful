@@ -73,7 +73,7 @@ concepts:
 `.trim();
 }
 
-test.describe("Creator Manage — Edit Course", () => {
+test.describe("Creator Manage — Edit course", () => {
   let ctx: ApiTestContext;
   let courseId: string;
   let courseSlug: string;
@@ -112,14 +112,14 @@ test.describe("Creator Manage — Edit Course", () => {
     expect(page.url()).toContain(`/creator/manage/${courseId}`);
   });
 
-  test("edit page heading says Edit Course", async ({ page }) => {
+  test("edit page heading says Edit course", async ({ page }) => {
     await page.goto(`/creator/manage/${courseId}`);
 
     await expect(
-      page.getByRole("heading", { name: "Edit Course" })
+      page.getByRole("heading", { name: "Edit course" })
     ).toBeVisible({ timeout: 15_000 });
     await expect(
-      page.getByText("Modify the brand config or course content, then save changes.")
+      page.getByText("Save course changes and brand settings separately.")
     ).toBeVisible();
   });
 
@@ -134,18 +134,18 @@ test.describe("Creator Manage — Edit Course", () => {
     ).toBeVisible({ timeout: 20_000 });
   });
 
-  test("Save Changes button exists (not Import to Platform)", async ({
+  test("Save course changes button exists (not Import draft)", async ({
     page,
   }) => {
     await page.goto(`/creator/manage/${courseId}`);
     await page.waitForURL(/\/creator\/manage\//, { timeout: 10_000 });
 
-    // Should have Save Changes, not Import to Platform
+    // Should have Save course changes, not Import draft
     await expect(
-      page.getByRole("button", { name: /Save Changes/i })
+      page.getByRole("button", { name: /Save course changes/i })
     ).toBeVisible({ timeout: 15_000 });
     await expect(
-      page.getByRole("button", { name: /Import to Platform/i })
+      page.getByRole("button", { name: /Import draft/i })
     ).toBeHidden();
   });
 

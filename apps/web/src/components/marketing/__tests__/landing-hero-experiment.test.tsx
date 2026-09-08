@@ -33,7 +33,7 @@ describe("LandingHeroExperiment", () => {
     expect(screen.getByText("Current homepage copy.")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Start Building Free" }),
-    ).toHaveAttribute("href", "/sign-up");
+    ).toHaveAttribute("href", "/docs/quickstart");
   });
 
   it("shows concrete product proof for the challenger variant", () => {
@@ -49,8 +49,8 @@ describe("LandingHeroExperiment", () => {
       screen.getByRole("link", { name: /create your first course/i }),
     ).toHaveAttribute("href", "/docs/quickstart");
     expect(
-      screen.getByRole("link", { name: /see how it works/i }),
-    ).toHaveAttribute("href", "/docs/how-it-works");
+      screen.getByRole("link", { name: /try a question/i }),
+    ).toHaveAttribute("href", "#lesson-preview");
   });
 
   it("hides the control while assignment loads", () => {
