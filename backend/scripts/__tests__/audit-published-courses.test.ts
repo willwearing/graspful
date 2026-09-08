@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { PrismaClient } from '@prisma/client';
+import { Prisma, type PrismaClient } from '@prisma/client';
 import { auditPublishedCourses, parseAuditOptions, reportExitCode } from '../audit-published-courses';
 
 const target = 'postgres@127.0.0.1:54322/testdb?schema=public';
@@ -10,6 +10,7 @@ const options = () => parseAuditOptions(args, env);
 function course(id: string) {
   return { id, orgId: '10000000-0000-4000-8000-000000000000', slug: `course-${id}`, name: `SQL course ${id}`,
     isPublished: true, archivedAt: null as Date | null, updatedAt: new Date('2026-09-08T00:00:00Z'),
+    updatedAtExact: '2026-09-08T00:00:00.000000Z',
     description: 'Learn SQL column selection.', estimatedHours: 1, version: '1.0' };
 }
 function concepts(courseId: string) {
@@ -26,25 +27,53 @@ function concepts(courseId: string) {
       ] }],
   }];
 }
-function fakeDatabase(settings: { failExport?: string; conflict?: string } = {}) {
+function fakeDatabase(settings: {
+  failExport?: string;
+  conflict?: string;
+  schema?: string;
+  changeMicrosecondsBeforeUpdate?: string;
+} = {}) {
   const rows = [course('good'), course('empty'), course('invalid')];
   const writes: any[] = [];
   const readOnly: string[] = [];
   const tx = {
-    $executeRaw: async () => { readOnly.push('READ ONLY'); return 0; },
-    $queryRaw: async () => [{ database: 'testdb' }],
+    $executeRaw: async (strings: TemplateStringsArray, ...parameters: unknown[]) => {
+      const query = Prisma.sql(strings, ...parameters);
+      if (query.sql === 'SET TRANSACTION READ ONLY') {
+        readOnly.push('READ ONLY');
+        return 0;
+      }
+      expect(query.sql).toContain('UPDATE courses');
+      expect(query.sql).toContain("SET is_published = false, updated_at = date_trunc('milliseconds', clock_timestamp())");
+      expect(query.sql).toContain('id = ?::uuid AND org_id = ?::uuid');
+      expect(query.sql).toContain('archived_at IS NULL AND is_published = true');
+      expect(query.sql).toContain('updated_at = ?::timestamptz');
+      writes.push({ sql: query.sql, values: query.values });
+      const [id, orgId, updatedAtExact] = query.values;
+      const row = rows.find((candidate) => candidate.id === id && candidate.orgId === orgId && candidate.isPublished && candidate.archivedAt === null);
+      if (row && settings.changeMicrosecondsBeforeUpdate === id) {
+        // Simulate a revision change invisible to a JavaScript Date.
+        row.updatedAtExact = row.updatedAtExact.replace(/\d{3}Z$/, '797Z');
+      }
+      if (!row || settings.conflict === id || row.updatedAtExact !== updatedAtExact) return 0;
+      row.isPublished = false;
+      row.updatedAtExact = '2026-09-09T00:00:00.123456Z';
+      row.updatedAt = new Date(row.updatedAtExact);
+      return 1;
+    },
+    $queryRaw: async (strings: TemplateStringsArray, ...parameters: unknown[]) => {
+      const query = Prisma.sql(strings, ...parameters);
+      if (query.sql.includes('current_database()')) return [{ database: 'testdb', schema: settings.schema ?? 'public' }];
+      expect(query.sql).toContain('FROM courses');
+      expect(query.sql).toContain('is_published = true AND archived_at IS NULL');
+      expect(query.sql).toContain(`to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`);
+      const orgId = query.values[0];
+      return rows.filter((row) => row.isPublished && row.archivedAt === null && (!orgId || orgId === row.orgId)).sort((a, b) => a.id.localeCompare(b.id));
+    },
     course: {
-      findMany: async ({ where }: any) => rows.filter((row) => row.isPublished && row.archivedAt === null && (!where.orgId || where.orgId === row.orgId)).sort((a, b) => a.id.localeCompare(b.id)),
       findFirst: async ({ where }: any) => {
         if (settings.failExport === where.id) throw new Error(`postgresql://postgres:private-password@127.0.0.1/testdb failed`);
         return rows.find((row) => row.id === where.id && row.orgId === where.orgId && row.archivedAt === null);
-      },
-      updateMany: async ({ where, data }: any) => {
-        writes.push({ where, data });
-        const row = rows.find((row) => row.id === where.id && row.orgId === where.orgId && row.isPublished && row.archivedAt === null && row.updatedAt.getTime() === where.updatedAt.getTime());
-        if (!row || settings.conflict === where.id) return { count: 0 };
-        row.isPublished = data.isPublished;
-        return { count: 1 };
       },
     },
     courseSection: { findMany: async () => [] },
@@ -54,9 +83,9 @@ function fakeDatabase(settings: { failExport?: string; conflict?: string } = {})
   };
   const client = { $transaction: async (fn: (client: typeof tx) => Promise<unknown>, config: unknown) => {
     expect(config).toMatchObject({ isolationLevel: 'Serializable' });
-    const published = rows.map((row) => row.isPublished);
+    const revisions = rows.map(({ isPublished, updatedAt, updatedAtExact }) => ({ isPublished, updatedAt, updatedAtExact }));
     try { return await fn(tx); } catch (error) {
-      rows.forEach((row, index) => { row.isPublished = published[index]; });
+      rows.forEach((row, index) => { Object.assign(row, revisions[index]); });
       throw error;
     }
   } } as unknown as PrismaClient;
@@ -103,8 +132,7 @@ describe('published course cleanup', () => {
     expect(report.outcome).toBe('applied');
     expect(db.rows.find((row) => row.id === 'good')?.isPublished).toBe(true);
     for (const write of db.writes) {
-      expect(write.data).toEqual({ isPublished: false });
-      expect(write.where).toMatchObject({ isPublished: true, archivedAt: null, updatedAt: new Date('2026-09-08T00:00:00Z') });
+      expect(write.values).toEqual([expect.any(String), '10000000-0000-4000-8000-000000000000', '2026-09-08T00:00:00.000000Z']);
     }
     const after = await auditPublishedCourses(db.client, options());
     expect(after.summary).toEqual({ scanned: 1, passed: 1, failed: 0, errors: 0, unpublished: 0 });
@@ -114,6 +142,7 @@ describe('published course cleanup', () => {
     const db = fakeDatabase();
     const before = await auditPublishedCourses(db.client, options());
     db.rows[0].updatedAt = new Date('2026-09-08T01:00:00Z');
+    db.rows[0].updatedAtExact = '2026-09-08T01:00:00.000000Z';
     const report = await auditPublishedCourses(db.client, { ...options(), apply: true, confirmReport: before.reportSha256 });
     expect(report.outcome).toBe('blocked');
     expect(reportExitCode(report)).toBe(1);
@@ -140,6 +169,52 @@ describe('published course cleanup', () => {
     const report = await auditPublishedCourses(db.client, options());
     expect(report.summary.scanned).toBe(1);
     expect(report.summary.failed).toBe(0);
+    expect(db.writes).toEqual([]);
+  });
+  test('preserves PostgreSQL microseconds in the report and applies with the exact revision', async () => {
+    const db = fakeDatabase();
+    const row = db.rows.find((candidate) => candidate.id === 'empty')!;
+    row.updatedAtExact = '2026-03-10T21:40:40.778796Z';
+    row.updatedAt = new Date(row.updatedAtExact);
+    const before = await auditPublishedCourses(db.client, options());
+    expect(before.courses.find((entry) => entry.courseId === row.id)).toMatchObject({
+      updatedAt: '2026-03-10T21:40:40.778Z',
+      updatedAtExact: '2026-03-10T21:40:40.778796Z',
+    });
+    const report = await auditPublishedCourses(db.client, { ...options(), apply: true, confirmReport: before.reportSha256 });
+    expect(report.outcome).toBe('applied');
+    expect(report.summary.unpublished).toBe(2);
+    expect(db.writes.find((write) => write.values[0] === row.id)?.values[2]).toBe('2026-03-10T21:40:40.778796Z');
+    expect(row.updatedAtExact).not.toBe('2026-03-10T21:40:40.778796Z');
+    expect(db.rows.find((candidate) => candidate.id === 'good')?.updatedAtExact).toBe('2026-09-08T00:00:00.000000Z');
+  });
+  test('a sub-millisecond change invalidates confirmation even when Prisma Date is unchanged', async () => {
+    const db = fakeDatabase();
+    const row = db.rows[0];
+    row.updatedAtExact = '2026-03-10T21:40:40.778796Z';
+    row.updatedAt = new Date(row.updatedAtExact);
+    const before = await auditPublishedCourses(db.client, options());
+    row.updatedAtExact = '2026-03-10T21:40:40.778797Z';
+    expect(new Date(row.updatedAtExact).getTime()).toBe(row.updatedAt.getTime());
+    const report = await auditPublishedCourses(db.client, { ...options(), apply: true, confirmReport: before.reportSha256 });
+    expect(report.reportSha256).not.toBe(before.reportSha256);
+    expect(report.outcome).toBe('blocked');
+    expect(db.writes).toEqual([]);
+  });
+  test('a sub-millisecond conflict during apply rolls back earlier changes and timestamps', async () => {
+    const db = fakeDatabase({ changeMicrosecondsBeforeUpdate: 'invalid' });
+    for (const row of db.rows) {
+      row.updatedAtExact = '2026-03-10T21:40:40.778796Z';
+      row.updatedAt = new Date(row.updatedAtExact);
+    }
+    const before = await auditPublishedCourses(db.client, options());
+    await expect(auditPublishedCourses(db.client, { ...options(), apply: true, confirmReport: before.reportSha256 })).rejects.toThrow('rolled back');
+    expect(db.writes).toHaveLength(2);
+    expect(db.rows.every((row) => row.isPublished && row.updatedAtExact === '2026-03-10T21:40:40.778796Z')).toBe(true);
+  });
+  test('a different active schema blocks raw queries before any catalog change', async () => {
+    const db = fakeDatabase({ schema: 'other' });
+    await expect(auditPublishedCourses(db.client, options())).rejects.toThrow('schema did not match');
     expect(db.writes).toEqual([]);
   });
 });

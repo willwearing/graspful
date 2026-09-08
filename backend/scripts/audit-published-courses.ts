@@ -32,12 +32,13 @@ export interface AuditOptions {
   databaseUrl: string;
   target: string;
   database: string;
+  schema: string;
   apply: boolean;
   confirmReport?: string;
   orgId?: string;
 }
 
-function safeTarget(databaseUrl: string): { target: string; database: string } {
+function safeTarget(databaseUrl: string): { target: string; database: string; schema: string } {
   let url: URL;
   try { url = new URL(databaseUrl); } catch { throw new CommandError('The selected database URL is invalid.'); }
   if (!['postgres:', 'postgresql:'].includes(url.protocol) || !url.hostname || !url.username) {
@@ -68,6 +69,7 @@ function safeTarget(databaseUrl: string): { target: string; database: string } {
   return {
     target: `${encodeURIComponent(username)}@${url.hostname}:${url.port || '5432'}/${encodeURIComponent(database)}?schema=${encodeURIComponent(schema)}`,
     database,
+    schema,
   };
 }
 
@@ -115,6 +117,7 @@ interface CourseAudit {
   slug: string;
   name: string;
   updatedAt: string;
+  updatedAtExact: string;
   exportSha256?: string;
   status: 'passed' | 'failed' | 'error';
   proposedAction: 'keep_published' | 'set_draft' | 'inspect_error';
@@ -141,14 +144,25 @@ export async function auditPublishedCourses(prisma: PrismaClient, options: Audit
   // This also prevents a late conflict from leaving a partially changed catalog.
   return prisma.$transaction(async (tx) => {
     if (!options.apply) await tx.$executeRaw`SET TRANSACTION READ ONLY`;
-    const identity = await tx.$queryRaw<Array<{ database: string }>>`SELECT current_database() AS database`;
+    const identity = await tx.$queryRaw<Array<{ database: string; schema: string | null }>>`
+      SELECT current_database() AS database, current_schema() AS schema
+    `;
     if (identity[0]?.database !== options.database) throw new CommandError('Connected database identity did not match the expected database.');
+    if (identity[0]?.schema !== options.schema) throw new CommandError('Connected schema did not match the expected schema.');
 
-    const candidates = await tx.course.findMany({
-      where: { isPublished: true, archivedAt: null, ...(options.orgId ? { orgId: options.orgId } : {}) },
-      select: { id: true, orgId: true, slug: true, name: true, updatedAt: true },
-      orderBy: { id: 'asc' },
-    });
+    // PostgreSQL stores microseconds, while Prisma Date values retain only
+    // milliseconds. Keep the exact database revision in the confirmation hash
+    // and the conditional update; the shorter timestamp is display-only.
+    const candidates = await tx.$queryRaw<Array<{
+      id: string; orgId: string; slug: string; name: string; updatedAtExact: string;
+    }>>`
+      SELECT id, org_id AS "orgId", slug, name,
+        to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "updatedAtExact"
+      FROM courses
+      WHERE is_published = true AND archived_at IS NULL
+        ${options.orgId ? Prisma.sql`AND org_id = ${options.orgId}::uuid` : Prisma.empty}
+      ORDER BY id ASC
+    `;
     // The canonical service uses query methods only. Bind it to this transaction
     // rather than starting AppModule or opening a second database connection.
     const exporter = new CourseYamlExportService(tx as unknown as PrismaService);
@@ -156,7 +170,8 @@ export async function auditPublishedCourses(prisma: PrismaClient, options: Audit
     for (const course of candidates) {
       const entry: CourseAudit = {
         courseId: course.id, orgId: course.orgId, slug: course.slug,
-        name: course.name, updatedAt: course.updatedAt.toISOString(),
+        name: course.name, updatedAt: new Date(course.updatedAtExact).toISOString(),
+        updatedAtExact: course.updatedAtExact,
         status: 'error', proposedAction: 'inspect_error',
       };
       try {
@@ -198,17 +213,17 @@ export async function auditPublishedCourses(prisma: PrismaClient, options: Audit
     }
 
     for (const course of courses.filter((entry) => entry.status === 'failed')) {
-      const updated = await tx.course.updateMany({
-        where: {
-          id: course.courseId, orgId: course.orgId,
-          archivedAt: null, isPublished: true, updatedAt: new Date(course.updatedAt),
-        },
-        data: { isPublished: false },
-      });
-      if (updated.count !== 1) {
+      const updated = await tx.$executeRaw`
+        UPDATE courses
+        SET is_published = false, updated_at = date_trunc('milliseconds', clock_timestamp())
+        WHERE id = ${course.courseId}::uuid AND org_id = ${course.orgId}::uuid
+          AND archived_at IS NULL AND is_published = true
+          AND updated_at = ${course.updatedAtExact}::timestamptz
+      `;
+      if (updated !== 1) {
         throw new CommandError('A course changed during the audit. The apply transaction was rolled back. Run a new dry-run.');
       }
-      summary.unpublished += updated.count;
+      summary.unpublished += updated;
     }
     report.outcome = 'applied';
     return report;
