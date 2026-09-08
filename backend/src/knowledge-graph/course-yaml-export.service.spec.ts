@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { CourseYamlExportService } from './course-yaml-export.service';
 import * as yaml from 'js-yaml';
+import { runQualityGate } from '@graspful/shared';
 
 describe('CourseYamlExportService', () => {
   let service: CourseYamlExportService;
@@ -159,5 +160,79 @@ describe('CourseYamlExportService', () => {
     expect(parsed.concepts[0].encompassing).toEqual([
       { concept: 'b', weight: 0.7 },
     ]);
+  });
+
+  function authoredLegacyConcept(estimatedMinutes: number | null) {
+    return {
+      id: 'concept-1', slug: 'fractions', name: 'Adding fractions',
+      sectionId: null, difficulty: 2, estimatedMinutes, tags: [], sourceReference: null,
+      knowledgePoints: [{
+        slug: 'addition',
+        instructionText: 'To add fractions with equal denominators, add their numerators and keep the denominator unchanged.',
+        workedExampleText: 'For the fractions 1/5 plus 2/5, add the numerators 1 and 2 to get 3. The sum is 3/5.',
+        instructionContent: null, workedExampleContent: null,
+        problems: [
+          { authoredId: 'sum-one', type: 'multiple_choice', questionText: 'What is the sum of the fractions 1/5 and 2/5?', options: ['3/5', '3/10'], correctAnswer: 0, difficulty: 1 },
+          { authoredId: 'sum-two', type: 'multiple_choice', questionText: 'What is the denominator when adding the fractions 2/7 and 3/7?', options: ['7', '14'], correctAnswer: 0, difficulty: 2 },
+          { authoredId: 'sum-three', type: 'multiple_choice', questionText: 'Which fractions addition changes only the numerator?', options: ['1/3 + 1/3 = 2/3', '1/3 + 1/3 = 2/6'], correctAnswer: 0, difficulty: 3 },
+        ],
+      }],
+    };
+  }
+
+  function legacyCourse(estimatedHours: number | null, estimatedMinutes: number | null) {
+    mockPrisma.course.findFirst.mockResolvedValue({
+      id: 'course-1', slug: 'legacy-fractions', name: 'Legacy fractions',
+      description: null, version: '1', estimatedHours,
+    });
+    mockPrisma.courseSection.findMany.mockResolvedValue([]);
+    mockPrisma.concept.findMany.mockResolvedValue([authoredLegacyConcept(estimatedMinutes)]);
+    mockPrisma.prerequisiteEdge.findMany.mockResolvedValue([]);
+    mockPrisma.encompassingEdge.findMany.mockResolvedValue([]);
+  }
+
+  it('derives missing legacy course hours from authored active-concept estimates', async () => {
+    legacyCourse(null, 15);
+
+    const parsed = yaml.load(await service.exportCourse('org-1', 'course-1')) as any;
+
+    expect(parsed.course.estimatedHours).toBe(0.25);
+    expect(runQualityGate(parsed).passed).toBe(true);
+    expect(runQualityGate(parsed).score).toBe('10/10');
+  });
+
+  it('preserves an explicit course total instead of replacing it with the concept sum', async () => {
+    legacyCourse(8, 15);
+    const parsed = yaml.load(await service.exportCourse('org-1', 'course-1')) as any;
+    expect(parsed.course.estimatedHours).toBe(8);
+  });
+
+  it('does not invent a duration when legacy concept estimates are also missing', async () => {
+    legacyCourse(null, null);
+    const parsed = yaml.load(await service.exportCourse('org-1', 'course-1')) as any;
+    expect(parsed.course).not.toHaveProperty('estimatedHours');
+    expect(parsed.concepts[0]).not.toHaveProperty('estimatedMinutes');
+    expect(runQualityGate(parsed).passed).toBe(false);
+  });
+
+  it('preserves invalid explicit estimates so validation can report them', async () => {
+    legacyCourse(0, 0);
+    const parsed = yaml.load(await service.exportCourse('org-1', 'course-1')) as any;
+    expect(parsed.course.estimatedHours).toBe(0);
+    expect(parsed.concepts[0].estimatedMinutes).toBe(0);
+    expect(runQualityGate(parsed).passed).toBe(false);
+  });
+
+  it('keeps teaching readiness failures after deriving a legacy duration', async () => {
+    legacyCourse(null, 15);
+    const unfinished = authoredLegacyConcept(15);
+    unfinished.knowledgePoints[0].instructionText = 'TODO: Write the fractions lesson';
+    mockPrisma.concept.findMany.mockResolvedValue([unfinished]);
+
+    const parsed = yaml.load(await service.exportCourse('org-1', 'course-1')) as any;
+    const review = runQualityGate(parsed);
+    expect(parsed.course.estimatedHours).toBe(0.25);
+    expect(review.passed).toBe(false);
+    expect(review.failures.some((failure) => failure.check === 'publication_readiness')).toBe(true);
   });
 });

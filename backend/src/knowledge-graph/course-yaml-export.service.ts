@@ -85,13 +85,24 @@ export class CourseYamlExportService {
       }
     }
 
+    // Legacy courses can omit the optional database-level total. Reuse their
+    // authored concept estimates when every active concept has one, instead
+    // of emitting null or inventing a default duration for the export.
+    const estimatedHours = course.estimatedHours ?? (
+      concepts.length > 0 && concepts.every((concept) =>
+        concept.estimatedMinutes != null && concept.estimatedMinutes > 0,
+      )
+        ? concepts.reduce((minutes, concept) => minutes + (concept.estimatedMinutes ?? 0), 0) / 60
+        : undefined
+    );
+
     // Build YAML structure matching CourseYamlSchema
     const yamlObj: Record<string, unknown> = {
       course: {
         id: course.slug,
         name: course.name,
         ...(course.description && { description: course.description }),
-        estimatedHours: course.estimatedHours,
+        ...(estimatedHours !== undefined && { estimatedHours }),
         version: course.version,
       },
     };
@@ -120,7 +131,7 @@ export class CourseYamlExportService {
       }
 
       conceptObj.difficulty = c.difficulty;
-      if (c.estimatedMinutes) conceptObj.estimatedMinutes = c.estimatedMinutes;
+      if (c.estimatedMinutes != null) conceptObj.estimatedMinutes = c.estimatedMinutes;
       if (c.tags.length > 0) conceptObj.tags = c.tags;
       if (c.sourceReference) conceptObj.sourceRef = c.sourceReference;
 
