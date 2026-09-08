@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { LessonFlow } from "@/components/app/lesson-flow";
 
@@ -99,6 +99,10 @@ describe("LessonFlow", () => {
   beforeEach(() => {
     mockApiClientFetch.mockReset();
     mockPush.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("renders the first knowledge point instruction", () => {
@@ -267,5 +271,91 @@ describe("LessonFlow", () => {
     fireEvent.click(screen.getByRole("button", { name: /previous/i }));
     expect(screen.getByText("Fire requires heat, fuel, and oxygen.")).toBeTruthy();
     expect(screen.getByText("Instruction")).toBeTruthy();
+  });
+
+  it("retries an exact saved request after a lost response and freezes the original answer", async () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(5000);
+    mockApiClientFetch.mockRejectedValueOnce(new Error("response lost after server saved answer"))
+      .mockResolvedValueOnce({ correct: true, feedback: "Heat is correct", nextProblemHint: { targetKPId: "kp2", nextProblemId: "p2", reopenWorkedExample: false, retryDelayMs: 0, lessonComplete: false } });
+    renderFlow();
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Heat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/could not confirm your answer was saved/i);
+    expect(screen.getByRole("radio", { name: "Heat" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "Heat" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Submit Answer" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("radio", { name: "Gravity" }));
+    expect(screen.getByRole("radio", { name: "Heat" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByText("Incorrect")).not.toBeInTheDocument();
+    const originalBody = mockApiClientFetch.mock.calls[0][2].body;
+    const originalRequest = JSON.parse(originalBody);
+    expect(originalRequest).toEqual({
+      requestId: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i),
+      problemId: "p1",
+      answer: "0",
+      responseTimeMs: 1,
+      seenProblemIds: ["p1"],
+      workedExampleReopenedKPIds: [],
+    });
+    now.mockReturnValue(35000);
+    fireEvent.click(screen.getByRole("button", { name: "Retry answer" }));
+    expect(await screen.findByText("Heat is correct")).toBeInTheDocument();
+    expect(mockApiClientFetch.mock.calls[1][2].body).toBe(originalBody);
+    expect(mockApiClientFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses a new request ID and current hints for a new attempt at the same problem", async () => {
+    mockApiClientFetch.mockResolvedValueOnce({
+      correct: false,
+      feedback: "Review the example and try again.",
+      nextProblemHint: { targetKPId: "kp1", nextProblemId: "p1", reopenWorkedExample: true, retryDelayMs: 0, lessonComplete: false },
+    }).mockResolvedValueOnce({
+      correct: false,
+      feedback: "Review the example and try again.",
+      nextProblemHint: { targetKPId: "kp1", nextProblemId: "p1", reopenWorkedExample: false, retryDelayMs: 0, lessonComplete: false },
+    });
+    renderFlow();
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Gravity" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    expect(await screen.findByText("Review the example and try again.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("radio", { name: "Gravity" })).toBeEnabled(), { timeout: 2500 });
+    expect(screen.getByRole("radio", { name: "Gravity" })).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(screen.getByRole("radio", { name: "Gravity" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await waitFor(() => expect(mockApiClientFetch).toHaveBeenCalledTimes(2));
+    const first = JSON.parse(mockApiClientFetch.mock.calls[0][2].body);
+    const second = JSON.parse(mockApiClientFetch.mock.calls[1][2].body);
+    expect(second.requestId).not.toBe(first.requestId);
+    expect(second).toMatchObject({
+      problemId: first.problemId,
+      answer: first.answer,
+      seenProblemIds: ["p1"],
+      workedExampleReopenedKPIds: ["kp1"],
+    });
+    expect(second.responseTimeMs).toBeGreaterThan(0);
+  });
+
+  it("shows and retries a lesson completion failure without leaving the lesson", async () => {
+    mockApiClientFetch.mockResolvedValueOnce({ correct: true, feedback: "Heat is correct", nextProblemHint: { targetKPId: "kp1", nextProblemId: null, reopenWorkedExample: false, retryDelayMs: 0, lessonComplete: true } })
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({ conceptId: "c1", status: "lesson_complete" });
+    render(<LessonFlow orgSlug="org-1" courseId="course-1" token="test-token" lesson={{ ...lessonData, knowledgePoints: [lessonData.knowledgePoints[0]] }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Heat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Complete Lesson" })).toBeInTheDocument(), { timeout: 2500 });
+    fireEvent.click(screen.getByRole("button", { name: "Complete Lesson" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/could not save lesson completion/i);
+    expect(mockPush).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Retry completion" }));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/study/course-1"));
+    expect(mockApiClientFetch.mock.calls.filter(([path]) => path.endsWith("/answer"))).toHaveLength(1);
+    expect(mockApiClientFetch.mock.calls.filter(([path]) => path.endsWith("/complete"))).toHaveLength(2);
   });
 });

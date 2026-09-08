@@ -14,6 +14,10 @@ export const envSchema = z.object({
   ALLOWED_ORIGINS: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_PRICE_INDIVIDUAL_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_INDIVIDUAL_YEARLY: z.string().optional(),
+  STRIPE_PRICE_TEAM_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_TEAM_YEARLY: z.string().optional(),
   POSTHOG_API_KEY: z.string().optional(),
   POSTHOG_HOST: z.string().url().optional(),
 });

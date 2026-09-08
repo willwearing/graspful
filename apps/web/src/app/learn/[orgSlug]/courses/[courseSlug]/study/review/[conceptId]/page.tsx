@@ -1,8 +1,7 @@
-import { redirect } from "next/navigation";
-import { apiFetch } from "@/lib/api";
 import { requireLearnAccess, resolveCourseBySlug } from "@/lib/learn-server";
-import { getLearnCourseStudyHref } from "@/lib/learn-routes";
-import { ReviewFlow } from "@/components/app/review-flow";
+import { getLearnCourseHref, getLearnCourseStudyHref } from "@/lib/learn-routes";
+import { ReviewFlow, type ReviewData } from "@/components/app/review-flow";
+import { StudyRouter } from "@/components/app/study-router";
 
 export default async function LearnReviewPage({
   params,
@@ -13,14 +12,14 @@ export default async function LearnReviewPage({
   const { token, serverApiFetch } = await requireLearnAccess(orgSlug);
   const course = await resolveCourseBySlug(orgSlug, courseSlug, serverApiFetch);
 
-  let reviewData: any;
+  let reviewData: ReviewData;
   try {
-    reviewData = await apiFetch<any>(
+    reviewData = await serverApiFetch<ReviewData>(
       `/orgs/${orgSlug}/courses/${course.id}/reviews/${conceptId}/start`,
       { method: "POST" },
     );
   } catch {
-    redirect(getLearnCourseStudyHref(orgSlug, courseSlug));
+    return <StudyRouter courseId={course.id} task={null} loadFailed emptyStateHref={getLearnCourseHref(orgSlug, courseSlug)} emptyStateLabel="Back to Course" />;
   }
 
   return (

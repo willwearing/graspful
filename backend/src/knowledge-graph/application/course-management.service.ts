@@ -1,4 +1,5 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import * as yaml from 'js-yaml';
 import { PrismaService } from '@/prisma/prisma.service';
 import { BrandsService } from '@/brands/brands.service';
 import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
@@ -75,11 +76,10 @@ export class CourseManagementService {
 
     await this.ensureBrandForOrg(org, body.yaml);
 
-    const published = body.publish ? (review?.passed ?? false) : false;
     const url = await this.buildCourseUrl(org.orgId, result.courseId);
     const reviewFailures = review && !review.passed ? review.failures : undefined;
 
-    return { ...result, published, url, review, reviewFailures };
+    return { ...result, url, review, reviewFailures };
   }
 
   async publishCourse(
@@ -87,7 +87,7 @@ export class CourseManagementService {
     courseId: string,
   ): Promise<{ courseId: string; published: boolean; url: string | null; review: ReviewResult }> {
     const course = await this.prisma.course.findFirst({
-      where: { id: courseId, orgId },
+      where: { id: courseId, orgId, archivedAt: null },
     });
 
     if (!course) {
@@ -95,14 +95,20 @@ export class CourseManagementService {
     }
 
     const courseYamlString = await this.courseYamlExport.exportCourse(orgId, courseId);
-    const courseYaml = this.importer.parseCourseYaml(courseYamlString);
+    // Review raw exports so legacy invalid answer/schema data produces a
+    // failed publication result instead of bypassing withdrawal through a
+    // schema exception before the publication flag is updated.
+    const courseYaml = yaml.load(courseYamlString);
     const review = this.reviewService.review(courseYaml);
 
-    if (review.passed) {
-      await this.prisma.course.update({
-        where: { id: courseId },
-        data: { isPublished: true },
-      });
+    // A replacement can finish while export/review is running. Publish only
+    // the revision that was reviewed, and withdraw legacy content that fails.
+    const updated = await this.prisma.course.updateMany({
+      where: { id: courseId, orgId, archivedAt: null, updatedAt: course.updatedAt },
+      data: { isPublished: review.passed },
+    });
+    if (updated.count !== 1) {
+      throw new ConflictException('The course changed during review. Review and publish the current version again.');
     }
 
     const url = await this.buildCourseUrl(orgId, courseId);

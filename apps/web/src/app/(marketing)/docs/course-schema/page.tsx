@@ -260,12 +260,19 @@ concepts:               # required, array of concept objects
             { name: "id", type: "string", required: true, description: "Problem identifier, globally unique across the course" },
             { name: "type", type: "enum", required: true, description: "multiple_choice | fill_blank | true_false | ordering | matching | scenario" },
             { name: "question", type: "string", required: true, description: "The question text" },
-            { name: "options", type: "string[]", required: false, description: "Answer options (for MC: 4 options, 1 correct; for ordering: 4-6 steps)" },
-            { name: "correct", type: "string | number", required: true, description: "Correct answer (index for MC, text for fill_blank)" },
+            { name: "options", type: "string[]", required: false, description: "At least two distinct options for choice, scenario, or ordering problems. Matching uses left|right pairs." },
+            { name: "correct", type: "varies by problem type", required: true, description: "Answer contract for the selected type. See the requirements below." },
             { name: "explanation", type: "string", required: false, description: "Shown after answering — should name the likely misconception" },
             { name: "difficulty", type: "1-5", required: false, description: "Problem difficulty level (integer 1-5)" },
           ]}
         />
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li><strong>Multiple choice and scenario:</strong> Set a zero-based integer index within the options. For four options, valid answers are 0 through 3.</li>
+          <li><strong>True or false:</strong> Set true or false, as a boolean or a string.</li>
+          <li><strong>Fill blank:</strong> Set nonempty text, a number, or an object with an answer and optional alternatives.</li>
+          <li><strong>Ordering:</strong> List every option text once in the correct order, or supply comma-separated indices that include every option once.</li>
+          <li><strong>Matching:</strong> Use left|right option pairs. Map every left label to an offered right label, or provide a full comma-separated index order.</li>
+        </ul>
       </section>
 
       {/* Example */}
@@ -273,6 +280,11 @@ concepts:               # required, array of concept objects
         <h2 className="text-2xl font-bold text-foreground" id="example">
           Example course YAML
         </h2>
+        <p className="mt-2 text-muted-foreground">
+          This excerpt illustrates the schema. It needs complete teaching content
+          and practice variants before publication. Review the source facts and
+          run validation and the review gate before importing a finished course.
+        </p>
         <CodeBlock language="yaml" title="aws-saa-c03.yaml">
           {`course:
   id: aws-saa-c03
@@ -289,15 +301,6 @@ sections:
   - id: networking
     name: Networking
     description: VPC, subnets, routing, and connectivity
-    sectionExam:
-      enabled: true
-      passingScore: 0.80
-      questionCount: 10
-      blueprint:
-        - conceptId: vpc-basics
-          minQuestions: 3
-        - conceptId: subnet-design
-          minQuestions: 2
 
 concepts:
   - id: shared-responsibility

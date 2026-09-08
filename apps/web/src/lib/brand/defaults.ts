@@ -4,7 +4,7 @@ export const firefighterBrand: BrandConfig = {
   id: "firefighter",
   name: "FirefighterPrep",
   domain: "firefighterprep.vercel.app",
-  tagline: "Pass Your Firefighter Exam. Eyes-Free.",
+  tagline: "Practice Firefighter I topics",
   logoUrl: "/images/logo-firefighter.svg",
   faviconUrl: "/favicon.ico",
   ogImageUrl: "/images/og-firefighter.png",
@@ -62,99 +62,87 @@ export const firefighterBrand: BrandConfig = {
 
   landing: {
     hero: {
-      headline: "Pass Your Firefighter Exam. Eyes-Free.",
-      subheadline:
-        "Audio-first adaptive learning for NFPA 1001. Study while you work out, commute, or do chores.",
-      ctaText: "Start Studying Free",
+      headline: "Practice Firefighter I topics",
+      subheadline: "Read or listen to lessons, then test your understanding with practice questions.",
+      ctaText: "Create an account"
     },
     features: {
-      heading: "Why Audio Learning Works",
-      subheading: "Turn dead time into study time. Learn while your hands and eyes are busy.",
+      heading: "What you can study",
+      subheading: "Read or listen to lessons, answer practice questions, and return for review.",
       items: [
         {
-          title: "Audio-First Learning",
-          description:
-            "Listen to exam content anywhere -- at the gym, in the car, on a run. No screen required.",
-          icon: "Headphones",
-          wide: true,
+          title: "Audio lessons",
+          description: "Listen to the lesson text and worked examples. Use the screen to answer practice questions.",
+          icon: "Headphones"
         },
         {
-          title: "Adaptive Engine",
-          description:
-            "Our AI focuses on what you don't know yet. No wasted time re-studying mastered material.",
-          icon: "Brain",
+          title: "Practice by topic",
+          description: "Your answers help the course estimate which topics need more practice.",
+          icon: "Brain"
         },
         {
-          title: "Spaced Repetition",
-          description:
-            "Scientifically-timed reviews lock knowledge into long-term memory.",
-          icon: "Timer",
+          title: "Scheduled review",
+          description: "Return to earlier topics when they are due for review.",
+          icon: "Timer"
         },
         {
-          title: "NFPA 1001 Coverage",
-          description:
-            "Complete coverage of Firefighter I & II certification requirements.",
-          icon: "Shield",
-          wide: true,
-        },
-      ],
+          title: "Firefighter I study material",
+          description: "Study Firefighter I topics from the NFPA 1001 course outline. Compare the outline with your local exam requirements.",
+          icon: "Shield"
+        }
+      ]
     },
     howItWorks: {
-      heading: "How It Works",
+      heading: "How it works",
       items: [
         {
-          title: "Take a Diagnostic",
-          description: "5-minute quiz identifies what you already know and where to focus.",
+          title: "Check your starting point",
+          description: "Answer diagnostic questions to estimate which topics need practice."
         },
         {
-          title: "Study Adaptively",
-          description: "Listen to personalized lessons that target your weak areas first.",
+          title: "Work through a lesson",
+          description: "Read or listen to an explanation, study the worked example, and answer questions."
         },
         {
-          title: "Pass Your Exam",
-          description: "Spaced repetition ensures you retain everything on test day.",
-        },
-      ],
+          title: "Return for review",
+          description: "Use scheduled questions to check what you remember."
+        }
+      ]
     },
     faq: [
       {
         question: "What exam does this cover?",
-        answer:
-          "We cover NFPA 1001 Standard for Firefighter Professional Qualifications, including both Firefighter I and Firefighter II levels.",
+        answer: "The current course covers Firefighter I topics from NFPA 1001. Check the course outline against your training provider and local exam requirements."
       },
       {
         question: "Can I study without headphones?",
-        answer:
-          "Yes! Audio plays through your device speakers too. But headphones give the best experience for hands-free studying.",
+        answer: "Lesson audio can play through your device speakers. Practice questions require screen interaction."
       },
       {
-        question: "How long until I'm ready for the exam?",
-        answer:
-          "Most students feel exam-ready after 4-6 weeks of daily 30-minute sessions. The adaptive engine adjusts to your pace.",
+        question: "How long should I study?",
+        answer: "Study time depends on your experience and exam requirements. Use practice results to plan further study with your training materials."
       },
       {
-        question: "Is there a free trial?",
-        answer:
-          "Yes -- 7-day free trial with full access to all content. No credit card required to start.",
-      },
+        question: "Can I subscribe?",
+        answer: "Paid subscriptions are not available yet. Check the course page for current access options."
+      }
     ],
     bottomCta: {
-      headline: "Ready to Start Studying?",
-      subheadline: "Join thousands of candidates who passed their exam with audio-first learning.",
-    },
+      headline: "Explore the course",
+      subheadline: "Check the course outline and try the available practice material."
+    }
   },
 
   seo: {
-    title: "FirefighterPrep -- Audio Exam Prep for NFPA 1001",
-    description:
-      "Pass your firefighter certification exam with audio-first adaptive learning. Study NFPA 1001 hands-free.",
+    title: "FirefighterPrep: Firefighter I practice",
+    description: "Study Firefighter I topics with lesson audio, worked examples, practice questions, and scheduled review.",
     keywords: [
       "firefighter exam prep",
       "NFPA 1001",
       "firefighter certification",
       "audio learning",
-      "adaptive learning",
-    ],
+      "adaptive learning"
+    ]
   },
 
   pricing: {
@@ -173,7 +161,7 @@ export const electricianBrand: BrandConfig = {
   id: "electrician",
   name: "ElectricianPrep",
   domain: "electricianprep.vercel.app",
-  tagline: "Pass Your Electrician Exam. Listen. Learn. Pass.",
+  tagline: "Practice electrical code topics",
   logoUrl: "/images/logo-electrician.svg",
   faviconUrl: "/favicon.ico",
   ogImageUrl: "/images/og-electrician.png",
@@ -231,100 +219,84 @@ export const electricianBrand: BrandConfig = {
 
   landing: {
     hero: {
-      headline: "Pass Your Electrician Exam. Listen. Learn. Pass.",
-      subheadline:
-        "Audio-first adaptive learning for the NEC. Study while you work, drive, or wire.",
-      ctaText: "Start Studying Free",
+      headline: "Practice electrical code topics",
+      subheadline: "Read or listen to NEC lessons, then work through practice questions.",
+      ctaText: "Create an account"
     },
     features: {
-      heading: "Why Audio Learning Works",
-      subheading: "Turn dead time into study time. Learn while your hands and eyes are busy.",
+      heading: "What you can study",
+      subheading: "Read or listen to lessons, answer practice questions, and return for review.",
       items: [
         {
-          title: "Audio-First NEC Review",
-          description:
-            "Listen to NEC code sections, article numbers, and key thresholds on repeat. Study hands-free on the jobsite.",
-          icon: "Headphones",
-          wide: true,
+          title: "Audio lessons",
+          description: "Listen to explanations of electrical code topics. Use the screen to work through the questions.",
+          icon: "Headphones"
         },
         {
-          title: "Adaptive Learning Engine",
-          description:
-            "AI identifies your weak areas and focuses your study time there. No wasted time on what you already know.",
-          icon: "Brain",
+          title: "Practice by topic",
+          description: "Your answers help the course estimate which topics need more practice.",
+          icon: "Brain"
         },
         {
-          title: "Spaced Repetition",
-          description:
-            "Scientifically-timed reviews lock wire gauges, ampacity ratings, and code sections into long-term memory.",
-          icon: "Timer",
+          title: "Scheduled review",
+          description: "Return to code concepts and calculations when they are due for review.",
+          icon: "Timer"
         },
         {
-          title: "Complete NEC 2023 Coverage",
-          description:
-            "50+ topics covering wiring methods, grounding, overcurrent protection, load calculations, and special occupancies.",
-          icon: "Zap",
-          wide: true,
-        },
-      ],
+          title: "Course outline",
+          description: "See the topics covered in the course and compare them with the code edition and exam requirements in your area.",
+          icon: "Zap"
+        }
+      ]
     },
     howItWorks: {
-      heading: "How It Works",
+      heading: "How it works",
       items: [
         {
-          title: "Take a Diagnostic",
-          description:
-            "Quick assessment identifies what NEC topics you already know and where to focus.",
+          title: "Check your starting point",
+          description: "Answer diagnostic questions to estimate which topics need practice."
         },
         {
-          title: "Study Adaptively",
-          description:
-            "Listen to personalized lessons on grounding, conduit fill, load calcs -- whatever you need most.",
+          title: "Work through a lesson",
+          description: "Study explanations and worked examples before answering questions."
         },
         {
-          title: "Pass Your Exam",
-          description:
-            "Spaced repetition ensures you retain article numbers and code requirements on test day.",
-        },
-      ],
+          title: "Return for review",
+          description: "Use scheduled questions to check what you remember."
+        }
+      ]
     },
     faq: [
       {
         question: "What exam does this cover?",
-        answer:
-          "We cover the National Electrical Code (NEC/NFPA 70) -- the foundation for Journeyman and Master Electrician exams administered by PSI, Prometric, and state agencies.",
+        answer: "The course provides practice on National Electrical Code topics. Compare the course outline with the requirements of your exam provider."
       },
       {
-        question: "Which NEC edition?",
-        answer:
-          "All content is based on the 2023 NEC edition. We update when new editions are adopted.",
+        question: "Which code edition should I study?",
+        answer: "Check the edition listed in the course and the edition required by your exam provider before you begin."
       },
       {
-        question: "Can I study on the jobsite?",
-        answer:
-          "Yes -- that is exactly the point. Audio plays through your earbuds while you work. No screen needed.",
+        question: "Can I listen to lessons?",
+        answer: "Yes. Lesson audio reads the explanation text. Practice questions and calculations require your attention and screen interaction."
       },
       {
-        question: "How long until I am ready?",
-        answer:
-          "Most students feel exam-ready after 4-6 weeks of daily 30-minute sessions. The adaptive engine adjusts to your pace.",
+        question: "How long should I study?",
+        answer: "Study time depends on your experience and exam requirements. Use practice results to identify topics that need further study."
       },
       {
-        question: "Is there a free trial?",
-        answer:
-          "Yes -- 7-day free trial with full access. No credit card required to start.",
-      },
+        question: "Can I subscribe?",
+        answer: "Paid subscriptions are not available yet. Check the course page for current access options."
+      }
     ],
     bottomCta: {
-      headline: "Ready to Start Studying?",
-      subheadline: "Join thousands of electricians who passed their exam with audio-first learning.",
-    },
+      headline: "Explore the course",
+      subheadline: "Check the course outline against your exam requirements."
+    }
   },
 
   seo: {
-    title: "ElectricianPrep -- Audio Exam Prep for the NEC",
-    description:
-      "Pass your Journeyman or Master Electrician exam with audio-first adaptive learning. Study the NEC hands-free on the jobsite.",
+    title: "ElectricianPrep: Electrical code practice",
+    description: "Practice electrical code topics with lesson audio, worked examples, questions, and scheduled review.",
     keywords: [
       "electrician exam prep",
       "NEC study guide",
@@ -333,8 +305,8 @@ export const electricianBrand: BrandConfig = {
       "national electrical code",
       "NEC audio",
       "electrician certification",
-      "audio learning",
-    ],
+      "audio learning"
+    ]
   },
 
   pricing: {
@@ -353,7 +325,7 @@ export const javascriptBrand: BrandConfig = {
   id: "javascript",
   name: "JSPrep",
   domain: "javascriptprep.vercel.app",
-  tagline: "Master JavaScript. Listen. Code. Ship.",
+  tagline: "Practice JavaScript fundamentals",
   logoUrl: "/images/logo-javascript.svg",
   faviconUrl: "/favicon.ico",
   ogImageUrl: "/images/og-javascript.png",
@@ -411,95 +383,80 @@ export const javascriptBrand: BrandConfig = {
 
   landing: {
     hero: {
-      headline: "Master JavaScript. Listen. Code. Ship.",
-      subheadline:
-        "Audio-first adaptive learning for JavaScript fundamentals. Study closures, async, and the event loop while you commute.",
-      ctaText: "Start Learning Free",
+      headline: "Practice JavaScript fundamentals",
+      subheadline: "Study JavaScript concepts through explanations, worked examples, and practice questions.",
+      ctaText: "Create an account"
     },
     features: {
-      heading: "Why Audio Learning Works",
-      subheading: "Turn dead time into study time. Learn while your hands and eyes are busy.",
+      heading: "What you can study",
+      subheading: "Read or listen to lessons, answer practice questions, and return for review.",
       items: [
         {
-          title: "Audio-First JS Concepts",
-          description:
-            "Listen to clear explanations of closures, prototypes, async/await, and more. Study on the go.",
-          icon: "Headphones",
-          wide: true,
+          title: "Audio lessons",
+          description: "Read or listen to explanations of JavaScript concepts, then work through the examples.",
+          icon: "Headphones"
         },
         {
-          title: "Adaptive Learning Engine",
-          description:
-            "AI identifies gaps in your JavaScript knowledge and focuses your study time there.",
-          icon: "Brain",
+          title: "Practice by topic",
+          description: "Your answers help the course estimate which topics need more practice.",
+          icon: "Brain"
         },
         {
-          title: "Spaced Repetition",
-          description:
-            "Scientifically-timed reviews lock tricky concepts like `this` binding and the event loop into long-term memory.",
-          icon: "Timer",
+          title: "Scheduled review",
+          description: "Return to earlier concepts when they are due for review.",
+          icon: "Timer"
         },
         {
-          title: "ES2024 Coverage",
-          description:
-            "From var vs let to generators and modules. 14 core concepts with 40+ practice problems.",
-          icon: "Code",
-          wide: true,
-        },
-      ],
+          title: "JavaScript fundamentals",
+          description: "Explore the course outline for topics such as closures, promises, and the event loop.",
+          icon: "Code"
+        }
+      ]
     },
     howItWorks: {
-      heading: "How It Works",
+      heading: "How it works",
       items: [
         {
-          title: "Take a Diagnostic",
-          description:
-            "Quick quiz identifies what JS concepts you already know and where to focus.",
+          title: "Check your starting point",
+          description: "Answer diagnostic questions to estimate which concepts need practice."
         },
         {
-          title: "Study Adaptively",
-          description:
-            "Listen to lessons on closures, promises, prototypes -- whatever you need most.",
+          title: "Work through examples",
+          description: "Read the explanation, trace the example code, and answer questions."
         },
         {
-          title: "Build Confidence",
-          description:
-            "Spaced repetition ensures you deeply understand JS, not just recognize syntax.",
-        },
-      ],
+          title: "Apply what you learn",
+          description: "Practice in your editor and return to the course for review."
+        }
+      ]
     },
     faq: [
       {
         question: "What level is this for?",
-        answer:
-          "Beginner to intermediate. We cover fundamentals through advanced concepts like closures, the event loop, and generators. Great for junior devs, bootcamp grads, or anyone filling JS knowledge gaps.",
+        answer: "The course is for learners who want to study JavaScript fundamentals. Check the course outline for prerequisites and topics."
       },
       {
         question: "Is this for a specific certification?",
-        answer:
-          "No specific cert -- this builds deep JavaScript fluency that applies to interviews, day-to-day coding, and frameworks like React or Node.js.",
+        answer: "The course focuses on JavaScript concepts for coding practice. It does not prepare for a named certification."
       },
       {
-        question: "Can I listen while coding?",
-        answer:
-          "Absolutely. Audio explanations work great as background learning while you practice. Many users listen during commutes and code in the evening.",
+        question: "Can I listen to lessons?",
+        answer: "Yes. Audio reads the explanation text. Use the screen for code examples and practice questions."
       },
       {
-        question: "Is there a free trial?",
-        answer:
-          "Yes -- 7-day free trial with full access. No credit card required to start.",
-      },
+        question: "Can I subscribe?",
+        answer: "Paid subscriptions are not available yet. Check the course page for current access options."
+      }
     ],
     bottomCta: {
-      headline: "Ready to Start Learning?",
-      subheadline: "Join thousands of developers who leveled up their JavaScript with audio-first learning.",
-    },
+      headline: "Explore the course",
+      subheadline: "Explore the topics and work through a practice question."
+    }
   },
 
   seo: {
-    title: "JSPrep -- Audio-First JavaScript Learning",
-    description:
-      "Master JavaScript fundamentals with audio-first adaptive learning. Closures, async/await, prototypes, and more -- study hands-free.",
+    title: "JSPrep: JavaScript practice",
+    description: "Study JavaScript fundamentals with explanations, worked examples, practice questions, and scheduled review.",
     keywords: [
       "javascript learning",
       "learn javascript",
@@ -508,8 +465,8 @@ export const javascriptBrand: BrandConfig = {
       "closures",
       "async await",
       "event loop",
-      "audio learning",
-    ],
+      "audio learning"
+    ]
   },
 
   pricing: {
@@ -528,7 +485,7 @@ export const posthogBrand: BrandConfig = {
   id: "posthog",
   name: "PostHog TAM",
   domain: "posthog-tam.vercel.app",
-  tagline: "Master PostHog. Technically.",
+  tagline: "Practice PostHog technical concepts",
   logoUrl: "/images/logo-firefighter.svg",
   faviconUrl: "/favicon.ico",
   ogImageUrl: "/images/og-firefighter.png",
@@ -586,95 +543,84 @@ export const posthogBrand: BrandConfig = {
 
   landing: {
     hero: {
-      headline: "Master PostHog. Technically.",
-      subheadline:
-        "Technical onboarding for PostHog TAMs — data models, ingestion pipelines, identification, group analytics, and more.",
-      ctaText: "Start Learning",
+      headline: "Practice PostHog technical concepts",
+      subheadline: "Technical study material for PostHog TAMs, including data models, ingestion, and identification.",
+      ctaText: "Create an account"
     },
     features: {
-      heading: "What You'll Master",
-      subheading: "Deep technical fluency with PostHog's core systems.",
+      heading: "What you can study",
+      subheading: "Read or listen to lessons, answer practice questions, and return for review.",
       items: [
         {
-          title: "Data Model Foundations",
-          description:
-            "Learn entities, attributes, keys, and relationships before diving into PostHog specifics.",
-          icon: "Database",
-          wide: true,
+          title: "Data model foundations",
+          description: "Study entities, attributes, keys, and relationships before PostHog-specific topics.",
+          icon: "Database"
         },
         {
-          title: "Ingestion Pipeline Deep-Dive",
-          description:
-            "Understand how events flow from SDKs through Kafka to ClickHouse -- with architecture diagrams.",
-          icon: "Workflow",
+          title: "Ingestion pipeline",
+          description: "Trace events from SDKs through the ingestion pipeline.",
+          icon: "Workflow"
         },
         {
-          title: "Identification Mastery",
-          description:
-            "Anonymous vs identified events, person merging, distinct_id -- the concepts customers struggle with most.",
-          icon: "UserCheck",
+          title: "Identification",
+          description: "Work through anonymous events, identified events, person merging, and distinct IDs.",
+          icon: "UserCheck"
         },
         {
-          title: "Adaptive Learning",
-          description:
-            "AI-driven spaced repetition focuses on your weak areas. 37 concepts, 149 practice problems.",
-          icon: "Brain",
-          wide: true,
-        },
-      ],
+          title: "Practice and review",
+          description: "Answer questions and return to earlier topics when they are due for review.",
+          icon: "Brain"
+        }
+      ]
     },
     howItWorks: {
-      heading: "How It Works",
+      heading: "How it works",
       items: [
         {
-          title: "Take a Diagnostic",
-          description: "Quick assessment identifies what PostHog concepts you already know.",
+          title: "Check your starting point",
+          description: "Answer diagnostic questions to estimate which concepts need practice."
         },
         {
-          title: "Study Adaptively",
-          description: "Lessons build from data modeling fundamentals to PostHog-specific architecture.",
+          title: "Work through the concepts",
+          description: "Study explanations and examples from data modeling to PostHog architecture."
         },
         {
-          title: "Help Customers",
-          description: "Deep technical understanding means faster, better customer conversations.",
-        },
-      ],
+          title: "Apply the material",
+          description: "Use the examples to reason through technical customer questions."
+        }
+      ]
     },
     faq: [
       {
         question: "Who is this for?",
-        answer:
-          "PostHog Technical Account Managers who want deep technical fluency with the product's data model, ingestion pipeline, and identification system.",
+        answer: "PostHog Technical Account Managers who want to study the product data model, ingestion pipeline, and identification system."
       },
       {
         question: "What does it cover?",
-        answer:
-          "8 sections: Data Modeling, Pipelines, PostHog Data Model, Ingestion Pipeline, Identification, Group Analytics, CDP, and Querying.",
+        answer: "The course outline includes data modeling, pipelines, identification, group analytics, CDP, and querying."
       },
       {
         question: "How long does it take?",
-        answer:
-          "Estimated 12 hours total. Study at your own pace -- the adaptive engine adjusts to what you already know.",
-      },
+        answer: "Study time depends on your prior knowledge and how much practice you need. You can return to the course at your own pace."
+      }
     ],
     bottomCta: {
-      headline: "Ready to Start Learning?",
-      subheadline: "Deep technical understanding means faster, better customer conversations.",
-    },
+      headline: "Explore the course",
+      subheadline: "Use explanations and practice questions to check your technical understanding."
+    }
   },
 
   seo: {
-    title: "PostHog TAM Technical Onboarding",
-    description:
-      "Master PostHog's data model, ingestion pipeline, and identification system with adaptive learning.",
+    title: "PostHog TAM technical study material",
+    description: "Study PostHog data models, ingestion, and identification through explanations, examples, and practice questions.",
     keywords: [
       "posthog",
       "technical account manager",
       "onboarding",
       "data model",
       "ingestion pipeline",
-      "analytics",
-    ],
+      "analytics"
+    ]
   },
 
   pricing: {
@@ -693,7 +639,7 @@ export const graspfulBrand: BrandConfig = {
   id: "graspful",
   name: "Graspful",
   domain: "graspful.ai",
-  tagline: "Turn Your Expertise Into a Course Business",
+  tagline: "Build courses with practice and review",
   logoUrl: "/images/logo-graspful.svg",
   faviconUrl: "/favicon.ico",
   ogImageUrl: "/images/og-graspful.png",
@@ -751,130 +697,92 @@ export const graspfulBrand: BrandConfig = {
 
   landing: {
     hero: {
-      headline: "Build courses where students actually learn.",
-      subheadline:
-        "Your expertise. AI's scaffolding. Every course gets adaptive diagnostics, mastery tracking, and spaced review. Launch a live product in minutes, not months.",
-      ctaText: "Start Building Free",
+      headline: "Build a course that responds to each learner.",
+      subheadline: "Turn your source material into lessons, worked examples, and practice questions. Graspful uses learner answers to guide practice and schedule review.",
+      ctaText: "Start a course draft"
     },
     features: {
-      heading: "What we do for you",
-      subheading:
-        "You know what to teach. We make sure students actually learn it.",
+      heading: "From source material to practice",
+      subheading: "Keep the course content in files you can inspect and edit.",
       items: [
         {
-          title: "Adaptive Diagnostics",
-          description:
-            "Every student starts with a diagnostic that maps what they already know. No wasted time. The course reshapes itself around their gaps.",
-          icon: "Brain",
-          wide: true,
+          title: "Author with your agent",
+          description: "Use Claude, Codex, or another agent with the CLI or MCP tools to write a course from your source material. The CLI creates a draft scaffold for you to complete.",
+          icon: "Bot"
         },
         {
-          title: "Fully Automated Learning Paths",
-          description:
-            "The system knows what each student needs and when. No guesswork, no manual sequencing. You build the content once. The algorithm does the rest.",
-          icon: "Bot",
+          title: "Inspect before publishing",
+          description: "Review the lessons, worked examples, answers, and prerequisite graph. Run automated checks to find structural issues before you publish.",
+          icon: "ShieldCheck"
         },
         {
-          title: "Research-Backed Retention",
-          description:
-            "Spaced repetition, mastery gates, prerequisite enforcement. Students retain what they learn instead of cramming and forgetting.",
-          icon: "Network",
-        },
-        {
-          title: "Your Brand, Your Business",
-          description:
-            "Your domain. Your colors. Your pricing. Learners see your brand, not ours.",
-          icon: "Palette",
-          wide: true,
-        },
-        {
-          title: "Free to Build. You Keep 70%.",
-          description:
-            "No upfront costs. No monthly fees. When learners subscribe, you keep 70%. We only make money when you do.",
-          icon: "DollarSign",
-        },
-        {
-          title: "Quality Checks Built In",
-          description:
-            "Automated checks catch duplicate questions, missing explanations, and difficulty gaps before your course goes live.",
-          icon: "ShieldCheck",
-        },
-      ],
+          title: "Guide practice and review",
+          description: "Learner answers update progress estimates. Prerequisites guide lesson order, and review questions return on a schedule.",
+          icon: "Brain"
+        }
+      ]
     },
     howItWorks: {
-      heading: "How It Works",
+      heading: "How it works",
       items: [
         {
-          title: "Describe What You Want to Teach",
-          description:
-            "Pick your topic. Upload your notes, study guide, or exam outline. AI turns it into a structured course with practice problems.",
+          title: "Start with source material",
+          description: "Give your notes or course outline to your external agent. Use Graspful tools to create a YAML draft and add the lessons and practice questions."
         },
         {
-          title: "Review and Customize",
-          description:
-            "Check the content. Edit anything. Quality checks run automatically to catch issues before launch.",
+          title: "Review the course",
+          description: "Check the facts and answer explanations against your sources. Run validation and quality checks, then fix the findings."
         },
         {
-          title: "Publish and Earn",
-          description:
-            "Your course goes live with its own landing page and billing. Learners subscribe. You get paid.",
-        },
-      ],
+          title: "Import, then publish",
+          description: "Import the reviewed files as a draft. Inspect the result and publish when it is ready for learners."
+        }
+      ]
     },
     faq: [
       {
         question: "What is Graspful?",
-        answer:
-          "Graspful is a course creation platform. You describe what you want to teach, AI builds the course, and you get a live product with its own landing page, billing, and adaptive learning. You earn 70% of every subscription.",
+        answer: "Graspful lets you publish courses with lessons, practice questions, prerequisite tracking, and scheduled review. Course content is stored in YAML files and managed through a CLI or MCP tools."
       },
       {
-        question: "Do I need to be technical?",
-        answer:
-          "No. If you can use ChatGPT, you can use Graspful. Describe your topic, review what AI creates, and publish. No coding, no design skills required.",
+        question: "How is the course written?",
+        answer: "You or your external agent, such as Claude or Codex, write the course from source material. Graspful tools create draft scaffolds, validate the files, and import them. Review the content before publishing."
       },
       {
-        question: "How does billing work?",
-        answer:
-          "Free to create courses. When learners subscribe on your landing page, Graspful collects payment and sends you 70%. No upfront costs, no monthly fees.",
+        question: "What setup do I need?",
+        answer: "You need an agent that can run CLI commands or use MCP tools. The quickstart explains tool setup, account registration, and the draft-to-publish workflow."
       },
       {
-        question: "What makes this different from Udemy or Teachable?",
-        answer:
-          "Adaptive learning. Students get personalized paths, spaced review, and mastery tracking. Not just a video playlist. Plus AI builds the course for you, so you can launch in minutes instead of months.",
+        question: "Can I sell a course yet?",
+        answer: "Paid subscriptions and creator payouts are not available yet. Billing setup and verification are required before accepting payments."
       },
       {
-        question: "Can I use my own domain?",
-        answer:
-          "Yes. Your learners see your brand, your domain, your colors. Graspful is invisible.",
+        question: "Can I use my own branding?",
+        answer: "A brand configuration controls the course landing page, colors, and copy. A custom domain also requires domain and hosting configuration."
       },
       {
-        question: "How do students learn on Graspful courses?",
-        answer:
-          "Every course uses adaptive diagnostics, prerequisite tracking, and spaced repetition. Students focus on what they don't know yet, and the system schedules reviews so they don't forget.",
-      },
+        question: "How do students learn?",
+        answer: "Students answer diagnostic questions, work through lessons and examples, and answer practice questions. Their answers update progress estimates and help schedule later review."
+      }
     ],
     bottomCta: {
-      headline: "Build your first course today",
-      subheadline: "Free to create. You earn 70% when learners subscribe.",
-    },
+      headline: "Start with one course draft",
+      subheadline: "Bring a source document and an agent. Follow the quickstart to build, review, and import your first draft."
+    }
   },
 
   seo: {
-    title: "Graspful: Turn Your Expertise Into a Course Business",
-    description:
-      "Create and sell adaptive online courses with AI. You describe what to teach, AI builds the course. Learners get personalized paths, spaced review, and mastery tracking. Free to create. You earn 70%.",
+    title: "Graspful: Build courses with practice and review",
+    description: "Create courses from source material with your agent and Graspful CLI or MCP tools. Review and publish lessons with practice questions and scheduled review.",
     keywords: [
-      "create online course",
-      "sell courses online",
-      "course creation platform",
+      "course creation",
       "adaptive learning",
-      "monetize expertise",
-      "build a course business",
-      "online course platform",
-      "certification prep",
-      "ai course builder",
-      "spaced repetition",
-    ],
+      "practice questions",
+      "course authoring",
+      "CLI",
+      "MCP",
+      "spaced repetition"
+    ]
   },
 
   pricing: {

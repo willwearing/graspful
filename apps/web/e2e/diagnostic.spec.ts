@@ -1,165 +1,146 @@
+import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
-import { test, expect } from "@playwright/test";
-import {
-  getSupabaseUserIdByEmail,
-  POSTHOG_TEST_BRAND_ID,
-  signUpBrandedTestUser,
-} from "./helpers/auth";
+import { test, expect, type Page } from "@playwright/test";
+import { getSupabaseUserIdByEmail, signUpAsCreator } from "./helpers/auth";
 
-const ORG_SLUG = "posthog-tam";
-const COURSE_NAME = "PostHog TAM Technical Onboarding";
 const prisma = new PrismaClient();
+const orgId = randomUUID();
+const orgSlug = `e2e-diagnostic-${orgId}`;
+const academySlug = "arithmetic";
+const diagnosticHref = `/learn/${orgSlug}/academies/${academySlug}/diagnostic`;
 
-async function grantLearnerMembership(email: string) {
-  const userId = await getSupabaseUserIdByEmail(email);
-  const org = await prisma.organization.findUnique({
-    where: { slug: ORG_SLUG },
-    select: { id: true },
-  });
-
-  if (!org) {
-    throw new Error(`Organization ${ORG_SLUG} not found`);
+function requireLocalDatabase() {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl || !["localhost", "127.0.0.1", "[::1]"].includes(new URL(databaseUrl).hostname)) {
+    throw new Error("Diagnostic fixtures require a local DATABASE_URL");
   }
-
-  await prisma.orgMembership.upsert({
-    where: { orgId_userId: { orgId: org.id, userId } },
-    update: {},
-    create: {
-      orgId: org.id,
-      userId,
-      role: "member",
-    },
-  });
 }
 
-async function getDiagnosticCourseId(): Promise<string> {
-  const org = await prisma.organization.findUnique({
-    where: { slug: ORG_SLUG },
-    select: {
-      courses: {
-        where: { name: COURSE_NAME },
-        select: { id: true },
-        take: 1,
-      },
-    },
+async function expectQuestion(page: Page, number: number) {
+  await expect(page.getByRole("heading", { name: "Diagnostic Assessment" })).toBeVisible({
+    timeout: 15_000,
   });
-
-  const courseId = org?.courses[0]?.id;
-  if (!courseId) {
-    throw new Error(`Course ${COURSE_NAME} not found`);
-  }
-
-  return courseId;
+  await expect(page.getByText(`Question ${number} of ~3`, { exact: true })).toBeVisible();
+  await expect(page.getByRole("radiogroup")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Diagnostic Unavailable" })).toHaveCount(0);
 }
 
-/**
- * Answer whatever diagnostic question is on screen.
- * Works across all problem types (multiple choice, true/false, etc.)
- * by using the "I don't know" escape hatch when a simple click path isn't available.
- */
-async function answerCurrentQuestion(page: import("@playwright/test").Page) {
-  const mcOption = page.locator("button.rounded-lg.border-2").first();
-  const submitBtn = page.getByRole("button", { name: "Submit Answer" });
-
-  if (await mcOption.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await mcOption.click();
-    if (await submitBtn.isVisible({ timeout: 500 }).catch(() => false)) {
-      await submitBtn.click();
-      return;
-    }
-  }
-
-  const trueBtn = page.getByRole("button", { name: "True" });
-  if (await trueBtn.isVisible({ timeout: 500 }).catch(() => false)) {
-    await trueBtn.click();
-    return;
-  }
-
-  await page.getByRole("button", { name: "I don't know this yet" }).click();
-}
-
-async function expectDiagnosticOrUnavailable(
-  page: import("@playwright/test").Page,
-): Promise<boolean> {
-  // Wait for either "Diagnostic Assessment" or "Diagnostic Unavailable" to appear
-  const diagnosticText = page.getByText("Diagnostic Assessment");
-  const unavailableText = page.getByText("Diagnostic Unavailable");
-
-  await expect(diagnosticText.or(unavailableText)).toBeVisible({ timeout: 15_000 });
-
-  return diagnosticText.isVisible().catch(() => false);
+async function answerCurrentQuestion(page: Page) {
+  await page.getByRole("radio", { name: "4", exact: true }).click();
+  await page.getByRole("button", { name: "Submit Answer", exact: true }).click();
 }
 
 test.describe("Diagnostic flow", () => {
-  let academyId: string;
+  test.beforeAll(async () => {
+    requireLocalDatabase();
+    // Three independent concepts guarantee another question after one answer.
+    // Each run owns its content so missing or changed demo seeds cannot hide a failure.
+    await prisma.organization.create({
+      data: {
+        id: orgId,
+        slug: orgSlug,
+        name: "Diagnostic test academy",
+        niche: "education",
+        academies: {
+          create: {
+            slug: academySlug,
+            name: "Arithmetic diagnostic",
+            courses: {
+              create: {
+                orgId,
+                slug: "arithmetic-basics",
+                name: "Arithmetic basics",
+                isPublished: true,
+                concepts: {
+                  create: ["2 + 2", "6 - 2", "2 × 2"].map((expression, index) => ({
+                    orgId,
+                    slug: `operation-${index}`,
+                    name: `Arithmetic operation ${index + 1}`,
+                    sortOrder: index,
+                    knowledgePoints: {
+                      create: {
+                        slug: "calculate",
+                        instructionText: `Calculate ${expression}. The result is 4.`,
+                        workedExampleText: `${expression} = 4.`,
+                        problems: {
+                          create: {
+                            authoredId: `operation-${index}-question`,
+                            type: "multiple_choice",
+                            questionText: `What is ${expression}?`,
+                            options: ["4", "3", "5", "6"],
+                            correctAnswer: 0,
+                            explanation: `${expression} = 4.`,
+                          },
+                        },
+                      },
+                    },
+                  })),
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  });
 
   test.beforeEach(async ({ page }) => {
-    const email = await signUpBrandedTestUser(page, POSTHOG_TEST_BRAND_ID);
-    await grantLearnerMembership(email);
-    const courseId = await getDiagnosticCourseId();
-    const course = await prisma.course.findUnique({
-      where: { id: courseId },
-      select: { academyId: true },
-    });
-
-    if (!course?.academyId) {
-      throw new Error(`Course ${COURSE_NAME} is not attached to an academy`);
-    }
-
-    academyId = course.academyId;
+    const email = await signUpAsCreator(page);
+    const userId = await getSupabaseUserIdByEmail(email);
+    await prisma.orgMembership.create({ data: { orgId, userId, role: "member" } });
   });
 
   test.afterAll(async () => {
+    requireLocalDatabase();
+    await prisma.organization.deleteMany({ where: { id: orgId } });
     await prisma.$disconnect();
   });
 
   test("diagnostic loads and shows question 1", async ({ page }) => {
-    await page.goto(`/academy/${academyId}/diagnostic`);
-
-    const hasDiagnostic = await expectDiagnosticOrUnavailable(page);
-    if (!hasDiagnostic) return;
-
-    await expect(page.getByText("Question 1 of")).toBeVisible({ timeout: 10_000 });
+    await page.goto(diagnosticHref);
+    await expectQuestion(page, 1);
     await expect(page.getByRole("button", { name: "I don't know this yet" })).toBeVisible();
   });
 
   test("answering a question advances to the next", async ({ page }) => {
-    await page.goto(`/academy/${academyId}/diagnostic`);
-    const hasDiagnostic = await expectDiagnosticOrUnavailable(page);
-    if (!hasDiagnostic) return;
-
-    await expect(page.getByText("Question 1 of")).toBeVisible({ timeout: 10_000 });
-
+    await page.goto(diagnosticHref);
+    await expectQuestion(page, 1);
     await answerCurrentQuestion(page);
-
-    await expect(page.getByText("Question 2 of")).toBeVisible({ timeout: 10_000 });
+    await expectQuestion(page, 2);
   });
 
   test("session resumes after page reload", async ({ page }) => {
-    await page.goto(`/academy/${academyId}/diagnostic`);
-    const hasDiagnostic = await expectDiagnosticOrUnavailable(page);
-    if (!hasDiagnostic) return;
-
-    await expect(page.getByText("Question 1 of")).toBeVisible({ timeout: 10_000 });
-
+    await page.goto(diagnosticHref);
+    await expectQuestion(page, 1);
     await answerCurrentQuestion(page);
-    await expect(page.getByText("Question 2 of")).toBeVisible({ timeout: 10_000 });
+    await expectQuestion(page, 2);
 
+    const question = await page.getByText(/^What is /).textContent();
     await page.reload();
 
-    await expect(page.getByText("Question 2 of")).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText("Question 1 of")).not.toBeVisible();
+    await expectQuestion(page, 2);
+    await expect(page.getByText(/^What is /)).toHaveText(question!);
+    await expect(page.getByText("Question 1 of ~3", { exact: true })).toHaveCount(0);
   });
 
   test("'I don't know' advances to next question", async ({ page }) => {
-    await page.goto(`/academy/${academyId}/diagnostic`);
-    const hasDiagnostic = await expectDiagnosticOrUnavailable(page);
-    if (!hasDiagnostic) return;
-
-    await expect(page.getByText("Question 1 of")).toBeVisible({ timeout: 10_000 });
-
+    await page.goto(diagnosticHref);
+    await expectQuestion(page, 1);
     await page.getByRole("button", { name: "I don't know this yet" }).click();
+    await expectQuestion(page, 2);
+  });
 
-    await expect(page.getByText("Question 2 of")).toBeVisible({ timeout: 10_000 });
+  test("completing the diagnostic shows the recorded results", async ({ page }) => {
+    await page.goto(diagnosticHref);
+    for (let number = 1; number <= 3; number += 1) {
+      await expectQuestion(page, number);
+      await page.getByRole("button", { name: "I don't know this yet" }).click();
+    }
+
+    await expect(page.getByRole("heading", { name: "Diagnostic Complete" })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText("You answered 3 questions across 3 concepts.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Go to Academy" })).toBeVisible();
   });
 });

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { StudentStateService } from '@/student-model/student-state.service';
 import {
@@ -38,8 +39,15 @@ export class FireUpdateService {
     passed: boolean,
     quality: number,
     academyId?: string,
+    tx?: Prisma.TransactionClient,
   ): Promise<void> {
-    const state = await this.studentState.getConceptState(userId, conceptId);
+    if (!tx) {
+      return this.runTransaction((client) =>
+        this.updateAfterReview(userId, conceptId, passed, quality, academyId, client),
+      );
+    }
+
+    const state = await this.studentState.getConceptState(userId, conceptId, tx);
 
     if (!state) return;
 
@@ -57,11 +65,11 @@ export class FireUpdateService {
       memory: newMemory,
       interval: newInterval,
       lastPracticedAt: new Date(),
-    });
+    }, tx);
 
     // Propagate implicit repetition if academyId is provided
     if (academyId) {
-      await this.propagateImplicitRepetition(userId, conceptId, rawDelta, academyId);
+      await this.propagateImplicitRepetition(userId, conceptId, rawDelta, academyId, tx);
     }
   }
 
@@ -79,9 +87,16 @@ export class FireUpdateService {
     practicedConceptId: string,
     rawDelta: number,
     academyId: string,
+    tx?: Prisma.TransactionClient,
   ): Promise<void> {
+    if (!tx) {
+      return this.runTransaction((client) =>
+        this.propagateImplicitRepetition(userId, practicedConceptId, rawDelta, academyId, client),
+      );
+    }
+
     // Fetch encompassing edges across all courses in this academy
-    const edges = await this.prisma.encompassingEdge.findMany({
+    const edges = await tx.encompassingEdge.findMany({
       where: activeEncompassingEdgeWhereAcademy(academyId),
       select: {
         sourceConceptId: true,
@@ -95,7 +110,7 @@ export class FireUpdateService {
     const encompassingLinks: EncompassingLink[] = edges;
 
     // Get all concept speeds for this student across all courses in this academy
-    const conceptStates = await this.studentState.getConceptStatesForFIRe(userId, academyId);
+    const conceptStates = await this.studentState.getConceptStatesForFIRe(userId, academyId, tx);
 
     const speedMap = new Map<string, number>(
       conceptStates.map((s) => [s.conceptId, s.speed]),
@@ -127,8 +142,27 @@ export class FireUpdateService {
           repNum: newRepNum,
           memory: newMemory,
           interval: calculateNextInterval(newRepNum),
-        });
+        }, tx);
       }),
     );
   }
+
+  private async runTransaction(
+    work: (tx: Prisma.TransactionClient) => Promise<void>,
+  ): Promise<void> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await this.prisma.$transaction(work, {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        });
+        return;
+      } catch (error) {
+        // Retry from fresh concept states after a concurrent practice update.
+        if (attempt >= 2 || (error as { code?: string })?.code !== 'P2034') {
+          throw error;
+        }
+      }
+    }
+  }
+
 }

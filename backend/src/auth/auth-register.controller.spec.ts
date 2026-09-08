@@ -68,6 +68,7 @@ describe('RegistrationService', () => {
       mockApiKeyService,
       mockConfig,
       mockVercelDomains,
+      { recordAccountCreated: jest.fn() } as any,
     );
 
     // Override the supabase client's admin API

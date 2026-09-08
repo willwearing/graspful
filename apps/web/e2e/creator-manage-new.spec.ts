@@ -9,26 +9,25 @@ async function signUpAndNavigateToManage(
   await page.waitForURL(/\/creator\/manage/, { timeout: 10_000 });
 }
 
-test.describe("Creator Manage — New Course", () => {
+test.describe("Creator Manage — New course", () => {
   test.beforeEach(async ({ page }) => {
     await signUpAndNavigateToManage(page);
   });
 
-  test("page heading says New Course", async ({ page }) => {
+  test("page heading says New course", async ({ page }) => {
     await expect(
-      page.getByRole("heading", { name: "New Course" })
+      page.getByRole("heading", { name: "New course" })
     ).toBeVisible();
     await expect(
       page.getByText(
-        "Define your brand and course content as YAML, then import to the platform."
+        "Fill the course draft with source material, teaching, and questions, then import it."
       )
     ).toBeVisible();
   });
 
-  test("Monaco editor loads with Brand Config tab active", async ({ page }) => {
-    // Brand Config tab should be selected by default
-    const brandTab = page.getByRole("tab", { name: "Brand Config" });
-    await expect(brandTab).toBeVisible({ timeout: 10_000 });
+  test("Monaco editor loads with Course content tab active", async ({ page }) => {
+    const courseTab = page.getByRole("tab", { name: "Course content" });
+    await expect(courseTab).toHaveAttribute("aria-selected", "true");
 
     // Monaco editor container should be visible
     // Monaco is loaded dynamically — wait for it
@@ -37,12 +36,12 @@ test.describe("Creator Manage — New Course", () => {
     ).toBeVisible({ timeout: 15_000 });
   });
 
-  test("two tabs exist: Brand Config and Course Content", async ({ page }) => {
+  test("two tabs exist: Brand settings and Course content", async ({ page }) => {
     await expect(
-      page.getByRole("tab", { name: "Brand Config" })
+      page.getByRole("tab", { name: "Brand settings" })
     ).toBeVisible();
     await expect(
-      page.getByRole("tab", { name: "Course Content" })
+      page.getByRole("tab", { name: "Course content" })
     ).toBeVisible();
   });
 
@@ -52,24 +51,24 @@ test.describe("Creator Manage — New Course", () => {
       page.locator(".monaco-editor").first()
     ).toBeVisible({ timeout: 15_000 });
 
-    // Click Course Content tab
-    await page.getByRole("tab", { name: "Course Content" }).click();
+    // Click Course content tab
+    await page.getByRole("tab", { name: "Course content" }).click();
 
     // The editor should still be visible (different content loaded)
     await expect(
       page.locator(".monaco-editor").first()
     ).toBeVisible();
 
-    // Switch back to Brand Config
-    await page.getByRole("tab", { name: "Brand Config" }).click();
+    // Switch back to Brand settings
+    await page.getByRole("tab", { name: "Brand settings" }).click();
     await expect(
       page.locator(".monaco-editor").first()
     ).toBeVisible();
   });
 
-  test("Import to Platform button exists", async ({ page }) => {
+  test("Import draft button exists", async ({ page }) => {
     await expect(
-      page.getByRole("button", { name: /Import to Platform/i })
+      page.getByRole("button", { name: /Import draft/i })
     ).toBeVisible();
   });
 
@@ -80,7 +79,7 @@ test.describe("Creator Manage — New Course", () => {
   });
 
   test("agent callout box is visible", async ({ page }) => {
-    await expect(page.getByText("Prefer using AI?")).toBeVisible();
+    await expect(page.getByText("Edit with your agent")).toBeVisible();
     await expect(
       page.getByText("npx @graspful/cli init")
     ).toBeVisible();

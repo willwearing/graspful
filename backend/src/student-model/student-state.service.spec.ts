@@ -1,5 +1,6 @@
+import { NotFoundException } from '@nestjs/common';
 import { StudentStateService } from './student-state.service';
-import { activeConceptWhere } from '@/knowledge-graph/active-course-content';
+import { activeConceptWhere, activeSectionWhere } from '@/knowledge-graph/active-course-content';
 
 describe('StudentStateService', () => {
   let service: StudentStateService;
@@ -9,8 +10,12 @@ describe('StudentStateService', () => {
 
   beforeEach(() => {
     mockPrisma = {
+      academy: {
+        findFirst: jest.fn().mockResolvedValue({ orgId: 'org-1', enrollments: [{ id: 'ae-1' }] }),
+      },
       course: {
         findUnique: jest.fn().mockResolvedValue({ academyId }),
+        findFirst: jest.fn(),
       },
       concept: {
         findMany: jest.fn(),
@@ -61,14 +66,14 @@ describe('StudentStateService', () => {
       expect(mockPrisma.studentConceptState.findMany).toHaveBeenNthCalledWith(1, {
         where: {
           userId: 'u1',
-          concept: activeConceptWhere({ course: { academyId } }),
+          concept: activeConceptWhere({ course: { academyId, orgId: 'org-1', archivedAt: null, isPublished: true } }),
         },
         select: { conceptId: true },
       });
       expect(mockPrisma.studentConceptState.findMany).toHaveBeenNthCalledWith(2, {
         where: {
           userId: 'u1',
-          concept: activeConceptWhere({ courseId: 'course-1' }),
+          concept: activeConceptWhere({ courseId: 'course-1', course: { isPublished: true, archivedAt: null } }),
         },
         include: { concept: true },
       });
@@ -253,7 +258,7 @@ describe('StudentStateService', () => {
       expect(mockPrisma.studentConceptState.findMany).toHaveBeenLastCalledWith({
         where: {
           userId: 'u1',
-          concept: activeConceptWhere({ courseId, course: { academyId } }),
+          concept: activeConceptWhere({ courseId, course: { academyId, isPublished: true, archivedAt: null } }),
         },
         include: { concept: true },
       });
@@ -321,4 +326,74 @@ describe('StudentStateService', () => {
       });
     });
   });
+
+  describe('assessment access', () => {
+    it('binds enrollment, organization, course, and active concept in one read', async () => {
+      mockPrisma.course.findFirst = jest.fn().mockResolvedValue({ academyId });
+      await expect(service.assertAssessmentAccess('u1', 'org-1', courseId, 'concept-1')).resolves.toEqual({ academyId });
+      const { where } = mockPrisma.course.findFirst.mock.calls[0][0];
+      expect(where).toMatchObject({
+        id: courseId, orgId: 'org-1', archivedAt: null, isPublished: true,
+        org: { isActive: true },
+        academy: { orgId: 'org-1', archivedAt: null },
+        OR: [
+          { enrollments: { some: { userId: 'u1' } } },
+          { academy: { enrollments: { some: { userId: 'u1' } } } },
+        ],
+        concepts: { some: activeConceptWhere({ id: 'concept-1' }) },
+      });
+    });
+
+    it('binds an exam section to the enrolled course', async () => {
+      mockPrisma.course.findFirst = jest.fn().mockResolvedValue({ academyId });
+      await service.assertAssessmentAccess('u1', 'org-1', courseId, undefined, 'section-1');
+      const { where } = mockPrisma.course.findFirst.mock.calls[0][0];
+      expect(where.sections.some).toEqual(activeSectionWhere({ id: 'section-1' }));
+    });
+
+    it('rejects a missing scoped enrollment or inactive content', async () => {
+      mockPrisma.course.findFirst = jest.fn().mockResolvedValue(null);
+      await expect(service.assertAssessmentAccess('u1', 'org-1', courseId)).rejects.toThrow(NotFoundException);
+    });
+
+    it('rejects an unpublished course even when the learner is enrolled in its academy', async () => {
+      mockPrisma.course.findFirst.mockImplementation(({ where }: any) =>
+        Promise.resolve(where.isPublished === true ? null : { academyId }),
+      );
+
+      await expect(service.assertAssessmentAccess('u1', 'org-1', courseId))
+        .rejects.toThrow(NotFoundException);
+      expect(mockPrisma.studentConceptState.createMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('academy access', () => {
+    it('binds the academy and enrollment to an active organization', async () => {
+      mockPrisma.academy.findFirst.mockResolvedValue({ id: academyId, orgId: 'org-1' });
+
+      await expect(service.assertAcademyAccess('u1', 'org-1', academyId))
+        .resolves.toEqual({ id: academyId, orgId: 'org-1' });
+      expect(mockPrisma.academy.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: academyId,
+          orgId: 'org-1',
+          archivedAt: null,
+          org: { isActive: true },
+          enrollments: { some: { userId: 'u1' } },
+        },
+        select: { id: true, orgId: true },
+      });
+    });
+
+    it('rejects missing scoped academy enrollment without reading or creating states', async () => {
+      mockPrisma.academy.findFirst.mockResolvedValue(null);
+
+      await expect(service.assertAcademyAccess('u1', 'other-org', academyId))
+        .rejects.toThrow(NotFoundException);
+      expect(mockPrisma.concept.findMany).not.toHaveBeenCalled();
+      expect(mockPrisma.studentConceptState.findMany).not.toHaveBeenCalled();
+      expect(mockPrisma.studentConceptState.createMany).not.toHaveBeenCalled();
+    });
+  });
+
 });

@@ -9,10 +9,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: "Pricing",
-    description: `Plans and pricing for ${brand.name}. Free to create courses. 70/30 revenue share when learners pay.`,
+    description: `Plans and pricing for ${brand.name}. Free account access and current billing availability.`,
     openGraph: {
       title: `Pricing: ${brand.name}`,
-      description: `Free to create. 70/30 revenue share when learners pay. Plans and pricing for ${brand.name}.`,
+      description: `Create a free account. Paid subscriptions are not available yet. Plans and pricing for ${brand.name}.`,
       url,
       images: brand.ogImageUrl
         ? [
@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
     twitter: {
       card: "summary_large_image",
       title: `Pricing: ${brand.name}`,
-      description: `Free to create. 70/30 revenue share when learners pay.`,
+      description: `Create a free account. Paid subscriptions are not available yet.`,
       images: brand.ogImageUrl ? [brand.ogImageUrl] : [],
     },
     alternates: {

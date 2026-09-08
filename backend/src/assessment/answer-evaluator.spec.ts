@@ -192,3 +192,17 @@ describe('Answer Evaluator', () => {
     });
   });
 });
+
+
+describe('legacy matching answer representation', () => {
+  const options = [' Alpha | One ', 'Beta|Two', 'Gamma|Two'];
+
+  it('grades the same label map used by the UI after resolving legacy indices', () => {
+    expect(evaluateAnswer('matching', { Alpha: 'Two', Beta: 'One', Gamma: 'Two' }, '1,0,2', undefined, options).correct).toBe(true);
+    expect(evaluateAnswer('matching', { Alpha: 'One', Beta: 'Two', Gamma: 'Two' }, '1,0,2', undefined, options).correct).toBe(false);
+  });
+
+  it.each(['0,1,999', '0,0,2', '0,1', '0,1,bad', '0,1,2extra'])('rejects invalid legacy permutation %s', (correctAnswer) => {
+    expect(evaluateAnswer('matching', { Alpha: 'One', Beta: 'Two', Gamma: 'Two' }, correctAnswer, undefined, options).correct).toBe(false);
+  });
+});

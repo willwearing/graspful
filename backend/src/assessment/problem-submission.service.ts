@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { createHash, randomUUID } from 'node:crypto';
 import { PrismaService } from '@/prisma/prisma.service';
 import { FireUpdateService } from '@/spaced-repetition/fire-update.service';
 import { calculateRawDelta } from '@/spaced-repetition/fire-equations';
@@ -9,6 +11,7 @@ import { calculateXP, ActivityType } from './xp-calculator';
 import { updateSpeed, deriveSpeed, blendSpeed, SpeedState, ConceptParams } from './speed-updater';
 import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
 import { SectionExamService } from './section-exam.service';
+import { AssessmentScopeService } from './assessment-scope.service';
 import {
   selectNextKPProblem,
   type ProblemBankEntry,
@@ -27,8 +30,38 @@ import {
 
 const logger = getLogger('assessment');
 
+interface SubmissionReceipt {
+  kind: 'problem_answer';
+  version: 1;
+  requestHash: string;
+  result: SubmitAnswerResult;
+}
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value !== null && typeof value === 'object') {
+    return `{${Object.entries(value).sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`).join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'null';
+}
+
+function submissionAttemptId(userId: string, requestId: string): string {
+  const bytes = createHash('sha256').update(JSON.stringify([
+    'graspful-problem-submission', userId, requestId,
+  ])).digest().subarray(0, 16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x80;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytes.toString('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export interface SubmitAnswerInput {
+  requestId?: string;
   userId: string;
+  orgId: string;
+  courseId: string;
+  conceptId: string;
   problemId: string;
   answer: unknown;
   responseTimeMs: number;
@@ -92,17 +125,70 @@ export class ProblemSubmissionService {
     private sectionExamService: SectionExamService,
     private studentState: StudentStateService,
     private remediationService: RemediationService,
+    private scope: AssessmentScopeService,
   ) {}
 
   async submitAnswer(input: SubmitAnswerInput): Promise<SubmitAnswerResult> {
-    const { userId, problemId, answer, responseTimeMs, activityType } = input;
-
-    if (responseTimeMs <= 0) {
+    if (!Number.isInteger(input.responseTimeMs) || input.responseTimeMs <= 0) {
       throw new BadRequestException('Response time must be positive');
     }
+    await this.scope.assertConcept(input.orgId, input.userId, input.courseId, input.conceptId);
+
+    const requestId = input.requestId ?? randomUUID();
+    const attemptId = submissionAttemptId(input.userId, requestId);
+    const requestHash = createHash('sha256').update(canonicalJson({
+      ...input,
+      requestId,
+      seenProblemIds: input.seenProblemIds ?? [],
+      workedExampleReopenedKPIds: input.workedExampleReopenedKPIds ?? [],
+    })).digest('hex');
+
+    let result: SubmitAnswerResult;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        result = await this.prisma.$transaction(async (tx) => {
+          const existing = await tx.problemAttempt.findUnique({ where: { id: attemptId } });
+          if (existing) {
+            const receipt = existing.submissionReceipt as unknown as SubmissionReceipt | null;
+            if (existing.userId !== input.userId || existing.problemId !== input.problemId ||
+                receipt?.kind !== 'problem_answer' || receipt.version !== 1 || receipt.requestHash !== requestHash) {
+              throw new ConflictException('This request ID was already used for another answer');
+            }
+            return receipt.result;
+          }
+
+          const result = await this.applyAnswer(input, attemptId, tx);
+          await tx.problemAttempt.update({
+            where: { id: attemptId },
+            data: {
+              xpAwarded: result.xpAwarded,
+              submissionReceipt: { kind: 'problem_answer', version: 1, requestHash, result } as unknown as Prisma.InputJsonValue,
+            },
+          });
+          return result;
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        break;
+      } catch (error) {
+        const code = (error as { code?: string })?.code;
+        if (attempt >= 2 || (code !== 'P2034' && code !== 'P2002')) throw error;
+      }
+    }
+
+    // Section statuses are derived from committed mastery. A failed sync can be
+    // retried with the saved result without applying the answer a second time.
+    await this.sectionExamService.syncSectionStates(input.userId, input.courseId);
+    return result;
+  }
+
+  private async applyAnswer(
+    input: SubmitAnswerInput,
+    attemptId: string,
+    tx: Prisma.TransactionClient,
+  ): Promise<SubmitAnswerResult> {
+    const { userId, problemId, answer, responseTimeMs, activityType } = input;
 
     // 1. Fetch the problem with its KP and concept
-    const problem = await this.prisma.problem.findUnique({
+    const problem = await tx.problem.findUnique({
       where: { id: problemId },
       include: {
         knowledgePoint: {
@@ -132,8 +218,26 @@ export class ProblemSubmissionService {
     const kp = problem.knowledgePoint;
     const concept = kp.concept;
 
-    if (problem.isArchived || kp.isArchived || concept.isArchived || concept.section?.isArchived) {
+    if (problem.isArchived || kp.isArchived || concept.isArchived || concept.section?.isArchived ||
+        concept.id !== input.conceptId || concept.courseId !== input.courseId) {
       throw new NotFoundException(`Problem ${problemId} not found`);
+    }
+
+    // Resolve enrollment before creating an attempt or touching the learner model.
+    if (!await this.studentState.getConceptState(userId, concept.id, tx)) {
+      throw new NotFoundException('Enrollment state not found');
+    }
+    if (activityType === 'lesson') {
+      if (concept.sectionId) {
+        const sectionState = await this.studentState.getSectionState(userId, concept.sectionId, tx);
+        if (sectionState?.status === 'locked') {
+          throw new BadRequestException('Complete the previous section exam first');
+        }
+      }
+      const blockedIds = await this.remediationService.getBlockedConceptIdsForCourse(userId, input.courseId, tx);
+      if (blockedIds.has(concept.id)) {
+        throw new BadRequestException('Complete prerequisite reviews first');
+      }
     }
 
     // 2. Evaluate the answer
@@ -146,7 +250,7 @@ export class ProblemSubmissionService {
     );
 
     // 3. Get current attempt count for this user+KP to determine attempt number
-    const currentKPState = await this.studentState.getKPState(userId, kp.id);
+    const currentKPState = await this.studentState.getKPState(userId, kp.id, tx);
 
     const attemptNumber = (currentKPState?.attempts ?? 0) + 1;
 
@@ -160,11 +264,12 @@ export class ProblemSubmissionService {
     });
 
     // 5. Create ProblemAttempt record
-    await this.prisma.problemAttempt.create({
+    await tx.problemAttempt.create({
       data: {
+        id: attemptId,
         userId,
         problemId,
-        answer: answer as any,
+        answer: answer as Prisma.InputJsonValue,
         correct: evaluation.correct,
         responseTimeMs,
         xpAwarded: xpResult.xp,
@@ -178,6 +283,7 @@ export class ProblemSubmissionService {
       kp.id,
       evaluation.correct,
       sessionIdNow,
+      tx,
     );
 
     // Slice 3 — after a miss, check whether this KP has plateaued across
@@ -185,7 +291,7 @@ export class ProblemSubmissionService {
     if (!evaluation.correct && kpKeyPrereqConceptId) {
       const academyId = concept.course?.academyId;
       if (academyId) {
-        const refreshed = await this.prisma.studentKPState.findUnique({
+        const refreshed = await tx.studentKPState.findUnique({
           where: {
             userId_knowledgePointId: {
               userId,
@@ -209,33 +315,20 @@ export class ProblemSubmissionService {
           keyPrerequisiteConceptId: kpKeyPrereqConceptId,
         });
         if (plateaued) {
-          try {
-            await this.remediationService.createRemediation(
-              userId,
-              academyId,
-              concept.id,
-              kpKeyPrereqConceptId,
-              concept.courseId,
-            );
-          } catch (err) {
-            logger.emit({
-              severityNumber: SeverityNumber.WARN,
-              severityText: 'WARN',
-              body: 'Failed to create KP-plateau remediation',
-              attributes: {
-                'user.id': userId,
-                'concept.id': concept.id,
-                'kp.id': kp.id,
-                error: String(err),
-              },
-            });
-          }
+          await this.remediationService.createRemediation(
+            userId,
+            academyId,
+            concept.id,
+            kpKeyPrereqConceptId,
+            concept.courseId,
+            tx,
+          );
         }
       }
     }
 
     // Capture pre-update memory for implicit repetition delta
-    const preUpdateMemory = await this.studentState.getConceptMemory(userId, concept.id);
+    const preUpdateMemory = await this.studentState.getConceptMemory(userId, concept.id, tx);
 
     // 7. Update StudentConceptState (mastery transitions + speed)
     const updatedMasteryState = await this.updateConceptState(
@@ -245,6 +338,8 @@ export class ProblemSubmissionService {
       evaluation.correct,
       responseTimeMs,
       concept,
+      activityType !== 'review',
+      tx,
     );
 
     // 8. Record XP event (handles enrollment update + daily cap + streak tracking)
@@ -257,7 +352,8 @@ export class ProblemSubmissionService {
         source: activityType === 'lesson' ? 'lesson' : 'review',
         amount: xpResult.xp,
         conceptId: concept.id,
-      });
+        idempotencyKey: `problem-attempt:${attemptId}`,
+      }, tx);
       xpResult.xp = recorded.amount; // May be clamped by daily cap
     }
 
@@ -273,36 +369,22 @@ export class ProblemSubmissionService {
         concept.id,
         implicitRawDelta,
         academyId,
+        tx,
       );
     }
-
-    await this.sectionExamService.syncSectionStates(userId, concept.courseId);
 
     // Slice 1 — compute KP-level "more practice" hint for lesson submissions.
     let nextProblemHint: NextProblemHint | null = null;
     if (activityType === 'lesson') {
-      try {
-        nextProblemHint = await this.computeNextProblemHint({
-          userId,
-          conceptId: concept.id,
-          currentKPId: kp.id,
-          lastProblemId: problemId,
-          lastAnswerCorrect: evaluation.correct,
-          seenProblemIds: input.seenProblemIds ?? [],
-          workedExampleReopenedKPIds: input.workedExampleReopenedKPIds ?? [],
-        });
-      } catch (err) {
-        logger.emit({
-          severityNumber: SeverityNumber.WARN,
-          severityText: 'WARN',
-          body: 'Failed to compute next problem hint',
-          attributes: {
-            'user.id': userId,
-            'problem.id': problemId,
-            error: String(err),
-          },
-        });
-      }
+      nextProblemHint = await this.computeNextProblemHint({
+        userId,
+        conceptId: concept.id,
+        currentKPId: kp.id,
+        lastProblemId: problemId,
+        lastAnswerCorrect: evaluation.correct,
+        seenProblemIds: input.seenProblemIds ?? [],
+        workedExampleReopenedKPIds: input.workedExampleReopenedKPIds ?? [],
+      }, tx);
     }
 
     logger.emit({
@@ -347,8 +429,8 @@ export class ProblemSubmissionService {
     lastAnswerCorrect: boolean;
     seenProblemIds: string[];
     workedExampleReopenedKPIds: string[];
-  }): Promise<NextProblemHint | null> {
-    const kps = await this.prisma.knowledgePoint.findMany({
+  }, tx: Prisma.TransactionClient): Promise<NextProblemHint | null> {
+    const kps = await tx.knowledgePoint.findMany({
       where: activeKnowledgePointWhere({ conceptId: args.conceptId }),
       orderBy: { sortOrder: 'asc' },
       select: {
@@ -364,7 +446,7 @@ export class ProblemSubmissionService {
 
     if (kps.length === 0) return null;
 
-    const kpStates = await this.prisma.studentKPState.findMany({
+    const kpStates = await tx.studentKPState.findMany({
       where: {
         userId: args.userId,
         knowledgePointId: { in: kps.map((kp) => kp.id) },
@@ -424,9 +506,10 @@ export class ProblemSubmissionService {
     userId: string,
     knowledgePointId: string,
     correct: boolean,
-    sessionId?: string,
+    sessionId: string,
+    tx: Prisma.TransactionClient,
   ) {
-    const existing = await this.studentState.getKPState(userId, knowledgePointId);
+    const existing = await this.studentState.getKPState(userId, knowledgePointId, tx);
     const rawExisting = existing as
       | (typeof existing & { firstFailedSessionId?: string | null })
       | null;
@@ -443,6 +526,7 @@ export class ProblemSubmissionService {
           }
         : undefined,
       sessionId,
+      tx,
     );
   }
 
@@ -453,8 +537,10 @@ export class ProblemSubmissionService {
     correct: boolean,
     responseTimeMs: number,
     concept: { difficulty: number; difficultyTheta: number; timeIntensity: number; timeIntensitySD: number },
+    allowMasteryPromotion: boolean,
+    tx: Prisma.TransactionClient,
   ) {
-    const conceptState = await this.studentState.getConceptState(userId, conceptId);
+    const conceptState = await this.studentState.getConceptState(userId, conceptId, tx);
 
     if (!conceptState) {
       throw new NotFoundException(`Student concept state not found for concept ${conceptId}`);
@@ -510,14 +596,14 @@ export class ProblemSubmissionService {
     } else {
       newFailCount = 0;
       // Check if all KPs passed -> mastered
-      const allKPsPassed = await this.checkAllKPsPassed(userId, conceptId);
-      if (allKPsPassed && conceptState.masteryState !== 'mastered') {
+      const allKPsPassed = await this.checkAllKPsPassed(userId, conceptId, tx);
+      if (allowMasteryPromotion && allKPsPassed && conceptState.masteryState !== 'mastered') {
         newMasteryState = 'mastered';
       }
     }
 
     // Slice 2 — decide whether to pause the lesson.
-    const hasUnpassedKPs = !(await this.checkAllKPsPassed(userId, conceptId));
+    const hasUnpassedKPs = !(await this.checkAllKPsPassed(userId, conceptId, tx));
     const pauseNow = shouldPauseLesson({
       sessionFailedKPAttempts: nextSessionFailedAttempts,
       hasUnpassedKPs,
@@ -543,7 +629,7 @@ export class ProblemSubmissionService {
       lastPracticedAt: new Date(),
       pausedAtSessionId,
       sessionFailedKPAttempts: nextSessionFailedAttempts,
-    });
+    }, tx);
 
     return newMasteryState;
   }
@@ -551,8 +637,9 @@ export class ProblemSubmissionService {
   private async checkAllKPsPassed(
     userId: string,
     conceptId: string,
+    tx: Prisma.TransactionClient,
   ): Promise<boolean> {
-    const kps = await this.prisma.knowledgePoint.findMany({
+    const kps = await tx.knowledgePoint.findMany({
       where: activeKnowledgePointWhere({ conceptId }),
       select: { id: true },
     });
@@ -562,6 +649,7 @@ export class ProblemSubmissionService {
     const kpStates = await this.studentState.getKPStatesForIds(
       userId,
       kps.map((kp) => kp.id),
+      tx,
     );
 
     return (

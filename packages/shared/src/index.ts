@@ -6,6 +6,7 @@ export * from './types/billing';
 export * from './types/api';
 export * from './schemas';
 export * from './quality-gate';
+export * from './publication';
 export * from './validate';
 export * from './describe';
 export * from './scaffold';

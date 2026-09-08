@@ -12,6 +12,7 @@ import { cliCapture } from '../lib/analytics';
 interface Editor {
   name: string;
   configPath: string;
+  serversKey: 'mcpServers' | 'servers';
 }
 
 function detectEditors(): Editor[] {
@@ -21,31 +22,33 @@ function detectEditors(): Editor[] {
   // Claude Code
   const claudeConfig = path.join(home, '.claude.json');
   if (fs.existsSync(path.join(home, '.claude'))) {
-    editors.push({ name: 'Claude Code', configPath: claudeConfig });
+    editors.push({ name: 'Claude Code', configPath: claudeConfig, serversKey: 'mcpServers' });
   }
 
   // Cursor
   const cursorConfig = path.join(process.cwd(), '.cursor', 'mcp.json');
   if (fs.existsSync(path.join(process.cwd(), '.cursor'))) {
-    editors.push({ name: 'Cursor', configPath: cursorConfig });
+    editors.push({ name: 'Cursor', configPath: cursorConfig, serversKey: 'mcpServers' });
   }
 
   // VS Code Copilot (agent mode)
   const vscodeConfig = path.join(process.cwd(), '.vscode', 'mcp.json');
   if (fs.existsSync(path.join(process.cwd(), '.vscode'))) {
-    editors.push({ name: 'VS Code', configPath: vscodeConfig });
+    editors.push({ name: 'VS Code', configPath: vscodeConfig, serversKey: 'servers' });
   }
 
-  // Windsurf
-  const windsurfConfig = path.join(home, '.windsurf', 'mcp.json');
-  if (fs.existsSync(path.join(home, '.windsurf'))) {
-    editors.push({ name: 'Windsurf', configPath: windsurfConfig });
+  // Windsurf Cascade
+  const windsurfDir = path.join(home, '.codeium', 'windsurf');
+  const windsurfConfig = path.join(windsurfDir, 'mcp_config.json');
+  if (fs.existsSync(windsurfDir)) {
+    editors.push({ name: 'Windsurf (Cascade)', configPath: windsurfConfig, serversKey: 'mcpServers' });
   }
 
   return editors;
 }
 
-function writeMcpConfig(configPath: string, apiKey: string, userId?: string): void {
+function writeMcpConfig(editor: Editor, apiKey: string, userId?: string): void {
+  const { configPath, serversKey } = editor;
   const dir = path.dirname(configPath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -56,12 +59,21 @@ function writeMcpConfig(configPath: string, apiKey: string, userId?: string): vo
     try {
       existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     } catch {
-      // Start fresh if invalid
+      throw new Error(`Cannot parse ${configPath}. The existing file was preserved.`);
     }
   }
 
-  const mcpServers = (existing.mcpServers || {}) as Record<string, unknown>;
+  if (!existing || typeof existing !== 'object' || Array.isArray(existing)) {
+    throw new Error(`Expected a JSON object in ${configPath}. The existing file was preserved.`);
+  }
+
+  const configuredServers = existing[serversKey] ?? {};
+  if (typeof configuredServers !== 'object' || Array.isArray(configuredServers)) {
+    throw new Error(`Expected an object at ${serversKey} in ${configPath}. The existing file was preserved.`);
+  }
+  const mcpServers = configuredServers as Record<string, unknown>;
   mcpServers['graspful'] = {
+    ...(serversKey === 'servers' ? { type: 'stdio' } : {}),
     command: 'npx',
     args: ['-y', '@graspful/mcp'],
     env: {
@@ -69,7 +81,17 @@ function writeMcpConfig(configPath: string, apiKey: string, userId?: string): vo
       ...(userId ? { GRASPFUL_USER_ID: userId } : {}),
     },
   };
-  existing.mcpServers = mcpServers;
+  existing[serversKey] = mcpServers;
+
+  // Earlier CLI versions wrote Graspful under Cursor's key in VS Code files.
+  if (serversKey === 'servers' && existing.mcpServers && typeof existing.mcpServers === 'object' && !Array.isArray(existing.mcpServers)) {
+    const legacyServers = { ...existing.mcpServers as Record<string, unknown> };
+    if ('graspful' in legacyServers) {
+      delete legacyServers.graspful;
+      if (Object.keys(legacyServers).length > 0) existing.mcpServers = legacyServers;
+      else delete existing.mcpServers;
+    }
+  }
 
   fs.writeFileSync(configPath, JSON.stringify(existing, null, 2) + '\n');
 }
@@ -93,8 +115,9 @@ export function registerInitCommand(program: Command) {
         console.log('Skipping registration. To re-register, delete ~/.graspful/credentials.json first.');
 
         // Still configure MCP if requested
-        if (opts.mcp) {
-          configureMcp(existingCreds.apiKey, existingCreds.userId);
+        if (opts.mcp && !configureMcp(existingCreds.apiKey, existingCreds.userId)) {
+          process.exitCode = 1;
+          return;
         }
 
         output(
@@ -122,8 +145,9 @@ export function registerInitCommand(program: Command) {
         console.log(`  API key: ${data.apiKey} (saved to ~/.graspful/credentials.json)`);
 
         // ── Configure MCP ───────────────────────────────────────────────
-        if (opts.mcp) {
-          configureMcp(data.apiKey, data.userId);
+        if (opts.mcp && !configureMcp(data.apiKey, data.userId)) {
+          process.exitCode = 1;
+          return;
         }
 
         output(
@@ -150,7 +174,7 @@ export function registerInitCommand(program: Command) {
     });
 }
 
-function configureMcp(apiKey: string, userId?: string): void {
+function configureMcp(apiKey: string, userId?: string): boolean {
   const editors = detectEditors();
 
   if (editors.length === 0) {
@@ -167,12 +191,19 @@ function configureMcp(apiKey: string, userId?: string): void {
         },
       },
     }, null, 2));
-    return;
+    return true;
   }
 
+  let configured = true;
   for (const editor of editors) {
-    writeMcpConfig(editor.configPath, apiKey, userId);
-    cliCapture('cli initialized', { editor: editor.name });
-    console.log(`\nMCP configured for ${editor.name}: ${editor.configPath}`);
+    try {
+      writeMcpConfig(editor, apiKey, userId);
+      cliCapture('cli initialized', { editor: editor.name });
+      console.log(`\nMCP configured for ${editor.name}: ${editor.configPath}`);
+    } catch (error) {
+      configured = false;
+      outputError(`MCP configuration failed for ${editor.name}: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
+  return configured;
 }

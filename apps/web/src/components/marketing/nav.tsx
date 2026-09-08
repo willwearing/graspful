@@ -72,9 +72,9 @@ export function MarketingNav() {
             onClick={() =>
               trackLandingCtaClick("header", brand.id, "/sign-up")
             }
-            className="btn-gradient px-5 py-2 text-sm font-medium"
+            className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            {hostSurface === "academy" ? "Enroll" : "Get Started"}
+            {hostSurface === "academy" ? "Enroll" : "Get started"}
           </AuthLink>
         </div>
       </div>

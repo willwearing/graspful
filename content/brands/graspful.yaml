@@ -2,86 +2,94 @@ brand:
   id: graspful
   name: Graspful
   domain: graspful.vercel.app
-  tagline: "Turn Your Expertise Into a Course Business"
+  tagline: Build courses with practice and review
   logoUrl: /images/logo-graspful.svg
   faviconUrl: /favicon.ico
   ogImageUrl: /images/og-graspful.png
   orgSlug: graspful
-
 theme:
   preset: purple
-  radius: "0.625rem"
-
+  radius: 0.625rem
 landing:
   hero:
-    headline: "Build courses where students actually learn."
-    subheadline: "Your expertise. AI's scaffolding. Every course gets adaptive diagnostics, mastery tracking, and spaced review. Launch a live product in minutes, not months."
-    ctaText: "Start Building Free"
+    headline: Build a course that responds to each learner.
+    subheadline: >-
+      Turn your source material into lessons, worked examples, and practice questions. Graspful uses learner answers to
+      guide practice and schedule review.
+    ctaText: Start a course draft
   features:
-    heading: "What we do for you"
-    subheading: "You know what to teach. We make sure students actually learn it."
+    heading: From source material to practice
+    subheading: Keep the course content in files you can inspect and edit.
     items:
-      - title: "Adaptive Diagnostics"
-        description: "Every student starts with a diagnostic that maps what they already know. No wasted time. The course reshapes itself around their gaps."
-        icon: Brain
-        wide: true
-      - title: "Fully Automated Learning Paths"
-        description: "The system knows what each student needs and when. No guesswork, no manual sequencing. You build the content once. The algorithm does the rest."
+      - title: Author with your agent
+        description: >-
+          Use Claude, Codex, or another agent with the CLI or MCP tools to write a course from your source material. The
+          CLI creates a draft scaffold for you to complete.
         icon: Bot
-      - title: "Research-Backed Retention"
-        description: "Spaced repetition, mastery gates, prerequisite enforcement. Students retain what they learn instead of cramming and forgetting."
-        icon: Network
-      - title: "Your Brand, Your Business"
-        description: "Your domain. Your colors. Your pricing. Learners see your brand, not ours."
-        icon: Palette
-        wide: true
-      - title: "Free to Build. You Keep 70%."
-        description: "No upfront costs. No monthly fees. When learners subscribe, you keep 70%. We only make money when you do."
-        icon: DollarSign
-      - title: "Quality Checks Built In"
-        description: "Automated checks catch duplicate questions, missing explanations, and difficulty gaps before your course goes live."
+      - title: Inspect before publishing
+        description: >-
+          Review the lessons, worked examples, answers, and prerequisite graph. Run automated checks to find structural
+          issues before you publish.
         icon: ShieldCheck
+      - title: Guide practice and review
+        description: >-
+          Learner answers update progress estimates. Prerequisites guide lesson order, and review questions return on a
+          schedule.
+        icon: Brain
   howItWorks:
-    heading: "How It Works"
+    heading: How it works
     items:
-      - title: "Describe What You Want to Teach"
-        description: "Pick your topic. Upload your notes, study guide, or exam outline. AI turns it into a structured course with practice problems."
-      - title: "Review and Customize"
-        description: "Check the content. Edit anything. Quality checks run automatically to catch issues before launch."
-      - title: "Publish and Earn"
-        description: "Your course goes live with its own landing page and billing. Learners subscribe. You get paid."
+      - title: Start with source material
+        description: >-
+          Give your notes or course outline to your external agent. Use Graspful tools to create a YAML draft and add
+          the lessons and practice questions.
+      - title: Review the course
+        description: >-
+          Check the facts and answer explanations against your sources. Run validation and quality checks, then fix the
+          findings.
+      - title: Import, then publish
+        description: Import the reviewed files as a draft. Inspect the result and publish when it is ready for learners.
   faq:
-    - question: "What is Graspful?"
-      answer: "Graspful is a course creation platform. You describe what you want to teach, AI builds the course, and you get a live product with its own landing page, billing, and adaptive learning. You earn 70% of every subscription."
-    - question: "Do I need to be technical?"
-      answer: "No. If you can use ChatGPT, you can use Graspful. Describe your topic, review what AI creates, and publish. No coding, no design skills required."
-    - question: "How does billing work?"
-      answer: "Free to create courses. When learners subscribe on your landing page, Graspful collects payment and sends you 70%. No upfront costs, no monthly fees."
-    - question: "What makes this different from Udemy or Teachable?"
-      answer: "Adaptive learning. Students get personalized paths, spaced review, and mastery tracking. Not just a video playlist. Plus AI builds the course for you, so you can launch in minutes instead of months."
-    - question: "Can I use my own domain?"
-      answer: "Yes. Your learners see your brand, your domain, your colors. Graspful is invisible."
-    - question: "How do students learn on Graspful courses?"
-      answer: "Every course uses adaptive diagnostics, prerequisite tracking, and spaced repetition. Students focus on what they don't know yet, and the system schedules reviews so they don't forget."
+    - question: What is Graspful?
+      answer: >-
+        Graspful lets you publish courses with lessons, practice questions, prerequisite tracking, and scheduled review.
+        Course content is stored in YAML files and managed through a CLI or MCP tools.
+    - question: How is the course written?
+      answer: >-
+        You or your external agent, such as Claude or Codex, write the course from source material. Graspful tools
+        create draft scaffolds, validate the files, and import them. Review the content before publishing.
+    - question: What setup do I need?
+      answer: >-
+        You need an agent that can run CLI commands or use MCP tools. The quickstart explains tool setup, account
+        registration, and the draft-to-publish workflow.
+    - question: Can I sell a course yet?
+      answer: >-
+        Paid subscriptions and creator payouts are not available yet. Billing setup and verification are required before
+        accepting payments.
+    - question: Can I use my own branding?
+      answer: >-
+        A brand configuration controls the course landing page, colors, and copy. A custom domain also requires domain
+        and hosting configuration.
+    - question: How do students learn?
+      answer: >-
+        Students answer diagnostic questions, work through lessons and examples, and answer practice questions. Their
+        answers update progress estimates and help schedule later review.
   bottomCta:
-    headline: "Build your first course today"
-    subheadline: "Free to create. You earn 70% when learners subscribe."
-
+    headline: Start with one course draft
+    subheadline: Bring a source document and an agent. Follow the quickstart to build, review, and import your first draft.
 seo:
-  title: "Graspful: Turn Your Expertise Into a Course Business"
-  description: "Create and sell adaptive online courses with AI. You describe what to teach, AI builds the course. Learners get personalized paths, spaced review, and mastery tracking. Free to create. You earn 70%."
+  title: "Graspful: Build courses with practice and review"
+  description: >-
+    Create courses from source material with your agent and Graspful CLI or MCP tools. Review and publish lessons with
+    practice questions and scheduled review.
   keywords:
-    - create online course
-    - sell courses online
-    - course creation platform
+    - course creation
     - adaptive learning
-    - monetize expertise
-    - build a course business
-    - online course platform
-    - certification prep
-    - ai course builder
+    - practice questions
+    - course authoring
+    - CLI
+    - MCP
     - spaced repetition
-
 pricing:
   monthly: 0
   currency: usd

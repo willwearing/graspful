@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 import { withPostHogConfig } from "@posthog/nextjs-config";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@niche-audio-prep/shared"],
+  transpilePackages: ["@graspful/shared", "@graspful/creator-ui"],
   async rewrites() {
     return [
       {

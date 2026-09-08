@@ -3,8 +3,9 @@ import { execFileSync } from "child_process";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
+import { getE2eEnvironment } from "../../../scripts/e2e-env";
 
-const BACKEND_URL = "http://localhost:3000/api/v1";
+const BACKEND_URL = getE2eEnvironment(process.env).NEXT_PUBLIC_BACKEND_URL;
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 const CLI_PACKAGE_ROOT = path.resolve(REPO_ROOT, "packages/cli");
 const SHARED_PACKAGE_ROOT = path.resolve(REPO_ROOT, "packages/shared");
@@ -33,11 +34,20 @@ function buildCliOnce() {
 
 function runCli(args: string[], env: Record<string, string>) {
   buildCliOnce();
-  return execFileSync("node", [CLI_ENTRY, ...args], {
-    cwd: REPO_ROOT,
-    encoding: "utf-8",
-    env: { ...process.env, ...env, NODE_ENV: "test" },
-  });
+  try {
+    return execFileSync("bun", [CLI_ENTRY, ...args], {
+      cwd: REPO_ROOT,
+      encoding: "utf-8",
+      env: { ...process.env, ...env, NODE_ENV: "test" },
+    });
+  } catch (error) {
+    const failure = error as Error & { status?: number; stdout?: string; stderr?: string };
+    throw new Error([
+      `CLI exited with status ${failure.status}: ${failure.message}`,
+      failure.stdout,
+      failure.stderr,
+    ].filter(Boolean).join("\n"));
+  }
 }
 
 function buildFoundationsCourseYaml(slug: string): string {
@@ -229,7 +239,7 @@ test("Academy CLI flow — scaffold, import, publish, and validate a live academ
   const academyFile = path.join(tmpdir, "academy.yaml");
   const cliEnv = {
     GRASPFUL_API_KEY: apiKey,
-    GRASPFUL_API_URL: "http://localhost:3000",
+    GRASPFUL_API_URL: BACKEND_URL.replace(/\/api\/v1\/?$/, ""),
   };
 
   runCli(
@@ -276,6 +286,7 @@ test("Academy CLI flow — scaffold, import, publish, and validate a live academ
   expect(importResult.courseCount).toBe(2);
   expect(importResult.publishedCourseIds).toHaveLength(2);
   expect(importResult.publishFailures).toEqual([]);
+  expect(new Set(importResult.publishedCourseIds).size).toBe(2);
 
   const listAcademiesRes = await request.get(`${BACKEND_URL}/orgs/${orgSlug}/academies`, {
     headers: {
@@ -309,8 +320,14 @@ test("Academy CLI flow — scaffold, import, publish, and validate a live academ
   });
   expect(coursesRes.status()).toBe(200);
   const courses = await coursesRes.json();
-  const publishedCourses = courses.filter((course: { isPublished: boolean }) => course.isPublished);
-  expect(publishedCourses.length).toBeGreaterThanOrEqual(2);
+  const publishedCourses = courses.filter((course: { id: string; isPublished: boolean }) =>
+    importResult.publishedCourseIds.includes(course.id) && course.isPublished,
+  );
+  expect(publishedCourses).toHaveLength(2);
+  expect(publishedCourses.map((course: { slug: string }) => course.slug).sort()).toEqual([
+    "data-models",
+    "pipeline-reading-and-solution-design",
+  ]);
 
   fs.rmSync(tmpdir, { recursive: true, force: true });
 });

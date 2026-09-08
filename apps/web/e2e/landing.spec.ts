@@ -10,7 +10,7 @@ test.describe("Landing page", () => {
     await expect(page.locator("h1")).toBeVisible();
     await expect(page.locator("h1")).not.toBeEmpty();
 
-    // Primary CTA should link to sign-up regardless of current marketing copy
+    // Account creation stays available in the navigation
     const ctaLink = page.locator('a[href="/sign-up"]').first();
     await expect(ctaLink).toBeVisible();
     await expect(ctaLink).toHaveAttribute("href", /\/sign-up/);
@@ -22,28 +22,20 @@ test.describe("Landing page", () => {
   });
 
   test("renders how it works section", async ({ page }) => {
-    await expect(page.getByText("How It Works")).toBeVisible();
-    const steps = page.locator('section:has-text("How It Works") h3');
+    await expect(page.getByText("How it works")).toBeVisible();
+    const steps = page.locator('section:has-text("How it works") h3');
     expect(await steps.count()).toBeGreaterThanOrEqual(3);
   });
 
-  test("renders pricing section with plan toggle", async ({ page }) => {
+  test("renders current billing availability", async ({ page }) => {
     await expect(page.locator("#pricing")).toBeVisible();
-    const monthlyToggle = page.getByRole("button", { name: /monthly/i });
-    const yearlyToggle = page.getByRole("button", { name: /yearly/i });
-
-    if ((await monthlyToggle.count()) > 0 || (await yearlyToggle.count()) > 0) {
-      await expect(monthlyToggle).toBeVisible();
-      await expect(yearlyToggle).toBeVisible();
-    } else {
-      const signUpCtas = page.locator('#pricing a[href="/sign-up"]');
-      expect(await signUpCtas.count()).toBeGreaterThanOrEqual(1);
-    }
+    await expect(page.getByText("Paid subscriptions are not available yet.", { exact: true })).toBeVisible();
+    await expect(page.locator("#pricing").getByRole("link", { name: "Create free account" })).toBeVisible();
   });
 
   test("renders FAQ section with accordion", async ({ page }) => {
     await expect(
-      page.getByText("Frequently Asked Questions")
+      page.getByText("Frequently asked questions")
     ).toBeVisible();
     // FAQ items should be clickable
     const faqButtons = page.locator("button").filter({ hasText: /\?$/ });

@@ -64,4 +64,38 @@ describe('PostHogService', () => {
     expect(PostHog).not.toHaveBeenCalled();
     expect(captureException).not.toHaveBeenCalled();
   });
+
+  it('queues a first-account event with a stable identity and alert context', () => {
+    const service = new PostHogService(config({ POSTHOG_API_KEY: 'phc_test', NODE_ENV: 'production' }));
+    const account = {
+      userId: 'dc7c97b8-84d9-4ca1-b7e7-e4acfc4d473b',
+      email: 'learner@example.com',
+      orgId: 'org-1',
+      orgSlug: 'learner-example',
+      source: 'provision' as const,
+    };
+
+    service.recordAccountCreated(account);
+    service.recordAccountCreated(account);
+
+    expect(capture).toHaveBeenCalledWith({
+      uuid: account.userId,
+      distinctId: account.userId,
+      event: 'account_created',
+      properties: {
+        email: account.email, org_id: account.orgId, org_slug: account.orgSlug,
+        source: 'provision', environment: 'production',
+      },
+    });
+    expect(capture.mock.calls[0][0].uuid).toEqual(capture.mock.calls[1][0].uuid);
+  });
+
+  it('does not fail a committed account when analytics cannot be queued', () => {
+    const service = new PostHogService(config({ POSTHOG_API_KEY: 'phc_test' }));
+    capture.mockImplementationOnce(() => { throw new Error('SDK unavailable'); });
+    expect(() => service.recordAccountCreated({
+      userId: 'user-1', email: 'learner@example.com', orgId: 'org-1',
+      orgSlug: 'learner-example', source: 'provision',
+    })).not.toThrow();
+  });
 });

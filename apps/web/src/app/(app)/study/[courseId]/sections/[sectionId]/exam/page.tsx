@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
 import { resolvePageBrand } from "@/lib/brand/resolve";
-import { SectionExamFlow } from "@/components/app/section-exam-flow";
+import { SectionExamFlow, type SectionExamData } from "@/components/app/section-exam-flow";
+import { StudyRouter } from "@/components/app/study-router";
 
 export default async function SectionExamPage({
   params,
@@ -26,14 +27,14 @@ export default async function SectionExamPage({
   const brand = await resolvePageBrand();
   const orgSlug = brand.orgSlug;
 
-  let examData: any;
+  let examData: SectionExamData;
   try {
-    examData = await apiFetch<any>(
+    examData = await apiFetch<SectionExamData>(
       `/orgs/${orgSlug}/courses/${courseId}/sections/${sectionId}/exam/start`,
       { method: "POST" }
     );
   } catch {
-    redirect(`/study/${courseId}`);
+    return <StudyRouter courseId={courseId} task={null} loadFailed emptyStateHref={`/browse/${courseId}`} emptyStateLabel="Back to Course" />;
   }
 
   return (

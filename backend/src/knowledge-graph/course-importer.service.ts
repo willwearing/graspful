@@ -1,10 +1,10 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import * as yaml from 'js-yaml';
-import { ProblemType } from '@prisma/client';
+import { Prisma, ProblemType } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { GraphValidationService } from './graph-validation.service';
 import { buildQualifiedConceptRef, parseConceptRef } from './concept-ref';
-import { CourseYamlSchema, type CourseYaml } from '@graspful/shared';
+import { CourseYamlSchema, reviewCourseYaml, type CourseYaml } from '@graspful/shared';
 
 type CourseSectionYaml = CourseYaml['sections'][number];
 type CourseConceptYaml = CourseYaml['concepts'][number];
@@ -13,6 +13,7 @@ type CourseProblemYaml = CourseKnowledgePointYaml['problems'][number];
 
 export interface ImportResult {
   courseId: string;
+  published: boolean;
   sectionCount: number;
   conceptCount: number;
   knowledgePointCount: number;
@@ -43,6 +44,7 @@ export interface CourseImportScope {
 
 export interface CourseStructureSyncResult {
   courseId: string;
+  published: boolean;
   courseSlug: string;
   sectionCount: number;
   conceptCount: number;
@@ -180,7 +182,12 @@ export class CourseImporterService {
       );
 
       return this.buildImportResult(structure, edgeCounts, validation.warnings);
-    }, { maxWait: 30000, timeout: 60000 });
+    }, { maxWait: 30000, timeout: 60000, isolationLevel: Prisma.TransactionIsolationLevel.Serializable }).catch((error: unknown) => {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+        throw new ConflictException('The course changed during import. Reload the current version and retry your changes.');
+      }
+      throw error;
+    });
   }
 
   async syncCourseStructure(
@@ -196,6 +203,46 @@ export class CourseImporterService {
     const existingCourse = await tx.course.findUnique({
       where: { orgId_slug: { orgId, slug: data.course.id } },
     });
+
+    if (existingCourse && !options.replace) {
+      throw new BadRequestException(
+        `Course "${data.course.id}" already exists for this org. Re-run with replace mode to update it in place.`,
+      );
+    }
+
+    const published = options.isPublished ?? existingCourse?.isPublished ?? false;
+    // All import callers, including academy imports and editor saves, must
+    // preserve the publication gate. Reject before changing the live content.
+    if (existingCourse?.isPublished || published) {
+      const review = reviewCourseYaml({
+        ...data,
+        course: {
+          ...data.course,
+          name: scope?.expectedCourseName ?? data.course.name,
+          description: scope?.expectedCourseDescription ?? data.course.description,
+        },
+        // AcademyImporterService validates the full cross-course graph before
+        // syncing any course. This per-course check owns content readiness and
+        // local edges; qualified external edges retain the academy validation.
+        concepts: scope?.academyId ? data.concepts.map((concept) => ({
+          ...concept,
+          prerequisites: concept.prerequisites.flatMap((reference) => {
+            const parsed = parseConceptRef(reference, data.course.id);
+            return parsed.courseSlug === data.course.id ? [parsed.conceptSlug] : [];
+          }),
+        })) : data.concepts,
+      });
+      if (!review.passed) {
+        throw new BadRequestException({
+          message: existingCourse?.isPublished
+            ? 'This course is published. Fix the review failures before replacing its live content.'
+            : 'Fix the review failures before publishing this course.',
+          review,
+          reviewFailures: review.failures,
+        });
+      }
+    }
+
     const academy = scope?.academyId
       ? await tx.academy.update({
           where: { id: scope.academyId },
@@ -230,12 +277,6 @@ export class CourseImporterService {
             },
           });
 
-    if (existingCourse && !options.replace) {
-      throw new BadRequestException(
-        `Course "${data.course.id}" already exists for this org. Re-run with replace mode to update it in place.`,
-      );
-    }
-
     const course = existingCourse && options.replace
       ? await tx.course.update({
           where: { id: existingCourse.id },
@@ -247,7 +288,7 @@ export class CourseImporterService {
             version: data.course.version,
             estimatedHours: data.course.estimatedHours,
             sortOrder: scope?.sortOrder ?? existingCourse.sortOrder ?? 0,
-            ...(options.isPublished !== undefined && { isPublished: options.isPublished }),
+            isPublished: published,
           },
         })
       : await tx.course.create({
@@ -261,7 +302,7 @@ export class CourseImporterService {
             version: data.course.version,
             estimatedHours: data.course.estimatedHours,
             sortOrder: scope?.sortOrder ?? 0,
-            ...(options.isPublished !== undefined && { isPublished: options.isPublished }),
+            isPublished: published,
           },
         });
 
@@ -554,6 +595,7 @@ export class CourseImporterService {
 
     return {
       courseId: course.id,
+      published: Boolean(course.isPublished),
       courseSlug: data.course.id,
       sectionCount: data.sections.length,
       conceptCount: data.concepts.length,
@@ -660,6 +702,7 @@ export class CourseImporterService {
   ): ImportResult {
     return {
       courseId: structure.courseId,
+      published: structure.published,
       sectionCount: structure.sectionCount,
       conceptCount: structure.conceptCount,
       knowledgePointCount: structure.knowledgePointCount,

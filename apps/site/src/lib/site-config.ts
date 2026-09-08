@@ -10,119 +10,84 @@ export interface PlatformPrinciple {
 }
 
 export const siteName = "Graspful";
-export const siteTagline =
-  "Turn Your Expertise Into a Course Business";
-
+export const siteTagline = "Author courses with your AI agent";
 
 export const serviceAreas: ServiceArea[] = [
   {
-    title: "Adaptive Diagnostics",
-    description:
-      "Every student starts with a diagnostic that figures out what they already know. No wasted time on material they've mastered.",
-    href: "/how-graspful-works",
-  },
-  {
-    title: "Fully Automated Learning Paths",
-    description:
-      "The system knows what each student needs next and delivers it. Different paths for different learners, zero manual intervention.",
-    href: "/how-graspful-works",
-  },
-  {
-    title: "Research-Backed Retention",
-    description:
-      "Spaced repetition, mastery gates, and retrieval practice built in. Students keep what they learned.",
-    href: "/how-graspful-works",
-  },
-  {
-    title: "Your Brand, Your Business",
-    description:
-      "Your domain. Your colors. Your pricing. The learner sees your academy, not ours.",
-    href: "/pricing",
-  },
-  {
-    title: "Free to Build. You Keep 70%.",
-    description:
-      "No upfront costs. No platform subscription. Build your course for free and earn 70% of every paid subscription.",
-    href: "/pricing",
-  },
-  {
-    title: "Quality Checks Built In",
-    description:
-      "Automated checks catch duplicate questions, missing prerequisites, and content gaps before you publish.",
+    title: "Course content you can inspect",
+    description: "Keep lessons, worked examples, questions, and prerequisites in YAML. Use your agent to edit the files and review the content before import.",
     href: "/docs",
+  },
+  {
+    title: "Practice based on prerequisites",
+    description: "Diagnostics estimate a learner's starting point. The learning engine selects practice using those estimates and the course's prerequisite graph.",
+    href: "/how-graspful-works",
+  },
+  {
+    title: "Questions with explanations",
+    description: "Learners answer questions, get feedback, and return for scheduled review. Your course supplies the instructions, worked examples, and answer explanations.",
+    href: "/how-graspful-works",
   },
 ];
 
 export const platformPrinciples: PlatformPrinciple[] = [
   {
-    title: "Diagnose first",
-    description:
-      "Don't make everyone start at chapter one. Figure out what they already know and skip the stuff that wastes their time.",
+    title: "Estimate the starting point",
+    description: "A diagnostic uses answers to estimate which concepts need practice.",
   },
   {
-    title: "Gate on mastery, not clicks",
-    description:
-      "Students move forward when they prove they understand it. Not when they click 'next' enough times.",
+    title: "Use evidence from answers",
+    description: "The learner model updates as students answer course questions.",
   },
   {
-    title: "Bring knowledge back",
-    description:
-      "Spaced review is built in. Students keep what they learned instead of forgetting it two weeks later.",
+    title: "Schedule further practice",
+    description: "Review brings previously studied concepts back for another attempt.",
   },
 ];
 
 export const faqItems = [
   {
-    question: "Do I need to know YAML?",
-    answer:
-      "No. Your AI agent writes the YAML for you. You prompt Claude Code or Cursor with what you want to teach, and the MCP tools handle scaffolding, filling, and validation. You review the output.",
+    question: "Do I need to write YAML myself?",
+    answer: "Your coding agent can write the YAML from your source material and instructions. Graspful provides CLI and MCP tools for structure, validation, review, import, and publication. You are responsible for reviewing the generated content.",
   },
   {
-    question: "What if I don't use Claude Code or Cursor?",
-    answer:
-      "Any MCP-compatible AI tool works. You can also use the raw CLI directly if you prefer.",
+    question: "Which authoring tools can I use?",
+    answer: "Use Claude Code, Codex, or another agent with MCP support. You can also edit course files yourself and run the CLI directly.",
   },
   {
-    question: "How does the revenue share work?",
-    answer:
-      "You set your course price. When a learner subscribes, you keep 70% and Graspful keeps 30% to cover hosting, billing, the learner app, and the adaptive engine.",
+    question: "Can I charge learners?",
+    answer: "Paid subscriptions are not available yet. Payment setup is in progress. Pricing and payment terms will be available before paid subscriptions open.",
   },
   {
-    question: "Can I use my own domain and branding?",
-    answer:
-      "Yes. Your academy gets your domain, your logo, your colors. Learners see your brand, not ours.",
+    question: "Can I configure academy branding?",
+    answer: "Use the brand YAML schema and CLI or MCP tools to configure your academy's name, colors, logo, and landing page. Review the result before sharing it.",
   },
   {
-    question: "What subjects can I teach?",
-    answer:
-      "Anything with structured knowledge: programming, math, science, languages, professional certifications, compliance training. If it can be broken into concepts with prerequisites, it works.",
+    question: "What makes a suitable course?",
+    answer: "Start with a subject you can divide into concepts, prerequisites, explanations, and assessable questions. Provide reliable source material and check the questions against what each lesson teaches.",
   },
   {
-    question: "How is this different from Teachable or Thinkific?",
-    answer:
-      "Those platforms host videos. Graspful actually teaches. Every course gets adaptive diagnostics, mastery gating, and spaced review built in. Students don't just watch — they prove they learned.",
+    question: "What does the quality gate check?",
+    answer: "Automated checks inspect the course structure and content for issues such as invalid prerequisites, duplicate questions, and missing teaching content. Read the warnings and review factual accuracy, examples, and answer keys yourself before publishing.",
   },
   {
-    question: "What's the 10-check quality gate?",
-    answer:
-      "Before publishing, every course runs through 10 automated checks: prerequisite graph integrity, question uniqueness, difficulty calibration, content coverage, and more. Your agent runs this with graspful review.",
+    question: "Does import publish my course?",
+    answer: "An import without --publish saves a draft. Review it, then use the publish command. Confirm published: true in the response before you share the course with learners.",
   },
   {
-    question: "What happens if I want to leave?",
-    answer:
-      "Your course content is yours. Export it anytime as YAML. No lock-in.",
+    question: "Where is my course content stored?",
+    answer: "You author the course as YAML files on your computer and import a copy into Graspful. Keep those source files in your own repository so you can edit and reuse them.",
   },
 ];
 
 export const footerLinks = {
   product: [
-    { title: "How It Works", href: "/how-graspful-works" },
+    { title: "How it works", href: "/how-graspful-works" },
     { title: "Pricing", href: "/pricing" },
     { title: "Docs", href: "/docs" },
   ],
   resources: [
-    { title: "Blog", href: "/blog" },
-    { title: "CLI Reference", href: "https://graspful.ai/docs/cli" },
-    { title: "Course Schema", href: "https://graspful.ai/docs/course-schema" },
+    { title: "CLI reference", href: "https://graspful.ai/docs/cli" },
+    { title: "Course schema", href: "https://graspful.ai/docs/course-schema" },
   ],
 };

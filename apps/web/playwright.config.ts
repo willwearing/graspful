@@ -1,13 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "node:path";
-import { config as dotenvConfig } from "dotenv";
+import { getE2eEnvironment } from "../../scripts/e2e-env";
 
 const backendDir = path.resolve(__dirname, "../../backend");
 
-// Load backend .env for SUPABASE_SERVICE_ROLE_KEY (needed by e2e auth helpers)
-dotenvConfig({ path: path.resolve(backendDir, ".env") });
-// Load web app .env.local for NEXT_PUBLIC_SUPABASE_URL
-dotenvConfig({ path: path.resolve(__dirname, ".env.local") });
+const testEnv = getE2eEnvironment(process.env);
+Object.assign(process.env, testEnv);
+const reuseExistingServer = process.env.E2E_REUSE_EXISTING_SERVER === "1";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -35,17 +34,19 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "bun run build && bun run start:prod",
+      command: "bun run build && TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/main.js",
       cwd: backendDir,
+      env: { ...testEnv, NODE_ENV: "development" },
       url: "http://localhost:3000/api/v1/health",
-      reuseExistingServer: true,
+      reuseExistingServer,
       timeout: 120_000,
     },
     {
       command: "bun run dev",
+      env: testEnv,
       url: "http://localhost:3001",
-      reuseExistingServer: true,
-      timeout: 30_000,
+      reuseExistingServer,
+      timeout: 120_000,
     },
   ],
 });

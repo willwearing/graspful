@@ -1,5 +1,6 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import posthog from "posthog-js";
+import { readApiErrorMessage } from "@graspful/creator-ui/api-errors";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
 
@@ -67,7 +68,7 @@ export async function apiClientFetch<T>(
   }
 
   if (!res.ok) {
-    throw new ApiError(res.status, `API error: ${res.statusText}`);
+    throw new ApiError(res.status, await readApiErrorMessage(res));
   }
 
   return res.json();

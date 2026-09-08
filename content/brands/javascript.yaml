@@ -2,64 +2,61 @@ brand:
   id: javascript
   name: JSPrep
   domain: javascriptprep.vercel.app
-  tagline: "Master JavaScript. Listen. Code. Ship."
+  tagline: Practice JavaScript fundamentals
   logoUrl: /images/logo-javascript.svg
   faviconUrl: /favicon.ico
   ogImageUrl: /images/og-javascript.png
   orgSlug: javascript-prep
-
 theme:
   preset: amber
-  radius: "0.5rem"
-
+  radius: 0.5rem
 landing:
   hero:
-    headline: "Master JavaScript. Listen. Code. Ship."
-    subheadline: "Audio-first adaptive learning for JavaScript fundamentals. Study closures, async, and the event loop while you commute."
-    ctaText: "Start Learning Free"
+    headline: Practice JavaScript fundamentals
+    subheadline: Study JavaScript concepts through explanations, worked examples, and practice questions.
+    ctaText: Create an account
   features:
-    heading: "Why Audio Learning Works"
-    subheading: "Turn dead time into study time. Learn while your hands and eyes are busy."
+    heading: What you can study
+    subheading: Read or listen to lessons, answer practice questions, and return for review.
     items:
-      - title: "Audio-First JS Concepts"
-        description: "Listen to clear explanations of closures, prototypes, async/await, and more. Study on the go."
+      - title: Audio lessons
+        description: Read or listen to explanations of JavaScript concepts, then work through the examples.
         icon: Headphones
-        wide: true
-      - title: "Adaptive Learning Engine"
-        description: "AI identifies gaps in your JavaScript knowledge and focuses your study time there."
+      - title: Practice by topic
+        description: Your answers help the course estimate which topics need more practice.
         icon: Brain
-      - title: "Spaced Repetition"
-        description: "Scientifically-timed reviews lock tricky concepts like `this` binding and the event loop into long-term memory."
+      - title: Scheduled review
+        description: Return to earlier concepts when they are due for review.
         icon: Timer
-      - title: "ES2024 Coverage"
-        description: "From var vs let to generators and modules. 14 core concepts with 40+ practice problems."
+      - title: JavaScript fundamentals
+        description: Explore the course outline for topics such as closures, promises, and the event loop.
         icon: Code
-        wide: true
   howItWorks:
-    heading: "How It Works"
+    heading: How it works
     items:
-      - title: "Take a Diagnostic"
-        description: "Quick quiz identifies what JS concepts you already know and where to focus."
-      - title: "Study Adaptively"
-        description: "Listen to lessons on closures, promises, prototypes -- whatever you need most."
-      - title: "Build Confidence"
-        description: "Spaced repetition ensures you deeply understand JS, not just recognize syntax."
+      - title: Check your starting point
+        description: Answer diagnostic questions to estimate which concepts need practice.
+      - title: Work through examples
+        description: Read the explanation, trace the example code, and answer questions.
+      - title: Apply what you learn
+        description: Practice in your editor and return to the course for review.
   faq:
-    - question: "What level is this for?"
-      answer: "Beginner to intermediate. We cover fundamentals through advanced concepts like closures, the event loop, and generators. Great for junior devs, bootcamp grads, or anyone filling JS knowledge gaps."
-    - question: "Is this for a specific certification?"
-      answer: "No specific cert -- this builds deep JavaScript fluency that applies to interviews, day-to-day coding, and frameworks like React or Node.js."
-    - question: "Can I listen while coding?"
-      answer: "Absolutely. Audio explanations work great as background learning while you practice. Many users listen during commutes and code in the evening."
-    - question: "Is there a free trial?"
-      answer: "Yes -- 7-day free trial with full access. No credit card required to start."
+    - question: What level is this for?
+      answer: >-
+        The course is for learners who want to study JavaScript fundamentals. Check the course outline for prerequisites
+        and topics.
+    - question: Is this for a specific certification?
+      answer: The course focuses on JavaScript concepts for coding practice. It does not prepare for a named certification.
+    - question: Can I listen to lessons?
+      answer: Yes. Audio reads the explanation text. Use the screen for code examples and practice questions.
+    - question: Can I subscribe?
+      answer: Paid subscriptions are not available yet. Check the course page for current access options.
   bottomCta:
-    headline: "Ready to Start Learning?"
-    subheadline: "Join thousands of developers who leveled up their JavaScript with audio-first learning."
-
+    headline: Explore the course
+    subheadline: Explore the topics and work through a practice question.
 seo:
-  title: "JSPrep -- Audio-First JavaScript Learning"
-  description: "Master JavaScript fundamentals with audio-first adaptive learning. Closures, async/await, prototypes, and more -- study hands-free."
+  title: "JSPrep: JavaScript practice"
+  description: Study JavaScript fundamentals with explanations, worked examples, practice questions, and scheduled review.
   keywords:
     - javascript learning
     - learn javascript
@@ -69,7 +66,6 @@ seo:
     - async await
     - event loop
     - audio learning
-
 pricing:
   monthly: 14.99
   yearly: 149

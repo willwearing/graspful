@@ -2,66 +2,69 @@ brand:
   id: electrician
   name: ElectricianPrep
   domain: electricianprep.vercel.app
-  tagline: "Pass Your Electrician Exam. Listen. Learn. Pass."
+  tagline: Practice electrical code topics
   logoUrl: /images/logo-electrician.svg
   faviconUrl: /favicon.ico
   ogImageUrl: /images/og-electrician.png
   orgSlug: electrician-prep
-
 theme:
   preset: blue
-  radius: "0.5rem"
-
+  radius: 0.5rem
 landing:
   hero:
-    headline: "Pass Your Electrician Exam. Listen. Learn. Pass."
-    subheadline: "Audio-first adaptive learning for the NEC. Study while you work, drive, or wire."
-    ctaText: "Start Studying Free"
+    headline: Practice electrical code topics
+    subheadline: Read or listen to NEC lessons, then work through practice questions.
+    ctaText: Create an account
   features:
-    heading: "Why Audio Learning Works"
-    subheading: "Turn dead time into study time. Learn while your hands and eyes are busy."
+    heading: What you can study
+    subheading: Read or listen to lessons, answer practice questions, and return for review.
     items:
-      - title: "Audio-First NEC Review"
-        description: "Listen to NEC code sections, article numbers, and key thresholds on repeat. Study hands-free on the jobsite."
+      - title: Audio lessons
+        description: Listen to explanations of electrical code topics. Use the screen to work through the questions.
         icon: Headphones
-        wide: true
-      - title: "Adaptive Learning Engine"
-        description: "AI identifies your weak areas and focuses your study time there. No wasted time on what you already know."
+      - title: Practice by topic
+        description: Your answers help the course estimate which topics need more practice.
         icon: Brain
-      - title: "Spaced Repetition"
-        description: "Scientifically-timed reviews lock wire gauges, ampacity ratings, and code sections into long-term memory."
+      - title: Scheduled review
+        description: Return to code concepts and calculations when they are due for review.
         icon: Timer
-      - title: "Complete NEC 2023 Coverage"
-        description: "50+ topics covering wiring methods, grounding, overcurrent protection, load calculations, and special occupancies."
+      - title: Course outline
+        description: >-
+          See the topics covered in the course and compare them with the code edition and exam requirements in your
+          area.
         icon: Zap
-        wide: true
   howItWorks:
-    heading: "How It Works"
+    heading: How it works
     items:
-      - title: "Take a Diagnostic"
-        description: "Quick assessment identifies what NEC topics you already know and where to focus."
-      - title: "Study Adaptively"
-        description: "Listen to personalized lessons on grounding, conduit fill, load calcs -- whatever you need most."
-      - title: "Pass Your Exam"
-        description: "Spaced repetition ensures you retain article numbers and code requirements on test day."
+      - title: Check your starting point
+        description: Answer diagnostic questions to estimate which topics need practice.
+      - title: Work through a lesson
+        description: Study explanations and worked examples before answering questions.
+      - title: Return for review
+        description: Use scheduled questions to check what you remember.
   faq:
-    - question: "What exam does this cover?"
-      answer: "We cover the National Electrical Code (NEC/NFPA 70) -- the foundation for Journeyman and Master Electrician exams administered by PSI, Prometric, and state agencies."
-    - question: "Which NEC edition?"
-      answer: "All content is based on the 2023 NEC edition. We update when new editions are adopted."
-    - question: "Can I study on the jobsite?"
-      answer: "Yes -- that is exactly the point. Audio plays through your earbuds while you work. No screen needed."
-    - question: "How long until I am ready?"
-      answer: "Most students feel exam-ready after 4-6 weeks of daily 30-minute sessions. The adaptive engine adjusts to your pace."
-    - question: "Is there a free trial?"
-      answer: "Yes -- 7-day free trial with full access. No credit card required to start."
+    - question: What exam does this cover?
+      answer: >-
+        The course provides practice on National Electrical Code topics. Compare the course outline with the
+        requirements of your exam provider.
+    - question: Which code edition should I study?
+      answer: Check the edition listed in the course and the edition required by your exam provider before you begin.
+    - question: Can I listen to lessons?
+      answer: >-
+        Yes. Lesson audio reads the explanation text. Practice questions and calculations require your attention and
+        screen interaction.
+    - question: How long should I study?
+      answer: >-
+        Study time depends on your experience and exam requirements. Use practice results to identify topics that need
+        further study.
+    - question: Can I subscribe?
+      answer: Paid subscriptions are not available yet. Check the course page for current access options.
   bottomCta:
-    headline: "Ready to Start Studying?"
-    subheadline: "Join thousands of electricians who passed their exam with audio-first learning."
-
+    headline: Explore the course
+    subheadline: Check the course outline against your exam requirements.
 seo:
-  title: "ElectricianPrep -- Audio Exam Prep for the NEC"
-  description: "Pass your Journeyman or Master Electrician exam with audio-first adaptive learning. Study the NEC hands-free on the jobsite."
+  title: "ElectricianPrep: Electrical code practice"
+  description: Practice electrical code topics with lesson audio, worked examples, questions, and scheduled review.
   keywords:
     - electrician exam prep
     - NEC study guide
@@ -71,7 +74,6 @@ seo:
     - NEC audio
     - electrician certification
     - audio learning
-
 pricing:
   monthly: 14.99
   yearly: 149

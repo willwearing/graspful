@@ -1,12 +1,15 @@
 import { type Page } from "@playwright/test";
+import { getE2eEnvironment } from "../../../../scripts/e2e-env";
+
+const testEnv = getE2eEnvironment(process.env);
 
 /** The brand to use for authenticated E2E tests — must match a seeded org */
 export const TEST_BRAND_ID = "electrician";
 export const POSTHOG_TEST_BRAND_ID = "posthog";
-const BACKEND_URL = "http://localhost:3000/api/v1";
+const BACKEND_URL = testEnv.NEXT_PUBLIC_BACKEND_URL;
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://tzftjqpnisalltnkrykg.supabase.co";
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const SUPABASE_URL = testEnv.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = testEnv.SUPABASE_SERVICE_ROLE_KEY;
 
 /**
  * Admin-confirm a user's email via Supabase Admin API.
@@ -15,7 +18,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 export async function adminConfirmUser(email: string): Promise<void> {
   if (!SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY env var required for e2e tests (set in backend/.env)"
+      "SUPABASE_SERVICE_ROLE_KEY from local Supabase is required for e2e tests"
     );
   }
 
@@ -69,7 +72,7 @@ export async function adminConfirmUser(email: string): Promise<void> {
 export async function getSupabaseUserIdByEmail(email: string): Promise<string> {
   if (!SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY env var required for e2e tests (set in backend/.env)"
+      "SUPABASE_SERVICE_ROLE_KEY from local Supabase is required for e2e tests"
     );
   }
 

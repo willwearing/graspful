@@ -12,5 +12,6 @@ additional_redirect_urls = [
   "http://localhost:3001/**",
   "https://graspful.ai/**",
   "https://graspful.vercel.app/**",
+  "https://graspful-site.vercel.app/**",
   "https://*.graspful.ai/**",
 ]

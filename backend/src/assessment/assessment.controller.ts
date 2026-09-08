@@ -32,12 +32,17 @@ export class AssessmentController {
 
   @Post('lessons/:conceptId/answer')
   async submitLessonAnswer(
+    @Param('courseId') courseId: string,
     @Param('conceptId') conceptId: string,
     @Body() body: SubmitAnswerDto,
     @CurrentOrg() org: OrgContext,
   ) {
     return this.problemSubmission.submitAnswer({
       userId: org.userId,
+      orgId: org.orgId,
+      courseId,
+      conceptId,
+      requestId: body.requestId,
       problemId: body.problemId,
       answer: body.answer,
       responseTimeMs: body.responseTimeMs,
@@ -51,19 +56,25 @@ export class AssessmentController {
 
   @Post('reviews/:conceptId/start')
   async startReview(
+    @Param('courseId') courseId: string,
     @Param('conceptId') conceptId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.reviewService.startReview(org.userId, conceptId);
+    return this.reviewService.startReview(org.orgId, org.userId, courseId, conceptId);
   }
 
   @Post('reviews/:conceptId/answer')
   async submitReviewAnswer(
+    @Param('courseId') courseId: string,
     @Param('conceptId') conceptId: string,
     @Body() body: SubmitReviewAnswerDto,
     @CurrentOrg() org: OrgContext,
   ) {
     return this.reviewService.submitReviewAnswer(
+      org.orgId,
+      org.userId,
+      courseId,
+      conceptId,
       body.sessionId,
       body.problemId,
       body.answer,
@@ -73,11 +84,12 @@ export class AssessmentController {
 
   @Post('reviews/:conceptId/complete')
   async completeReview(
+    @Param('courseId') courseId: string,
     @Param('conceptId') conceptId: string,
     @Body() body: CompleteReviewDto,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.reviewService.completeReview(body.sessionId);
+    return this.reviewService.completeReview(org.orgId, org.userId, courseId, conceptId, body.sessionId);
   }
 
   // --- Quizzes ---
@@ -87,16 +99,20 @@ export class AssessmentController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.quizService.generateQuiz(org.userId, courseId);
+    return this.quizService.generateQuiz(org.orgId, org.userId, courseId);
   }
 
   @Post('quizzes/:quizId/answer')
   async submitQuizAnswer(
+    @Param('courseId') courseId: string,
     @Param('quizId') quizId: string,
     @Body() body: SubmitAnswerDto,
     @CurrentOrg() org: OrgContext,
   ) {
     return this.quizService.submitQuizAnswer(
+      org.orgId,
+      org.userId,
+      courseId,
       quizId,
       body.problemId,
       body.answer,
@@ -110,7 +126,7 @@ export class AssessmentController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    const result = await this.quizService.completeQuiz(quizId);
+    const result = await this.quizService.completeQuiz(org.orgId, org.userId, courseId, quizId);
     this.posthog.capture({ distinctId: org.userId }, 'quiz completed', {
       quiz_id: quizId,
       course_id: courseId,
@@ -125,7 +141,7 @@ export class AssessmentController {
     @Param('sectionId') sectionId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    const result = await this.sectionExamService.startExam(org.userId, courseId, sectionId);
+    const result = await this.sectionExamService.startExam(org.orgId, org.userId, courseId, sectionId);
     this.posthog.capture({ distinctId: org.userId }, 'section exam started', {
       course_id: courseId,
       section_id: sectionId,
@@ -136,12 +152,17 @@ export class AssessmentController {
 
   @Post('sections/:sectionId/exam/:sessionId/answer')
   async submitSectionExamAnswer(
+    @Param('courseId') courseId: string,
+    @Param('sectionId') sectionId: string,
     @Param('sessionId') sessionId: string,
     @Body() body: SubmitAnswerDto,
     @CurrentOrg() org: OrgContext,
   ) {
     return this.sectionExamService.submitAnswer(
+      org.orgId,
       org.userId,
+      courseId,
+      sectionId,
       sessionId,
       body.problemId,
       body.answer,
@@ -157,6 +178,7 @@ export class AssessmentController {
     @CurrentOrg() org: OrgContext,
   ) {
     const result = await this.sectionExamService.completeExam(
+      org.orgId,
       org.userId,
       courseId,
       sectionId,
@@ -178,6 +200,7 @@ export class AssessmentController {
     @CurrentOrg() org: OrgContext,
   ) {
     return this.sectionExamService.getExamStatus(
+      org.orgId,
       org.userId,
       courseId,
       sectionId,

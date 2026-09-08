@@ -5,6 +5,7 @@ import { CourseYamlExportService } from './course-yaml-export.service';
 import { CourseManagementService } from './application/course-management.service';
 import { PostHogService } from '@/shared/application/posthog.service';
 import { OrgMembershipGuard, JwtOrApiKeyGuard } from '@/auth';
+import { MIN_ROLE_KEY } from '@/auth/guards/org-membership.guard';
 
 const mockGuard = { canActivate: () => true };
 
@@ -17,6 +18,7 @@ describe('KnowledgeGraphController', () => {
   beforeEach(async () => {
     mockCourseReads = {
       listCourses: jest.fn(),
+      getCourseBySlug: jest.fn(),
       getCourseGraph: jest.fn(),
       listConcepts: jest.fn(),
       getConceptDetail: jest.fn(),
@@ -62,7 +64,7 @@ describe('KnowledgeGraphController', () => {
       const result = await controller.listCourses(orgCtx as any);
 
       expect(result).toEqual(courses);
-      expect(mockCourseReads.listCourses).toHaveBeenCalledWith('org-1');
+      expect(mockCourseReads.listCourses).toHaveBeenCalledWith('org-1', { includeDrafts: true });
     });
   });
 
@@ -198,4 +200,27 @@ describe('KnowledgeGraphController', () => {
       expect(mockCourseYamlExport.exportCourse).toHaveBeenCalledWith('org-1', 'c1');
     });
   });
+
+  it.each([
+    ['member', false],
+    ['admin', true],
+    ['owner', true],
+  ])('grants draft content visibility only to creator roles: %s', async (role, includeDrafts) => {
+    const org = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role } as any;
+    await controller.listCourses(org);
+    await controller.getCourseBySlug('draft', org);
+    await controller.getCourseGraph('c1', org);
+    await controller.listConcepts('c1', org);
+    await controller.getConceptDetail('c1', 'concept-1', org);
+    expect(mockCourseReads.listCourses).toHaveBeenCalledWith('org-1', { includeDrafts });
+    expect(mockCourseReads.getCourseBySlug).toHaveBeenCalledWith('org-1', 'draft', { includeDrafts });
+    expect(mockCourseReads.getCourseGraph).toHaveBeenCalledWith('org-1', 'c1', { includeDrafts });
+    expect(mockCourseReads.listConcepts).toHaveBeenCalledWith('org-1', 'c1', { includeDrafts });
+    expect(mockCourseReads.getConceptDetail).toHaveBeenCalledWith('org-1', 'c1', 'concept-1', { includeDrafts });
+  });
+
+  it('requires the admin role for raw course YAML export', () => {
+    expect(Reflect.getMetadata(MIN_ROLE_KEY, controller.exportCourseYaml)).toBe('admin');
+  });
+
 });

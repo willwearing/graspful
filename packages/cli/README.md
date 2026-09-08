@@ -3,27 +3,31 @@
 [![npm version](https://img.shields.io/npm/v/@graspful/cli)](https://www.npmjs.com/package/@graspful/cli)
 [![license](https://img.shields.io/npm/l/@graspful/cli)](https://github.com/willwearing/graspful/blob/main/LICENSE)
 
-CLI for creating adaptive learning academies and courses from YAML knowledge graphs. Designed for AI agents and humans. Academy manifest + course YAMLs + brand YAML in, live adaptive product out.
+CLI for authoring, reviewing, and importing learning academies and courses from YAML knowledge graphs. Publication requires completed content and a passing review.
 
 ## Quick Start
 
 ```bash
-# 1. Create an account (opens browser auth, then saves an API key locally)
-npx @graspful/cli register
+# 1. Scaffold one academy and its first course, offline
+bunx @graspful/cli create academy --topic "CKA Exam" --course "CKA exam foundations" -o academy.yaml
+mkdir -p courses
+bunx @graspful/cli create course --topic "CKA exam foundations" -o courses/cka-exam-foundations.yaml
 
-# 2. Scaffold the academy plan and first course
-npx @graspful/cli create academy --topic "CKA Exam" -o cka-academy.yaml
-npx @graspful/cli create course --topic "CKA Exam Foundations" -o cka.yaml
+# 2. Author the YAML from your sources. Replace every scaffold marker,
+# add teaching to every concept, and add questions and worked examples.
+# Then validate and review the completed file.
+bunx @graspful/cli validate courses/cka-exam-foundations.yaml
+bunx @graspful/cli review courses/cka-exam-foundations.yaml
 
-# 3. Validate and review
-npx @graspful/cli validate cka.yaml
-npx @graspful/cli review cka.yaml
+# 3. After review passes, authenticate and import a draft
+bunx @graspful/cli register
+bunx @graspful/cli import academy.yaml --org <your-org> --course-dir .
 
-# 4. Import and publish
-npx @graspful/cli import cka-academy.yaml --org <your-org> --course-dir . --publish
+# 4. Publish the courseId returned by import
+bunx @graspful/cli --format json publish <courseId> --org <your-org>
 ```
 
-Steps 2-3 work offline — no account needed. You only need to authenticate before importing or publishing.
+Scaffolds are drafts and will fail publication review until authored. Confirm `published: true` in the final response before sharing the course. If review fails, correct the YAML and re-import with `--replace` before retrying publication.
 
 ## Install
 
@@ -38,21 +42,20 @@ bun add -g @graspful/cli
 
 ## Why Graspful
 
-- **Agent-first.** CLI + MCP server. AI agents create courses as well as humans -- faster.
+- **Agent tools.** CLI and MCP commands support authoring, validation, review, and import.
 - **YAML-native.** Course content is a YAML knowledge graph. Version it, diff it, review it, generate it.
-- **Adaptive learning.** Bayesian Knowledge Tracing, spaced repetition (FIRe algorithm), mastery-based progression. Built in, not bolted on.
+- **Adaptive learning.** Bayesian Knowledge Tracing, spaced repetition (FIRe algorithm), and mastery-based progression.
 - **White-label.** Brand YAML defines theme, landing page, domain, and Stripe config. Each brand is its own product.
-- **Revenue share.** Creators keep revenue. Graspful handles infrastructure.
+- **Billing setup.** Payments require Stripe configuration before they can be enabled.
 
-## The Two-YAML Workflow
+## Authoring workflow
 
-Graspful turns an academy manifest, course YAMLs, and a brand YAML into a live learning product:
+An academy manifest groups course files. A brand file configures the landing page:
 
 ```
-academy.yaml ──┐
-course.yaml  ──┼──▶  graspful import  ──▶  Live adaptive academy
-brand.yaml   ──┘                           with billing, analytics,
-                                           spaced repetition, and a landing page
+academy.yaml + course YAMLs -> import academy -> draft courses
+completed course content   -> review + publish -> learner access
+brand.yaml                 -> import brand -> landing page configuration
 ```
 
 **Course YAML** defines what learners study: concepts, prerequisite graph, knowledge points, practice problems, section exams.
@@ -143,28 +146,28 @@ graspful validate brand.yaml
 
 ### `graspful review`
 
-Run 10 mechanical quality checks. All 10 must pass to publish.
+Run 10 automated quality checks. All 10 must pass to publish. Check factual accuracy against your sources separately.
 
 ```bash
 graspful review course.yaml
 # Score: 10/10
-# Stats: 42 concepts (12 authored, 30 stubs), 24 KPs, 89 problems
+# Stats: 3 concepts (3 authored, 0 stubs), 9 KPs, 27 problems
 ```
 
 The 10 checks:
 
 | # | Check | What it verifies |
 |---|-------|-----------------|
-| 1 | `yaml_parses` | Valid Zod schema |
+| 1 | `yaml_parses` | Course structure and problem answers match the schema |
 | 2 | `unique_problem_ids` | No duplicate problem IDs |
-| 3 | `prerequisites_valid` | All prerequisite refs point to real concepts |
+| 3 | `publication_readiness` | Every concept has teaching content and known scaffold markers are removed |
 | 4 | `question_deduplication` | No near-duplicate questions at same difficulty |
 | 5 | `difficulty_staircase` | Each concept has problems at 2+ difficulty levels |
-| 6 | `problem_teaching_alignment` | Problems only assess material introduced in the lesson path |
+| 6 | `problem_teaching_alignment` | A vocabulary check flags questions that appear unrelated to the teaching path |
 | 7 | `problem_variant_depth` | Each KP has 3+ problems |
 | 8 | `instruction_formatting` | Long instructions (100+ words) use content blocks |
 | 9 | `worked_example_coverage` | 50%+ of authored concepts have worked examples |
-| 10 | `import_dry_run` | DAG is valid (no cycles, valid refs) |
+| 10 | `import_dry_run` | Concept and KP IDs are unique in their scopes; prerequisites exist without cycles |
 
 ### `graspful describe`
 
@@ -190,6 +193,8 @@ graspful import academy.yaml --org acme-learning --course-dir . --publish
 | `--publish` | Publish immediately (runs review gate) | `false` |
 | `--course-dir` | Base directory for academy course files | manifest directory |
 
+With `--publish`, exit status `0` requires confirmation that every requested course was published. If a review or publication request fails, the command exits with status `1` and preserves the import result. Course results include `publicationFailures`; academy results list only confirmed `publishedCourseIds` and include `publishFailures` for the remaining courses. A partial academy publication has `status: "partially_published"` in JSON output.
+
 ### `graspful publish`
 
 Publish a draft course. Server runs the review gate -- all 10 quality checks must pass.
@@ -197,6 +202,8 @@ Publish a draft course. Server runs the review gate -- all 10 quality checks mus
 ```bash
 graspful publish <courseId> --org acme-learning
 ```
+
+The command reports success only when the server returns `published: true`. Failed reviews return exit status `1` with the check names and details. Use `--format json` to retain the full server review and the `publicationFailures` list in the error output.
 
 ### `graspful login`
 
@@ -243,7 +250,9 @@ The typical agent loop:
 
 ## MCP Server
 
-For deeper AI agent integration, use the companion MCP server [`@graspful/mcp`](https://www.npmjs.com/package/@graspful/mcp). It exposes all CLI functionality as MCP tools for Claude Code, Cursor, Codex, Windsurf, and any MCP-compatible client.
+The companion MCP server [`@graspful/mcp`](https://www.npmjs.com/package/@graspful/mcp) exposes course authoring, validation, review, and publication tools. Follow its [editor-specific setup instructions](https://github.com/willwearing/graspful/tree/main/packages/mcp#editor-configuration) for Claude Code, Codex, Cursor, VS Code, or Windsurf Cascade.
+
+For Cursor, add this to `.cursor/mcp.json`:
 
 ```json
 {

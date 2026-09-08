@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import {
   getSupabaseUserIdByEmail,
   POSTHOG_TEST_BRAND_ID,
@@ -52,27 +52,6 @@ async function getCourseEntry() {
   return course;
 }
 
-async function answerCurrentQuestion(page: Page) {
-  const optionButton = page.locator("button.rounded-lg.border-2").first();
-  const submitButton = page.getByRole("button", { name: "Submit Answer" });
-
-  if (await optionButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await optionButton.click();
-    if (await submitButton.isVisible({ timeout: 500 }).catch(() => false)) {
-      await submitButton.click();
-      return;
-    }
-  }
-
-  const trueButton = page.getByRole("button", { name: "True" });
-  if (await trueButton.isVisible({ timeout: 500 }).catch(() => false)) {
-    await trueButton.click();
-    return;
-  }
-
-  await page.getByRole("button", { name: "I don't know this yet" }).click();
-}
-
 test.describe("Learner happy path", () => {
   test.afterAll(async () => {
     await prisma.$disconnect();
@@ -86,39 +65,27 @@ test.describe("Learner happy path", () => {
     const { id: courseId, academyId } = await getCourseEntry();
 
     await page.goto(`/browse/${courseId}`);
-    await expect(page.getByText("Course Progress")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: COURSE_NAME, exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Take Diagnostic" }).click();
 
-    await expect(page).toHaveURL(/\/diagnostic/, { timeout: 10_000 });
+    await expect(page).toHaveURL(new RegExp(`/academy/${academyId}/diagnostic$`), { timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Diagnostic Assessment" })).toBeVisible();
+    await expect(page.getByText(/^Question 1 of/)).toBeVisible();
+    await expect(page.getByRole("radiogroup")).toBeVisible();
+    await page.getByRole("button", { name: "I don't know this yet", exact: true }).click();
+    await expect(page.getByText(/^Question 2 of/)).toBeVisible({ timeout: 10_000 });
 
-    const diagnosticText = page.getByText("Diagnostic Assessment");
-    const unavailableText = page.getByText("Diagnostic Unavailable");
-    await expect(diagnosticText.or(unavailableText)).toBeVisible({ timeout: 15_000 });
-
-    const hasDiagnostic = await diagnosticText.isVisible().catch(() => false);
-
-    if (hasDiagnostic) {
-      await expect(page.getByText("Question 1 of")).toBeVisible({ timeout: 10_000 });
-      await answerCurrentQuestion(page);
-      await expect(page.getByText("Question 2 of")).toBeVisible({ timeout: 10_000 });
-    } else {
-      expect(academyId).toBeTruthy();
-    }
+    // Starting the diagnostic enrolls the learner, which creates the progress
+    // profile. A first browse of an unenrolled course has no profile yet.
+    await page.goto(`/browse/${courseId}`);
+    await expect(page.getByText("Course Progress", { exact: true })).toBeVisible();
 
     await page.goto(`/study/${courseId}`);
-    const sessionComplete = await page
-      .getByText("Session Complete")
-      .isVisible({ timeout: 5_000 })
-      .catch(() => false);
-
-    if (sessionComplete) {
-      await expect(page.getByText("Great work!")).toBeVisible();
-      return;
-    }
-
-    await expect(page.getByText("Knowledge Point 1 of")).toBeVisible({
+    await expect(page).toHaveURL(new RegExp(`/study/${courseId}/lesson/[^/?]+`), {
       timeout: 15_000,
     });
-    await expect(page.getByText("Lesson Unavailable")).not.toBeVisible();
+    await expect(page.getByText(/^Knowledge Point 1 of/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeVisible();
+    await expect(page.getByRole("complementary").getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();
   });
 });

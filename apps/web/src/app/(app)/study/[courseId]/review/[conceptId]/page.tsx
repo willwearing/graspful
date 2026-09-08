@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { apiFetch } from "@/lib/api";
 import { resolvePageBrand } from "@/lib/brand/resolve";
-import { ReviewFlow } from "@/components/app/review-flow";
+import { ReviewFlow, type ReviewData } from "@/components/app/review-flow";
+import { StudyRouter } from "@/components/app/study-router";
 
 export default async function ReviewPage({
   params,
@@ -22,14 +23,14 @@ export default async function ReviewPage({
   const brand = await resolvePageBrand();
   const orgSlug = brand.orgSlug;
 
-  let reviewData: any;
+  let reviewData: ReviewData;
   try {
-    reviewData = await apiFetch<any>(
+    reviewData = await apiFetch<ReviewData>(
       `/orgs/${orgSlug}/courses/${courseId}/reviews/${conceptId}/start`,
       { method: "POST" }
     );
   } catch {
-    redirect(`/study/${courseId}`);
+    return <StudyRouter courseId={courseId} task={null} loadFailed emptyStateHref={`/browse/${courseId}`} emptyStateLabel="Back to Course" />;
   }
 
   return (

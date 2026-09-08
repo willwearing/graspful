@@ -1,4 +1,5 @@
 import type { BrandConfig, BrandThemeColors } from "./config";
+import type { THEME_PRESETS } from "@graspful/shared";
 import { defaultBrand } from "./defaults";
 
 // Ensure the base URL always includes the /api/v1 prefix.
@@ -26,11 +27,57 @@ export function clearBrandCache() {
   cache.clear();
 }
 
-/** Deep-merge a partial theme from the API with defaults so no field is ever missing. */
+interface PresetPalette {
+  hue: number;
+  saturation: number;
+  lightness: number;
+  gradient: [string, string, string, string];
+}
+
+// Keep this exhaustive against the authoring schema. Light primaries use dark
+// colors with white text; dark themes use light primaries with dark text.
+const PRESET_PALETTES = {
+  blue: { hue: 221, saturation: 83, lightness: 45, gradient: ["#1D4ED8", "#2563EB", "#60A5FA", "#38BDF8"] },
+  red: { hue: 0, saturation: 72, lightness: 44, gradient: ["#B91C1C", "#DC2626", "#F87171", "#FB923C"] },
+  green: { hue: 142, saturation: 71, lightness: 29, gradient: ["#15803D", "#16A34A", "#4ADE80", "#A3E635"] },
+  orange: { hue: 21, saturation: 90, lightness: 35, gradient: ["#C2410C", "#EA580C", "#FB923C", "#FBBF24"] },
+  purple: { hue: 271, saturation: 76, lightness: 44, gradient: ["#7E22CE", "#9333EA", "#C084FC", "#E879F9"] },
+  slate: { hue: 215, saturation: 25, lightness: 30, gradient: ["#334155", "#475569", "#94A3B8", "#CBD5E1"] },
+  emerald: { hue: 161, saturation: 94, lightness: 25, gradient: ["#047857", "#059669", "#34D399", "#5EEAD4"] },
+  rose: { hue: 347, saturation: 77, lightness: 44, gradient: ["#BE123C", "#E11D48", "#FB7185", "#FDA4AF"] },
+  amber: { hue: 35, saturation: 92, lightness: 31, gradient: ["#B45309", "#D97706", "#FBBF24", "#FDE047"] },
+  indigo: { hue: 243, saturation: 75, lightness: 50, gradient: ["#4338CA", "#4F46E5", "#818CF8", "#A5B4FC"] },
+} satisfies Record<(typeof THEME_PRESETS)[number], PresetPalette>;
+
+function presetTheme(preset: unknown, defaults: BrandConfig["theme"]): BrandConfig["theme"] {
+  if (typeof preset !== "string" || !Object.hasOwn(PRESET_PALETTES, preset)) return defaults;
+  const palette = PRESET_PALETTES[preset as keyof typeof PRESET_PALETTES];
+  const color = (lightness: number) => `${palette.hue} ${palette.saturation}% ${lightness}%`;
+  const [start, mid, end, accent] = palette.gradient;
+  return {
+    ...defaults,
+    light: {
+      ...defaults.light,
+      primary: color(palette.lightness), primaryForeground: "0 0% 100%",
+      secondary: color(94), secondaryForeground: color(20),
+      accent: color(94), accentForeground: color(20), ring: color(palette.lightness),
+    },
+    dark: {
+      ...defaults.dark,
+      primary: color(75), primaryForeground: "222 47% 11%",
+      secondary: `${palette.hue} 30% 20%`, secondaryForeground: color(90),
+      accent: `${palette.hue} 30% 20%`, accentForeground: color(90), ring: color(75),
+    },
+    gradient: { start, mid, end, accent },
+  };
+}
+
+/** Apply a named palette, then explicit overrides, filling all other fields from defaults. */
 function mergeTheme(
   partial: Record<string, unknown>,
   defaults: BrandConfig["theme"],
 ): BrandConfig["theme"] {
+  const base = presetTheme(partial.preset, defaults);
   const partialLight =
     partial.light && typeof partial.light === "object"
       ? (partial.light as Record<string, string>)
@@ -45,14 +92,14 @@ function mergeTheme(
       : {};
 
   return {
-    light: { ...defaults.light, ...partialLight } as BrandThemeColors,
-    dark: { ...defaults.dark, ...partialDark } as BrandThemeColors,
-    radius: typeof partial.radius === "string" ? partial.radius : defaults.radius,
+    light: { ...base.light, ...partialLight } as BrandThemeColors,
+    dark: { ...base.dark, ...partialDark } as BrandThemeColors,
+    radius: typeof partial.radius === "string" ? partial.radius : base.radius,
     gradient: {
-      start: partialGradient.start ?? defaults.gradient.start,
-      mid: partialGradient.mid ?? defaults.gradient.mid,
-      end: partialGradient.end ?? defaults.gradient.end,
-      accent: partialGradient.accent ?? defaults.gradient.accent,
+      start: partialGradient.start ?? base.gradient.start,
+      mid: partialGradient.mid ?? base.gradient.mid,
+      end: partialGradient.end ?? base.gradient.end,
+      accent: partialGradient.accent ?? base.gradient.accent,
     },
   };
 }

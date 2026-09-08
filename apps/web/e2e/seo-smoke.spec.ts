@@ -102,6 +102,8 @@ test.describe("SEO Smoke Tests", () => {
     const schemas = jsonLd.map((value) => JSON.parse(value));
     const schemaTypes = schemas.map((schema) => schema["@type"]);
     expect(schemaTypes.filter((type) => type === "SoftwareApplication")).toHaveLength(1);
+    const application = schemas.find((schema) => schema["@type"] === "SoftwareApplication");
+    expect(application.offers.description).toContain("Paid subscriptions are not available yet");
     expect(schemaTypes).not.toContain("Course");
     expect(schemaTypes).not.toContain("EducationalOccupationalCredential");
     const website = schemas.find((schema) => schema["@type"] === "WebSite");

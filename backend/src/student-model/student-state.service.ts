@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import { DiagnosticState, MasteryState } from '@prisma/client';
+import { DiagnosticState, MasteryState, Prisma } from '@prisma/client';
 import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
 import { ensureConceptStatesForAcademy, getAcademyIdForCourse } from './application/student-state.lifecycle';
 import {
+  loadAcademyAccess,
+  loadAssessmentAccess,
   countMasteredConcepts as countMasteredConceptsQuery,
   loadAcademyCourseMasterySummary,
   loadConceptMasteryForIds,
@@ -30,6 +32,34 @@ const logger = getLogger('student-model');
 @Injectable()
 export class StudentStateService {
   constructor(private prisma: PrismaService) {}
+
+  async assertAcademyAccess(
+    userId: string,
+    orgId: string,
+    academyId: string,
+  ): Promise<{ id: string; orgId: string }> {
+    const access = await loadAcademyAccess(this.prisma, userId, orgId, academyId);
+    if (!access) {
+      throw new NotFoundException('Academy or enrollment not found');
+    }
+    return access;
+  }
+
+  async assertAssessmentAccess(
+    userId: string,
+    orgId: string,
+    courseId: string,
+    conceptId?: string,
+    sectionId?: string,
+  ) {
+    const access = await loadAssessmentAccess(
+      this.prisma, userId, orgId, courseId, conceptId, sectionId,
+    );
+    if (!access) {
+      throw new NotFoundException('Assessment content or enrollment not found');
+    }
+    return access;
+  }
 
   async getConceptStates(userId: string, courseId: string) {
     return this.getConceptStatesForCourse(userId, courseId);
@@ -186,24 +216,24 @@ export class StudentStateService {
 
   // ── Read methods (used by other modules via service boundary) ──────
 
-  async getConceptState(userId: string, conceptId: string) {
-    return loadConceptState(this.prisma, userId, conceptId);
+  async getConceptState(userId: string, conceptId: string, tx: Prisma.TransactionClient = this.prisma) {
+    return loadConceptState(tx, userId, conceptId);
   }
 
   async getConceptStateWithConcept(userId: string, conceptId: string) {
     return loadConceptStateWithConcept(this.prisma, userId, conceptId);
   }
 
-  async getConceptMemory(userId: string, conceptId: string): Promise<number> {
-    return loadConceptMemory(this.prisma, userId, conceptId);
+  async getConceptMemory(userId: string, conceptId: string, tx: Prisma.TransactionClient = this.prisma): Promise<number> {
+    return loadConceptMemory(tx, userId, conceptId);
   }
 
-  async getKPState(userId: string, knowledgePointId: string) {
-    return loadKPState(this.prisma, userId, knowledgePointId);
+  async getKPState(userId: string, knowledgePointId: string, tx: Prisma.TransactionClient = this.prisma) {
+    return loadKPState(tx, userId, knowledgePointId);
   }
 
-  async getKPStatesForIds(userId: string, knowledgePointIds: string[]) {
-    return loadKPStatesForIds(this.prisma, userId, knowledgePointIds);
+  async getKPStatesForIds(userId: string, knowledgePointIds: string[], tx: Prisma.TransactionClient = this.prisma) {
+    return loadKPStatesForIds(tx, userId, knowledgePointIds);
   }
 
   async getConceptMasteryForIds(
@@ -220,8 +250,8 @@ export class StudentStateService {
     return countMasteredConceptsQuery(this.prisma, userId, filter);
   }
 
-  async getSectionState(userId: string, sectionId: string) {
-    return loadSectionState(this.prisma, userId, sectionId);
+  async getSectionState(userId: string, sectionId: string, tx: Prisma.TransactionClient = this.prisma) {
+    return loadSectionState(tx, userId, sectionId);
   }
 
   async getSectionStatesForAcademy(userId: string, academyId: string) {
@@ -232,8 +262,8 @@ export class StudentStateService {
     return loadSectionStatesForCourse(this.prisma, userId, courseId);
   }
 
-  async getConceptStatesForFIRe(userId: string, academyId: string) {
-    return loadConceptStatesForFIRe(this.prisma, userId, academyId);
+  async getConceptStatesForFIRe(userId: string, academyId: string, tx: Prisma.TransactionClient = this.prisma) {
+    return loadConceptStatesForFIRe(tx, userId, academyId);
   }
 
   async getConceptStatesForDecay(userId: string, academyId: string) {
@@ -256,6 +286,7 @@ export class StudentStateService {
       firstFailedSessionId?: string | null;
     },
     sessionId?: string,
+    tx: Prisma.TransactionClient = this.prisma,
   ) {
     const currentConsecutive = currentState?.consecutiveCorrect ?? 0;
     const newConsecutive = correct ? currentConsecutive + 1 : 0;
@@ -269,7 +300,7 @@ export class StudentStateService {
       : (currentState?.firstFailedSessionId ?? sessionId ?? null);
     const lastFailedSessionId = correct ? undefined : sessionId;
 
-    return this.prisma.studentKPState.upsert({
+    return tx.studentKPState.upsert({
       where: { userId_knowledgePointId: { userId, knowledgePointId } },
       create: {
         userId,
@@ -312,16 +343,21 @@ export class StudentStateService {
       pausedAtSessionId?: string | null;
       sessionFailedKPAttempts?: number;
     },
+    tx: Prisma.TransactionClient = this.prisma,
   ) {
-    return this.prisma.studentConceptState.update({
+    return tx.studentConceptState.update({
       where: { userId_conceptId: { userId, conceptId } },
       data,
     });
   }
 
-  async markConceptsNeedsReview(userId: string, conceptIds: string[]) {
+  async markConceptsNeedsReview(
+    userId: string,
+    conceptIds: string[],
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
     if (conceptIds.length === 0) return;
-    return this.prisma.studentConceptState.updateMany({
+    return tx.studentConceptState.updateMany({
       where: {
         userId,
         conceptId: { in: conceptIds },
@@ -341,8 +377,9 @@ export class StudentStateService {
       interval: number;
       lastPracticedAt?: Date;
     },
+    tx: Prisma.TransactionClient = this.prisma,
   ) {
-    return this.prisma.studentConceptState.update({
+    return tx.studentConceptState.update({
       where: { userId_conceptId: { userId, conceptId } },
       data,
     });

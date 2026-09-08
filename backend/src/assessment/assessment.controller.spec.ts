@@ -90,12 +90,16 @@ describe('AssessmentController', () => {
 
   describe('submitLessonAnswer', () => {
     it('should submit answer and return result', async () => {
-      const body = { problemId: 'p1', answer: 'A', responseTimeMs: 5000 };
-      const result = await controller.submitLessonAnswer('c1', body, orgCtx as any);
+      const body = { requestId: '06f232e6-dac9-4915-a372-c9d91651c795', problemId: 'p1', answer: 'A', responseTimeMs: 5000 };
+      const result = await controller.submitLessonAnswer('course-1', 'c1', body, orgCtx as any);
 
       expect(result.correct).toBe(true);
       expect(mockProblemSubmission.submitAnswer).toHaveBeenCalledWith({
         userId: 'u1',
+        orgId: 'org-1',
+        courseId: 'course-1',
+        conceptId: 'c1',
+        requestId: body.requestId,
         problemId: 'p1',
         answer: 'A',
         responseTimeMs: 5000,
@@ -106,30 +110,30 @@ describe('AssessmentController', () => {
 
   describe('startReview', () => {
     it('should start a review session', async () => {
-      const result = await controller.startReview('c1', orgCtx as any);
+      const result = await controller.startReview('course-1', 'c1', orgCtx as any);
 
       expect(result.sessionId).toBe('sess-1');
-      expect(mockReview.startReview).toHaveBeenCalledWith('u1', 'c1');
+      expect(mockReview.startReview).toHaveBeenCalledWith('org-1', 'u1', 'course-1', 'c1');
     });
   });
 
   describe('submitReviewAnswer', () => {
     it('should submit review answer', async () => {
       const body = { sessionId: 'sess-1', problemId: 'p1', answer: 'A', responseTimeMs: 5000 };
-      const result = await controller.submitReviewAnswer('c1', body, orgCtx as any);
+      const result = await controller.submitReviewAnswer('course-1', 'c1', body, orgCtx as any);
 
       expect(result.correct).toBe(true);
-      expect(mockReview.submitReviewAnswer).toHaveBeenCalledWith('sess-1', 'p1', 'A', 5000);
+      expect(mockReview.submitReviewAnswer).toHaveBeenCalledWith('org-1', 'u1', 'course-1', 'c1', 'sess-1', 'p1', 'A', 5000);
     });
   });
 
   describe('completeReview', () => {
     it('should complete review', async () => {
       const body = { sessionId: 'sess-1' };
-      const result = await controller.completeReview('c1', body, orgCtx as any);
+      const result = await controller.completeReview('course-1', 'c1', body, orgCtx as any);
 
       expect(result.passed).toBe(true);
-      expect(mockReview.completeReview).toHaveBeenCalledWith('sess-1');
+      expect(mockReview.completeReview).toHaveBeenCalledWith('org-1', 'u1', 'course-1', 'c1', 'sess-1');
     });
   });
 
@@ -138,17 +142,17 @@ describe('AssessmentController', () => {
       const result = await controller.generateQuiz('course-1', orgCtx as any);
 
       expect(result.quizId).toBe('quiz-1');
-      expect(mockQuiz.generateQuiz).toHaveBeenCalledWith('u1', 'course-1');
+      expect(mockQuiz.generateQuiz).toHaveBeenCalledWith('org-1', 'u1', 'course-1');
     });
   });
 
   describe('submitQuizAnswer', () => {
     it('should submit quiz answer', async () => {
       const body = { problemId: 'p1', answer: 'A', responseTimeMs: 5000 };
-      const result = await controller.submitQuizAnswer('quiz-1', body, orgCtx as any);
+      const result = await controller.submitQuizAnswer('course-1', 'quiz-1', body, orgCtx as any);
 
       expect(result.answeredCount).toBe(1);
-      expect(mockQuiz.submitQuizAnswer).toHaveBeenCalledWith('quiz-1', 'p1', 'A', 5000);
+      expect(mockQuiz.submitQuizAnswer).toHaveBeenCalledWith('org-1', 'u1', 'course-1', 'quiz-1', 'p1', 'A', 5000);
     });
   });
 
@@ -157,7 +161,7 @@ describe('AssessmentController', () => {
       const result = await controller.completeQuiz('quiz-1', 'course-1', orgCtx as any);
 
       expect(result.score).toBe(0.8);
-      expect(mockQuiz.completeQuiz).toHaveBeenCalledWith('quiz-1');
+      expect(mockQuiz.completeQuiz).toHaveBeenCalledWith('org-1', 'u1', 'course-1', 'quiz-1');
     });
   });
 
@@ -171,6 +175,7 @@ describe('AssessmentController', () => {
 
       expect(result.sessionId).toBe('section-exam-1');
       expect(mockSectionExam.startExam).toHaveBeenCalledWith(
+        'org-1',
         'u1',
         'course-1',
         'section-1',
@@ -179,6 +184,8 @@ describe('AssessmentController', () => {
 
     it('should submit a section exam answer', async () => {
       const result = await controller.submitSectionExamAnswer(
+        'course-1',
+        'section-1',
         'section-exam-1',
         {
           problemId: 'p1',
@@ -190,7 +197,10 @@ describe('AssessmentController', () => {
 
       expect(result.answeredCount).toBe(1);
       expect(mockSectionExam.submitAnswer).toHaveBeenCalledWith(
+        'org-1',
         'u1',
+        'course-1',
+        'section-1',
         'section-exam-1',
         'p1',
         'A',
@@ -208,6 +218,7 @@ describe('AssessmentController', () => {
 
       expect(result.passed).toBe(true);
       expect(mockSectionExam.completeExam).toHaveBeenCalledWith(
+        'org-1',
         'u1',
         'course-1',
         'section-1',
@@ -224,6 +235,7 @@ describe('AssessmentController', () => {
 
       expect(result.status).toBe('exam_ready');
       expect(mockSectionExam.getExamStatus).toHaveBeenCalledWith(
+        'org-1',
         'u1',
         'course-1',
         'section-1',

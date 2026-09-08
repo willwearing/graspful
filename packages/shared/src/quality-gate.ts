@@ -21,18 +21,60 @@ export interface QualityGateResult {
   };
 }
 
-export const QUALITY_CHECKS = [
-  'yaml_parses',
-  'unique_problem_ids',
-  'prerequisites_valid',
-  'question_deduplication',
-  'difficulty_staircase',
-  'problem_teaching_alignment',
-  'problem_variant_depth',
-  'instruction_formatting',
-  'worked_example_coverage',
-  'import_dry_run',
+export const QUALITY_CHECK_METADATA = [
+  {
+    name: 'yaml_parses',
+    description: 'Course structure and problem answers match the shared schema.',
+    fix: 'Fix schema errors. Choice answers use valid zero-based indices; other types must match their answer contract.',
+  },
+  {
+    name: 'unique_problem_ids',
+    description: 'Every problem has a unique ID across the course.',
+    fix: 'Use a distinct concept, knowledge point, and problem prefix for each problem ID.',
+  },
+  {
+    name: 'publication_readiness',
+    description: 'Every concept has teaching content. Names, questions, answers, and teaching contain no known scaffold markers.',
+    fix: 'Author each concept, add at least five words of teaching per knowledge point in instruction or callout content, and replace placeholder text. Draft scaffolds can still validate.',
+  },
+  {
+    name: 'question_deduplication',
+    description: 'Questions at the same difficulty have distinct normalized text.',
+    fix: 'Write distinct problem variants instead of repeating the same question at the same difficulty.',
+  },
+  {
+    name: 'difficulty_staircase',
+    description: 'Each concept has problems at two or more difficulty levels.',
+    fix: 'Include easier and harder problems. Problems without a difficulty use the import default of 3.',
+  },
+  {
+    name: 'problem_teaching_alignment',
+    description: 'A vocabulary check flags knowledge points whose questions all appear unrelated to the teaching path.',
+    fix: 'Teach the material tested by the questions in this knowledge point, earlier knowledge points, or its prerequisites. Check factual and teaching accuracy against your sources separately.',
+  },
+  {
+    name: 'problem_variant_depth',
+    description: 'Each knowledge point has at least three problems.',
+    fix: 'Add at least three answerable problem variants for each knowledge point.',
+  },
+  {
+    name: 'instruction_formatting',
+    description: 'Instructions longer than 100 words include content blocks.',
+    fix: 'Split long prose into smaller knowledge points or add useful content blocks.',
+  },
+  {
+    name: 'worked_example_coverage',
+    description: 'At least half of authored concepts include a worked example.',
+    fix: 'Add a worked example, in text or content blocks, to at least half of the authored concepts.',
+  },
+  {
+    name: 'import_dry_run',
+    description: 'Concept and knowledge point IDs are unique in their scopes, and prerequisites exist without cycles.',
+    fix: 'Resolve duplicate IDs, unknown prerequisite references, and prerequisite cycles.',
+  },
 ] as const;
+
+export const QUALITY_CHECKS = QUALITY_CHECK_METADATA.map((check) => check.name);
 
 export type QualityCheckName = (typeof QUALITY_CHECKS)[number];
 
@@ -89,26 +131,80 @@ function checkUniqueProblemIds(courseYaml: CourseYaml): QualityCheckResult {
   };
 }
 
-function checkPrerequisitesValid(courseYaml: CourseYaml): QualityCheckResult {
-  const conceptIds = new Set(courseYaml.concepts.map((concept) => concept.id));
-  const invalid: string[] = [];
+// This floor catches incomplete lessons. It does not certify factual accuracy
+// or replace a subject expert's review of the source material.
+const MIN_INSTRUCTION_WORDS = 5;
+const PLACEHOLDER_LINE = /(?:^|\n)\s*(?:(?:TODO|TBD|FIXME)(?:\s*:|\s*$)|(?:stub|placeholder)\s+(?:instruction|example|question|content|answer)\b|lorem ipsum\b|(?:write|add|insert|replace)\s+(?:your|the)\s+(?:instruction|example|question|content|answer)\s+here\b)/i;
+const UNRESOLVED_CONTENT_FILE = /^\s*[^\s<>]+\.(?:md|txt|html)\s*$/i;
+
+function hasPlaceholder(value: string | undefined): boolean {
+  return Boolean(value && (PLACEHOLDER_LINE.test(value) || /^\s*Option\s+[A-Z0-9]\s*$/i.test(value)));
+}
+
+function contentBlockText(block: CourseYaml['concepts'][number]['knowledgePoints'][number]['instructionContent'][number]): string[] {
+  switch (block.type) {
+    case 'callout': return [block.title, block.body];
+    case 'image': return [block.alt, block.caption ?? ''];
+    case 'video': return [block.title, block.caption ?? ''];
+    case 'link': return [block.title, block.description ?? ''];
+  }
+}
+
+function checkPublicationReadiness(courseYaml: CourseYaml): QualityCheckResult {
+  const failures: string[] = [];
+  const inspect = (label: string, value: string | undefined, required = false) => {
+    if (required && !value?.trim()) failures.push(`${label} is empty`);
+    else if (hasPlaceholder(value)) failures.push(`${label} contains placeholder text`);
+  };
+
+  inspect('Course name', courseYaml.course.name, true);
+  inspect('Course description', courseYaml.course.description);
+  inspect('Course source document', courseYaml.course.sourceDocument);
+  if (courseYaml.concepts.length === 0) failures.push('Course needs at least one authored concept');
+  for (const section of courseYaml.sections) {
+    inspect(`Section "${section.id}" name`, section.name, true);
+    inspect(`Section "${section.id}" description`, section.description);
+  }
 
   for (const concept of courseYaml.concepts) {
-    for (const prereq of concept.prerequisites) {
-      if (!conceptIds.has(prereq)) {
-        invalid.push(`${concept.id} -> ${prereq}`);
+    inspect(`Concept "${concept.id}" name`, concept.name, true);
+    inspect(`Concept "${concept.id}" source`, concept.sourceRef);
+    if (concept.knowledgePoints.length === 0) failures.push(`"${concept.id}" has no authored knowledge points`);
+    for (const kp of concept.knowledgePoints) {
+      const label = `"${concept.id}/${kp.id}"`;
+      inspect(`${label} instruction`, kp.instruction);
+      inspect(`${label} worked example`, kp.workedExample);
+      for (const [field, value] of [['instruction', kp.instruction], ['worked example', kp.workedExample]]) {
+        if (value && UNRESOLVED_CONTENT_FILE.test(value)) {
+          failures.push(`${label} ${field} is a file reference; include its teaching text directly before publication`);
+        }
+      }
+      const teachingText = [kp.instruction ?? '', ...kp.instructionContent
+        .filter((block) => block.type === 'callout')
+        .map((block) => block.body)].join(' ');
+      if (teachingText.trim().split(/\s+/).filter(Boolean).length < MIN_INSTRUCTION_WORDS) {
+        failures.push(`${label} needs teaching text of at least ${MIN_INSTRUCTION_WORDS} words in instruction or callout content`);
+      }
+      for (const block of [...kp.instructionContent, ...kp.workedExampleContent]) {
+        for (const value of contentBlockText(block)) inspect(`${label} content block`, value);
+      }
+      for (const problem of kp.problems) {
+        inspect(`Problem "${problem.id}" question`, problem.question, true);
+        inspect(`Problem "${problem.id}" explanation`, problem.explanation);
+        for (const option of problem.options ?? []) inspect(`Problem "${problem.id}" option`, option);
+        const answerTexts = typeof problem.correct === 'string' ? [problem.correct] :
+          Array.isArray(problem.correct) ? problem.correct.flat() :
+          typeof problem.correct === 'object' && problem.correct !== null ? Object.values(problem.correct).flat() : [];
+        for (const value of answerTexts) inspect(`Problem "${problem.id}" answer`, value);
       }
     }
   }
 
-  if (invalid.length === 0) {
-    return { check: 'prerequisites_valid', passed: true };
-  }
-
   return {
-    check: 'prerequisites_valid',
-    passed: false,
-    details: `Unknown prerequisites: ${invalid.join(', ')}`,
+    check: 'publication_readiness',
+    passed: failures.length === 0,
+    ...(failures.length > 0 && { details: failures.slice(0, 8).join('; ') +
+      (failures.length > 8 ? ` (+${failures.length - 8} more)` : '') }),
   };
 }
 
@@ -210,6 +306,9 @@ function collectAllowedProblemStems(
     for (const prereqKp of prereq.knowledgePoints) {
       addStems(allowed, prereqKp.instruction);
       addStems(allowed, prereqKp.workedExample);
+      for (const block of [...prereqKp.instructionContent, ...prereqKp.workedExampleContent]) {
+        for (const text of contentBlockText(block)) addStems(allowed, text);
+      }
     }
   }
 
@@ -217,6 +316,9 @@ function collectAllowedProblemStems(
     const kp = concept.knowledgePoints[index];
     addStems(allowed, kp?.instruction);
     addStems(allowed, kp?.workedExample);
+    for (const block of [...kp.instructionContent, ...kp.workedExampleContent]) {
+      for (const text of contentBlockText(block)) addStems(allowed, text);
+    }
   }
 
   return allowed;
@@ -254,8 +356,8 @@ const ALIGNMENT_IGNORED_WORDS = new Set([
 ]);
 
 // Minimum distinct teaching stems we need before we can judge alignment at all.
-// Below this, the KP's instruction/workedExample is effectively a stub and the
-// check would punish legitimate stub fixtures or in-progress drafts.
+// Below this, vocabulary overlap cannot reliably judge alignment. The separate
+// publication_readiness check rejects incomplete teaching.
 const MIN_TEACHING_STEMS_FOR_ALIGNMENT = 8;
 
 function checkProblemTeachingAlignment(courseYaml: CourseYaml): QualityCheckResult {
@@ -267,8 +369,7 @@ function checkProblemTeachingAlignment(courseYaml: CourseYaml): QualityCheckResu
       const kp = concept.knowledgePoints[kpIndex];
       const allowed = collectAllowedProblemStems(conceptIndex, concept, kpIndex);
 
-      // Skip the check when the teaching path has almost no substance — we
-      // cannot reliably tell whether a problem is on-topic against a stub.
+      // A short teaching path has too little vocabulary for this heuristic.
       if (allowed.size < MIN_TEACHING_STEMS_FOR_ALIGNMENT) {
         continue;
       }
@@ -329,13 +430,11 @@ function checkDifficultyStaircase(courseYaml: CourseYaml): QualityCheckResult {
     const difficulties = new Set<number>();
     for (const kp of concept.knowledgePoints) {
       for (const problem of kp.problems) {
-        if (problem.difficulty != null) {
-          difficulties.add(problem.difficulty);
-        }
+        difficulties.add(problem.difficulty ?? 3);
       }
     }
 
-    if (difficulties.size > 0 && difficulties.size < 2) {
+    if (difficulties.size < 2) {
       failures.push(
         `"${concept.id}" has problems at only ${difficulties.size} difficulty level(s) - need 2+`,
       );
@@ -429,7 +528,7 @@ function checkWorkedExampleCoverage(courseYaml: CourseYaml): QualityCheckResult 
 
   const withExamples = authoredConcepts.filter((concept) =>
     concept.knowledgePoints.some(
-      (kp) => kp.workedExample && kp.workedExample.trim().length > 0,
+      (kp) => Boolean(kp.workedExample?.trim()) || kp.workedExampleContent.length > 0,
     ),
   );
 
@@ -454,6 +553,17 @@ function checkImportDryRun(courseYaml: CourseYaml): QualityCheckResult {
       if (!conceptIds.has(prereq)) {
         errors.push(`Unknown prerequisite: ${concept.id} -> ${prereq}`);
       }
+    }
+  }
+
+  const seenConcepts = new Set<string>();
+  for (const concept of courseYaml.concepts) {
+    if (seenConcepts.has(concept.id)) errors.push(`Duplicate concept ID: ${concept.id}`);
+    seenConcepts.add(concept.id);
+    const kpIds = new Set<string>();
+    for (const kp of concept.knowledgePoints) {
+      if (kpIds.has(kp.id)) errors.push(`Duplicate knowledge point ID: ${concept.id}/${kp.id}`);
+      kpIds.add(kp.id);
     }
   }
 
@@ -615,12 +725,12 @@ function summarizeChecks(
   };
 }
 
-export function reviewCourseYaml(courseYaml: CourseYaml): QualityGateResult {
+function reviewParsedCourseYaml(courseYaml: CourseYaml): QualityGateResult {
   const stats = countStats(courseYaml);
   const checks: QualityCheckResult[] = [
     { check: 'yaml_parses', passed: true },
     checkUniqueProblemIds(courseYaml),
-    checkPrerequisitesValid(courseYaml),
+    checkPublicationReadiness(courseYaml),
     checkQuestionDeduplication(courseYaml),
     checkDifficultyStaircase(courseYaml),
     checkProblemTeachingAlignment(courseYaml),
@@ -667,5 +777,11 @@ export function runQualityGate(raw: unknown): QualityGateResult {
     };
   }
 
-  return reviewCourseYaml(result.data);
+  return reviewParsedCourseYaml(result.data);
+}
+
+// Revalidate typed inputs too: database exports and direct service callers must
+// receive the same publication checks as raw CLI and MCP input.
+export function reviewCourseYaml(courseYaml: CourseYaml): QualityGateResult {
+  return runQualityGate(courseYaml);
 }

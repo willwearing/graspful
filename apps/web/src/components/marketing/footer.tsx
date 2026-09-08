@@ -7,22 +7,22 @@ import { useHostSurface } from "@/lib/host-context";
 import { trackLandingCtaClick } from "@/lib/posthog/events";
 
 const platformProductLinks = [
-  { href: "/agents", label: "AI Agents" },
+  { href: "/agents", label: "AI agents" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/sign-up", label: "Get Started" },
+  { href: "/sign-up", label: "Get started" },
 ];
 
 const learnerProductLinks = [
   { href: "/pricing", label: "Pricing" },
-  { href: "/sign-up", label: "Get Started" },
+  { href: "/sign-up", label: "Get started" },
 ];
 
 const platformResourceLinks = [
-  { href: "/ai-course-builder", label: "AI Course Builder" },
+  { href: "/ai-course-builder", label: "AI course builder" },
   { href: "/docs", label: "Documentation" },
   { href: "/docs/quickstart", label: "Quickstart" },
-  { href: "/docs/mcp", label: "MCP Server" },
-  { href: "/docs/course-schema", label: "Course Schema" },
+  { href: "/docs/mcp", label: "MCP server" },
+  { href: "/docs/course-schema", label: "Course schema" },
   { href: "/academies", label: "Academies" },
 ];
 
@@ -33,7 +33,7 @@ export function MarketingFooter() {
   const isGraspful = brand.id === "graspful";
   const productLinks =
     hostSurface === "academy"
-      ? [{ href: "/sign-up", label: "Enroll" }, { href: "/sign-in", label: "Sign In" }]
+      ? [{ href: "/sign-up", label: "Enroll" }, { href: "/sign-in", label: "Sign in" }]
       : isGraspful
         ? platformProductLinks
         : learnerProductLinks;

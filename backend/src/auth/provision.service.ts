@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
+import { PostHogService } from '@/shared/application/posthog.service';
 
 /**
  * Convert a slug like "will-use-case-selling-posthog" to "Will Use Case Selling Posthog".
@@ -22,6 +23,7 @@ export class ProvisionService {
   constructor(
     private prisma: PrismaService,
     private vercelDomains: VercelDomainsService,
+    private posthog: PostHogService,
   ) {}
 
   /**
@@ -94,6 +96,7 @@ export class ProvisionService {
     });
 
     this.logger.log(`Created org ${result.orgSlug} for user ${userId}`);
+    this.posthog.recordAccountCreated({ userId, email, ...result, source: 'provision' });
 
     // Provision the subdomain on Vercel (non-blocking)
     const domain = `${result.orgSlug}.graspful.ai`;

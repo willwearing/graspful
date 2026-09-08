@@ -6,9 +6,7 @@ import { requireAuth } from '../lib/auth';
 import { ApiClient } from '../lib/api-client';
 import { output, outputError } from '../lib/output';
 import { cliCapture } from '../lib/analytics';
-import { detectFileType } from '@graspful/shared';
-
-type FileType = 'course' | 'brand' | 'academy';
+import { detectFileType, publicationFailures, type CoursePublicationResponse } from '@graspful/shared';
 
 export function registerImportCommand(program: Command) {
   program
@@ -55,17 +53,19 @@ export function registerImportCommand(program: Command) {
         }
 
         try {
-          const result = await api.post<{ courseId: string; url: string; published: boolean; reviewFailures?: string[] }>(
+          const result = await api.post<CoursePublicationResponse>(
             `/api/v1/orgs/${orgSlug}/courses/import`,
             { yaml: content, publish: opts.publish, replace: opts.replace, archiveMissing: opts.archiveMissing },
           );
 
           cliCapture('course imported', { course_id: result.courseId, org: orgSlug, published: result.published });
-          if (opts.publish && result.reviewFailures && result.reviewFailures.length > 0) {
+          if (opts.publish && result.published !== true) {
+            const failures = publicationFailures(result);
             output(
-              { ...result, status: 'imported_but_not_published' },
-              `Imported course ${result.courseId} but publish failed:\n${result.reviewFailures.map((f) => `  - ${f}`).join('\n')}`,
+              { ...result, status: 'imported_but_not_published', publicationFailures: failures },
+              `Imported course ${result.courseId} but publish failed:\n${failures.map((failure) => `  - ${failure}`).join('\n')}`,
             );
+            process.exitCode = 1;
           } else {
             output(
               result,
@@ -128,8 +128,17 @@ export function registerImportCommand(program: Command) {
           if (opts.publish) {
             for (const courseResult of result.courseResults) {
               try {
-                await api.post(`/api/v1/orgs/${orgSlug}/courses/${courseResult.courseId}/publish`, {});
-                publishedCourseIds.push(courseResult.courseId);
+                const publication = await api.post<CoursePublicationResponse>(
+                  `/api/v1/orgs/${orgSlug}/courses/${courseResult.courseId}/publish`,
+                  {},
+                );
+                if (publication.published === true) {
+                  publishedCourseIds.push(courseResult.courseId);
+                } else {
+                  publishFailures.push(
+                    `${courseResult.courseId}: ${publicationFailures(publication).join('; ')}`,
+                  );
+                }
               } catch (error) {
                 const msg = error instanceof Error ? error.message : String(error);
                 publishFailures.push(`${courseResult.courseId}: ${msg}`);
@@ -141,6 +150,9 @@ export function registerImportCommand(program: Command) {
             ...result,
             publishedCourseIds,
             publishFailures,
+            ...(publishFailures.length > 0 ? {
+              status: publishedCourseIds.length > 0 ? 'partially_published' : 'imported_but_not_published',
+            } : {}),
           };
 
           cliCapture('academy imported', {
@@ -153,8 +165,9 @@ export function registerImportCommand(program: Command) {
           if (publishFailures.length > 0) {
             output(
               response,
-              `Imported academy ${result.academySlug} (${result.courseCount} courses) but some courses failed to publish:\n${publishFailures.map((failure) => `  - ${failure}`).join('\n')}`,
+              `Imported academy ${result.academySlug} (${result.courseCount} courses). Published ${publishedCourseIds.length} of ${result.courseResults.length} courses.\nPublication failures:\n${publishFailures.map((failure) => `  - ${failure}`).join('\n')}`,
             );
+            process.exitCode = 1;
           } else {
             output(
               response,
@@ -177,11 +190,14 @@ export function registerImportCommand(program: Command) {
             domain: brandSection.domain,
             tagline: brandSection.tagline || '',
             logoUrl: (brandSection.logoUrl as string) || '/icon.svg',
+            faviconUrl: brandSection.faviconUrl,
+            ogImageUrl: brandSection.ogImageUrl,
             orgSlug: brandSection.orgSlug,
             theme: parsed.theme || {},
             landing: parsed.landing || {},
             seo: parsed.seo || {},
             pricing: parsed.pricing || {},
+            contentScope: parsed.contentScope,
           };
           const result = await api.post<{
             brand: { slug: string; domain: string };

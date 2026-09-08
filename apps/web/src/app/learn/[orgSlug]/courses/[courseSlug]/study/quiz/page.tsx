@@ -1,8 +1,7 @@
-import { redirect } from "next/navigation";
-import { apiFetch } from "@/lib/api";
 import { requireLearnAccess, resolveCourseBySlug } from "@/lib/learn-server";
-import { getLearnCourseStudyHref } from "@/lib/learn-routes";
-import { QuizFlow } from "@/components/app/quiz-flow";
+import { getLearnCourseHref, getLearnCourseStudyHref } from "@/lib/learn-routes";
+import { QuizFlow, type QuizData } from "@/components/app/quiz-flow";
+import { StudyRouter } from "@/components/app/study-router";
 
 export default async function LearnQuizPage({
   params,
@@ -13,13 +12,13 @@ export default async function LearnQuizPage({
   const { token, serverApiFetch } = await requireLearnAccess(orgSlug);
   const course = await resolveCourseBySlug(orgSlug, courseSlug, serverApiFetch);
 
-  let quizData: any;
+  let quizData: QuizData;
   try {
-    quizData = await apiFetch<any>(`/orgs/${orgSlug}/courses/${course.id}/quizzes/generate`, {
+    quizData = await serverApiFetch<QuizData>(`/orgs/${orgSlug}/courses/${course.id}/quizzes/generate`, {
       method: "POST",
     });
   } catch {
-    redirect(getLearnCourseStudyHref(orgSlug, courseSlug));
+    return <StudyRouter courseId={course.id} task={null} loadFailed emptyStateHref={getLearnCourseHref(orgSlug, courseSlug)} emptyStateLabel="Back to Course" />;
   }
 
   return (

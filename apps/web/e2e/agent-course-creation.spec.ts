@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
+import { getE2eEnvironment } from "../../../scripts/e2e-env";
 
-const BACKEND_URL = "http://localhost:3000/api/v1";
+const BACKEND_URL = getE2eEnvironment(process.env).NEXT_PUBLIC_BACKEND_URL;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -10,10 +11,10 @@ const UUID_RE =
  * Requirements for 10/10:
  *  1. yaml_parses — valid Zod schema
  *  2. unique_problem_ids — no duplicate problem IDs
- *  3. prerequisites_valid — all prereq refs point to existing concept IDs
+ *  3. publication_readiness: all concepts are authored and scaffold markers removed
  *  4. question_deduplication — no duplicate questions at same difficulty
  *  5. difficulty_staircase — each concept has problems at 2+ difficulty levels
- *  6. cross_concept_coverage — no single term dominates too many concepts
+ *  6. problem_teaching_alignment: questions relate to the lesson path
  *  7. problem_variant_depth — each KP has 3+ problems
  *  8. instruction_formatting — long instructions have content blocks
  *  9. worked_example_coverage — 50%+ authored concepts have worked examples
@@ -390,9 +391,9 @@ test.describe.serial("Agent Course Creation (API only)", () => {
     expect(body.yaml).toContain("merge-conflicts");
   });
 
-  // ── Step 7: Re-import with publish=true ───────────────────────
+  // Import a second complete course with publication requested.
 
-  test("step 7: re-import with publish=true auto-publishes", async ({
+  test("step 7: import a second course with publish=true", async ({
     request,
   }) => {
     // Build a slightly different slug so we don't collide
@@ -416,6 +417,70 @@ test.describe.serial("Agent Course Creation (API only)", () => {
     expect(typeof body.url).toBe("string");
     expect(body.review.passed).toBe(true);
     expect(body.review.score).toBe("10/10");
+  });
+
+  test("valid replacement preserves publication without the publish flag", async ({ request }) => {
+    const updatedYaml = makeFullCourseYaml(courseSlug).replace(
+      'description: "End-to-end test course covering Git basics."',
+      'description: "Git practice with a revised course description."',
+    );
+    const response = await request.post(
+      `${BACKEND_URL}/orgs/${orgSlug}/courses/import`,
+      {
+        data: { yaml: updatedYaml, replace: true },
+        headers: authHeaders(),
+      },
+    );
+    expect(response.status()).toBe(201);
+    const result = await response.json();
+    expect(result.courseId).toBe(courseId);
+    expect(result.published).toBe(true);
+
+    const exported = await request.get(
+      `${BACKEND_URL}/orgs/${orgSlug}/courses/${courseId}/yaml`,
+      { headers: authHeaders() },
+    );
+    expect(exported.status()).toBe(200);
+    expect((await exported.json()).yaml).toContain("Git practice with a revised course description.");
+  });
+
+  test("invalid replacement cannot overwrite a published course", async ({ request }) => {
+    const unfinishedYaml = makeFullCourseYaml(courseSlug).replace(
+      /instruction: "[^\n]*"/,
+      'instruction: "TODO: Write the lesson."',
+    );
+    expect(unfinishedYaml).toContain('instruction: "TODO: Write the lesson."');
+
+    const response = await request.post(
+      `${BACKEND_URL}/orgs/${orgSlug}/courses/import`,
+      {
+        data: { yaml: unfinishedYaml, replace: true, publish: false },
+        headers: authHeaders(),
+      },
+    );
+    expect(response.status()).toBe(400);
+    const result = await response.json();
+    expect(result.review.passed).toBe(false);
+    expect(result.reviewFailures).toEqual(expect.arrayContaining([
+      expect.objectContaining({ check: "publication_readiness", passed: false }),
+    ]));
+
+    const exported = await request.get(
+      `${BACKEND_URL}/orgs/${orgSlug}/courses/${courseId}/yaml`,
+      { headers: authHeaders() },
+    );
+    expect(exported.status()).toBe(200);
+    const retainedYaml = (await exported.json()).yaml;
+    expect(retainedYaml).toContain("Git practice with a revised course description.");
+    expect(retainedYaml).not.toContain("TODO: Write the lesson.");
+
+    const listed = await request.get(
+      `${BACKEND_URL}/orgs/${orgSlug}/courses`,
+      { headers: authHeaders() },
+    );
+    expect(listed.status()).toBe(200);
+    const courses = await listed.json();
+    expect(courses.find((course: { id: string }) => course.id === courseId)?.isPublished).toBe(true);
   });
 
   // ── Step 8: Course graph endpoint returns full structure ──────

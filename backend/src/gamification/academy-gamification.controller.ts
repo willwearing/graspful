@@ -63,6 +63,6 @@ export class AcademyGamificationController {
     @Param('academyId') academyId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.courseProgressReads.getAcademyGraph(org.userId, academyId);
+    return this.courseProgressReads.getAcademyGraph(org.userId, academyId, org.orgId);
   }
 }

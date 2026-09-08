@@ -71,7 +71,7 @@ const sectionGroups = [
         icon: Rocket,
         title: "Quickstart",
         description:
-          "Install the CLI, scaffold a course, fill concepts, review, and publish — in under 5 minutes.",
+          "Install the CLI, author a course, review its content, import a draft, and confirm publication.",
       },
       {
         href: "/docs/how-it-works",
@@ -144,7 +144,7 @@ const sectionGroups = [
         icon: Bot,
         title: "MCP Server",
         description:
-          "Set up the MCP server for Claude Code, Cursor, Codex, and VS Code. All 10 tools with schemas and examples.",
+          "Set up the MCP server for Claude Code, Cursor, Codex, and VS Code. Tool schemas and configuration examples.",
       },
     ],
   },
@@ -163,7 +163,7 @@ const sectionGroups = [
         icon: Target,
         title: "Mastery Learning",
         description:
-          "Bayesian Knowledge Tracing, mastery states, and why students never advance without understanding.",
+          "Bayesian Knowledge Tracing, estimated mastery, and prerequisite rules for progression.",
       },
       {
         href: "/docs/concepts/adaptive-diagnostics",
@@ -210,7 +210,7 @@ const sectionGroups = [
         icon: CreditCard,
         title: "Billing",
         description:
-          "70/30 revenue share model, Stripe Connect setup, free tier, and API key management.",
+          "Current billing availability and the setup required before paid subscriptions can open.",
       },
     ],
   },
@@ -223,9 +223,9 @@ export default function DocsIndexPage() {
         Documentation
       </h1>
       <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Graspful is the fastest way to create adaptive learning courses. Define
-        a course as YAML, import it via CLI or MCP, and get a live product with
-        a landing page, knowledge graph, spaced repetition, and billing.
+        Define course content as YAML, review it, and import it with the CLI or
+        MCP tools. Published courses use a prerequisite graph, practice problems,
+        mastery estimates, and scheduled review. Billing requires separate setup.
       </p>
 
       <div className="mt-4 flex items-center gap-4">

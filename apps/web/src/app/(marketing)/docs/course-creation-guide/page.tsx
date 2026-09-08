@@ -618,8 +618,7 @@ concepts:
             type: true_false
             question: >
               True or false: Every function in JavaScript is technically a closure.
-            options: ["True", "False"]
-            correct: 0
+            correct: true
             explanation: >
               True. In JavaScript, every function closes over the scope in which
               it was defined. We typically use the term "closure" for cases where
@@ -887,11 +886,11 @@ concepts:
           Review gate
         </h3>
         <p className="mt-2 text-muted-foreground">
-          The review gate runs 10 mechanical quality checks: YAML parsing,
-          unique problem IDs, valid prerequisites, question deduplication,
-          difficulty staircase, cross-concept coverage, variant depth,
-          instruction formatting, worked example coverage, and import dry run.
-          A score of 10/10 is required to publish.
+          The review gate checks content readiness, problem answers, IDs,
+          prerequisites, question duplication, difficulty, teaching alignment,
+          practice depth, formatting, and worked examples. A score of 10/10
+          means the automated checks passed. Review the source facts, answer
+          keys, and teaching quality before publishing.
         </p>
         <CodeBlock language="bash">
           {`# Run all 10 checks
@@ -915,9 +914,11 @@ graspful review js-fundamentals.yaml --format json`}
           Import and publish
         </h3>
         <p className="mt-2 text-muted-foreground">
-          Once you pass 10/10, import the course. Use{" "}
-          <InlineCode>--publish</InlineCode> to go live immediately (the
-          server re-runs the review gate before publishing).
+          After content review and a passing automated review, import the course
+          as a draft. Use <InlineCode>--publish</InlineCode> to request publication
+          during import. The server runs its review again. Confirm that the
+          result reports <InlineCode>published: true</InlineCode> before
+          sharing the course. A failure can leave the imported course as a draft.
         </p>
         <CodeBlock language="bash">
           {`# Import as draft
@@ -1038,7 +1039,7 @@ contentScope:
         <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
           <li>
             <strong className="text-foreground">Course:</strong> Imported and
-            published (review gate 10/10)
+            confirmed published, with source accuracy and teaching reviewed
           </li>
           <li>
             <strong className="text-foreground">Brand:</strong> Imported with
@@ -1049,8 +1050,8 @@ contentScope:
             set (if using custom domain)
           </li>
           <li>
-            <strong className="text-foreground">Stripe:</strong> Connect account
-            linked for paid courses (see{" "}
+            <strong className="text-foreground">Stripe:</strong> Paid subscriptions are not available yet. Complete and test billing
+            setup before offering paid access (see{" "}
             <Link
               href="/docs/billing"
               className="text-primary hover:underline"
@@ -1069,8 +1070,8 @@ contentScope:
           {`# Import the brand
 graspful import js-mastery-brand.yaml
 
-# Verify everything is live
-graspful describe --org my-org`}
+# Check domain verification separately from course publication.
+graspful domain-status js-mastery`}
         </CodeBlock>
       </section>
 

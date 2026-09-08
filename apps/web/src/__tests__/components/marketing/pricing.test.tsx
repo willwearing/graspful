@@ -1,81 +1,22 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import { PricingSection } from "@/components/marketing/pricing";
 import { BrandProvider } from "@/lib/brand/context";
-import { ThemeProvider } from "@/lib/theme/theme-provider";
-import { firefighterBrand } from "@/lib/brand/defaults";
-
-function renderPricing() {
-  return render(
-    <ThemeProvider>
-      <BrandProvider brand={firefighterBrand}>
-        <PricingSection />
-      </BrandProvider>
-    </ThemeProvider>,
-  );
-}
+import { firefighterBrand, graspfulBrand, posthogBrand } from "@/lib/brand/defaults";
 
 describe("PricingSection", () => {
-  it("renders three plan cards", () => {
-    renderPricing();
-
-    expect(screen.getAllByText("Free").length).toBeGreaterThan(0);
-    expect(screen.getByText("Individual")).toBeDefined();
-    expect(screen.getByText("Team")).toBeDefined();
-  });
-
-  it("shows monthly pricing by default", () => {
-    renderPricing();
-
-    expect(screen.getByText("$14.99")).toBeDefined();
-  });
-
-  it("toggles to yearly pricing", () => {
-    renderPricing();
-
-    const yearlyButton = screen.getByText(/Yearly/);
-    fireEvent.click(yearlyButton);
-
-    expect(screen.getByText("$149")).toBeDefined();
-  });
-
-  it("shows Most Popular badge on Individual plan", () => {
-    renderPricing();
-
-    expect(screen.getByText("Most Popular")).toBeDefined();
-  });
-
-  it("shows trial days from brand config", () => {
-    renderPricing();
-
-    const trialButtons = screen.getAllByText(/7-Day Free Trial/);
-    expect(trialButtons.length).toBeGreaterThan(0);
-  });
-
-  it("shows free plan features", () => {
-    renderPricing();
-
-    expect(screen.getByText("1 exam")).toBeDefined();
-    expect(screen.getByText("50 study items")).toBeDefined();
-  });
-
-  it("renders CTA links without nested buttons", () => {
-    renderPricing();
-
-    const ctaLink = screen.getByText("Get Started").closest("a");
-    expect(ctaLink?.tagName).toBe("A");
-    expect(ctaLink?.querySelector("button")).toBeNull();
-  });
-
-  it("can render the section heading as the page h1", () => {
-    render(
-      <ThemeProvider>
-        <BrandProvider brand={firefighterBrand}>
-          <PricingSection headingLevel="h1" />
-        </BrandProvider>
-      </ThemeProvider>,
-    );
-
-    expect(screen.getByRole("heading", { level: 1, name: "Simple Pricing" })).toBeDefined();
+  for (const brand of [firefighterBrand, graspfulBrand, posthogBrand]) {
+    it(`shows current billing availability for ${brand.id}`, () => {
+      render(<BrandProvider brand={brand}><PricingSection /></BrandProvider>);
+      expect(screen.getByText("Paid subscriptions are not available yet.")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /trial|monthly|yearly/i })).not.toBeInTheDocument();
+      const cta = screen.getByRole("link", { name: "Create free account" });
+      expect(cta).toHaveAttribute("href", expect.stringContaining("/sign-up"));
+      expect(cta.querySelector("button")).toBeNull();
+    });
+  }
+  it("renders the pricing page heading as h1", () => {
+    render(<PricingSection headingLevel="h1" />);
+    expect(screen.getByRole("heading", { level: 1, name: "Start with a free account" })).toBeInTheDocument();
   });
 });

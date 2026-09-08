@@ -12,36 +12,9 @@ Part of [Graspful](https://graspful.ai) -- the agent-first adaptive learning pla
 
 ### 1. Configure your editor
 
-```bash
-npx @graspful/cli init
-```
+Follow the [editor-specific configuration](#editor-configuration) below. You can omit `GRASPFUL_API_KEY` while authoring offline.
 
-Detects your editor (Claude Code, Cursor, Windsurf) and writes the MCP config automatically.
-
-Or add manually to your editor's MCP config (see [Editor Configuration](#editor-configuration) below):
-
-```json
-{
-  "mcpServers": {
-    "graspful": {
-      "command": "npx",
-      "args": ["@graspful/mcp"]
-    }
-  }
-}
-```
-
-### 2. Create an account
-
-Run the CLI once to complete browser auth and mint an API key, then restart the
-MCP server with `GRASPFUL_API_KEY` set.
-
-```bash
-npx @graspful/cli register
-export GRASPFUL_API_KEY="gsk_..."
-```
-
-### 3. Build an academy
+### 2. Author and review an academy
 
 ```
 graspful_create_academy(topic: "Your Topic")
@@ -50,14 +23,29 @@ graspful_scaffold_course(topic: "Your First Course", estimatedHours: 10)
 → edit the YAML
 graspful_validate(yaml: "...")
 graspful_review_course(yaml: "...")
+```
+
+Scaffold, fill, validate, and review work offline. Scaffolds contain unfinished content. Author every concept and replace placeholders before publication review.
+
+### 3. Authenticate and import
+
+Run the CLI to complete browser auth and mint an API key:
+
+```bash
+bunx @graspful/cli register
+```
+
+Add the returned key as `GRASPFUL_API_KEY` in your editor's Graspful server configuration, then restart the MCP server. After review passes, import the academy and request publication:
+
+```
 graspful_import_academy(manifestYaml: "...", courseYamls: { "courses/course.yaml": "..." }, org: "your-org", publish: true)
 ```
 
-Scaffold, fill, validate, and review work offline — no account needed. You only need to register before importing or publishing.
+Confirm each course appears in `publishedCourseIds`. Failed publications return `isError: true` with details and preserve the imported draft.
 
 ## Available Tools
 
-12 tools. Focused and minimal -- agents degrade above 40 tools.
+12 tools for academy and course authoring.
 
 | Tool | Description | Auth Required |
 |------|-------------|:---:|
@@ -121,20 +109,20 @@ Validate any Graspful YAML (course, brand, or academy manifest) against its Zod 
 
 ### `graspful_review_course`
 
-Run all 10 mechanical quality checks. Returns a score (e.g., "8/10") with details on each failure. A score of 10/10 is required for publishing.
+Run all 10 automated quality checks. Returns a score (e.g., "8/10") with details on each failure. All 10 must pass before publishing. Check factual accuracy against your sources separately.
 
 **The 10 checks:**
 
-1. Schema validation (valid Zod schema)
-2. Unique problem IDs
-3. Valid prerequisites (all refs point to real concepts)
-4. No DAG cycles
-5. Difficulty distribution (2+ levels per concept)
-6. Problems only assess material introduced in the lesson path
-7. Minimum problems per KP
-8. Explanation coverage (worked examples)
-9. Question deduplication (no near-duplicates at same difficulty)
-10. Import dry run (graph remains valid for import)
+1. `yaml_parses`: Course structure and problem answers match the schema.
+2. `unique_problem_ids`: Every problem has a unique ID.
+3. `publication_readiness`: Every concept has teaching content and known scaffold markers are removed.
+4. `question_deduplication`: Questions at the same difficulty have distinct normalized text.
+5. `difficulty_staircase`: Each concept has problems at two or more difficulty levels.
+6. `problem_teaching_alignment`: A vocabulary check flags questions that appear unrelated to the teaching path.
+7. `problem_variant_depth`: Each knowledge point has at least three problems.
+8. `instruction_formatting`: Instructions longer than 100 words include content blocks.
+9. `worked_example_coverage`: At least half of authored concepts include a worked example.
+10. `import_dry_run`: Concept and knowledge point IDs are unique in their scopes; prerequisites exist without cycles.
 
 | Parameter | Type | Required | Description |
 |-----------|------|:---:|-------------|
@@ -155,6 +143,8 @@ Import academy manifest YAML plus the course YAMLs it references.
 | `replace` | boolean | No | Replace existing content on re-import |
 | `archiveMissing` | boolean | No | Archive removed content on re-import |
 
+The result includes confirmed `publishedCourseIds` and `publishFailures`. When any requested publication fails, the tool returns `isError: true` while preserving the academy import result and successful publications. A mixed result has `status: "partially_published"`; if no course was published, it has `status: "imported_but_not_published"`.
+
 ### `graspful_import_course`
 
 Import course YAML into a Graspful organization. Creates as draft by default. If `publish=true`, the server runs the review gate first.
@@ -165,7 +155,9 @@ Import course YAML into a Graspful organization. Creates as draft by default. If
 | `org` | string | Yes | Organization slug |
 | `publish` | boolean | No | Publish immediately (default: false) |
 
-**Returns:** `{ courseId, url, published, reviewFailures? }`
+**Returns:** `{ courseId, url, published, review?, reviewFailures? }`
+
+If `publish: true` was requested and the server does not return `published: true`, the tool returns `isError: true`. The result preserves the imported course and review, with `status: "imported_but_not_published"` and readable `publicationFailures`. A draft import without requested publication is successful.
 
 ### `graspful_publish_course`
 
@@ -176,7 +168,9 @@ Publish a draft course. Server runs the review gate first -- all 10 checks must 
 | `courseId` | string | Yes | Course ID (UUID) |
 | `org` | string | Yes | Organization slug |
 
-**Returns:** `{ courseId, published }`
+**Returns:** `{ courseId, published, url, review }`
+
+Success requires `published: true`. Otherwise the tool returns `isError: true`, `status: "not_published"`, and `publicationFailures`, including review check names and details.
 
 ### `graspful_describe_course`
 
@@ -248,22 +242,16 @@ Offline tools (scaffold, fill, validate, review, describe, create_brand) need no
 
 ## Editor Configuration
 
-### Claude Code / Claude Desktop
+### Claude Code
 
-Add to `~/.claude/claude_desktop_config.json` or your project's `.mcp.json`:
+```bash
+claude mcp add --scope user graspful --env GRASPFUL_API_KEY=gsk_your_key_here -- bunx @graspful/mcp
+```
 
-```json
-{
-  "mcpServers": {
-    "graspful": {
-      "command": "npx",
-      "args": ["@graspful/mcp"],
-      "env": {
-        "GRASPFUL_API_KEY": "gsk_your_key_here"
-      }
-    }
-  }
-}
+### Codex
+
+```bash
+codex mcp add graspful --env GRASPFUL_API_KEY=gsk_your_key_here -- bunx @graspful/mcp
 ```
 
 ### Cursor
@@ -284,9 +272,30 @@ Add to `.cursor/mcp.json` in your project root:
 }
 ```
 
-### Windsurf / Codex / Other MCP-compatible agents
+### VS Code
 
-Same pattern -- point `command` at `npx` and `args` at `@graspful/mcp`. The server communicates over stdio using the [Model Context Protocol](https://modelcontextprotocol.io).
+Use the `servers` key in `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "graspful": {
+      "type": "stdio",
+      "command": "bunx",
+      "args": ["@graspful/mcp"],
+      "env": { "GRASPFUL_API_KEY": "gsk_your_key_here" }
+    }
+  }
+}
+```
+
+See the [VS Code MCP documentation](https://code.visualstudio.com/docs/agent-customization/mcp-servers).
+
+### Windsurf Cascade
+
+Use the Cursor configuration shape above in `~/.codeium/windsurf/mcp_config.json`, as described in the [Cascade MCP documentation](https://docs.devin.ai/desktop/cascade/mcp).
+
+The Graspful server uses stdio. Other MCP clients need their own configuration format. `graspful init` can configure detected Claude Code, Cursor, VS Code, and Windsurf Cascade installations after authentication. If an existing file cannot be parsed, the command preserves it and reports a failure.
 
 ## Environment Variables
 

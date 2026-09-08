@@ -8,6 +8,7 @@ import {
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { PostHogService } from '@/shared/application/posthog.service';
+import { StudentStateService } from '@/student-model/student-state.service';
 import { LearningEngineService } from './learning-engine.service';
 import { LessonService } from './lesson.service';
 
@@ -19,6 +20,7 @@ export class LearningEngineController {
     private engine: LearningEngineService,
     private lessonService: LessonService,
     private posthog: PostHogService,
+    private studentState: StudentStateService,
   ) {}
 
   @Get('next-task')
@@ -26,6 +28,7 @@ export class LearningEngineController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
+    await this.studentState.assertAssessmentAccess(org.userId, org.orgId, courseId);
     return this.engine.getNextTaskForCourse(org.userId, courseId);
   }
 
@@ -34,6 +37,7 @@ export class LearningEngineController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
+    await this.studentState.assertAssessmentAccess(org.userId, org.orgId, courseId);
     return this.engine.getStudySessionForCourse(org.userId, courseId);
   }
 
@@ -63,7 +67,7 @@ export class LearningEngineController {
     @Param('conceptId') conceptId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    const result = await this.lessonService.completeLesson(org.userId, courseId, conceptId);
+    const result = await this.lessonService.completeLesson(org.userId, org.orgId, courseId, conceptId);
     this.posthog.capture({ distinctId: org.userId }, 'lesson completed', {
       course_id: courseId,
       concept_id: conceptId,

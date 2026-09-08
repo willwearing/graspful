@@ -13,6 +13,6 @@ export class SubmitReviewAnswerDto {
   answer!: unknown;
 
   @IsInt()
-  @Min(0)
+  @Min(1)
   responseTimeMs!: number;
 }

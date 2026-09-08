@@ -28,17 +28,18 @@ export default async function AcademyStudyPage({
   const brand = await resolvePageBrand();
 
   let task: NextTask | null = null;
+  let loadFailed = false;
   try {
     task = await serverApiFetch<NextTask>(
       `/orgs/${brand.orgSlug}/academies/${academyId}/next-task`,
     );
   } catch {
-    // No task available
+    loadFailed = true;
   }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 md:px-8">
-      <StudyRouter academyId={academyId} task={task} />
+      <StudyRouter academyId={academyId} task={task} loadFailed={loadFailed} />
     </div>
   );
 }

@@ -48,6 +48,12 @@ interface NextProblemHint {
   lessonComplete: boolean;
 }
 
+interface PracticeSubmission {
+  body: string;
+  problemId: string;
+  responseTimeMs: number;
+}
+
 export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: LessonFlowProps) {
   const router = useRouter();
   const [currentKP, setCurrentKP] = useState(0);
@@ -58,7 +64,10 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
   // problem (and which KP) to serve next via `nextProblemHint`.
   const [currentProblemId, setCurrentProblemId] = useState<string | null>(null);
   const [practiceFeedback, setPracticeFeedback] = useState<ProblemFeedback | null>(null);
+  const [practiceError, setPracticeError] = useState<string | null>(null);
+  const [completionError, setCompletionError] = useState<string | null>(null);
   const [practiceSubmitting, setPracticeSubmitting] = useState(false);
+  const [practiceAttempt, setPracticeAttempt] = useState(0);
   const [workedExampleOpen, setWorkedExampleOpen] = useState(true);
   // True when the current KP's practice is done — either via lessonComplete
   // hint, KP advancement hint, or fallback exhaustion. Distinguishes "no
@@ -77,6 +86,11 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
   const currentKPRef = useRef(currentKP);
   const phaseRef = useRef(phase);
   const completedRef = useRef(false);
+  const pendingSubmissionRef = useRef<PracticeSubmission | null>(null);
+  const practiceRequestRef = useRef(false);
+  const completionRequestRef = useRef(false);
+  const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
 
   const kp = lesson.knowledgePoints[currentKP];
   const problems = kp.problems ?? [];
@@ -98,7 +112,10 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
 
   // Track abandonment on unmount if not complete
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
+      if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
       if (!completedRef.current) {
         const durationSeconds = Math.round((Date.now() - lessonStartRef.current) / 1000);
         trackLessonAbandoned(
@@ -130,6 +147,9 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
     setCurrentProblemId(first);
     setKpPracticeDone(false);
     setPracticeFeedback(null);
+    setPracticeError(null);
+    pendingSubmissionRef.current = null;
+    setPracticeAttempt((attempt) => attempt + 1);
     setPracticeSubmitting(false);
     practiceStartRef.current = Date.now();
   }
@@ -173,7 +193,10 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
   const canGoBack = phase !== "instruction" || currentKP > 0;
 
   async function handleComplete() {
+    if (completionRequestRef.current) return;
+    completionRequestRef.current = true;
     setCompleting(true);
+    setCompletionError(null);
     try {
       await apiClientFetch(
         `/orgs/${orgSlug}/courses/${courseId}/lessons/${lesson.conceptId}/complete`,
@@ -185,7 +208,10 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
       completedRef.current = true;
       router.push(continueHref ?? `/study/${courseId}`);
     } catch {
+      setCompletionError("Could not save lesson completion. Try again to check your progress.");
       setCompleting(false);
+    } finally {
+      completionRequestRef.current = false;
     }
   }
 
@@ -239,8 +265,7 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
   }
 
   async function handlePracticeSubmit(answer: ProblemAnswer) {
-    if (!currentProblem || practiceSubmitting) return;
-    setPracticeSubmitting(true);
+    if (!currentProblem || pendingSubmissionRef.current || practiceRequestRef.current || practiceSubmitting || practiceFeedback) return;
 
     // Record this problem as seen BEFORE submission so the backend selector
     // can avoid repeating it when choosing the next hint.
@@ -252,6 +277,31 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
       ];
     }
 
+    const responseTimeMs = Math.max(1, Date.now() - practiceStartRef.current);
+    const submission = {
+      problemId: submittedProblemId,
+      responseTimeMs,
+      // Keep the serialized payload until a response arrives. The server may
+      // have saved an answer even when its response did not reach the browser.
+      body: JSON.stringify({
+        requestId: crypto.randomUUID(),
+        problemId: submittedProblemId,
+        answer,
+        responseTimeMs,
+        seenProblemIds: seenProblemIdsRef.current,
+        workedExampleReopenedKPIds: reopenedKPIdsRef.current,
+      }),
+    };
+    pendingSubmissionRef.current = submission;
+    await sendPracticeSubmission(submission);
+  }
+
+  async function sendPracticeSubmission(submission: PracticeSubmission) {
+    if (practiceRequestRef.current) return;
+    practiceRequestRef.current = true;
+    setPracticeSubmitting(true);
+    setPracticeError(null);
+
     try {
       const response = await apiClientFetch<{
         correct: boolean;
@@ -262,21 +312,17 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
         token,
         {
           method: "POST",
-          body: JSON.stringify({
-            problemId: submittedProblemId,
-            answer,
-            responseTimeMs: Date.now() - practiceStartRef.current,
-            seenProblemIds: seenProblemIdsRef.current,
-            workedExampleReopenedKPIds: reopenedKPIdsRef.current,
-          }),
+          body: submission.body,
         }
       );
+      if (!mountedRef.current) return;
+      pendingSubmissionRef.current = null;
 
       trackLessonPracticeAnswered(
         lesson.conceptId,
-        submittedProblemId,
+        submission.problemId,
         response.correct,
-        Date.now() - practiceStartRef.current,
+        submission.responseTimeMs,
       );
       setPracticeFeedback({
         wasCorrect: response.correct,
@@ -284,17 +330,17 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
       });
 
       const delay = response.nextProblemHint?.retryDelayMs ?? 1500;
-      setTimeout(() => {
+      advanceTimeoutRef.current = setTimeout(() => {
         setPracticeFeedback(null);
         setPracticeSubmitting(false);
+        setPracticeAttempt((attempt) => attempt + 1);
         applyNextProblemHint(response.nextProblemHint ?? null);
       }, Math.max(1500, delay));
     } catch {
       setPracticeSubmitting(false);
-      setPracticeFeedback({
-        wasCorrect: false,
-        explanation: "Could not submit your answer. Please try again.",
-      });
+      setPracticeError("Could not confirm your answer was saved. Retry to check the same answer.");
+    } finally {
+      practiceRequestRef.current = false;
     }
   }
 
@@ -396,12 +442,24 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
             </details>
           )}
 
+          {practiceError && (
+            <div role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+              <p>{practiceError}</p>
+              <Button variant="outline" className="mt-3" disabled={practiceSubmitting} onClick={() => {
+                if (pendingSubmissionRef.current) void sendPracticeSubmission(pendingSubmissionRef.current);
+              }}>
+                Retry answer
+              </Button>
+            </div>
+          )}
+
           {!practiceComplete && currentProblem ? (
             <ProblemRenderer
-              key={currentProblem.id}
+              key={`${currentProblem.id}:${practiceAttempt}`}
               problem={currentProblem}
               onSubmit={handlePracticeSubmit}
-              disabled={practiceSubmitting || !!practiceFeedback}
+              disabled={practiceSubmitting || !!practiceFeedback || !!practiceError}
+              loading={practiceSubmitting && !practiceFeedback}
               feedback={practiceFeedback ?? undefined}
             />
           ) : problems.length === 0 ? (
@@ -421,10 +479,16 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
         </div>
       )}
 
+      {completionError && (
+        <p role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          {completionError}
+        </p>
+      )}
+
       {/* Navigation */}
       <div className="flex gap-3">
         {canGoBack && (
-          <Button variant="outline" onClick={goBack}>
+          <Button variant="outline" onClick={goBack} disabled={practiceSubmitting || !!practiceError || completing}>
             Previous
           </Button>
         )}
@@ -436,7 +500,7 @@ export function LessonFlow({ orgSlug, courseId, token, lesson, continueHref }: L
         ) : phase === "practice" && isLast ? (
           <Button onClick={handleComplete} disabled={completing}>
             <CheckCircle2 className="h-4 w-4 mr-2" />
-            {completing ? "Completing..." : "Complete Lesson"}
+            {completing ? "Completing..." : completionError ? "Retry completion" : "Complete Lesson"}
           </Button>
         ) : phase === "practice" ? (
           <Button onClick={advancePhase} disabled={!practiceComplete}>

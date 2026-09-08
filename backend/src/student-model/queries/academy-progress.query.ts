@@ -16,12 +16,13 @@ export class AcademyProgressQueryService {
     );
     const courseIds = Array.from(courseMap.keys());
     const courses = await this.prisma.course.findMany({
-      where: { id: { in: courseIds } },
+      where: { id: { in: courseIds }, academyId, isPublished: true, archivedAt: null },
       select: { id: true, name: true, sortOrder: true },
     });
     const courseInfo = new Map(courses.map((course) => [course.id, course]));
 
     return Array.from(courseMap.entries())
+      .filter(([courseId]) => courseInfo.has(courseId))
       .map(([courseId, stats]) => ({
         courseId,
         courseName: courseInfo.get(courseId)?.name ?? '',
@@ -37,7 +38,7 @@ export class AcademyProgressQueryService {
     const [states, courseStates, diagnosticCompleted] = await Promise.all([
       this.studentState.getConceptStatesForAcademy(userId, academyId),
       this.prisma.studentCourseState.findMany({
-        where: { userId, course: { academyId } },
+        where: { userId, course: { academyId, isPublished: true, archivedAt: null } },
         select: { status: true },
       }),
       this.studentState.isDiagnosticCompleted(userId, academyId),

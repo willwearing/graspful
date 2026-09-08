@@ -10,7 +10,7 @@ import Link from "next/link";
 import { CheckCircle, XCircle } from "lucide-react";
 import { trackReviewStarted, trackReviewProblemAnswered, trackReviewCompleted } from "@/lib/posthog/events";
 
-interface ReviewData {
+export interface ReviewData {
   sessionId: string;
   totalProblems: number;
   problemNumber: number;
@@ -35,6 +35,14 @@ interface ReviewResult {
   updatedMasteryState: string;
 }
 
+interface ReviewAnswerResult {
+  correct: boolean;
+  feedback: string;
+  hasMore: boolean;
+  nextProblem?: Problem;
+  problemNumber: number;
+}
+
 export function ReviewFlow({
   orgSlug,
   courseId,
@@ -50,12 +58,23 @@ export function ReviewFlow({
   const [correctCount, setCorrectCount] = useState(0);
   const [feedback, setFeedback] = useState<ProblemFeedback | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+  const [answersComplete, setAnswersComplete] = useState(false);
   const [result, setResult] = useState<ReviewResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ kind: "answer" | "completion"; message: string } | null>(null);
   const startTimeRef = useRef(Date.now());
   const mountedRef = useRef(true);
+  const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestInFlightRef = useRef(false);
+  const lastAnswerRef = useRef<ProblemAnswer | null>(null);
 
-  useEffect(() => () => { mountedRef.current = false }, []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+    };
+  }, []);
 
   const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
 
@@ -65,12 +84,39 @@ export function ReviewFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  async function handleComplete() {
+    if (requestInFlightRef.current) return;
+    requestInFlightRef.current = true;
+    setFinishing(true);
+    setError(null);
+    try {
+      const completeResult = await apiClientFetch<ReviewResult>(
+        `${basePath}/reviews/${conceptId}/complete`,
+        token,
+        { method: "POST", body: JSON.stringify({ sessionId }) },
+      );
+      if (!mountedRef.current) return;
+      trackReviewCompleted(conceptId, completeResult.passed, completeResult.score);
+      setResult(completeResult);
+    } catch {
+      if (mountedRef.current) {
+        setError({ kind: "completion", message: "Could not load your review result. Retry completion to check your saved answers." });
+      }
+    } finally {
+      requestInFlightRef.current = false;
+      if (mountedRef.current) setFinishing(false);
+    }
+  }
+
   async function handleSubmit(answer: ProblemAnswer) {
-    if (submitting) return;
+    if (requestInFlightRef.current || submitting || feedback || answersComplete) return;
+    requestInFlightRef.current = true;
     setSubmitting(true);
+    setError(null);
+    lastAnswerRef.current = answer;
 
     try {
-      const response = await apiClientFetch<any>(
+      const response = await apiClientFetch<ReviewAnswerResult>(
         `${basePath}/reviews/${conceptId}/answer`,
         token,
         {
@@ -83,6 +129,9 @@ export function ReviewFlow({
           }),
         }
       );
+      if (!mountedRef.current) return;
+      requestInFlightRef.current = false;
+      lastAnswerRef.current = null;
 
       const wasCorrect = response.correct;
       trackReviewProblemAnswered(
@@ -93,45 +142,25 @@ export function ReviewFlow({
       );
       if (wasCorrect) setCorrectCount((prev) => prev + 1);
       setFeedback({ wasCorrect, explanation: response.feedback });
+      if (!response.hasMore) setAnswersComplete(true);
 
-      setTimeout(async () => {
+      advanceTimeoutRef.current = setTimeout(async () => {
         if (!mountedRef.current) return;
-        setFeedback(null);
 
         if (response.hasMore && response.nextProblem) {
+          setFeedback(null);
           setProblem(response.nextProblem);
           setProblemNumber(response.problemNumber);
           startTimeRef.current = Date.now();
           setSubmitting(false);
         } else {
-          // Complete the review
-          try {
-            const completeResult = await apiClientFetch<ReviewResult>(
-              `${basePath}/reviews/${conceptId}/complete`,
-              token,
-              {
-                method: "POST",
-                body: JSON.stringify({ sessionId }),
-              }
-            );
-            trackReviewCompleted(conceptId, completeResult.passed, completeResult.score);
-            setResult(completeResult);
-          } catch {
-            // Still show what we have
-            setResult({
-              conceptId,
-              passed: false,
-              score: 0,
-              correctCount,
-              totalCount: totalProblems,
-              updatedMasteryState: "in_progress",
-            });
-          }
           setSubmitting(false);
+          await handleComplete();
         }
       }, 1500);
     } catch {
-      setError("Something went wrong. Please try again.");
+      requestInFlightRef.current = false;
+      setError({ kind: "answer", message: "Could not save your answer. Your selection is still here. Try again." });
       setSubmitting(false);
     }
   }
@@ -181,9 +210,14 @@ export function ReviewFlow({
       <Progress value={progressPercent} className="h-2" />
 
       {error && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-          {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
+        <div role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          {error.message}
+          <Button variant="outline" className="mt-3" disabled={submitting || finishing} onClick={() => {
+            if (error.kind === "completion") void handleComplete();
+            else if (lastAnswerRef.current !== null) void handleSubmit(lastAnswerRef.current);
+          }}>
+            {error.kind === "completion" ? "Retry completion" : "Retry answer"}
+          </Button>
         </div>
       )}
 
@@ -191,10 +225,11 @@ export function ReviewFlow({
         key={problem.id}
         problem={problem}
         onSubmit={handleSubmit}
-        disabled={submitting || !!feedback}
+        disabled={submitting || finishing || !!feedback || answersComplete}
         loading={submitting && !feedback}
         feedback={feedback ?? undefined}
       />
+      {finishing && <p role="status" className="text-sm text-muted-foreground">Loading review result...</p>}
     </div>
   );
 }

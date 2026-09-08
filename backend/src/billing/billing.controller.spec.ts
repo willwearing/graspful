@@ -41,7 +41,7 @@ describe('BillingController', () => {
 
       const result = await controller.createCheckout(org, {
         plan: 'individual',
-        returnUrl: '/app',
+        returnUrl: 'https://untrusted.example/path',
       });
 
       expect(result).toEqual({ url: 'https://checkout.stripe.com/xxx' });
@@ -49,8 +49,6 @@ describe('BillingController', () => {
         'org-1',
         'individual',
         'month',
-        '/app/settings?billing=success',
-        '/app/settings?billing=canceled',
       );
     });
 
@@ -67,8 +65,6 @@ describe('BillingController', () => {
         'org-1',
         'team',
         'year',
-        '/app/settings?billing=success',
-        '/app/settings?billing=canceled',
       );
     });
   });
@@ -80,6 +76,7 @@ describe('BillingController', () => {
       const result = await controller.createPortal(org, { returnUrl: 'https://app.com/settings' });
 
       expect(result).toEqual({ url: 'https://billing.stripe.com/xxx' });
+      expect(mockBillingService.createPortalSession).toHaveBeenCalledWith('org-1');
     });
   });
 

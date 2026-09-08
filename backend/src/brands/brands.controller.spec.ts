@@ -142,6 +142,23 @@ describe('BrandsController authorization', () => {
   });
 
   describe('PATCH /brands/:slug', () => {
+    it.each([
+      { landing: { features: { items: 'wrong' } } },
+      { landing: { hero: { headline: ['wrong'] } } },
+      { contentScope: { courseIds: 7 } },
+      { pricing: { monthly: 'free' } },
+      { seo: { keywords: 'training' } },
+    ])('rejects nested settings that would break a public brand page: %j', async (settings) => {
+      await expect(controller.update('victim-brand', settings, attacker)).rejects.toThrow();
+      expect(brandsService.update).not.toHaveBeenCalled();
+    });
+
+    it('preserves valid existing extension fields when saving nested settings', async () => {
+      const settings = { theme: { preset: 'indigo', customSetting: true }, pricing: {} };
+      await controller.update('victim-brand', settings, attacker);
+      expect(brandsService.update).toHaveBeenCalledWith('victim-brand', settings);
+    });
+
     it('checks brand ownership before updating', async () => {
       await controller.update('victim-brand', { name: 'x' }, attacker);
 
