@@ -5,10 +5,15 @@ import { BrandProvider } from "@/lib/brand/context";
 import { firefighterBrand, graspfulBrand, posthogBrand } from "@/lib/brand/defaults";
 
 describe("PricingSection", () => {
-  for (const brand of [firefighterBrand, graspfulBrand, posthogBrand]) {
-    it(`shows current billing availability for ${brand.id}`, () => {
+  for (const brand of [firefighterBrand, graspfulBrand, posthogBrand, { ...posthogBrand, id: "posthog-tam" }]) {
+    it(`shows the appropriate access offer for ${brand.id}`, () => {
       render(<BrandProvider brand={brand}><PricingSection /></BrandProvider>);
-      expect(screen.getByText("Paid subscriptions are not available yet.")).toBeInTheDocument();
+      if (brand.orgSlug === "posthog-tam") {
+        expect(screen.getByRole("heading", { name: "Study PostHog technical concepts for free" })).toBeInTheDocument();
+        expect(screen.queryByText(/paid subscriptions|billing is ready|access options/i)).not.toBeInTheDocument();
+      } else {
+        expect(screen.getByText("Paid subscriptions are not available yet.")).toBeInTheDocument();
+      }
       expect(screen.queryByRole("button", { name: /trial|monthly|yearly/i })).not.toBeInTheDocument();
       const cta = screen.getByRole("link", { name: "Create free account" });
       expect(cta).toHaveAttribute("href", expect.stringContaining("/sign-up"));

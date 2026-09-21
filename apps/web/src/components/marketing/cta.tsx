@@ -23,7 +23,9 @@ export function CTA({ ctaText, headline, subheadline }: CTAProps) {
           {subheadline}
         </p>
         <p className="text-sm text-muted-foreground/70 mb-10">
-          Free to start. No credit card required.
+          {brand.orgSlug === "posthog-tam"
+            ? "Free to study. No credit card required."
+            : "Free to start. No credit card required."}
         </p>
         <a
           href={ctaHref}
