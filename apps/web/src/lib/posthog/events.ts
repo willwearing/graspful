@@ -1,10 +1,31 @@
 import posthog from "posthog-js";
+import { initPostHog } from "./client";
 
 function isLoaded(): boolean {
   return typeof window !== "undefined" && posthog.__loaded;
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────
+
+export function trackAuthFormEvent(
+  mode: "sign-in" | "sign-up",
+  stage: "viewed" | "started" | "submitted" | "failed",
+  brandId: string,
+  failureStage?: "validation" | "authentication",
+) {
+  try {
+    // The form effect can run before the provider's initialization effect.
+    initPostHog();
+    if (!isLoaded()) return;
+    posthog.capture(`${mode.replace("-", "_")}_${stage}`, {
+      method: "email",
+      brand_id: brandId,
+      ...(failureStage ? { failure_stage: failureStage } : {}),
+    });
+  } catch {
+    // Telemetry must never prevent form submission or retry.
+  }
+}
 
 export function trackSignUp(userId: string) {
   if (!isLoaded()) return;
