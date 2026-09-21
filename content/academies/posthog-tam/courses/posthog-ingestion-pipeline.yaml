@@ -1,457 +1,534 @@
 course:
   id: posthog-ingestion-pipeline
   name: PostHog Ingestion Pipeline
-  description: >-
-    PostHog-specific ingestion — event capture, the Kafka-to-ClickHouse
-    pipeline, storage architecture, and person processing.
+  description: 'PostHog-specific ingestion: event capture, the Kafka-to-ClickHouse pipeline, storage architecture,
+    and person processing.'
   estimatedHours: 2
-  version: '2026.1'
-  sourceDocument: PostHog product documentation (ingestion pipeline and ClickHouse architecture docs), reviewed March 2026
-
+  version: '2026.2'
+  sourceDocument: PostHog official documentation and supplied architecture models; content reviewed 2026-09-21
 sections:
-  - id: posthog-ingestion
-    name: PostHog Ingestion Pipeline
-    description: How events flow from capture through Kafka to ClickHouse storage.
-    sectionExam:
-      enabled: true
-      passingScore: 0.75
-      timeLimitMinutes: 12
-      questionCount: 6
-      blueprint:
-        - conceptId: ph-event-capture
-          minQuestions: 2
-        - conceptId: ph-ingestion-pipeline
-          minQuestions: 2
-        - conceptId: ph-clickhouse-storage
-          minQuestions: 1
-        - conceptId: ph-person-processing
-          minQuestions: 1
-      instructions: >-
-        Show that you can trace what happens to an event after capture and explain where identity and storage fit.
-
+- id: posthog-ingestion
+  name: PostHog Ingestion Pipeline
+  description: How events flow from capture through Kafka to ClickHouse storage.
+  sectionExam:
+    enabled: true
+    blueprint:
+    - conceptId: ph-event-capture
+      minQuestions: 2
+    - conceptId: ph-ingestion-pipeline
+      minQuestions: 2
+    - conceptId: ph-clickhouse-storage
+      minQuestions: 1
+    - conceptId: ph-person-processing
+      minQuestions: 1
+    instructions: Show that you can trace what happens to an event after capture and explain where identity and
+      storage fit.
+    passingScore: 0.75
+    questionCount: 6
+    timeLimitMinutes: 12
 concepts:
-  - id: ph-event-capture
-    name: Event Capture — SDKs, API, and Autocapture
-    difficulty: 3
-    estimatedMinutes: 15
-    tags:
-      - posthog
-      - ingestion
-    sourceRef: https://posthog.com/docs/product-analytics/capture-events
-    prerequisites:
-      - posthog-data-model:ph-events
-      - posthog-data-model:ph-event-properties
-    encompassing: []
-    knowledgePoints:
-      - id: how-events-enter-posthog
-        instruction: >-
-          Events reach PostHog through three surfaces: client-side SDKs, server-side SDKs, and the raw HTTP API. Client SDKs run in the browser or app, auto-generate anonymous IDs, and can observe UI
-          behavior like pageviews or autocapture. Server SDKs run on your backend, require an explicit distinct_id, and are better for backend actions such as API calls or jobs. The HTTP API is the
-          lowest-level option when you need to send capture requests without an official SDK.
-        instructionContent:
-          - type: image
-            url: https://posthog.com/images/products/product-os/event-pipelines.png
-            alt: Event pipeline illustration showing data flowing from sources through PostHog
-            caption: This visual helps learners connect the capture surface to the metadata and capabilities each path can provide.
-            width: 960
-          - type: link
-            url: https://posthog.com/docs/product-analytics/capture-events
-            title: Capturing events docs
-            description: Official reference for SDK behavior and capture examples.
-        problems:
-          - id: ph-capture-p1
-            type: multiple_choice
-            question: Which type of PostHog SDK supports autocapture and session recording?
-            options:
-              - Server-side SDKs (Node.js, Python, Go)
-              - Client-side SDKs (JS web, React Native, iOS, Android)
-              - Both client-side and server-side SDKs equally
-              - Neither — autocapture requires a separate tool
-            correct: 1
-            explanation: >-
-              Only client-side SDKs support autocapture and session recording because they run in the user's browser or app and can observe UI interactions directly.
-          - id: ph-capture-p2
-            type: matching
-            question: Match each SDK type to its characteristic.
-            options:
-              - Client-side SDK|Auto-generates distinct_id, supports autocapture
-              - Server-side SDK|Requires explicit distinct_id, no autocapture
-              - HTTP API|Direct POST to /capture endpoint without SDK
-              - JS web SDK|Supports session recording and the toolbar
-            correct: 0,1,2,3
-            explanation: >-
-              Client-side SDKs handle identity and autocapture automatically. Server-side SDKs need manual distinct_id and lack UI features. The HTTP API is the raw endpoint.
-          - id: ph-capture-p5
-            type: true_false
-            question: Server-side PostHog SDKs can observe UI interactions like button clicks and page scrolls just like client-side SDKs.
-            correct: 'false'
-            explanation: >-
-              Server-side SDKs run on your backend with no access to the browser or app UI. They cannot observe clicks, scrolls, or other UI interactions. Only client-side SDKs running in the
-              user's browser or app can do autocapture and session recording.
-      - id: choosing-a-capture-surface
-        instruction: >-
-          All three capture surfaces use a push model: your systems send events to PostHog. The important design choice is which surface owns the event. Use a client SDK when the event depends on UI
-          context like page URL or session behavior. Use a server SDK when the event is a backend fact such as a webhook, billing job, or API outcome. Use the HTTP API when you need raw transport
-          without an official SDK or when building a custom integration layer.
-        instructionContent:
-          - type: link
-            url: https://posthog.com/docs/how-posthog-works
-            title: PostHog architecture overview
-            description: Reference when a learner wants to see capture API, ingestion, and storage in one picture.
-        problems:
-          - id: ph-capture-p3
-            type: true_false
-            question: PostHog uses a pull-based ingestion model, periodically fetching data from your application.
-            correct: 'false'
-            explanation: PostHog uses push-based ingestion. Your application sends events to PostHog's capture endpoint via SDKs or the HTTP API.
-          - id: ph-capture-p4
-            type: scenario
-            question: >-
-              A backend worker written in an unsupported language needs to send billing events into PostHog with an explicit user ID. Which capture path is the best fit?
-            options:
-              - The JS web SDK
-              - A session replay integration
-              - The raw HTTP capture API
-              - Autocapture only
-            correct: 2
-            explanation: >-
-              If there is no official SDK, the raw HTTP capture API is the fallback surface. It still lets the worker push events into PostHog with an explicit distinct_id.
-          - id: ph-capture-p6
-            type: scenario
-            question: >-
-              A customer needs to track when a webhook from Stripe confirms a successful payment. The event happens entirely on the server with no UI involved. Which capture surface should they use?
-            options:
-              - The JS web SDK with autocapture
-              - A server-side SDK (e.g., Node.js, Python) with an explicit distinct_id
-              - Session recording
-              - The PostHog toolbar
-            correct: 1
-            explanation: >-
-              Backend events like webhook confirmations have no UI context. A server-side SDK is the right choice because it runs on the backend and lets you explicitly set the distinct_id to the
-              customer who made the payment.
-    section: posthog-ingestion
-  - id: ph-ingestion-pipeline
-    name: The Ingestion Pipeline — Kafka to ClickHouse
-    difficulty: 5
-    estimatedMinutes: 18
-    tags:
-      - posthog
-      - ingestion
-    sourceRef: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
-    prerequisites:
-      - ph-event-capture
-      - data-pipelines:storage-layers
-    encompassing: []
-    knowledgePoints:
-      - id: why-not-straight-to-db
-        instruction: >-
-          PostHog does not write events directly into ClickHouse (its analytics database). Instead, events land in **Apache Kafka** first — a distributed message queue designed for high-throughput, durable message streaming.
+- id: ph-event-capture
+  name: 'Event Capture: SDKs, API, and Autocapture'
+  difficulty: 3
+  estimatedMinutes: 15
+  tags:
+  - posthog
+  - ingestion
+  section: posthog-ingestion
+  prerequisites:
+  - posthog-data-model:ph-events
+  - posthog-data-model:ph-event-properties
+  encompassing: []
+  knowledgePoints:
+  - id: how-events-enter-posthog
+    instruction: '**Capture surfaces** include supported SDKs and the capture API. SDK behavior depends on its platform,
+      version, and configuration. A web SDK can collect browser context and enabled automatic events; a backend
+      SDK relies on information supplied by the application.
 
 
-          Why the indirection? Three reasons:
+      Check the project token, ingestion region or host, payload, and SDK transport behavior. An HTTP acceptance
+      response does not by itself prove that an event is queryable.'
+    workedExample: A backend payment event supplies a trusted user ID and amount. A web pageview can include browser
+      context from the web SDK. Both must route to the intended project and ingestion host.
+    instructionContent:
+    - type: link
+      url: https://posthog.com/docs/libraries
+      title: Official reference
+      description: Check the current documented behavior and platform-specific details.
+    workedExampleContent: []
+    problems:
+    - question: Which expectation about a backend capture SDK requires explicit application support?
+      options:
+      - Sending an event payload through its supported transport.
+      - Reporting an error through its documented error path.
+      - Using a configured project token.
+      - Knowing the browser's active user and session context.
+      correct: 3
+      explanation: The backend cannot infer browser state automatically. Supply trusted identity and session context
+        when the use case needs it.
+      id: 75ea7c89-6594-4c2a-b733-4009b17a5012
+      type: multiple_choice
+      difficulty: 2
+    - question: The backend capture payload is valid but uses the token of a test project. The team searches the
+        production project and sees no event. What should be corrected?
+      options:
+      - The production query's time range while continuing to send only to the test project.
+      - The event's amount unit before checking routing.
+      - The user's email property while retaining the test token.
+      - The capture destination configuration and the project used for verification.
+      correct: 3
+      explanation: The token routes capture. Confirm the intended project and host before investigating unrelated
+        properties.
+      id: de92eb48-948e-46eb-8a8a-f03bc469431b
+      type: scenario
+      difficulty: 3
+    - question: A serverless function creates a capture event immediately before exiting. Some events never arrive.
+        What SDK behavior should be checked?
+      options:
+      - Whether a longer event name forces immediate delivery.
+      - Whether a person profile can resend an event that never left the function.
+      - Buffering and the supported flush or shutdown procedure within the function's lifetime.
+      - Whether changing the chart time range guarantees transport completion.
+      correct: 2
+      explanation: Some SDKs buffer asynchronously. Follow the platform's documented flush behavior and verify delivery
+        before the execution context ends.
+      id: 47c31da7-3357-4f9f-b456-263aa7ef0a54
+      type: scenario
+      difficulty: 4
+  - id: choosing-a-capture-surface
+    instruction: '**Capture placement** should match the source of truth for the action. A confirmed payment belongs
+      at the trusted success boundary, often a server or payment callback. A browser interaction belongs where that
+      interaction is observable.
 
 
-          **Resilience:** if ClickHouse is temporarily slow, overloaded, or undergoing maintenance, events queue up safely in Kafka rather than being lost or causing backpressure on the capture API.
+      PostHog also imports external data through warehouse sources. Event capture is a push flow, while a source
+      connector can fetch external data. Choose from the actual data movement requirement.'
+    workedExample: A checkout page click measures intent. A verified payment callback measures payment completion.
+      A warehouse source can import existing billing records for analysis without pretending that each row is a
+      fresh browser interaction.
+    instructionContent:
+    - type: link
+      url: https://posthog.com/docs/data-warehouse
+      title: Official reference
+      description: Check the current documented behavior and platform-specific details.
+    workedExampleContent: []
+    problems:
+    - question: An application has no supported SDK for its runtime, but it can send authenticated HTTPS requests
+        with the required capture fields. Which surface can it evaluate?
+      options:
+      - The documented capture API, with explicit payload construction and delivery handling.
+      - An action definition that attempts to generate events from no input.
+      - A browser-only autocapture script running inside an unrelated customer page.
+      - A query API call that only reads existing events.
+      correct: 0
+      explanation: The capture API provides a direct ingestion surface. The integration must implement its request
+        contract and reliable delivery behavior.
+      id: 82129289-26d9-4f2d-953f-89e8ac72e2a1
+      type: multiple_choice
+      difficulty: 2
+    - question: A team wants existing CRM tables imported into PostHog on a schedule. Does this requirement mean
+        the CRM must push each row through the event capture API?
+      options:
+      - Yes. Each CRM row must first become an identified browser session.
+      - No. Therefore connector permissions and deletion handling are irrelevant.
+      - Yes. Every PostHog data source must use browser-style event push.
+      - No. Evaluate a supported warehouse source and its sync contract.
+      correct: 3
+      explanation: Capture and external-source import are different surfaces. Select and validate the supported
+        connector for the required data.
+      id: fdbeba0e-ed65-4c06-90aa-d56fb7b9cabd
+      type: scenario
+      difficulty: 3
+    - question: Both the browser and payment webhook emit purchase_completed for one order, causing double counts.
+        Which design change preserves separate useful evidence?
+      options:
+      - Remove order references so duplicates are harder to detect.
+      - Use one authoritative completion event with a stable order reference, while recording UI intent separately.
+      - Assign a new person ID to each webhook retry.
+      - Keep both completion paths and divide every report by two.
+      correct: 1
+      explanation: Define one source of truth for the outcome and handle retries by stable identity. UI intent can
+        remain a distinct signal.
+      id: c363da6d-520a-419d-a1d8-9aa9c98c0d16
+      type: scenario
+      difficulty: 4
+- id: ph-ingestion-pipeline
+  name: 'The Ingestion Pipeline: Kafka to ClickHouse'
+  difficulty: 5
+  estimatedMinutes: 18
+  tags:
+  - posthog
+  - ingestion
+  section: posthog-ingestion
+  prerequisites:
+  - ph-event-capture
+  - data-pipelines:storage-layers
+  encompassing: []
+  knowledgePoints:
+  - id: why-not-straight-to-db
+    instruction: 'A **buffered ingestion path** separates accepting events from processing and writing them to analytical
+      storage. A durable queue can absorb bursts and support retries within its retention limits. Consumers process
+      queued records; lag measures how far they are behind.
 
 
-          **Throughput:** Kafka can absorb massive bursts of events and smooth them out for ClickHouse to consume at a steady rate.
+      Durability is conditional on configured retention and failure handling. Acceptance, consumption, and query
+      visibility are different milestones.'
+    workedExample: A short traffic spike raises queue lag while storage remains healthy. Consumers catch up after
+      the spike, provided capacity and retention are sufficient.
+    instructionContent:
+    - type: callout
+      title: Practice method
+      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
+        constraint.
+    workedExampleContent: []
+    problems:
+    - question: What is one reason to put a durable queue between event acceptance and analytical storage?
+      options:
+      - Guarantee unlimited retention under every failure.
+      - Make every accepted event immediately visible in every query.
+      - Buffer bursts and let consumers process records independently of request arrival.
+      - Remove the need to validate event payloads.
+      correct: 2
+      explanation: A queue decouples stages and can help recovery. It does not remove capacity, retention, or validation
+        limits.
+      id: ec70d198-72c2-44ab-88b1-03fc5ec305c0
+      type: multiple_choice
+      difficulty: 2
+    - question: Events are accepted into the queue, but the storage consumer is paused. What should happen to unprocessed
+        work while retention remains sufficient?
+      options:
+      - The event timestamps change to the consumer's restart time.
+      - It is necessarily already queryable in analytical storage.
+      - It remains pending and consumer lag grows.
+      - Every accepted request is automatically rejected retroactively.
+      correct: 2
+      explanation: Acceptance and processing are distinct. A paused consumer accumulates backlog that must later
+        be processed.
+      id: 8db4c5e2-09d2-4914-bd8f-43c9bc684917
+      type: scenario
+      difficulty: 3
+    - question: A traffic burst creates a backlog that continues growing after traffic returns to normal. What evidence
+        distinguishes a temporary burst from an ongoing capacity problem?
+      options:
+      - Only average query latency, which does not establish consumer catch-up capacity.
+      - Only the current queue length, with no rate or age information.
+      - Only the number of successful capture HTTP responses.
+      - Compare sustained arrival and processing rates, oldest pending age, errors, and retention headroom.
+      correct: 3
+      explanation: A healthy recovery needs processing to exceed arrivals long enough to drain the backlog. Age
+        and retention show whether recovery time is adequate.
+      id: 4d82af89-fff7-4155-86c2-9cbc632e080d
+      type: scenario
+      difficulty: 4
+  - id: the-full-flow
+    instruction: 'Use this **scoped ingestion model** for the exercises: capture endpoint → durable queue → validation
+      and enrichment consumer → analytical storage → query. It is a teaching model, not a promise of permanent internal
+      service or table names.
 
 
-          **Decoupling:** the capture API and ClickHouse do not need to know about each other — Kafka sits between them as a buffer.
+      An offset is a position in the queue. Consumer progress and lag show whether records have passed that boundary.
+      Trace one event ID through adjacent stages before changing unrelated settings.'
+    workedExample: Event e17 is accepted at queue position 510. The consumer has only reached 480. Its absence from
+      storage is consistent with the observed backlog; query filters cannot make an unprocessed record appear.
+    instructionContent:
+    - type: callout
+      title: Practice method
+      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
+        constraint.
+    workedExampleContent: []
+    problems:
+    - question: Put the stages of this lesson's supplied ingestion model in data-flow order.
+      options:
+      - Analytical storage
+      - Capture endpoint
+      - Query
+      - Validation and enrichment consumer
+      - Durable queue
+      correct:
+      - Capture endpoint
+      - Durable queue
+      - Validation and enrichment consumer
+      - Analytical storage
+      - Query
+      explanation: The supplied model separates acceptance, buffering, processing, storage, and reads. Use this
+        order to locate the first boundary where event evidence stops.
+      type: ordering
+      id: 6672db5d-1ef1-4834-863b-2ffe80561a6b
+      difficulty: 2
+    - question: In this flow, event e17 is at queue offset 510 and the consumer has reached 480. Storage has no
+        e17 yet. What is the first boundary to inspect?
+      options:
+      - The source transport, assuming acceptance at a known queue position proves no enqueue occurred.
+      - The distributed query router, assuming it can read an event the consumer has not processed.
+      - The queue-to-consumer backlog.
+      - The dashboard filter, before the event has reached storage.
+      correct: 2
+      explanation: The consumer has not reached the event. Investigate lag and progress before diagnosing query
+        filtering.
+      id: abe25435-a31b-4320-9a30-95bf883c23de
+      type: scenario
+      difficulty: 3
+    - question: The consumer has passed e17's offset without a recorded rejection, storage contains e17, but a dashboard
+        omits it. What should the next investigation target?
+      options:
+      - The query's project, time range, filters, and aggregation against the stored event.
+      - The source transport alone, ignoring the storage evidence.
+      - Replay all project events before checking the query.
+      - Reset the consumer to an earlier offset even though e17 is already stored.
+      correct: 0
+      explanation: The event has crossed the earlier boundaries. Trace the remaining storage-to-query boundary using
+        its actual values.
+      id: 33c8775b-b616-47d9-a478-ea997d9a7a5f
+      type: scenario
+      difficulty: 4
+- id: ph-clickhouse-storage
+  name: 'ClickHouse Storage: Tables and Sharding'
+  difficulty: 6
+  estimatedMinutes: 18
+  tags:
+  - posthog
+  - ingestion
+  section: posthog-ingestion
+  prerequisites:
+  - ph-ingestion-pipeline
+  - posthog-data-model:ph-distinct-id
+  encompassing: []
+  knowledgePoints:
+  - id: table-roles
+    instruction: 'A **distributed analytical store** can separate routing from local storage. In this lesson''s
+      model, a distributed query surface reads across shards, and each shard stores a subset of event rows locally.
+      A replica holds a copy for availability.
 
 
-          This is the same pattern described in pipeline fundamentals: a message queue between ingestion and storage makes the pipeline more resilient and scalable. The capture API's only job is to validate the event and write it to Kafka. Everything else — person processing, property enrichment, storage — happens downstream.
-        instructionContent:
-          - type: callout
-            title: Mental model
-            body: >-
-              Capture API -> Kafka buffer -> downstream consumers -> ClickHouse. Kafka buys resilience by absorbing bursts and outages between ingestion and storage.
-          - type: link
-            url: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
-            title: Ingestion pipeline diagram
-            description: Use this when explaining why Kafka exists and what happens after the capture endpoint accepts an event.
-        problems:
-          - id: ph-pipeline-p1
-            type: multiple_choice
-            question: Why does PostHog write events to Kafka before ClickHouse instead of directly to ClickHouse?
-            options:
-              - ClickHouse cannot accept data from external sources
-              - Kafka provides a buffer so events are not lost if ClickHouse is temporarily slow or down
-              - Kafka transforms events into the correct format for ClickHouse
-              - It is a legacy design that PostHog plans to remove
-            correct: 1
-            explanation: >-
-              Kafka acts as a durable buffer between ingestion and storage. If ClickHouse is slow or undergoing maintenance, events queue in Kafka safely. Without this buffer, events could be lost
-              during ClickHouse downtime.
-          - id: ph-pipeline-p2
-            type: true_false
-            question: PostHog's capture API writes events directly into ClickHouse tables.
-            correct: 'false'
-            explanation: >-
-              The capture API writes events to Kafka, not directly to ClickHouse. Kafka then feeds events into ClickHouse through a table engine and materialized view. This decoupling provides
-              resilience and throughput benefits.
-          - id: ph-pipeline-p3
-            type: scenario
-            question: >-
-              A PostHog Cloud customer reports that their ClickHouse cluster had a brief maintenance window, but they did not lose any events during that period. What component of the architecture
-              prevented data loss?
-            options:
-              - The client-side SDK cached events in local storage
-              - Kafka queued the events durably until ClickHouse was ready to consume them again
-              - PostgreSQL stored the events as a backup
-              - The capture API retried failed writes automatically
-            correct: 1
-            explanation: >-
-              Kafka is a durable message queue. When ClickHouse is unavailable, events queue in Kafka and are consumed once ClickHouse recovers. This is the primary reason for the Kafka buffer in
-              PostHog's architecture.
-      - id: the-full-flow
-        instruction: >-
-          The complete ingestion flow from your app to queryable data:
+      These are roles in a supplied model. Production names and implementations can change, so verify live architecture
+      before diagnosing a specific deployment.'
+    workedExample: The model has two shards. Shard A holds events e1 and e3; shard B holds e2 and e4. A distributed
+      read can query both. A local read on A sees only its own subset.
+    instructionContent:
+    - type: callout
+      title: Practice method
+      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
+        constraint.
+    workedExampleContent: []
+    problems:
+    - question: In the supplied model, what is the role of a distributed query surface?
+      options:
+      - Route or combine reads across the relevant shards.
+      - Store the only authoritative copy of all events outside the local shards.
+      - Choose a user's canonical identity from their profile name.
+      - Keep every unique event on every shard regardless of routing.
+      correct: 0
+      explanation: Distributed reads cover multiple storage subsets. Local reads and replicas have different roles.
+      id: 5e9adfd8-36fe-47d5-ad5c-40a0f572e741
+      type: multiple_choice
+      difficulty: 2
+    - question: Shard A holds e1 and e3, and shard B holds e2 and e4. A query reads only the local table on A. Which
+        event set can it return from those rows?
+      options:
+      - e2 and e4 only.
+      - e1 and e3.
+      - No events unless every shard has identical data.
+      - All four events solely because the system has two shards.
+      correct: 1
+      explanation: A local read covers its local subset. Use the intended distributed surface when the query requires
+        all shards.
+      id: 40c52e8c-376e-47fa-8fae-e2a4780de5b0
+      type: scenario
+      difficulty: 3
+    - question: A diagnostic count from one local shard is half a distributed count. The engineer concludes that
+        half the events were dropped. What must be checked first?
+      options:
+      - Replay the apparently missing half before comparing query scope.
+      - Whether the two queries cover the same shards, replicas, filters, and counting scope.
+      - Sum every replica as if each contains additional unique events.
+      - Treat a single local count as the total across all shards.
+      correct: 1
+      explanation: Different query scope can explain the difference. Compare like-for-like coverage before claiming
+        loss, and avoid counting replicas as new data.
+      id: 5ea48978-6199-45b8-9570-315e3d7eed9b
+      type: scenario
+      difficulty: 4
+  - id: reads-writes-and-sharding
+    instruction: '**Shard routing** chooses where data is written according to a specified key. For these exercises
+      only, the system routes by a hash of project ID and raw distinct ID. Do not infer a production routing rule
+      from this teaching model.
 
 
-          **Step 1:** Your app sends an event via SDK or API.
+      One resolved person can have several raw distinct IDs. Those IDs need not route to the same shard. A complete
+      person-history query must account for identity links and the relevant storage scope.'
+    workedExample: Under the supplied routing rule, anonymous ID a1 lands on shard A and known ID user_9 lands on
+      shard B. A valid identity link can connect their person history even though the raw events are stored separately.
+    instructionContent:
+    - type: callout
+      title: Practice method
+      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
+        constraint.
+    workedExampleContent: []
+    problems:
+    - question: Under the supplied project-ID-plus-raw-distinct-ID routing model, what determines an event's shard?
+      options:
+      - The shard selected by the first query that reads the event.
+      - Only the resolved person's current profile ID after later merges.
+      - The configured hash of those routing inputs.
+      - Only the event name, regardless of its distinct ID.
+      correct: 2
+      explanation: Use the stated routing key. Do not substitute descriptive properties or query presentation.
+      id: d5bea4e4-987b-4575-b2a8-3ea63a34ace9
+      type: multiple_choice
+      difficulty: 2
+    - question: The model routes a1 to shard A and user_9 to shard B. They later resolve to one person. Where can
+        that person's raw events remain?
+      options:
+      - Necessarily only on shard B before any query.
+      - Only in the browser's local storage.
+      - Necessarily only on shard A after every identity link.
+      - Across both shards.
+      correct: 3
+      explanation: Resolved identity does not by itself prove physical colocation. Read the relevant shards and
+        apply the appropriate identity logic.
+      id: b56cbbca-5856-406c-8975-9b9679c81f1c
+      type: scenario
+      difficulty: 3
+    - question: A support query restricts a person's history to the shard selected by their current ID. It misses
+        older anonymous events on another shard. What should the query design address?
+      options:
+      - A new random user ID to move the history.
+      - All linked identifiers and the required distributed read scope, according to the actual deployment.
+      - A claim that all aliases must hash to the same shard.
+      - Only the current profile name.
+      correct: 1
+      explanation: The query used an unjustified colocation assumption. Include the relevant identity and storage
+        scope, then verify against known events.
+      id: e85e7df0-6206-4d86-b9f9-a5fb435aafee
+      type: scenario
+      difficulty: 4
+- id: ph-person-processing
+  name: 'Person Processing: Resolving Events to Profiles'
+  difficulty: 5
+  estimatedMinutes: 17
+  tags:
+  - posthog
+  - ingestion
+  section: posthog-ingestion
+  prerequisites:
+  - ph-ingestion-pipeline
+  - posthog-data-model:ph-persons
+  - posthog-data-model:ph-distinct-id
+  - posthog-data-model:person-modes
+  encompassing:
+  - concept: posthog-data-model:ph-persons
+    weight: 0.55
+  - concept: posthog-data-model:ph-distinct-id
+    weight: 0.65
+  knowledgePoints:
+  - id: how-person-processing-works
+    instruction: '**Person processing** handles identity and profile-related work during ingestion when enabled.
+      It can resolve distinct IDs, apply supported profile updates, and enforce identity safeguards. Event acceptance
+      does not prove every attempted identity operation succeeded.
 
 
-          **Step 2:** PostHog's capture endpoint validates the event and writes it to a Kafka topic.
+      Use ingestion warnings and before-and-after identity evidence. Invalid or conflicting identity operations
+      require correction at their source. If an ordinary event explicitly skips person processing, its event properties
+      can still be present while a requested profile write is not applied.'
+    workedExample: A capture request is accepted, but a proposed identity merge violates a safeguard. Inspect the
+      warning and identifiers before telling the customer that the merge completed.
+    instructionContent:
+    - type: link
+      url: https://posthog.com/docs/data/ingestion-warnings
+      title: Official reference
+      description: Check the current documented behavior and platform-specific details.
+    workedExampleContent: []
+    problems:
+    - question: Which task belongs to person processing?
+      options:
+      - Routing every event solely by its event name.
+      - Resolving identity links and applying supported person-property updates.
+      - Guaranteeing that every requested merge is accepted.
+      - Generating a trusted authenticated user from any arbitrary event label.
+      correct: 1
+      explanation: Person processing operates on identity and profile data with safeguards. It cannot turn invalid
+        identity evidence into a trustworthy link.
+      id: a852e4c1-dd2c-4892-b74d-4d348321ec53
+      type: multiple_choice
+      difficulty: 2
+    - question: An identify request uses a disallowed placeholder ID and produces an ingestion warning. What should
+        the implementation do?
+      options:
+      - Send a validated stable user ID when available and fix the path that emitted the placeholder.
+      - Retry the same invalid value until it is accepted.
+      - Treat the placeholder as a successfully merged person.
+      - Use one other shared placeholder for every affected user.
+      correct: 0
+      explanation: Fix invalid identity at the producer. Warnings are evidence that an attempted operation did not
+        meet its contract.
+      id: e68d48ea-12ef-4e1d-8737-97882fdda4ea
+      type: scenario
+      difficulty: 3
+    - question: In a test, event e1 is visible with its ordinary event properties, but the same payload's intended
+        profile update is absent. The payload explicitly skips person processing. Where should the diagnosis focus?
+      options:
+      - The conflict between skipping person processing and expecting a stored-profile update.
+      - The capture transport, assuming a missing profile property means e1 never arrived.
+      - The event-name spelling, assuming every property write is determined by the event name.
+      - The dashboard date range alone, assuming it can make an unprocessed profile write appear.
+      correct: 0
+      explanation: The stored event proves arrival. The skip setting explains why a separate profile-processing
+        effect is absent; verify and correct the intended processing contract.
+      id: c2657315-ae66-42fc-8460-9014403bac29
+      type: scenario
+      difficulty: 4
+  - id: cost-control-and-skip-rules
+    instruction: '**Person-processing controls** can reduce profile work when the use case does not need it. The
+      server-side event property $process_person_profile = false requests that person processing be skipped. Identity
+      operations that require person processing are incompatible with that choice.
 
 
-          **Step 3:** ClickHouse has a Kafka table engine (`kafka_events`) that acts as a consumer, reading events from Kafka and advancing offsets.
-
-
-          **Step 4:** A materialized view (`events_mv`) reads from `kafka_events` and inserts into the storage tables.
-
-
-          **Step 5:** Writes go through `writable_events` — a ClickHouse Distributed table that routes each event to the correct shard by hashing distinct_id using sipHash64. This means all events for the same user land on the same shard, making person-level queries efficient.
-
-
-          **Step 6:** Data lands in `sharded_events` — a ReplicatedReplacingMergeTree table that provides actual durable, replicated storage.
-
-
-          For reads, queries go through the `events` Distributed table, which fans out to all shards and aggregates results.
-        instructionContent:
-          - type: link
-            url: https://posthog.com/docs/how-posthog-works/clickhouse
-            title: ClickHouse tables diagram
-            description: Visual walkthrough of the table roles in PostHog's ingestion and storage path.
-        problems:
-          - id: ph-flow-p1
-            type: ordering
-            question: Place these PostHog ingestion steps in the correct order.
-            options:
-              - Materialized view (events_mv) inserts into storage tables
-              - App sends event via SDK
-              - Data lands in sharded_events (ReplicatedReplacingMergeTree)
-              - Capture endpoint writes event to Kafka
-              - kafka_events table engine reads from Kafka
-            correct: 1,3,4,0,2
-            explanation: >-
-              The flow is: App sends event, capture endpoint writes to Kafka, kafka_events reads from Kafka, events_mv materialized view inserts into storage, data lands in sharded_events for durable
-              storage.
-          - id: ph-flow-p2
-            type: multiple_choice
-            question: How does PostHog decide which ClickHouse shard to store an event on?
-            options:
-              - Random assignment for load balancing
-              - Round-robin across all available shards
-              - By hashing the distinct_id using sipHash64
-              - Based on the event timestamp
-            correct: 2
-            explanation: >-
-              PostHog shards events by sipHash64(distinct_id). This ensures all events for the same user land on the same shard, making person-level queries (like 'all events for user X') efficient
-              because they only need to hit one shard.
-          - id: ph-flow-p3
-            type: multiple_choice
-            question: In PostHog's ClickHouse architecture, which Distributed table handles writes, while reads go through the events Distributed table?
-            options:
-              - events
-              - writable_events
-              - sharded_events
-              - person_distinct_id_overrides
-            correct: 1
-            explanation: >-
-              writable_events is the Distributed table used for writes — it routes events to the correct shard. The events table is a separate Distributed table used for reads — it fans out queries to
-              all shards and aggregates results.
-    section: posthog-ingestion
-  - id: ph-clickhouse-storage
-    name: ClickHouse Storage — Tables and Sharding
-    difficulty: 6
-    estimatedMinutes: 18
-    tags:
-      - posthog
-      - ingestion
-    sourceRef: https://posthog.com/docs/how-posthog-works/clickhouse
-    prerequisites:
-      - ph-ingestion-pipeline
-    encompassing: []
-    knowledgePoints:
-      - id: table-roles
-        instruction: >-
-          PostHog's ClickHouse setup uses several tables with different jobs. `kafka_events` consumes from Kafka. `events_mv` is the materialized view that pushes records downstream. `sharded_events`
-          is the real durable storage table. `writable_events` and `events` are distributed access layers that sit in front of that storage. The point of learning these names is not memorization for
-          its own sake. It is being able to ask which layer is responsible when writes succeed, reads lag, or duplicates appear.
-        instructionContent:
-          - type: link
-            url: https://posthog.com/docs/how-posthog-works/clickhouse
-            title: ClickHouse architecture docs
-            description: Official diagram and table walkthrough for the storage path described here.
-        problems:
-          - id: ph-ch-p1
-            type: matching
-            question: Match each ClickHouse table to its role in PostHog's architecture.
-            options:
-              - kafka_events|Kafka consumer bridge that reads events from Kafka
-              - events_mv|Materialized view that pipes data from Kafka into storage
-              - writable_events|Distributed table for writes, routes to correct shard
-              - sharded_events|ReplicatedReplacingMergeTree for actual durable storage
-            correct: 0,1,2,3
-            explanation: kafka_events reads from Kafka. events_mv moves data from the Kafka bridge to storage. writable_events routes writes to the right shard. sharded_events is the actual storage engine.
-          - id: ph-ch-p4
-            type: multiple_choice
-            question: Which ClickHouse table engine does sharded_events use?
-            options:
-              - MergeTree
-              - ReplicatedMergeTree
-              - ReplicatedReplacingMergeTree
-              - Distributed
-            correct: 2
-            explanation: >-
-              ReplicatedReplacingMergeTree combines replication for durability, replacing behavior for eventual deduplication, and the MergeTree storage engine used for analytical workloads.
-          - id: ph-ch-p5
-            type: true_false
-            question: In PostHog's ClickHouse architecture, kafka_events is where events are durably stored for long-term queries.
-            correct: 'false'
-            explanation: >-
-              kafka_events is a Kafka consumer bridge — it reads events from Kafka and passes them downstream. Durable long-term storage is handled by sharded_events
-              (ReplicatedReplacingMergeTree). If you confused the two, the fix is to think of kafka_events as a pipeline stage, not a final destination.
-      - id: reads-writes-and-sharding
-        instruction: >-
-          The second key idea is separation of read and write paths. Writes go through `writable_events`, which chooses a shard by hashing `distinct_id`. Reads go through the `events` distributed
-          table, which fans queries out across shards and aggregates the results. That split matters because ingestion and querying have different optimization goals. Sharding by `distinct_id` also
-          keeps one user's events together, which helps person-level queries.
-        problems:
-          - id: ph-ch-p2
-            type: multiple_choice
-            question: When you run a query in PostHog's insights UI, which ClickHouse table handles the read?
-            options:
-              - kafka_events
-              - writable_events
-              - sharded_events directly
-              - The events Distributed table
-            correct: 3
-            explanation: >-
-              If you chose `writable_events`, you mixed up the write path with the read path. Insights read through `events`, which fans queries across shards and assembles the result.
-          - id: ph-ch-p3
-            type: true_false
-            question: In PostHog's ClickHouse setup, the same Distributed table is used for both reads and writes.
-            correct: 'false'
-            explanation: >-
-              PostHog uses separate Distributed tables: `writable_events` for writes and `events` for reads. This allows different routing and optimization strategies for ingestion versus querying.
-          - id: ph-ch-p6
-            type: scenario
-            question: >-
-              A PostHog engineer mentions that querying all events for a single user is fast because of how data is sharded. Why is this the case?
-            options:
-              - PostHog caches all user queries in memory
-              - Events are sharded by sipHash64(distinct_id), so all events for one user live on the same shard
-              - ClickHouse reads all shards in parallel regardless of the query
-              - User events are stored in a separate high-speed table
-            correct: 1
-            explanation: >-
-              Sharding by distinct_id ensures all events for the same user land on the same shard. A person-level query only needs to hit one shard instead of scanning all of them. This is a
-              deliberate design choice that optimizes the most common PostHog query pattern.
-    section: posthog-ingestion
-  - id: ph-person-processing
-    name: Person Processing — Resolving Events to Profiles
-    difficulty: 5
-    estimatedMinutes: 17
-    tags:
-      - posthog
-      - ingestion
-    sourceRef: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
-    prerequisites:
-      - ph-ingestion-pipeline
-      - posthog-data-model:ph-persons
-      - posthog-data-model:ph-distinct-id
-    encompassing:
-      - concept: posthog-data-model:ph-persons
-        weight: 0.55
-      - concept: posthog-data-model:ph-distinct-id
-        weight: 0.65
-    knowledgePoints:
-      - id: how-person-processing-works
-        instruction: >-
-          Person processing is the ingestion step where PostHog decides whether an event should link to an existing person, create a new one, or trigger a merge. That requires identity lookups,
-          possible writes, and sometimes profile reconciliation. Person data lives in PostgreSQL as the source of truth and is replicated into ClickHouse for query performance.
-        instructionContent:
-          - type: link
-            url: https://posthog.com/docs/how-posthog-works/ingestion-pipeline
-            title: Ingestion pipeline docs
-            description: Official reference for where person processing sits in the full event flow.
-        problems:
-          - id: ph-pp-p1
-            type: multiple_choice
-            question: Why is person processing the most expensive part of PostHog's ingestion pipeline?
-            options:
-              - It requires sending data to external third-party services
-              - It involves database lookups, potential writes, and occasionally complex merge operations
-              - It encrypts all person data with military-grade encryption
-              - It runs machine learning models on every event
-            correct: 1
-            explanation: >-
-              Person processing is expensive because it may need to look up existing identity state, create or update person records, and merge profiles when IDs connect.
-          - id: ph-pp-p3
-            type: true_false
-            question: Person data in PostHog is stored only in ClickHouse.
-            correct: 'false'
-            explanation: >-
-              The misconception here is assuming all analytics state lives only in ClickHouse. Person data is authored in PostgreSQL, then replicated into ClickHouse so queries stay fast.
-          - id: ph-pp-p5
-            type: multiple_choice
-            question: Where does PostHog store person data as the source of truth before replicating it to ClickHouse?
-            options:
-              - Apache Kafka
-              - Redis
-              - PostgreSQL
-              - Amazon S3
-            correct: 2
-            explanation: >-
-              Person data is authored in PostgreSQL (the source of truth) and then replicated into ClickHouse for fast query performance. If you chose Kafka, that is the event buffer, not the
-              person store. The dual-storage design separates identity management (PostgreSQL) from analytical queries (ClickHouse).
-      - id: cost-control-and-skip-rules
-        instruction: >-
-          Because person processing is expensive, PostHog can skip it when the event does not need person-level behavior. In `identified_only` mode, anonymous events with no identify, no `$set`, and
-          no group linkage skip person processing entirely. That makes this mode a good fit for high-volume anonymous traffic where the team still wants aggregate analytics but does not need person
-          profiles for every visitor.
-        problems:
-          - id: ph-pp-p2
-            type: scenario
-            question: >-
-              A customer is on PostHog Cloud and notices their bill is higher than expected. They have millions of anonymous pageview events from marketing landing pages where users never log in. What
-              configuration change could reduce their costs?
-            options:
-              - 'Switch to person_profiles: ''always'' to create profiles for every visitor'
-              - 'Switch to person_profiles: ''identified_only'' so anonymous events skip person processing'
-              - Disable event capture entirely on landing pages
-              - Move to self-hosted PostHog
-            correct: 1
-            explanation: >-
-              With `identified_only` mode, anonymous events skip person processing entirely. Since the landing page visitors never log in, their events do not need person profiles.
-          - id: ph-pp-p4
-            type: multiple_choice
-            question: Which event would skip person processing in identified_only mode?
-            options:
-              - A plain anonymous $pageview with no identify, no $set, and no group linkage
-              - An identify() call after login
-              - A capture call that includes $set person properties
-              - A group() call that links the session to a company
-            correct: 0
-            explanation: >-
-              In `identified_only` mode, plain anonymous events skip person processing. Events that identify, set person properties, or link groups need person-level handling and therefore do not skip it.
-          - id: ph-pp-p6
-            type: true_false
-            question: In identified_only mode, a capture call that includes $set person properties will skip person processing just like a plain anonymous event.
-            correct: 'false'
-            explanation: >-
-              Events with $set, identify, alias, or group linkage trigger person processing even in identified_only mode. Only plain anonymous events with no identification signals skip it. The
-              mode is about skipping processing for truly anonymous traffic, not for any event that lacks an identify() call.
-    section: posthog-ingestion
+      Validate processing behavior end to end. In the web SDK, use its documented profile mode and helpers; inline
+      $set alone does not create a profile for a fresh anonymous identified_only capture.'
+    workedExample: A high-volume event only needs event-level analysis. The team tests the skip setting against
+      that use case, confirms the absence of profile-dependent operations, and checks resulting data and warnings.
+    instructionContent:
+    - type: link
+      url: https://posthog.com/docs/data/anonymous-vs-identified-events
+      title: Official reference
+      description: Check the current documented behavior and platform-specific details.
+    workedExampleContent: []
+    problems:
+    - question: What does $process_person_profile = false request on a server-side capture?
+      options:
+      - Drop every event property from storage.
+      - Create a new identified profile on every retry.
+      - Merge all distinct IDs in the project.
+      - Skip person-profile processing for that event.
+      correct: 3
+      explanation: The flag controls person processing. Verify its compatibility with the operations and analyses
+        the event needs.
+      id: 94dea87e-59f0-4ceb-9de2-40f26c76171d
+      type: multiple_choice
+      difficulty: 2
+    - question: A payload sets $process_person_profile = false while attempting an identity operation that requires
+        person processing. What should the integration review identify?
+      options:
+      - A conflicting contract that must be corrected and tested using the supported identity path.
+      - A way to force a merge by adding more arbitrary properties.
+      - A reason to treat every warning as a success message.
+      - A guarantee that the skip flag still permits every identity mutation.
+      correct: 0
+      explanation: Skipping required processing and requesting an identity operation are incompatible. Choose the
+        intended behavior and follow its supported path.
+      id: a7dbda82-b3dd-4838-966b-ee4b4b1a07bb
+      type: scenario
+      difficulty: 3
+    - question: A cost change disables profile processing globally. Event totals still match, but reports that require
+        stored person properties lose coverage. How should the change be evaluated?
+      options:
+      - By relabeling missing property values without changing the data flow.
+      - Against both cost and required feature coverage, restoring or scoping person processing where needed.
+      - By assigning one shared person to every event.
+      - As fully successful because total event counts match.
+      correct: 1
+      explanation: Volume parity is insufficient. Verify the intended analyses and scope the optimization so it
+        preserves required behavior.
+      id: 883d86dd-41b9-47aa-8e2e-3ce35fc0c01e
+      type: scenario
+      difficulty: 4

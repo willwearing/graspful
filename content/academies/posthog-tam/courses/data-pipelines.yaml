@@ -1,640 +1,734 @@
 course:
   id: data-pipelines
   name: Data Pipelines
-  description: >-
-    Generic pipeline concepts — ingestion patterns, storage layers,
-    transformation, orchestration, serving, and operational tradeoffs.
+  description: 'Generic pipeline concepts: ingestion patterns, storage layers, transformation, orchestration, serving,
+    and operational tradeoffs.'
   estimatedHours: 2
-  version: '2026.1'
-  sourceDocument: PostHog product documentation and data pipeline fundamentals, reviewed March 2026
-
+  version: '2026.2'
+  sourceDocument: PostHog official documentation and supplied architecture models; content reviewed 2026-09-21
 sections:
-  - id: pipeline-basics
-    name: Pipeline Basics
-    description: What data pipelines are, where data comes from, and where it's stored.
-  - id: pipeline-architecture
-    name: Pipeline Architecture
-    description: Transformation patterns, orchestration, and the tradeoffs that shape pipeline design.
-
+- id: pipeline-basics
+  name: Pipeline Basics
+  description: What data pipelines are, where data comes from, and where it's stored.
+- id: pipeline-architecture
+  name: Pipeline Architecture
+  description: Transformation patterns, orchestration, and the tradeoffs that shape pipeline design.
 concepts:
-  - id: what-is-a-pipeline
-    name: What Is a Data Pipeline?
-    difficulty: 2
-    estimatedMinutes: 14
-    tags:
-      - foundational
-      - pipelines
-    prerequisites:
-      - data-models:data-modeling-process
-    encompassing: []
-    knowledgePoints:
-      - id: pipeline-definition-and-flow
-        instruction: >-
-          A data pipeline is a system that moves data from where it is produced to where it is needed, and often transforms it on the way. The usual stages are source, ingestion, storage,
-          transformation, and serving. Different tools may collapse or rename those stages, but the core idea stays the same: get data in, preserve it safely, shape it, and deliver it to someone who
-          can use it.
-        instructionContent:
-          - type: image
-            url: https://posthog.com/images/products/data-pipeline/data-pipeline.png
-            alt: Data pipeline product overview showing flow between systems
-            caption: A concrete pipeline view helps learners map the abstract stages to a real product interface.
-            width: 960
-        problems:
-          - id: pipeline-p1
-            type: multiple_choice
-            question: What is a data pipeline?
-            options:
-              - A type of database optimized for storing large files
-              - A system that moves and transforms data from sources to destinations
-              - A programming language for writing SQL queries
-              - A physical cable connecting two servers
-            correct: 1
-            explanation: >-
-              A data pipeline is a system that moves data from where it is produced (sources) to where it is needed (destinations), transforming it along the way. It is a logical system, not a
-              physical object or a language.
-          - id: pipeline-p2
-            type: ordering
-            question: Place these data pipeline stages in the typical order.
-            options:
-              - Transform
-              - Ingest
-              - Serve/Analyze
-              - Store
-            correct: 1,3,0,2
-            explanation: >-
-              The typical flow is: Ingest (collect from sources), Store (land somewhere durable), Transform (clean and process), Serve/Analyze (deliver to consumers). Data must be collected before
-              stored, stored before transformed, and transformed before served.
-          - id: pipeline-p5
-            type: true_false
-            question: A data pipeline always includes all five stages (source, ingestion, storage, transformation, and serving) in every implementation.
-            correct: 'false'
-            explanation: >-
-              Different tools may collapse, rename, or skip stages. A simple pipeline might go straight from ingestion to serving without a separate transformation step. The five stages are a mental
-              model, not a mandatory checklist for every pipeline.
-      - id: pipeline-failure-points
-        instruction: >-
-          Once you know the stages, you can use them as a debugging map. Missing data often means the failure happened upstream. Stale data often means ingestion or transformation is delayed. Wrong
-          numbers often mean data arrived but the transformation or serving layer applied the wrong logic. A TAM does not need to memorize every vendor's internals to help. They need to ask which stage
-          first stopped behaving as expected.
-        instructionContent:
-          - type: callout
-            title: TAM lens
-            body: >-
-              When a customer says data is missing or stale, ask which stage failed first: source, ingestion, storage, transformation, or delivery.
-        problems:
-          - id: pipeline-p3
-            type: true_false
-            question: A data pipeline only moves data — it never modifies or transforms data along the way.
-            correct: 'false'
-            explanation: Pipelines both move AND transform data. Transformation is a core stage — cleaning, filtering, aggregating, joining, and reshaping data as it flows from source to destination.
-          - id: pipeline-p4
-            type: scenario
-            question: >-
-              Events are arriving at the platform, but the dashboard that depends on a daily aggregation has not updated since this morning. Which stage is the best first place to investigate?
-            options:
-              - The source system only
-              - The transformation or serving step that builds the aggregate
-              - The user's browser cache
-              - The entity-relationship model
-            correct: 1
-            explanation: >-
-              If raw events are arriving but the derived dashboard is stale, the likely failure is downstream in transformation or serving, not in the original event source.
-          - id: pipeline-p6
-            type: multiple_choice
-            question: >-
-              A customer reports that their data appears in the warehouse but the numbers in their dashboard look wrong. Which pipeline stage should a TAM investigate first?
-            options:
-              - The source system
-              - The ingestion step
-              - The transformation or serving layer
-              - The network connection between systems
-            correct: 2
-            explanation: >-
-              If data arrived in the warehouse but the numbers are wrong, the issue is likely in transformation (bad logic) or serving (wrong query or aggregation). The source and ingestion steps
-              worked because the data did land. Start downstream and work backward.
-    section: pipeline-basics
-  - id: sources-and-ingestion
-    name: Sources & Ingestion Patterns
-    difficulty: 3
-    estimatedMinutes: 15
-    tags:
-      - foundational
-      - pipelines
-    prerequisites:
-      - what-is-a-pipeline
-    encompassing: []
-    knowledgePoints:
-      - id: where-data-comes-from
-        instruction: >-
-          **Data sources** are any system that produces data your pipeline needs to consume. Common sources include:
+- id: what-is-a-pipeline
+  name: What Is a Data Pipeline?
+  difficulty: 2
+  estimatedMinutes: 14
+  tags:
+  - foundational
+  - pipelines
+  section: pipeline-basics
+  prerequisites: []
+  encompassing: []
+  knowledgePoints:
+  - id: pipeline-definition-and-flow
+    instruction: 'A **data pipeline** moves data through connected processing steps. Those steps can ingest, store,
+      transform, and serve data. Their order depends on the design. In ELT, data is loaded before transformation;
+      ETL transforms before loading into the target.
 
 
-          **Application databases** (PostgreSQL, MySQL) — the operational databases your app writes to. **Event streams** (user clicks, pageviews, API calls) — real-time actions. **Third-party APIs** (Stripe for payments, Salesforce for CRM data). **Flat files** (CSVs, JSON exports). **Server logs** (access logs, error logs).
+      Name each boundary and the expected output. This makes a flow testable instead of treating the whole system
+      as one black box.'
+    workedExample: A nightly reporting flow copies orders into raw storage, converts currencies, and publishes a
+      sales table. The raw copy lets the team rerun the conversion without reading the source again.
+    instructionContent:
+    - type: callout
+      title: Practice method
+      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
+        constraint.
+    workedExampleContent: []
+    problems:
+    - question: Which description identifies a data pipeline?
+      options:
+      - Connected steps that move and process data from a source toward a use.
+      - A dashboard that only displays an already prepared metric.
+      - A rule requiring every system to transform before any storage.
+      - A static collection of source records with no defined movement or processing.
+      correct: 0
+      explanation: A pipeline is the connected flow. ETL and ELT are possible designs rather than universal step
+        orders.
+      id: 3d3e3cba-abc0-4925-a820-399d4eb31f95
+      type: multiple_choice
+      difficulty: 2
+    - question: An ELT pipeline copies source records into its target before transforming them there. Put its three
+        main stages in order.
+      options:
+      - Transform in the target
+      - Extract from the source
+      - Load into the target
+      correct:
+      - Extract from the source
+      - Load into the target
+      - Transform in the target
+      explanation: 'Follow the observed steps: the raw records are loaded before transformation. That is ELT.'
+      type: ordering
+      id: e5533990-da1c-4139-a929-6f82e8131a83
+      difficulty: 3
+    - question: A customer asks where to add a currency conversion so reports use one reporting currency while source
+        values remain recoverable. Which design meets both requirements?
+      options:
+      - Use the first currency found as the unit for every row.
+      - Convert values after the report has already summed mixed currencies.
+      - Overwrite the only source values and discard the conversion rate.
+      - Preserve source values and add a documented conversion step before serving the report.
+      correct: 3
+      explanation: Preserve the original evidence and transform at a defined boundary. Mixed-currency sums and undocumented
+        overwrites cannot satisfy both requirements.
+      id: fdd1f0ea-9987-4583-806a-54d90ecd2715
+      type: scenario
+      difficulty: 4
+  - id: pipeline-failure-points
+    instruction: '**Boundary checks** compare what entered and left each stage. Inspect counts, required fields,
+      identifiers, timestamps, and error records. Data can arrive but still be wrong, incomplete, duplicated, or
+      late.
 
 
-          Sources differ in how they produce data. **Batch sources** produce data in chunks at intervals — a nightly database export, a weekly CSV from a vendor. **Streaming sources** produce data continuously in real-time — user clickstreams, IoT sensor readings, application event logs.
+      Investigate the earliest boundary where evidence diverges from expectations. An accepted request proves less
+      than a correctly queryable output.'
+    workedExample: The source has 1,000 records, the raw store has 1,000, and the transformed table has 870. Check
+      transform rejections and filters before changing the source connector.
+    instructionContent:
+    - type: callout
+      title: Practice method
+      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
+        constraint.
+    workedExampleContent: []
+    problems:
+    - question: A pipeline reports that all requests were accepted. What still needs validation?
+      options:
+      - Only whether the capture endpoint returned a success status.
+      - Whether the expected records and values reached the final output correctly.
+      - Only whether the destination connection can be opened.
+      - Nothing, because acceptance proves every downstream stage succeeded.
+      correct: 1
+      explanation: Acceptance is one boundary signal. Validate completeness, values, and downstream visibility separately.
+      id: e3022e6d-da88-4ce9-b425-464931471f9b
+      type: multiple_choice
+      difficulty: 2
+    - question: Source count is 2,000, landing count is 2,000, and transformed count is 1,650. The serving layer
+        shows those same 1,650 rows. Where does the first measured loss occur?
+      options:
+      - At every stage equally.
+      - Between transformed output and serving.
+      - Between landing and transformed output.
+      - Before the source produced records.
+      correct: 2
+      explanation: Compare adjacent boundaries. The first change is in transformation, so start with its filters,
+        errors, and input handling.
+      id: 4bd5b494-d406-40ac-8779-bf6e7500f1ce
+      type: scenario
+      difficulty: 3
+    - question: Counts match end to end, but revenue doubled after a retry. Which evidence should you inspect next?
+      options:
+      - Record identities, retry behavior, and whether repeated records contribute twice to revenue.
+      - Only the report's date range, without checking repeated record identities.
+      - Only total row counts, because equal counts rule out duplicated effects.
+      - Only the connector success status, because a retry cannot change totals.
+      correct: 0
+      explanation: Equal counts do not prove correct values or deduplication. Trace stable record identities and
+        the effect of retries on aggregation.
+      id: 54caff01-0cf4-4020-90dd-8be2c6313096
+      type: scenario
+      difficulty: 4
+- id: sources-and-ingestion
+  name: Sources & Ingestion Patterns
+  difficulty: 3
+  estimatedMinutes: 15
+  tags:
+  - foundational
+  - pipelines
+  section: pipeline-basics
+  prerequisites:
+  - what-is-a-pipeline
+  encompassing: []
+  knowledgePoints:
+  - id: where-data-comes-from
+    instruction: '**Source contracts** define the shape, ownership, and meaning of incoming data. Application events
+      describe actions, operational databases store changing records, and third-party APIs expose another system''s
+      data. Each needs an access and change strategy.
 
 
-          Batch is simpler to build and operate but introduces latency (data can be hours or days old). Streaming is faster (near real-time) but harder to build, debug, and operate. Most real-world pipelines use a mix of both.
-        instructionContent:
-          - type: callout
-            title: Classification shortcut
-            body: >-
-              First ask what system emits the data. Then ask whether it arrives continuously or on a schedule. That gives you both the source type and the operating pattern.
-        problems:
-          - id: sources-p1
-            type: multiple_choice
-            question: Which of the following is an example of a streaming data source?
-            options:
-              - A nightly CSV export from a vendor
-              - A weekly database backup
-              - Real-time user clickstream events from a web application
-              - A monthly financial report
-            correct: 2
-            explanation: >-
-              User clickstream events are produced continuously in real-time as users interact with the application — this is a streaming source. The other options are all batch sources (periodic
-              exports at fixed intervals).
-          - id: sources-p2
-            type: matching
-            question: Match each data source to its category.
-            options:
-              - User clickstream events|Streaming
-              - Nightly database export|Batch
-              - IoT sensor readings|Streaming
-              - Weekly CSV from a vendor|Batch
-            correct: 0,1,2,3
-            explanation: Clickstreams and IoT sensors produce data continuously (streaming). Nightly exports and weekly CSVs are produced at intervals (batch).
-          - id: sources-p3
-            type: true_false
-            question: Batch data sources always produce lower-quality data than streaming sources.
-            correct: 'false'
-            explanation: >-
-              Data quality depends on the source system and pipeline design, not on whether it is batch or streaming. A well-designed nightly export can be higher quality than a poorly instrumented
-              real-time stream. The batch vs streaming distinction is about latency and operational complexity, not data quality.
-      - id: ingestion-approaches
-        instruction: >-
-          **Ingestion** is the process of collecting data from sources into your pipeline. There are three main patterns.
+      Check identifiers, timestamps, pagination, deletion signals, and schema changes. A successful connection alone
+      does not establish a complete extract.'
+    workedExample: An API returns at most 100 invoices per page. The importer follows every next-page token and
+      records a stable invoice ID so repeated fetches can be reconciled.
+    instructionContent:
+    - type: callout
+      title: Practice method
+      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
+        constraint.
+    workedExampleContent: []
+    problems:
+    - question: Which source contract detail determines whether an API extract must make more requests after its
+        first response?
+      options:
+      - Its schema's numeric field units.
+      - Its pagination rules.
+      - Its authentication token's expiry time.
+      - Its policy for deleting source records.
+      correct: 1
+      explanation: Pagination determines how to retrieve the complete result. A successful first response may contain
+        only one page.
+      id: bedbc2c5-8757-4150-96fa-d70e2d1e2139
+      type: multiple_choice
+      difficulty: 2
+    - question: A billing API says there are 240 invoices and returns pages of 100, 100, and 40. The importer stops
+        after the first page. What is missing? Enter the number only.
+      options: []
+      correct: '140'
+      explanation: The first page contains 100 of 240 records. Follow all pages and reconcile the extracted count.
+      type: fill_blank
+      id: b0bc1936-23ec-4c90-8f2a-790afc0b662a
+      difficulty: 3
+    - question: An API removes deleted customers from ordinary list responses. A nightly incremental importer only
+        requests recently updated rows. What must the team clarify to keep the destination accurate?
+      options:
+      - Whether changing the primary-key column name will expose deleted rows.
+      - Whether the target can retain removed customers as active forever.
+      - How deletions are signaled or detected, and how the importer applies them.
+      - Whether a larger page size can substitute for deletion tracking.
+      correct: 2
+      explanation: Updates and deletions are separate contract concerns. Without deletion evidence or reconciliation,
+        stale destination rows can survive indefinitely.
+      id: 31ec533e-6f50-4cf0-879b-1b56c5b33416
+      type: scenario
+      difficulty: 4
+  - id: ingestion-approaches
+    instruction: '**Ingestion** brings source data into the pipeline. Batch ingestion handles bounded sets on a
+      schedule. Streaming processes a continuing flow. Change data capture, or CDC, tracks database changes; it
+      can use logs, triggers, or other methods.
 
 
-          **Pull-based ingestion:** the pipeline periodically requests data from the source. Example: a scheduled job that queries an API every hour. The pipeline controls the timing.
+      Log-based CDC reads supported change logs. Compare freshness needs, source load, available change history,
+      and recovery behavior when choosing an approach.'
+    workedExample: A dashboard with a 24-hour freshness target can use a nightly batch. A fraud alert with a seconds-level
+      target needs a lower-latency path and monitoring that matches that target.
+    instructionContent:
+    - type: link
+      url: https://aws.amazon.com/what-is/change-data-capture/
+      title: Official reference
+      description: Check the current documented behavior and platform-specific details.
+    workedExampleContent: []
+    problems:
+    - question: What specifically distinguishes log-based CDC from other CDC approaches?
+      options:
+      - It requires a full-table export for every change.
+      - It stores only final report images.
+      - It means every possible CDC implementation uses logs.
+      - It reads database change logs to observe changes.
+      correct: 3
+      explanation: The qualifier log-based names the mechanism. CDC also includes other ways to detect changes.
+      id: ed5bc6b9-a5da-4d09-9caf-88c85c530bbd
+      type: multiple_choice
+      difficulty: 2
+    - question: A daily finance report is due at 08:00 and may use data through midnight. A reliable 02:00 batch
+        finishes in 30 minutes. Does the stated freshness need require streaming?
+      options:
+      - No. Therefore failures and completeness never need monitoring.
+      - Yes. Batch data cannot contain timestamps.
+      - Yes. Every report requires second-level updates.
+      - No. The batch meets the stated schedule if it completes and is validated.
+      correct: 3
+      explanation: Select the approach from the actual freshness requirement. This batch fits, while still requiring
+        operational checks.
+      id: 6849db42-db7d-4f0d-9c3b-dadcbaa37639
+      type: scenario
+      difficulty: 3
+    - question: A log-based CDC consumer was offline longer than the source retains change logs. Its last position
+        is no longer available. What is the sound recovery plan?
+      options:
+      - Skip to the latest position and claim that no changes were lost.
+      - Replay an arbitrary earlier timestamp without checking source availability.
+      - Use a supported resnapshot or reconciliation procedure, then resume changes from a consistent position.
+      - Continue serving the old data as current indefinitely.
+      correct: 2
+      explanation: A missing log interval breaks continuity. Recover a consistent baseline and verify it before
+        claiming completeness.
+      id: b0c06325-c0de-491e-94a5-e8351acf7488
+      type: scenario
+      difficulty: 4
+- id: storage-layers
+  name: 'Storage Layers: Where Data Lives'
+  difficulty: 3
+  estimatedMinutes: 16
+  tags:
+  - foundational
+  - pipelines
+  section: pipeline-basics
+  prerequisites:
+  - sources-and-ingestion
+  encompassing: []
+  knowledgePoints:
+  - id: raw-lake-warehouse
+    instruction: '**Raw storage** retains data close to its received form. A **data lake** commonly stores varied
+      files for flexible later use. A **warehouse** provides queryable data for analysis and can contain both raw
+      and curated tables. These roles can overlap.
 
 
-          **Push-based ingestion:** the source sends data to the pipeline as it is produced. Example: a web application sends events to an analytics endpoint, or a webhook fires when a payment succeeds. The source controls the timing.
+      A curated dataset applies agreed types, definitions, and quality rules. Storage technology alone does not
+      prove that curation happened.'
+    workedExample: A warehouse has raw_orders and daily_revenue tables. The first preserves source rows; the second
+      applies the finance team's revenue definition. Both are warehouse tables with different roles.
+    instructionContent:
+    - type: callout
+      title: Practice method
+      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
+        constraint.
+    workedExampleContent: []
+    problems:
+    - question: What makes a dataset curated for a business metric?
+      options:
+      - A table name ending in final or certified.
+      - The fact that the data is stored in a warehouse.
+      - A successful copy job with no documented metric rules.
+      - Agreed definitions and transformations with suitable quality checks.
+      correct: 3
+      explanation: Curation is a process with explicit rules. A storage label or filename does not establish trustworthy
+        meaning.
+      id: c1e19fee-f292-4201-a8fa-f3a60cda4002
+      type: multiple_choice
+      difficulty: 2
+    - question: A warehouse contains untouched source JSON in one table and validated daily sales in another. How
+        should these tables be classified?
+      options:
+      - Raw and curated layers within the same warehouse.
+      - Neither can be used in a pipeline.
+      - Both must be raw because they share a database.
+      - Both must be curated because warehouses cannot hold raw data.
+      correct: 0
+      explanation: Classify the role from the data and processing, not from the product category of the storage
+        system.
+      id: b368d62f-c3a5-4c2f-b871-2c4198d4b87e
+      type: scenario
+      difficulty: 3
+    - question: Two reports use different revenue definitions from the same warehouse. The team proposes moving
+        all data to a lake to make the numbers agree. What should be addressed first?
+      options:
+      - Select whichever report shows the higher revenue without reconciling it.
+      - Align the metric definitions and transformations, then validate both report paths.
+      - Rename both tables daily_revenue while keeping their different calculations.
+      - Move the same conflicting calculations to a new storage format.
+      correct: 1
+      explanation: The disagreement concerns meaning. Resolve the calculation rules before making an infrastructure
+        change that may leave the conflict intact.
+      id: 56a2ddc8-5053-4405-8758-6db596df7dd7
+      type: scenario
+      difficulty: 4
+  - id: choosing-storage-layers
+    instruction: '**Storage-layer selection** balances recovery, query speed, cost, and access. Retaining raw inputs
+      can support replay when logic changes. Curated outputs make routine queries easier and more consistent.
 
 
-          **Change Data Capture (CDC):** a specialized technique that watches a database's transaction log (WAL in PostgreSQL, binlog in MySQL) and captures every INSERT, UPDATE, and DELETE as it happens. CDC gives you streaming-like freshness from a batch source without querying the database directly — it reads the log instead.
+      Retention and access need explicit rules. Keeping every payload forever is a separate decision from choosing
+      ETL, ELT, a lake, or a warehouse.'
+    workedExample: A team retains restricted raw records for 30 days and keeps validated daily totals for two years.
+      It can repair recent transformations while meeting its chosen retention policy.
+    instructionContent:
+    - type: callout
+      title: Practice method
+      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
+        constraint.
+    workedExampleContent: []
+    problems:
+    - question: Which need most directly supports retaining replayable raw inputs?
+      options:
+      - Making all source data public.
+      - Guaranteeing that raw data is already a certified business metric.
+      - Recomputing outputs after a transformation bug is fixed.
+      - Avoiding any retention decisions.
+      correct: 2
+      explanation: Raw inputs preserve evidence for replay. They still need access controls, retention rules, and
+        interpretation.
+      id: 631d5b76-7935-4c5c-bcaa-7d0b396fcf2f
+      type: multiple_choice
+      difficulty: 2
+    - question: A calculation bug affected the last week. The pipeline retains raw inputs for 30 days and records
+        transform versions. What recovery option does this enable?
+      options:
+      - Recover the correct values merely by renaming the output table.
+      - Reprocess the affected inputs with the corrected transform and compare results.
+      - Recover years of discarded inputs without another source.
+      - Assume the existing totals are correct because raw data exists.
+      correct: 1
+      explanation: The retained inputs cover the affected week. Use them with the corrected logic and verify the
+        replacement output.
+      id: 603320fd-0831-48ac-a029-1a18a44f2eb8
+      type: scenario
+      difficulty: 3
+    - question: A team needs daily aggregate reports for two years but only 14 days of detailed replay. Raw payloads
+        include sensitive fields. Which design best fits those stated needs?
+      options:
+      - Keep every raw field forever because replay is sometimes useful.
+      - Give every report viewer access to all detailed payloads.
+      - Delete all raw data immediately and promise 14-day replay.
+      - Apply restricted access and 14-day raw retention, with longer retention for the required aggregates.
+      correct: 3
+      explanation: Match retention and access to the separate use cases. Aggregated reporting does not require unlimited
+        detailed retention.
+      id: 50544765-b050-4add-95ef-256952b14bbd
+      type: scenario
+      difficulty: 4
+- id: transformation-etl-elt
+  name: 'Transformation: ETL vs ELT'
+  difficulty: 4
+  estimatedMinutes: 15
+  tags:
+  - foundational
+  - pipelines
+  section: pipeline-architecture
+  prerequisites:
+  - storage-layers
+  encompassing: []
+  knowledgePoints:
+  - id: what-transformation-does
+    instruction: '**Transformation** changes data into a form or meaning required downstream. Examples include type
+      conversion, normalization, enrichment, deduplication, and aggregation. Each rule should define how invalid
+      and missing inputs are handled.
 
 
-          Most product analytics tools (including PostHog) use push-based ingestion: your application sends events to their API.
-        workedExample: >-
-          Stripe sending a webhook when a payment succeeds is push-based ingestion. A cron job polling Salesforce every hour is pull-based ingestion. A connector reading PostgreSQL WAL records is CDC.
-          Same goal, different control point.
-        problems:
-          - id: ingestion-p1
-            type: multiple_choice
-            question: In push-based ingestion, who initiates the data transfer?
-            options:
-              - The pipeline requests data on a schedule
-              - The source sends data as it is produced
-              - A third-party orchestrator triggers both sides
-              - The database log is read directly
-            correct: 1
-            explanation: In push-based ingestion, the source sends data to the pipeline. A web app posting events to an analytics API is a classic example. The source controls the timing, not the pipeline.
-          - id: ingestion-p2
-            type: scenario
-            question: >-
-              Your company uses a third-party CRM (like Salesforce) that does not support webhooks. You need updated deal data in your warehouse every few hours. Which ingestion pattern is most
-              appropriate?
-            options:
-              - Push-based — have Salesforce send data to your pipeline
-              - Pull-based — schedule your pipeline to query the Salesforce API periodically
-              - Change Data Capture — read Salesforce's database logs
-              - Manual — have someone export a CSV daily
-            correct: 1
-            explanation: >-
-              Without webhook support, you cannot use push-based ingestion. You do not have access to Salesforce's database logs for CDC. Pull-based is the right choice: schedule your pipeline to call
-              the Salesforce API every few hours to fetch updated records.
-          - id: ingestion-p3
-            type: true_false
-            question: Change Data Capture (CDC) works by periodically querying a database for new rows.
-            correct: 'false'
-            explanation: >-
-              CDC does NOT query the database. It reads the database's transaction log (WAL/binlog) to capture every INSERT, UPDATE, and DELETE as it happens. This avoids putting query load on the
-              production database and provides near real-time data.
-    section: pipeline-basics
-  - id: storage-layers
-    name: Storage Layers — Where Data Lives
-    difficulty: 3
-    estimatedMinutes: 16
-    tags:
-      - foundational
-      - pipelines
-    prerequisites:
-      - sources-and-ingestion
-    encompassing: []
-    knowledgePoints:
-      - id: raw-lake-warehouse
-        instruction: >-
-          Data usually moves through layers as it becomes more useful. Raw storage or a landing zone is the first stop after ingestion. It keeps the original payload untouched so you can replay or
-          reprocess later. A data lake is cheap, flexible storage for large volumes of raw or semi-structured data. A data warehouse is optimized for analytical queries on structured tables. The same
-          data may move through all three layers, but each layer exists for a different reason.
-        instructionContent:
-          - type: callout
-            title: Same data, different jobs
-            body: >-
-              Raw storage protects recoverability, lakes protect cheap flexible retention, and warehouses protect query speed.
-        problems:
-          - id: storage-p1
-            type: multiple_choice
-            question: What is the primary advantage of keeping a raw storage layer in your pipeline?
-            options:
-              - Raw storage is the fastest to query
-              - It preserves original data so you can reprocess if something goes wrong downstream
-              - It eliminates the need for a data warehouse
-              - Raw storage automatically cleans and transforms data
-            correct: 1
-            explanation: >-
-              Raw storage is your safety net. By preserving the original data untouched, you can always go back and reprocess it if a transformation bug corrupts downstream data. Raw storage is not
-              fast to query — that is the warehouse's job.
-          - id: storage-p2
-            type: matching
-            question: Match each storage layer to its primary characteristic.
-            options:
-              - Raw storage|Preserves original data exactly as received
-              - Data lake|Cheap, flexible storage for semi-structured data
-              - Data warehouse|Optimized for fast analytical queries
-              - Landing zone|First place data lands after ingestion
-            correct: 0,1,2,3
-            explanation: >-
-              Raw storage and landing zone both describe the initial ingestion target (preserving original data). Data lakes prioritize cheap, flexible storage. Data warehouses prioritize fast
-              analytical queries with structured schemas.
-          - id: storage-p5
-            type: multiple_choice
-            question: Which storage layer is optimized for fast analytical queries on structured, schema-defined tables?
-            options:
-              - Raw storage / landing zone
-              - Data lake
-              - Data warehouse
-              - Application database (OLTP)
-            correct: 2
-            explanation: >-
-              Data warehouses are built for analytical query speed on structured data. Raw storage preserves originals, lakes store cheap flexible data, and OLTP databases optimize for transactional
-              writes, not analytical reads.
-      - id: choosing-storage-layers
-        instruction: >-
-          Choosing the right layer depends on the job. Use raw storage when recoverability matters. Use a lake when you need cheap retention of varied file types. Use a warehouse when people need to
-          ask analytical questions quickly. The mistake is expecting one layer to optimize for every outcome at once. Cheap flexible storage is not automatically fast, and fast structured analytics is
-          not automatically the best place to keep every original payload forever.
-        problems:
-          - id: storage-p3
-            type: true_false
-            question: A data warehouse is optimized for cheap storage of unstructured data like images and videos.
-            correct: 'false'
-            explanation: >-
-              A data warehouse is optimized for fast analytical queries on structured data (tables with defined schemas). Cheap storage of unstructured data is the role of a data lake (like S3).
-              Warehouses trade storage cost for query speed.
-          - id: storage-p4
-            type: scenario
-            question: >-
-              A transformation bug corrupted yesterday's aggregate tables. The team needs the original event payloads so they can rebuild the data correctly. Which storage layer is most important here?
-            options:
-              - The BI dashboard cache
-              - The raw landing zone
-              - The semantic layer only
-              - The metrics definition document
-            correct: 1
-            explanation: >-
-              The raw landing zone preserves the original data exactly as received. That is what lets the team rerun the downstream transformations after a bug.
-          - id: storage-p6
-            type: scenario
-            question: >-
-              A team asks: 'Can we just put everything in our data warehouse and skip the raw layer and lake?' What is the strongest argument against this?
-            options:
-              - Warehouses cannot store JSON data
-              - If a transformation bug corrupts warehouse data, you have no original copy to reprocess from
-              - Warehouses are always more expensive than lakes
-              - This approach violates database licensing rules
-            correct: 1
-            explanation: >-
-              Without a raw layer, you lose recoverability. If downstream transformation logic is wrong, you cannot replay the original data. The raw layer is your safety net, not redundant storage.
-    section: pipeline-basics
-  - id: transformation-etl-elt
-    name: Transformation — ETL vs ELT
-    difficulty: 4
-    estimatedMinutes: 15
-    tags:
-      - foundational
-      - pipelines
-    prerequisites:
-      - storage-layers
-    encompassing: []
-    knowledgePoints:
-      - id: what-transformation-does
-        instruction: >-
-          **Transformation** is the stage where raw data becomes usable data. It is where you clean, reshape, enrich, and aggregate. Common operations include:
+      Preserve enough evidence to explain output values. Quietly coercing a bad input to zero can corrupt an aggregate
+      while making the job appear successful.'
+    workedExample: A transform converts amount_cents = 1250 to amount_dollars = 12.50. If amount_cents contains
+      "unknown", the row is rejected or quarantined under an explicit rule rather than counted as a zero-value sale.
+    instructionContent:
+    - type: callout
+      title: Practice method
+      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
+        constraint.
+    workedExampleContent: []
+    problems:
+    - question: Which operation changes data meaning or structure as a transformation step?
+      options:
+      - Granting an analyst access to a report.
+      - Retrying a failed network connection.
+      - Converting a documented cents field to dollars.
+      - Copying identical bytes without changing their representation.
+      correct: 2
+      explanation: The unit conversion changes the represented value using a defined rule. Transfer, retries, and
+        access are different concerns.
+      id: c07d8165-5940-46af-8f34-847b33b71518
+      type: multiple_choice
+      difficulty: 2
+    - question: A source stores 2,450 cents. The target requires dollars with two decimal places. What value should
+        a correct conversion produce? Enter the number only.
+      options: []
+      correct:
+        answer: '24.50'
+        alternatives:
+        - '24.5'
+      explanation: Divide cents by 100. Check the unit contract before performing or validating an aggregation.
+      type: fill_blank
+      id: a7757a8a-5d47-42d4-9e74-7abc4ab48ab8
+      difficulty: 3
+    - question: A transform converts malformed amounts to zero, and its success count stays high while reported
+        revenue falls. Which change best makes this failure visible?
+      options:
+      - Keep the zeros and suppress the revenue alert.
+      - Treat the job success count as proof of correct revenue.
+      - Multiply every result by an arbitrary adjustment factor.
+      - Separate invalid rows with reasons, alert on their rate, and fix the source or mapping before replay.
+      correct: 3
+      explanation: Silent coercion hides rejected meaning. Track invalid inputs explicitly and repair the relevant
+        rule using evidence.
+      id: 344cb015-f1f8-4cc3-b22a-ef15f56cf736
+      type: scenario
+      difficulty: 4
+  - id: etl-vs-elt
+    instruction: '**ETL** transforms data before loading it into the target. **ELT** loads data into the target
+      before transforming it there. The relevant target must be named when describing a flow.
 
 
-          **Cleaning** — removing duplicates, fixing null values, correcting data types. **Filtering** — dropping irrelevant records. **Joining** — combining data from multiple sources, such as enriching events with user attributes. **Aggregating** — summing, counting, averaging to turn raw events into metrics. **Normalizing** — standardizing formats like dates, currencies, or country codes.
+      The acronym does not decide whether raw inputs are retained elsewhere. Choose the transformation boundary
+      from sensitivity, compute, target constraints, and replay requirements.'
+    workedExample: A pipeline removes unnecessary personal fields before loading the analytics warehouse. It can
+      still retain an approved, restricted source archive under a separate policy. ETL does not imply that every
+      raw copy is discarded.
+    instructionContent:
+    - type: link
+      url: https://aws.amazon.com/what-is/etl/
+      title: Official reference
+      description: Check the current documented behavior and platform-specific details.
+    workedExampleContent: []
+    problems:
+    - question: What determines whether a flow is ETL or ELT relative to a named target?
+      options:
+      - Whether transformation occurs before or after loading into that target.
+      - Whether the team uses a dashboard.
+      - Whether every raw copy is deleted.
+      - Whether the data originates from an API.
+      correct: 0
+      explanation: The order relative to the target is the defining distinction. Retention and source type are separate
+        choices.
+      id: 60178634-df60-4a26-90a7-9d673caa3793
+      type: multiple_choice
+      difficulty: 2
+    - question: A warehouse must receive only cleaned data. Put these ETL stages in order. A separate source archive
+        does not change the warehouse step order.
+      options:
+      - Load cleaned data into the warehouse
+      - Extract source records
+      - Transform the extracted records
+      correct:
+      - Extract source records
+      - Transform the extracted records
+      - Load cleaned data into the warehouse
+      explanation: The warehouse receives transformed data, so this path is ETL. The archive does not change that
+        step order.
+      type: ordering
+      id: fcf52f7f-d54f-415d-9348-4bc9986e2273
+      difficulty: 3
+    - question: A warehouse must never receive payment card fields, and the extraction payload includes them. Which
+        design meets that boundary requirement?
+      options:
+      - Remove those fields in a controlled step before loading into the warehouse, and verify the output schema.
+      - Rename the fields after analysts have access.
+      - Load everything first and promise to hide the fields in dashboards.
+      - Treat the ELT label as permission to ignore the target restriction.
+      correct: 0
+      explanation: The requirement applies at entry to the warehouse. Enforce and validate the transformation before
+        that boundary.
+      id: a9bb08fa-77a0-473f-8390-99b3fec8b07e
+      type: scenario
+      difficulty: 4
+- id: orchestration-and-serving
+  name: Orchestration & Serving Data
+  difficulty: 3
+  estimatedMinutes: 10
+  tags:
+  - foundational
+  - pipelines
+  section: pipeline-architecture
+  prerequisites:
+  - transformation-etl-elt
+  encompassing: []
+  knowledgePoints:
+  - id: workflow-orchestration
+    instruction: '**Orchestration** schedules work and enforces dependencies. A directed acyclic graph, or DAG,
+      has directed edges and no dependency cycle. A task can run after its required predecessors succeed; independent
+      branches can run in parallel.
 
 
-          For example, raw event data might look like individual "user_clicked_button" records with timestamps. After transformation, you might have an aggregated table of "daily_clicks_per_user" that is much easier to query.
+      Retries, timeouts, and failure states belong in the workflow. A schedule alone does not guarantee that required
+      input is ready.'
+    workedExample: Extract feeds both Validate and Archive. Publish depends on Validate. Archive can run alongside
+      Validate after Extract succeeds; Publish must wait for Validate.
+    instructionContent:
+    - type: callout
+      title: Practice method
+      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
+        constraint.
+    workedExampleContent: []
+    problems:
+    - question: What makes a dependency graph acyclic?
+      options:
+      - Following directed dependency edges cannot lead back to the starting task.
+      - Every task has exactly one predecessor.
+      - Every task has the same execution time.
+      - Every task runs at the same time.
+      correct: 0
+      explanation: A cycle would make tasks depend on a chain that returns to themselves. DAGs can still have branches
+        and multiple predecessors.
+      id: d6f4a1fc-ef12-4128-b6ed-41b4fd35fe25
+      type: multiple_choice
+      difficulty: 2
+    - question: Extract must finish before Validate and Archive. Publish requires Validate. Extract has succeeded
+        and the other tasks have not started. Which tasks are now eligible?
+      options:
+      - Validate and Archive.
+      - Publish only.
+      - Extract and Publish.
+      - All tasks regardless of dependencies.
+      correct: 0
+      explanation: Both immediate dependents are ready. Publish still lacks its required Validate result.
+      id: eec11405-a85e-41a6-bc71-194dc0990adb
+      type: scenario
+      difficulty: 3
+    - question: A report is scheduled for 03:00, but its upstream import sometimes finishes at 03:20. The report
+        occasionally uses yesterday's data. What should orchestration enforce?
+      options:
+      - Start the report earlier to avoid the slow import.
+      - Retry the report continuously without checking which input it uses.
+      - Run publication after a successful import and freshness check, with a defined late-data response.
+      - Keep the fixed time and label all outputs current.
+      correct: 2
+      explanation: Use dependency and freshness evidence. A clock time alone cannot prove that the needed data is
+        ready.
+      id: 5713b0d0-5431-40a0-8e2f-1f0369eadcf0
+      type: scenario
+      difficulty: 4
+  - id: serving-data
+    instruction: '**Serving** exposes data in the form consumers need, such as a dashboard table, an API response,
+      or a destination export. Define the contract: fields, meaning, freshness, access, and availability.
 
 
-          Transformation is where **business logic** lives. The rules about what counts as an "active user" or how "revenue" is calculated are encoded in transformation steps.
-        instructionContent:
-          - type: image
-            url: https://posthog.com/images/products/data-warehouse/screenshot-data-warehouse.png
-            alt: PostHog data warehouse interface for querying transformed data
-            caption: Warehouses expose the outputs of transformation work in a form analysts and TAMs can inspect directly.
-            width: 960
-          - type: callout
-            title: Important distinction
-            body: >-
-              Instrumentation creates raw facts. Transformation turns those facts into business definitions like active users, MRR, or qualified accounts.
-        problems:
-          - id: transform-p1
-            type: multiple_choice
-            question: Which of the following is NOT a common transformation operation?
-            options:
-              - Removing duplicate records
-              - Aggregating raw events into daily summaries
-              - Collecting data from a third-party API
-              - Joining event data with user profile data
-            correct: 2
-            explanation: >-
-              Collecting data from an API is ingestion, not transformation. Transformation operates on data already in the pipeline — deduplication, aggregation, and joining are all transformation
-              operations.
-          - id: transform-p2
-            type: multiple_choice
-            question: The transformation stage is where what kind of logic is encoded — rules like what counts as an active user or how revenue is calculated?
-            options:
-              - business logic
-              - presentation logic
-              - authentication logic
-              - transport logic
-            correct: 0
-            explanation: >-
-              Business logic lives in the transformation layer. Definitions like 'active user = logged in within last 30 days' or 'MRR = sum of all active subscription amounts' are transformation
-              rules that turn raw data into meaningful metrics.
-          - id: transform-p3
-            type: scenario
-            question: >-
-              Two teams at the same company disagree on the definition of 'active user.' The marketing team counts anyone who logged in, while the product team counts anyone who performed a core action.
-              Where should this definition be codified?
-            options:
-              - In the application code
-              - In the transformation layer as a documented business rule
-              - In the BI dashboard configuration
-              - In the source database schema
-            correct: 1
-            explanation: >-
-              Business definitions like 'active user' belong in the transformation layer where raw data becomes metrics. This is where business logic lives. Codifying it there ensures all downstream
-              consumers use the same definition instead of each team computing their own version.
-      - id: etl-vs-elt
-        instruction: >-
-          There are two major approaches to when transformation happens.
+      A served dataset can be technically reachable yet unsuitable because it is stale or at the wrong level of
+      detail. Validate the consumer''s actual use case.'
+    workedExample: An executive report needs one row per account per day. A raw click stream has a different grain,
+      so a serving table computes the agreed daily account measures.
+    instructionContent:
+    - type: callout
+      title: Practice method
+      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
+        constraint.
+    workedExampleContent: []
+    problems:
+    - question: Which concern belongs in a serving contract?
+      options:
+      - A requirement to send every raw field to every consumer.
+      - The output's meaning, grain, and freshness expected by its consumer.
+      - Only the source connector's internal batch size.
+      - Only the table's physical file format, without its business meaning.
+      correct: 1
+      explanation: A useful serving contract describes what the consumer receives and when it is valid for use.
+      id: 47215b42-b350-427d-8533-5d34b3f6bc95
+      type: multiple_choice
+      difficulty: 2
+    - question: A dashboard expects one row per account per day, but an export emits one row per click. What mismatch
+        must be resolved?
+      options:
+      - The grain of the served data.
+      - The choice of account display name.
+      - The source event retention window alone.
+      - The destination's network retry interval.
+      correct: 0
+      explanation: Grain means what one row represents. Aggregate or redesign the consumer deliberately so counts
+        are interpreted correctly.
+      id: 74174276-bb6b-41a5-97f3-6c97264ba710
+      type: scenario
+      difficulty: 3
+    - question: An API responds in 100 milliseconds but returns data last refreshed three days ago. The contract
+        requires a one-hour maximum age. What does this evidence establish?
+      options:
+      - The source data must be incorrect because the API is reachable.
+      - Response latency passes, but freshness fails and needs its own check and recovery.
+      - The contract passes because the API is fast.
+      - The only useful fix is a faster web server.
+      correct: 1
+      explanation: Availability, response latency, and data freshness are separate dimensions. Measure and repair
+        the dimension that failed.
+      id: 1721622a-5745-41c6-ad89-91236597e648
+      type: scenario
+      difficulty: 4
+- id: pipeline-tradeoffs
+  name: 'Pipeline Tradeoffs: Latency, Cost, Complexity'
+  difficulty: 4
+  estimatedMinutes: 15
+  tags:
+  - foundational
+  - pipelines
+  section: pipeline-architecture
+  prerequisites:
+  - orchestration-and-serving
+  encompassing: []
+  knowledgePoints:
+  - id: three-tensions
+    instruction: 'Pipeline design balances **freshness, cost, and operational complexity**. A shorter refresh interval
+      can increase compute, source load, and monitoring needs. More recovery guarantees can require extra state
+      and storage.
 
 
-          **ETL (Extract, Transform, Load):** data is extracted from sources, transformed in a separate processing system, and then loaded into the destination warehouse. This was the traditional approach when storage was expensive — you only stored the clean, transformed data.
+      Use measurable requirements and expected volume. Choose the least complex design that meets the actual need,
+      then measure its behavior under load and failure.'
+    workedExample: A daily staffing report needs yesterday's totals by 07:00. A tested nightly batch can satisfy
+      this need with less operational work than a continuously running stream.
+    instructionContent:
+    - type: callout
+      title: Practice method
+      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
+        constraint.
+    workedExampleContent: []
+    problems:
+    - question: Which information should anchor a choice between a nightly batch and a continuous stream?
+      options:
+      - Which design has the shortest polling interval, regardless of need.
+      - Required data age, expected volume, recovery needs, and operating cost.
+      - Which option retains the most data, regardless of cost or purpose.
+      - Which option has the lowest bill, even if it misses the required deadline.
+      correct: 1
+      explanation: Compare the designs against measurable needs and constraints. A technology label alone does not
+        establish suitability.
+      id: 8050c316-f285-4a2a-b6ad-b82c25f46aa3
+      type: multiple_choice
+      difficulty: 2
+    - question: A fraud decision must use events within five seconds. A nightly batch costs less but makes data
+        available the next morning. Which tradeoff matters most here?
+      options:
+      - Both have equal freshness because both eventually process events.
+      - The batch misses the required freshness target despite its lower cost.
+      - The lower cost proves the batch meets every requirement.
+      - The report format decides whether five seconds is achievable.
+      correct: 1
+      explanation: A mandatory latency target constrains the design. Compare cost only among designs that can meet
+        the required behavior.
+      id: fc717f23-b185-48b3-badf-31ef03f97d9a
+      type: scenario
+      difficulty: 3
+    - question: A team proposes subsecond updates for a monthly board report. The source has strict request limits,
+        and no consumer needs intraday updates. Which recommendation fits the evidence?
+      options:
+      - Drop validation to compensate for the extra request volume.
+      - Stop monitoring because the report is infrequent.
+      - Use a scheduled, validated extract aligned with the report deadline and leave room for retries.
+      - Adopt subsecond polling regardless of source limits.
+      correct: 2
+      explanation: The consumer gains no stated benefit from subsecond freshness. A scheduled design can meet the
+        deadline with lower load and enough recovery time.
+      id: 970b6681-ab2e-422b-95c4-b219aac38df2
+      type: scenario
+      difficulty: 4
+  - id: operational-safety
+    instruction: '**Idempotency** means repeating an operation has the same intended effect as doing it once. Stable
+      source IDs and explicit update rules can make retries safe. A checkpoint records progress, but its relationship
+      to committed output matters.
 
 
-          **ELT (Extract, Load, Transform):** data is extracted from sources, loaded raw into the destination, and then transformed inside the warehouse using SQL or the warehouse's own compute engine. This is the modern approach, enabled by cheap cloud storage (S3, GCS).
-
-
-          The advantage of ELT is **flexibility:** if your business logic changes, you can re-transform from the raw data without re-ingesting. You also preserve the original data for auditing.
-
-
-          Most modern analytics systems, including PostHog, use an ELT-like pattern: events are ingested raw, stored in ClickHouse, and then queried and transformed at read time using HogQL.
-        problems:
-          - id: etl-elt-p1
-            type: multiple_choice
-            question: What is the key difference between ETL and ELT?
-            options:
-              - ETL uses SQL; ELT uses Python
-              - ETL transforms data before loading it into the warehouse; ELT loads raw data first and transforms inside the warehouse
-              - ETL is for batch data; ELT is for streaming data
-              - ETL is open source; ELT is proprietary
-            correct: 1
-            explanation: >-
-              The difference is when transformation happens. ETL transforms before loading (data enters the warehouse already clean). ELT loads raw data first and transforms inside the warehouse. ELT
-              is the modern approach enabled by cheap storage.
-          - id: etl-elt-p2
-            type: true_false
-            question: ELT became practical because cloud storage costs dropped, making it affordable to store raw data and transform later.
-            correct: 'true'
-            explanation: >-
-              Cheap cloud storage (S3, GCS, Azure Blob) is the key enabler of ELT. When storage was expensive, you had to transform before loading to minimize what you stored (ETL). Now you can afford
-              to keep everything raw and transform on demand.
-          - id: etl-elt-p3
-            type: scenario
-            question: Your company realizes their definition of 'active user' was wrong for the past 6 months. Under which approach can you fix the historical data without re-ingesting from the source?
-            options:
-              - ETL — because the transformed data is already clean
-              - ELT — because the raw data is preserved in the warehouse and you can re-transform it
-              - Neither — you must always re-ingest from the source
-              - Both — there is no difference for this scenario
-            correct: 1
-            explanation: >-
-              ELT preserves the raw data in the warehouse. When business logic changes, you can re-run transformations on the existing raw data. With ETL, raw data is discarded after transformation,
-              so you would need to re-ingest from the source (if it is even still available).
-    section: pipeline-architecture
-  - id: orchestration-and-serving
-    name: Orchestration & Serving Data
-    difficulty: 3
-    estimatedMinutes: 10
-    tags:
-      - foundational
-      - pipelines
-    prerequisites:
-      - transformation-etl-elt
-    encompassing: []
-    knowledgePoints:
-      - id: workflow-orchestration
-        instruction: >-
-          Pipelines have multiple steps that must run in a specific order with specific dependencies. **Orchestration** is the coordination of these steps.
-
-
-          An orchestrator schedules and manages execution: extract data from source A, then transform it, then load it, then refresh the dashboard. If the extract step fails, the transform step should not run.
-
-
-          Tasks are organized as a **DAG — a Directed Acyclic Graph**. "Directed" means edges have a direction (step A must complete before step B). "Acyclic" means there are no loops (step B cannot depend on step C which depends on step B).
-
-
-          The orchestrator handles four jobs: **scheduling** (run this pipeline every hour), **dependency management** (only run step B after step A succeeds), **retries** (if a step fails, retry it), and **alerting** (notify the team if a pipeline fails).
-
-
-          Common orchestration tools include Apache Airflow, Dagster, Prefect, and dbt for transformation-specific orchestration.
-        instructionContent:
-          - type: callout
-            title: Orchestration is control flow
-            body: >-
-              The orchestrator is not the data itself. It is the system that decides what runs next, what retries, and what should stop when an upstream step fails.
-        problems:
-          - id: orch-p1
-            type: multiple_choice
-            question: What does DAG stand for in the context of pipeline orchestration?
-            options:
-              - Data Aggregation Gateway
-              - Directed Acyclic Graph
-              - Distributed Analytics Grid
-              - Dynamic Allocation Group
-            correct: 1
-            explanation: >-
-              DAG stands for Directed Acyclic Graph. 'Directed' means steps have a defined order. 'Acyclic' means there are no circular dependencies. Pipeline tasks form a DAG where each step depends
-              on previous steps completing.
-          - id: orch-p2
-            type: true_false
-            question: In a pipeline DAG, it is acceptable for step B to depend on step C, and step C to depend on step B.
-            correct: 'false'
-            explanation: A DAG is acyclic — no circular dependencies are allowed. If B depends on C and C depends on B, neither can ever start. This is a cycle, which the orchestrator would reject.
-          - id: orch-p3
-            type: scenario
-            question: >-
-              A pipeline has three steps: Extract from API, Transform data, Load into warehouse. The Extract step fails due to an API timeout. What should a well-configured orchestrator do?
-            options:
-              - Run Transform and Load anyway with whatever data is available
-              - Skip all remaining steps, retry Extract according to its retry policy, and alert the team if retries are exhausted
-              - Delete the partially extracted data and start over tomorrow
-              - Ignore the failure and mark the run as successful
-            correct: 1
-            explanation: >-
-              A good orchestrator respects dependencies: if Extract fails, Transform should not run because it has no input. The orchestrator retries the failed step and alerts the team if retries
-              are exhausted. Running downstream steps on incomplete data produces silently wrong results.
-      - id: serving-data
-        instruction: >-
-          Once data is processed, it must be delivered to the people and systems that need it. This is the **serving layer**.
-
-
-          **Common consumers:** BI dashboards (Looker, Metabase, Grafana) for business metrics and KPIs. Data scientists and ML engineers who need clean datasets for model training. Product analytics tools for understanding user behavior. Internal applications for reporting, billing, or customer-facing features.
-
-
-          **Common serving patterns:** direct warehouse access (users query the warehouse with SQL), semantic or metrics layers (a shared definition of metrics that dashboards and tools can reference), APIs (REST or GraphQL endpoints that serve processed data to applications), and cached materialized views (pre-computed query results for frequently accessed data).
-
-
-          The choice of serving layer depends on the consumer. Analysts want SQL access. Product managers want dashboards. Applications want APIs.
-        workedExample: >-
-          One warehouse can serve three audiences at once: analysts query it directly in SQL, executives see KPIs through a BI dashboard, and the product surface calls an API backed by curated
-          warehouse tables. The serving pattern changes with the consumer, not with the raw data itself.
-        problems:
-          - id: serving-p1
-            type: multiple_choice
-            question: Which serving pattern is most appropriate for a product manager who needs a weekly KPI dashboard?
-            options:
-              - Direct SQL access to the data warehouse
-              - A BI dashboard tool (like Looker or Metabase) connected to the warehouse
-              - A raw data dump to their email
-              - An API endpoint returning JSON
-            correct: 1
-            explanation: >-
-              BI dashboards are designed for non-technical consumers who need visual, regularly updated KPI views. Direct SQL access suits analysts. APIs suit applications. Raw data dumps are not
-              user-friendly.
-          - id: serving-p2
-            type: matching
-            question: Match each data consumer to their ideal serving pattern.
-            options:
-              - Data analyst|Direct SQL access to the warehouse
-              - Product manager|BI dashboard
-              - Mobile app|REST API endpoint
-              - ML engineer|Clean dataset export or warehouse access
-            correct: 0,1,2,3
-            explanation: Analysts want SQL flexibility. PMs want visual dashboards. Apps need programmatic API access. ML engineers need structured datasets for training.
-          - id: serving-p3
-            type: true_false
-            question: The best serving pattern is always direct SQL access to the warehouse because it is the most flexible.
-            correct: 'false'
-            explanation: >-
-              The best serving pattern depends on the consumer. Analysts benefit from SQL access, but product managers need dashboards, and applications need APIs. Flexibility for one consumer does
-              not mean it is the best choice for all consumers.
-    section: pipeline-architecture
-  - id: pipeline-tradeoffs
-    name: Pipeline Tradeoffs — Latency, Cost, Complexity
-    difficulty: 4
-    estimatedMinutes: 15
-    tags:
-      - foundational
-      - pipelines
-    prerequisites:
-      - orchestration-and-serving
-    encompassing: []
-    knowledgePoints:
-      - id: three-tensions
-        instruction: >-
-          Every pipeline design pulls on three tensions at once: latency, cost, and complexity. Lower latency usually means more infrastructure and more operational burden. Simpler batch systems are
-          cheaper and easier to debug, but the data is less fresh. The right question is not "can we make this real time?" It is "what freshness does this use case actually need?"
-        problems:
-          - id: tradeoffs-p1
-            type: multiple_choice
-            question: Which of the following correctly describes the tradeoff between batch and streaming pipelines?
-            options:
-              - Batch is always better because it is faster
-              - Streaming is always better because it is cheaper
-              - Streaming offers lower latency but higher cost and complexity compared to batch
-              - There is no meaningful difference between batch and streaming
-            correct: 2
-            explanation: >-
-              Streaming delivers data faster (lower latency) but costs more to build and operate (higher cost and complexity). Batch is simpler and cheaper but data is less fresh. The right choice
-              depends on your requirements.
-          - id: tradeoffs-p3
-            type: true_false
-            question: For most analytics use cases, real-time data freshness (sub-second latency) is required.
-            correct: 'false'
-            explanation: >-
-              Most analytics questions are fine with minutes-to-hours of latency. Real-time should be chosen for a demonstrated need, not as a default badge of sophistication.
-          - id: tradeoffs-p5
-            type: scenario
-            question: >-
-              A team wants to build a real-time streaming pipeline for a weekly executive summary report. What is the main concern with this approach?
-            options:
-              - Streaming pipelines cannot produce summary reports
-              - The added cost and complexity of streaming is not justified when the data only needs to be fresh once a week
-              - Weekly reports require a data lake, not a stream
-              - Real-time pipelines do not support aggregation
-            correct: 1
-            explanation: >-
-              The right question is 'what freshness does this use case actually need?' A weekly report needs weekly freshness, not sub-second latency. Building a streaming pipeline for this use
-              case adds unnecessary cost and complexity. Batch is the better fit.
-      - id: operational-safety
-        instruction: >-
-          Once a pipeline is in production, two safety requirements matter constantly. Idempotency means the pipeline can be rerun without producing duplicate or conflicting results. Monitoring means
-          you notice failures, delays, null spikes, schema changes, and suspicious row counts before customers do. These are not optional polish items. They are what make a pipeline survivable in the
-          real world.
-        instructionContent:
-          - type: callout
-            title: Production rule
-            body: >-
-              A pipeline that cannot be rerun safely and cannot alert on bad output will eventually fail in a way that is expensive to untangle.
-        problems:
-          - id: tradeoffs-p2
-            type: scenario
-            question: >-
-              Your pipeline occasionally fails halfway through processing. When restarted, it creates duplicate rows in the warehouse. A colleague suggests making the pipeline idempotent. What does
-              this mean?
-            options:
-              - The pipeline should run faster to avoid failures
-              - The pipeline should be safe to rerun without creating duplicate data
-              - The pipeline should skip failed records and continue
-              - The pipeline should send an alert when it fails
-            correct: 1
-            explanation: >-
-              Idempotency means the pipeline produces the same result whether it runs once or multiple times. If restarted after a failure, it should not create duplicates. Techniques include upserts
-              (INSERT ... ON CONFLICT UPDATE) and deduplication checks.
-          - id: tradeoffs-p4
-            type: scenario
-            question: >-
-              A daily pipeline still runs, but today's row count is 90% lower than normal because an upstream schema change dropped a key field. Which capability would have caught this fastest?
-            options:
-              - Lower latency infrastructure
-              - Monitoring on row counts and schema expectations
-              - A different primary key design
-              - Moving the data to a lake instead of a warehouse
-            correct: 1
-            explanation: >-
-              This is exactly what monitoring is for. Healthy production pipelines watch both failures and suspicious outputs so teams can catch silent bad data before users trust it.
-          - id: tradeoffs-p6
-            type: true_false
-            question: An idempotent pipeline produces different results when rerun multiple times on the same input data.
-            correct: 'false'
-            explanation: >-
-              Idempotent means the pipeline produces the same result whether it runs once or many times on the same input. If rerunning creates duplicates or different outputs, the pipeline is not
-              idempotent, which makes recovery from failures risky.
-    section: pipeline-architecture
+      Define how to handle partial failure, late records, and replay. Test those paths instead of relying only on
+      a successful first run.'
+    workedExample: An import upserts by source invoice ID. If the connection fails after some rows commit, retrying
+      the batch updates those same records rather than adding duplicate invoices.
+    instructionContent:
+    - type: callout
+      title: Practice method
+      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
+        constraint.
+    workedExampleContent: []
+    problems:
+    - question: What does an idempotent import allow you to do safely?
+      options:
+      - Guarantee that the source never changes.
+      - Skip all validation forever.
+      - Discard record identities after every batch.
+      - Repeat the same import without creating an extra intended record for each retry.
+      correct: 3
+      explanation: Idempotency controls the effect of repetition. It does not remove the need for validation or
+        change handling.
+      id: 5c13e942-ce1c-4664-a9e5-6900876b6c04
+      type: multiple_choice
+      difficulty: 2
+    - question: A batch of 100 invoices commits 60 rows and then fails. It retries all 100 using an upsert keyed
+        by stable invoice ID. With unchanged input, how many invoice records should exist after success? Enter the
+        number only.
+      options: []
+      correct: '100'
+      explanation: The retry updates the first 60 and inserts the remaining 40. Stable-key upserts prevent duplicate
+        business records.
+      type: fill_blank
+      id: b1558d5d-7e5a-44ce-b6d9-672320a83610
+      difficulty: 3
+    - question: A job advances its checkpoint before writing output. It crashes after the checkpoint but before
+        the write. What failure must the design prevent?
+      options:
+      - Skipping unwritten records on restart by coordinating durable output and checkpoint progress.
+      - Treating the advanced checkpoint as proof that output exists.
+      - Reordering dashboard columns after restart.
+      - Giving every retry a new source record ID.
+      correct: 0
+      explanation: The checkpoint claims work is complete before it is durable. Coordinate commits or use a recovery
+        protocol that can safely replay the uncertain interval.
+      id: 0b91e70b-ebd4-48d7-835b-e9e3eb67d7ff
+      type: scenario
+      difficulty: 4
