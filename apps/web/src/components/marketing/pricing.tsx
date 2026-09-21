@@ -12,6 +12,7 @@ export function PricingSection({ headingLevel = "h2" }: { headingLevel?: Pricing
   const Heading = headingLevel;
   const Subheading = headingLevel === "h1" ? "h2" : "h3";
   const isCreator = brand.id === "graspful";
+  const isPosthog = brand.orgSlug === "posthog-tam";
   const features = isCreator
     ? ["Local authoring with CLI and MCP", "Course schema validation", "Automated publication checks", "Draft import and course management"]
     : ["Browse available courses", "Lessons and practice questions", "Review scheduling", "Progress tracking"];
@@ -19,13 +20,17 @@ export function PricingSection({ headingLevel = "h2" }: { headingLevel?: Pricing
   return (
     <section id="pricing" className="bg-background px-6 py-14 md:py-20">
       <div className="mx-auto max-w-3xl">
-        <Heading className="text-center text-3xl font-bold text-foreground">Start with a free account</Heading>
+        <Heading className="text-center text-3xl font-bold text-foreground">
+          {isPosthog ? "Study PostHog technical concepts for free" : "Start with a free account"}
+        </Heading>
         <p className="mx-auto mt-4 max-w-xl text-center text-muted-foreground">
-          {isCreator
+          {isPosthog
+            ? "Create an account to access lessons, answer practice questions, and track your progress."
+            : isCreator
             ? "Draft and review courses locally. Create an account when you are ready to import your work."
             : "Create an account to see the courses and access options available in this academy."}
         </p>
-        <div className="mt-8 grid gap-6 rounded-xl border border-border bg-card p-6 sm:grid-cols-2 sm:p-8">
+        <div className={`mt-8 grid gap-6 rounded-xl border border-border bg-card p-6 sm:p-8 ${isPosthog ? "mx-auto max-w-xl" : "sm:grid-cols-2"}`}>
           <div>
             <Subheading className="text-lg font-semibold text-foreground">Available now</Subheading>
             <ul className="mt-4 space-y-3">
@@ -43,11 +48,13 @@ export function PricingSection({ headingLevel = "h2" }: { headingLevel?: Pricing
               Create free account
             </AuthLink>
           </div>
-          <div className="border-t border-border pt-6 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
-            <Subheading className="text-lg font-semibold text-foreground">Paid subscriptions</Subheading>
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">Paid subscriptions are not available yet.</p>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">We will publish plan details when billing is ready. Account creation does not start a paid trial.</p>
-          </div>
+          {!isPosthog && (
+            <div className="border-t border-border pt-6 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
+              <Subheading className="text-lg font-semibold text-foreground">Paid subscriptions</Subheading>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">Paid subscriptions are not available yet.</p>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">We will publish plan details when billing is ready. Account creation does not start a paid trial.</p>
+            </div>
+          )}
         </div>
       </div>
     </section>
