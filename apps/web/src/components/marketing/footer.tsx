@@ -123,6 +123,14 @@ export function MarketingFooter() {
           <p className="text-xs text-foreground/70">
             &copy; {year} {brand.name}. All rights reserved.
           </p>
+          {brand.orgSlug === "posthog-tam" && (
+            <a
+              href="https://graspful.ai/"
+              className="mt-3 inline-block text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Built with Graspful
+            </a>
+          )}
         </div>
       </div>
     </footer>
