@@ -11,7 +11,7 @@ import { getDefaultAuthRedirectPath } from "@/lib/hosts";
 import {
   trackSignIn,
   trackSignUp,
-  trackSignUpStarted,
+  trackAuthFormEvent,
 } from "@/lib/posthog/events";
 import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
@@ -71,12 +71,21 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const hasTrackedSignUpStart = useRef(false);
+  const trackedViews = useRef(new Set<string>());
+  const trackedStarts = useRef(new Set<string>());
+  const formKey = `${brand.id}:${mode}`;
 
-  function trackFirstSignUpEdit() {
-    if (mode === "sign-up" && !hasTrackedSignUpStart.current) {
-      hasTrackedSignUpStart.current = true;
-      trackSignUpStarted(brand.id);
+  useEffect(() => {
+    if (!trackedViews.current.has(formKey)) {
+      trackedViews.current.add(formKey);
+      trackAuthFormEvent(mode, "viewed", brand.id);
+    }
+  }, [formKey, mode, brand.id]);
+
+  function trackFirstEdit() {
+    if (!trackedStarts.current.has(formKey)) {
+      trackedStarts.current.add(formKey);
+      trackAuthFormEvent(mode, "started", brand.id);
     }
   }
 
@@ -94,10 +103,12 @@ export function AuthForm({ mode }: AuthFormProps) {
     const validationError = getFormValidationError(email, password, isSignIn);
     if (validationError) {
       setError(validationError);
+      trackAuthFormEvent(mode, "failed", brand.id, "validation");
       return;
     }
 
     setLoading(true);
+    trackAuthFormEvent(mode, "submitted", brand.id);
 
     try {
       if (mode === "sign-up") {
@@ -152,6 +163,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
+      trackAuthFormEvent(mode, "failed", brand.id, "authentication");
     } finally {
       setLoading(false);
     }
@@ -233,7 +245,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     type="email"
                     value={email}
                     onChange={(e) => {
-                      trackFirstSignUpEdit();
+                      trackFirstEdit();
                       setEmail(e.target.value);
                     }}
                     required
@@ -253,7 +265,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     type="password"
                     value={password}
                     onChange={(e) => {
-                      trackFirstSignUpEdit();
+                      trackFirstEdit();
                       setPassword(e.target.value);
                     }}
                     required
@@ -275,7 +287,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 )}
 
                 {error && (
-                  <p className="text-sm text-destructive">{error}</p>
+                  <p role="alert" className="text-sm text-destructive">{error}</p>
                 )}
 
                 <div className="space-y-3">

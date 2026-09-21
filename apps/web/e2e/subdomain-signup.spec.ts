@@ -1,6 +1,24 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Branded subdomain sign-up", () => {
+  test("branded sign-in offers an enrollment path and recovers after failed credentials", async ({ page }) => {
+    await page.context().addCookies([{
+      name: "dev-brand-override", value: "electrician", domain: "localhost", path: "/",
+    }]);
+    await page.goto("/sign-in?redirect=%2Facademies");
+    await expect(page.getByText("Sign in to continue studying with ElectricianPrep")).toBeVisible();
+    await expect(page.getByRole("navigation").getByRole("link", { name: "ElectricianPrep" })).toBeVisible();
+    await page.getByLabel("Email").fill("nonexistent@test.example.com");
+    await page.getByLabel("Password").fill("wrongpassword1");
+    await page.getByRole("button", { name: "Sign In", exact: true }).click();
+    await expect(page.getByRole("main").getByRole("alert")).toContainText(/invalid/i);
+    await expect(page.getByRole("button", { name: "Sign In", exact: true })).toBeEnabled();
+    await page.getByRole("button", { name: "Create account instead" }).click();
+    await expect(page).toHaveURL(/\/sign-up\?redirect=%2Facademies&email=nonexistent%40test.example.com/);
+    await expect(page.getByLabel("Email")).toHaveValue("nonexistent@test.example.com");
+    await expect(page.getByText("Create your account", { exact: true })).toBeVisible();
+  });
+
   test("sign-up on a branded subdomain succeeds", async ({ page }) => {
     await page.context().addCookies([
       {

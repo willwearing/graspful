@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { StrictMode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { AuthForm } from "@/components/auth/auth-form";
 import { BrandProvider } from "@/lib/brand/context";
@@ -9,7 +10,7 @@ const mockSignIn = vi.fn();
 const mockPush = vi.fn();
 const mockRefresh = vi.fn();
 const mockApiClientFetch = vi.fn();
-const mockTrackSignUpStarted = vi.fn();
+const mockTrackAuthFormEvent = vi.fn();
 let mockSearchParams = "";
 
 vi.mock("next/navigation", () => ({
@@ -29,7 +30,7 @@ vi.mock("@/lib/supabase/client", () => ({
 vi.mock("@/lib/posthog/events", () => ({
   trackSignUp: vi.fn(),
   trackSignIn: vi.fn(),
-  trackSignUpStarted: (...args: unknown[]) => mockTrackSignUpStarted(...args),
+  trackAuthFormEvent: (...args: unknown[]) => mockTrackAuthFormEvent(...args),
 }));
 
 vi.mock("@/lib/api-client", () => ({
@@ -44,7 +45,7 @@ describe("AuthForm", () => {
     mockPush.mockReset();
     mockRefresh.mockReset();
     mockApiClientFetch.mockReset();
-    mockTrackSignUpStarted.mockReset();
+    mockTrackAuthFormEvent.mockReset();
   });
 
   it("uses free-account copy and tracks the first signup interaction once", () => {
@@ -67,8 +68,8 @@ describe("AuthForm", () => {
       target: { value: "password123" },
     });
 
-    expect(mockTrackSignUpStarted).toHaveBeenCalledTimes(1);
-    expect(mockTrackSignUpStarted).toHaveBeenCalledWith("graspful");
+    expect(mockTrackAuthFormEvent.mock.calls.filter((call) => call[1] === "started")).toHaveLength(1);
+    expect(mockTrackAuthFormEvent).toHaveBeenCalledWith("sign-up", "started", "graspful");
   });
 
   it("replaces the sign-up form with a confirmation state when email verification is required", async () => {
@@ -195,5 +196,41 @@ describe("AuthForm", () => {
       "href",
       "/sign-up?redirect=%2Flearn%2Fposthog-tam%2Facademies%2Ftam&email=learner%40test.example.com",
     );
+  });
+
+  it("records one form view under StrictMode and one start across field edits", () => {
+    render(<StrictMode><BrandProvider brand={defaultBrand}><AuthForm mode="sign-in" /></BrandProvider></StrictMode>);
+    expect(mockTrackAuthFormEvent.mock.calls.filter((call) => call[1] === "viewed")).toEqual([
+      ["sign-in", "viewed", "graspful"],
+    ]);
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "person@example.com" } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password123" } });
+    expect(mockTrackAuthFormEvent.mock.calls.filter((call) => call[1] === "started")).toHaveLength(1);
+  });
+
+  it("classifies validation failures without submitting", () => {
+    render(<BrandProvider brand={defaultBrand}><AuthForm mode="sign-in" /></BrandProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter your email and password");
+    expect(mockTrackAuthFormEvent).toHaveBeenCalledWith("sign-in", "failed", "graspful", "validation");
+    expect(mockTrackAuthFormEvent.mock.calls.some((call) => call[1] === "submitted")).toBe(false);
+  });
+
+  it("restores the button after an auth failure and allows a successful retry", async () => {
+    mockSignIn.mockRejectedValueOnce(new Error("Invalid login credentials"))
+      .mockResolvedValueOnce({ data: { session: { user: { id: "user-1" }, access_token: "token-1" } }, error: null });
+    mockApiClientFetch.mockResolvedValue({});
+    render(<BrandProvider brand={defaultBrand}><AuthForm mode="sign-in" /></BrandProvider>);
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "person@example.com" } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid login credentials");
+    expect(screen.getByRole("button", { name: "Sign In" })).toBeEnabled();
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockTrackAuthFormEvent).toHaveBeenCalledWith("sign-in", "failed", "graspful", "authentication");
+    fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/dashboard"));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(mockTrackAuthFormEvent.mock.calls.filter((call) => call[1] === "submitted")).toHaveLength(2);
   });
 });
