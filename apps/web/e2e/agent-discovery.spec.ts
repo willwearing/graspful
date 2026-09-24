@@ -78,14 +78,19 @@ test.describe("Agent Discovery — llms-full.txt", () => {
 // ─── agents.md route ────────────────────────────────────────────────────────
 
 test.describe("Agent Discovery — /agents.md", () => {
-  test("serves AGENTS.md with Authentication section", async ({ request }) => {
+  test("serves canonical instructions with Authentication before Step 1", async ({ request }) => {
     const res = await request.get(`${WEB_URL}/agents.md`);
     expect(res.status()).toBe(200);
 
     const content = await res.text();
-    expect(content).toContain("Authentication");
+    const authIdx = content.search(/^### Authentication/m);
+    const step1Idx = content.search(/^### Step 1:/m);
+    expect(authIdx).toBeGreaterThan(-1);
+    expect(step1Idx).toBeGreaterThan(authIdx);
     expect(content).toContain("graspful register");
     expect(content).toContain("GRASPFUL_API_KEY");
+    expect(content).toContain("## E2E Test Coverage Requirements");
+    expect(res.headers()["content-type"]).toContain("text/markdown");
   });
 });
 

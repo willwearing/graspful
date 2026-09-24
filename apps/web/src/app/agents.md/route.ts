@@ -1,24 +1,29 @@
-import { readFileSync } from "fs";
-import { join } from "path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 export async function GET() {
-  // Read AGENTS.md from the repo root (monorepo root is 4 levels up from apps/web/src/app)
-  const agentsMdPath = join(process.cwd(), "../../AGENTS.md");
+  // AGENTS.md is a local pointer. Public clients need the complete canonical instructions.
+  const instructionsPath = join(process.cwd(), "../../CLAUDE.md");
 
   let content: string;
   try {
-    content = readFileSync(agentsMdPath, "utf-8");
+    content = readFileSync(instructionsPath, "utf-8");
   } catch {
     // Fallback: if the file can't be read at runtime, serve inline
     content = [
-      "# Graspful — Agent Instructions",
+      "# Graspful agent instructions",
       "",
-      "> Use the CLI or MCP to interact with Graspful. Do NOT use a browser for account creation or course management.",
+      "Use the CLI or MCP to author and publish courses. Browser authentication creates credentials for these tools.",
       "",
-      "## Get Started",
+      "## Authentication",
+      "",
+      "Scaffold, fill, validate, and review courses locally without an account. Authenticate before importing or publishing.",
+      "Run `graspful register` to complete browser authentication and save an API key. MCP can read the saved credentials, or use `GRASPFUL_API_KEY`.",
+      "",
+      "## Step 1: Install the CLI",
       "",
       "```bash",
-      "npx @graspful/cli init",
+      "bunx @graspful/cli init",
       "```",
       "",
       "Full documentation: https://graspful.ai/llms-full.txt",
