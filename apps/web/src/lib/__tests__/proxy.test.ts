@@ -52,4 +52,33 @@ describe("routing proxy", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
+  it.each([
+    { pathname: "/creator", status: 200 },
+    { pathname: "/sign-in", status: 307 },
+  ])("preserves all cookie refresh batches for $pathname", async ({ pathname, status }) => {
+    createServerClient.mockImplementation((_url, _key, { cookies }) => ({
+      auth: {
+        getUser: async () => {
+          cookies.setAll([{ name: "sb-auth-token.0", value: "first", options: { path: "/", httpOnly: true, sameSite: "lax" } }]);
+          cookies.setAll([{ name: "sb-auth-token.1", value: "second", options: { path: "/", secure: true } }]);
+          return { data: { user: { id: "user" } } };
+        },
+      },
+    }));
+    const request = new NextRequest(`http://app.graspful.ai${pathname}`, {
+      headers: { host: "app.graspful.ai", cookie: "sb-auth-token.0=old; preference=compact" },
+    });
+    const response = await proxy(request);
+    expect(response.status).toBe(status);
+    expect(response.cookies.get("sb-auth-token.0")).toMatchObject({ value: "first", httpOnly: true, sameSite: "lax" });
+    expect(response.cookies.get("sb-auth-token.1")).toMatchObject({ value: "second", secure: true });
+    expect(request.cookies.get("sb-auth-token.0")?.value).toBe("first");
+    expect(request.cookies.get("sb-auth-token.1")?.value).toBe("second");
+    if (status === 200) {
+      expect(response.headers.get("x-middleware-request-cookie")).toBe("sb-auth-token.0=first; preference=compact; sb-auth-token.1=second");
+    } else {
+      expect(response.headers.get("location")).toBe("http://app.graspful.ai/creator");
+    }
+  });
+
 });

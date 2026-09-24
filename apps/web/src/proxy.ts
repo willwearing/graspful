@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createSessionCookieAdapter } from "@graspful/creator-ui/session-cookies";
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveBrand } from "@/lib/brand/resolve";
 import { decideRoute, getHostSurface, getRequestHost } from "@/lib/hosts";
@@ -10,30 +11,17 @@ export async function proxy(request: NextRequest) {
     const cookieHeader = request.headers.get("cookie");
 
     const brandId = surface === "local" ? (await resolveBrand(hostname, cookieHeader)).id : undefined;
-    let response = NextResponse.next({ request });
+    const sessionCookies = createSessionCookieAdapter(request);
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      return response;
+      return sessionCookies.response;
     }
 
     const supabase = createServerClient(supabaseUrl, supabaseKey, {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => {
-            request.cookies.set(name, value);
-          });
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
-        },
-      },
+      cookies: sessionCookies.cookies,
     });
 
     const {
@@ -46,12 +34,10 @@ export async function proxy(request: NextRequest) {
       surface,
     });
     if (decision.action === "redirect") {
-      const redirectResponse = NextResponse.redirect(new URL(decision.to, request.url));
-      response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
-      return redirectResponse;
+      return sessionCookies.redirect(new URL(decision.to, request.url));
     }
 
-    return response;
+    return sessionCookies.response;
   } catch (error) {
     console.error("[proxy] Error:", error);
     return NextResponse.next();
