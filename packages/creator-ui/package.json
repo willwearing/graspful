@@ -21,7 +21,9 @@
     "./use-hydrated": "./src/use-hydrated.ts",
     "./app-session": "./src/app-session.ts",
     "./creator-org-shared": "./src/creator-org-shared.ts",
-    "./creator-org-server": "./src/creator-org-server.ts"
+    "./creator-org-server": "./src/creator-org-server.ts",
+    "./api-keys": "./src/api-keys/index.ts",
+    "./use-browser-session": "./src/use-browser-session.ts"
   },
   "dependencies": {
     "@graspful/shared": "workspace:*",

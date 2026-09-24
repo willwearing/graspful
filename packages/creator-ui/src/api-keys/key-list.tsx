@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Key, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { ApiKeyMeta } from "@/lib/hooks/use-api-keys";
+import { Button } from "../ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
+import type { ApiKeyMeta } from "./use-api-keys";
 
 export function KeyList({ keys, revoke, pending, error }: {
   keys: ApiKeyMeta[];

@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiClientFetch } from "@/lib/api-client";
-import { useLatestRef } from "./use-latest-ref";
+export type ApiKeysFetcher = <T>(path: string, token: string, options?: RequestInit) => Promise<T>;
 
 export interface ApiKeyMeta {
   id: string;
@@ -13,7 +12,7 @@ export interface ApiKeyMeta {
   createdAt: string;
 }
 
-export function useApiKeys(orgId: string, token: string | null) {
+export function useApiKeys(orgId: string, token: string | null, apiClientFetch: ApiKeysFetcher) {
   const [keys, setKeys] = useState<ApiKeyMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,8 +39,9 @@ export function useApiKeys(orgId: string, token: string | null) {
     } finally {
       if (isCurrent()) setLoading(false);
     }
-  }, [orgId, token]);
-  const latestFetchKeys = useLatestRef(fetchKeys);
+  }, [orgId, token, apiClientFetch]);
+  const latestFetchKeys = useRef(fetchKeys);
+  useEffect(() => { latestFetchKeys.current = fetchKeys; }, [fetchKeys]);
 
   useEffect(() => {
     void fetchKeys();
