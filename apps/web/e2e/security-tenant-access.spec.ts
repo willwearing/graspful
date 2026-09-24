@@ -18,6 +18,7 @@ let orgB: Tenant;
 let owner: { id: string; token: string };
 let learner: { id: string; token: string };
 let unenrolled: { id: string; token: string };
+let courseOnlyLearner: { id: string; token: string };
 let outsider: { id: string; token: string };
 let provisionUser: { id: string; token: string };
 let orgAKey: string;
@@ -90,6 +91,7 @@ test.beforeAll(async ({ request }) => {
   owner = await register(request, "owner");
   learner = await register(request, "learner");
   unenrolled = await register(request, "unenrolled");
+  courseOnlyLearner = await register(request, "course-only");
   outsider = await register(request, "outsider");
   provisionUser = await register(request, "provision");
 
@@ -98,8 +100,10 @@ test.beforeAll(async ({ request }) => {
     { orgId: orgB.id, userId: owner.id, role: "owner" },
     { orgId: orgA.id, userId: learner.id, role: "member" },
     { orgId: orgA.id, userId: unenrolled.id, role: "member" },
+    { orgId: orgA.id, userId: courseOnlyLearner.id, role: "member" },
   ] });
   await prisma.academyEnrollment.create({ data: { academyId: orgA.academyId, userId: learner.id } });
+  await prisma.courseEnrollment.create({ data: { courseId: orgA.courseId, userId: courseOnlyLearner.id } });
   await prisma.brand.create({ data: { ...brandData(orgB, `${prefix}.example.com`, `${prefix}-existing`), logoUrl: "/icon.svg" } });
 
   const key = await request.post(`${api}/orgs/${orgA.slug}/api-keys`, {
@@ -269,6 +273,15 @@ for (const scope of ["academy", "course"] as const) {
       expect(response.status(), await response.text()).toBe(200);
       expect(await response.json()).toEqual([]);
     });
+
+    if (scope === "course") {
+      test("a legacy course enrollment cannot expose the academy-wide leaderboard", async ({ request }) => {
+        const response = await request.get(path(orgA), { headers: headers(courseOnlyLearner.token) });
+        expect(response.status(), await response.text()).toBe(404);
+        expect(await prisma.academyEnrollment.count({ where: { academyId: orgA.academyId, userId: courseOnlyLearner.id } })).toBe(0);
+        expect(await prisma.courseEnrollment.count({ where: { courseId: orgA.courseId, userId: courseOnlyLearner.id } })).toBe(1);
+      });
+    }
   });
 }
 
