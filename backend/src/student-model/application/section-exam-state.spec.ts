@@ -1,3 +1,4 @@
+import { EnrollmentService } from '@/student-model/enrollment.service';
 import { BadRequestException } from '@nestjs/common';
 import { SectionMasteryState } from '@prisma/client';
 import { StudentStateService } from '../student-state.service';
@@ -14,7 +15,7 @@ function harness() {
   };
   // A transaction must remain authoritative even when a different root client exists.
   const root = { studentSectionState: { update: jest.fn() } };
-  const service = new StudentStateService(root as any);
+  const service = new StudentStateService(root as any, new EnrollmentService(root as any));
   const result = {
     userId: 'user-1', courseId: 'course-1', sectionId: 'section-1',
     sectionSortOrder: 3, passed: true, failedConcepts: [] as string[],

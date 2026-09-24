@@ -17,6 +17,7 @@ import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { safeRedirectPath } from "@graspful/shared";
+import { useHydrated } from "@graspful/creator-ui/use-hydrated";
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up";
@@ -69,9 +70,8 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
+  const hydrated = useHydrated();
 
-  useEffect(() => { setHydrated(true); }, []);
   const trackedViews = useRef(new Set<string>());
   const trackedStarts = useRef(new Set<string>());
   const formKey = `${brand.id}:${mode}`;

@@ -1,3 +1,4 @@
+import { EnrollmentService } from '@/student-model/enrollment.service';
 import { StudentStateService } from '@/student-model/student-state.service';
 import * as yaml from 'js-yaml';
 import { scaffoldCourseObject } from '@graspful/shared';
@@ -80,7 +81,7 @@ describe('ReviewService', () => {
 // Exercise the import representation against the actual learner presentation
 // and evaluator, so a schema-valid answer is also reachable by a learner.
 describe('Imported answer contracts', () => {
-  const importer = new CourseImporterService({} as PrismaService, new GraphValidationService(), new StudentStateService({} as PrismaService));
+  const importer = new CourseImporterService({} as PrismaService, new GraphValidationService(), new StudentStateService({} as PrismaService, new EnrollmentService({} as PrismaService)));
   const rawCourse = (problem: Record<string, unknown>) => ({
     course: { id: 'fractions', name: 'Fractions', estimatedHours: 1, version: '1' },
     concepts: [{

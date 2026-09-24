@@ -15,7 +15,10 @@
     "./api-client": "./src/api-client.ts",
     "./api-server": "./src/api-server.ts",
     "./supabase-client": "./src/supabase-client.ts",
-    "./supabase-server": "./src/supabase-server.ts"
+    "./supabase-server": "./src/supabase-server.ts",
+    "./creator-org-context": "./src/creator-org-context.tsx",
+    "./posthog-client": "./src/posthog-client.ts",
+    "./use-hydrated": "./src/use-hydrated.ts"
   },
   "dependencies": {
     "@graspful/shared": "workspace:*",

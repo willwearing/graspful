@@ -140,7 +140,7 @@ Runs the automated checks listed below. Read passed, score, failures, and warnin
 
 ### graspful_import_course (AUTH REQUIRED)
 **Required inputs:** \`yaml\`, \`org\`.
-**Optional inputs:** \`publish\`.
+**Optional inputs:** \`publish\`, \`replace\`, \`archiveMissing\`.
 Imports a course draft by default. Set publish to true to request publication after server review. Confirm published: true before reporting publication. A failed request can preserve an imported draft and return isError with publicationFailures.
 
 ### graspful_import_academy (AUTH REQUIRED)

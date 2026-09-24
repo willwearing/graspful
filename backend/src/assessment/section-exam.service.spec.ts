@@ -1,3 +1,4 @@
+import { EnrollmentService } from '@/student-model/enrollment.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ExamSessionStatus, SectionMasteryState } from '@prisma/client';
 import { StudentStateService } from '@/student-model/student-state.service';
@@ -67,7 +68,7 @@ describe('SectionExamService', () => {
     };
     prisma.$transaction.mockImplementation((callback) => callback(prisma));
     const scope = { assertSection: jest.fn().mockResolvedValue({ academyId: 'academy-1' }) };
-    const studentState = new StudentStateService(prisma as any);
+    const studentState = new StudentStateService(prisma as any, new EnrollmentService(prisma as any));
     jest.spyOn(studentState, 'applySectionExamResult');
     const xp = { recordXPEvent: jest.fn().mockResolvedValue({ amount: 23 }) };
     const service = new SectionExamService(prisma as any, xp as any, studentState as any, scope as any);
@@ -304,7 +305,7 @@ describe('SectionExamService', () => {
       recordXPEvent: jest.fn(),
     };
 
-    const mockStudentState = new StudentStateService(prisma as any);
+    const mockStudentState = new StudentStateService(prisma as any, new EnrollmentService(prisma as any));
     const scope = { assertSection: jest.fn().mockResolvedValue({ academyId: 'academy-1' }) };
     const service = new SectionExamService(prisma as any, xpService as any, mockStudentState as any, scope as any);
     jest.spyOn(service, 'syncSectionStates').mockResolvedValue([] as any);
