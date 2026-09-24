@@ -29,14 +29,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Test E2E environment safety
-        run: bun test scripts/e2e-env.test.ts
-
       - name: Build shared package
         run: cd packages/shared && bun run build
 
       - name: Run shared package tests
         run: cd packages/shared && bun test
+
+      - name: Build shared API client
+        run: bun run --cwd packages/client build
+
+      - name: Test shared API client
+        run: bun run --cwd packages/client test
 
       - name: Build CLI
         run: cd packages/cli && bun run build
@@ -53,20 +56,17 @@ jobs:
       - name: Generate Prisma client
         run: cd backend && bun x prisma generate
 
-      - name: Type check backend
-        run: cd backend && bun x tsc -p tsconfig.build.json --noEmit
+      - name: Test backend scripts and E2E environment safety
+        run: bun run test:scripts
 
-      - name: Type check frontend
-        run: cd apps/web && bun x tsc --noEmit
+      - name: Lint all workspaces
+        run: bun run lint
 
-      - name: Type check site
-        run: cd apps/site && bun x tsc --noEmit
+      - name: Type check all workspaces
+        run: bun run typecheck
 
       - name: Run backend tests
         run: cd backend && bun run test
-
-      - name: Test published-course remediation
-        run: bun test backend/scripts/__tests__/audit-published-courses.test.ts
 
       - name: Run frontend tests
         run: cd apps/web && bun run test
@@ -124,7 +124,7 @@ jobs:
           PYCONFIG
           chmod 600 "$supabase_dir/supabase/signing_keys.json"
           supabase gen signing-key --workdir "$supabase_dir" >/dev/null 2>&1
-          # Prisma owns the public schema, so apply SQL migrations after Prisma.
+          # Prisma owns the public schema, auth trigger, and RLS policies.
           supabase start --workdir "$supabase_dir" -x realtime,storage-api,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor > "$RUNNER_TEMP/supabase-start.log" 2>&1
 
       - name: Extract local Supabase keys
@@ -157,13 +157,10 @@ jobs:
           DATABASE_URL: ${{ steps.supabase.outputs.DB_URL }}
           DIRECT_URL: ${{ steps.supabase.outputs.DB_URL }}
 
-      - name: Apply auth triggers and RLS policies
-        run: |
-          for migration in supabase/migrations/*.sql; do
-            psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file "$migration"
-          done
+      - name: Test migrations on isolated PostgreSQL databases
+        run: bun test backend/prisma/__tests__/migrations.test.ts
         env:
-          DATABASE_URL: ${{ steps.supabase.outputs.DB_URL }}
+          MIGRATION_TEST_DATABASE_URL: ${{ steps.supabase.outputs.DB_URL }}
 
       - name: Verify row security on all public tables
         run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file backend/test/assert-public-rls.sql

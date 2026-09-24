@@ -25,16 +25,21 @@ model Organization {
   stripeConnectAccountId    String? @unique @map("stripe_connect_account_id")
   connectOnboardingComplete Boolean @default(false) @map("connect_onboarding_complete")
 
-  memberships     OrgMembership[]
-  exams           Exam[]
-  subscription    Subscription?
-  inviteTokens    InviteToken[]
-  generationJobs  AudioGenerationJob[]
-  academies       Academy[]
-  courses         Course[]
-  apiKeys         ApiKey[]
-  cliAuthSessions CliAuthSession[]
-  revenueEvents   RevenueEvent[]
+  memberships        OrgMembership[]
+  exams              Exam[]
+  subscription       Subscription?
+  inviteTokens       InviteToken[]
+  generationJobs     AudioGenerationJob[]
+  academies          Academy[]
+  courses            Course[]
+  apiKeys            ApiKey[]
+  cliAuthSessions    CliAuthSession[]
+  revenueEvents      RevenueEvent[]
+  userProgress       UserProgress[]
+  userStreaks        UserStreak[]
+  userBookmarks      UserBookmark[]
+  concepts           Concept[]
+  diagnosticSessions DiagnosticSession[]
 
   @@map("organizations")
 }
@@ -273,8 +278,11 @@ model UserProgress {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   studyItem StudyItem @relation(fields: [studyItemId], references: [id], onDelete: Cascade)
 
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
   @@unique([userId, studyItemId])
   @@index([userId, orgId])
+  @@index([orgId])
   @@map("user_progress")
 }
 
@@ -295,8 +303,11 @@ model UserStreak {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
   @@unique([userId, orgId, date])
   @@index([userId, orgId])
+  @@index([orgId])
   @@map("user_streaks")
 }
 
@@ -315,8 +326,11 @@ model UserBookmark {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   studyItem StudyItem @relation(fields: [studyItemId], references: [id], onDelete: Cascade)
 
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
   @@unique([userId, studyItemId])
   @@index([userId, orgId])
+  @@index([orgId])
   @@map("user_bookmarks")
 }
 
@@ -646,17 +660,19 @@ model Concept {
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  course               Course                      @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  section              CourseSection?              @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-  knowledgePoints      KnowledgePoint[]
-  keyPrerequisiteForKPs KnowledgePoint[]           @relation("KPKeyPrerequisite")
-  prerequisiteOf       PrerequisiteEdge[]          @relation("PrerequisiteSource")
-  prerequisiteFor      PrerequisiteEdge[]          @relation("PrerequisiteTarget")
-  encompassedBy        EncompassingEdge[]          @relation("EncompassingSource")
-  encompasses          EncompassingEdge[]          @relation("EncompassingTarget")
-  studentStates        StudentConceptState[]
-  sectionExamQuestions SectionExamQuestion[]
-  diagnosticSnapshots  DiagnosticMasterySnapshot[]
+  course                Course                      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  section               CourseSection?              @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  knowledgePoints       KnowledgePoint[]
+  keyPrerequisiteForKPs KnowledgePoint[]            @relation("KPKeyPrerequisite")
+  prerequisiteOf        PrerequisiteEdge[]          @relation("PrerequisiteSource")
+  prerequisiteFor       PrerequisiteEdge[]          @relation("PrerequisiteTarget")
+  encompassedBy         EncompassingEdge[]          @relation("EncompassingSource")
+  encompasses           EncompassingEdge[]          @relation("EncompassingTarget")
+  studentStates         StudentConceptState[]
+  sectionExamQuestions  SectionExamQuestion[]
+  diagnosticSnapshots   DiagnosticMasterySnapshot[]
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@unique([courseId, slug])
   @@index([orgId])
@@ -1086,6 +1102,8 @@ model XPEvent {
   @@index([userId, courseId, createdAt])
   @@index([userId, academyId, createdAt])
   @@index([userId, createdAt])
+  @@index([academyId, createdAt])
+  @@index([courseId, createdAt])
   @@map("xp_events")
 }
 
@@ -1122,8 +1140,11 @@ model DiagnosticSession {
   currentProblem   Problem?                    @relation(fields: [currentProblemId], references: [id])
   masterySnapshots DiagnosticMasterySnapshot[]
 
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
   @@index([userId, courseId])
   @@index([userId, academyId])
+  @@index([orgId])
   @@map("diagnostic_sessions")
 }
 
