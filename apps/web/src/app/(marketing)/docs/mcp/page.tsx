@@ -1,3 +1,5 @@
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import { QUALITY_CHECKS } from "@graspful/shared";
 import { CodeBlock, InlineCode } from "@/components/docs/code-block";
@@ -87,23 +89,19 @@ function ToolCard({
 
 export default function MCPPage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        MCP Server
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+    <DocPage
+      title="MCP Server"
+      description={<>
         The <InlineCode>@graspful/mcp</InlineCode> package is a Model Context
         Protocol server that exposes all Graspful operations as tools. Any
         MCP-compatible agent can scaffold, validate, review, and publish courses.
         The scaffold and fill tools create drafts and TODO stubs. Your external
         agent reads the source material and writes the actual teaching content.
-      </p>
+      </>}
+    >
 
       {/* Getting your API key */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="api-key">
-          Getting your API key
-        </h2>
+      <DocSection title="Getting your API key" headingId="api-key">
         <p className="mt-2 text-muted-foreground">
           The MCP server requires a <InlineCode>GRASPFUL_API_KEY</InlineCode> to
           import or publish. Local scaffold, fill, validate, and review tools
@@ -159,13 +157,10 @@ export default function MCPPage() {
             </div>
           </div>
         </div>
-      </section>
+      </DocSection>
 
       {/* Setup */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="setup">
-          Setup
-        </h2>
+      <DocSection title="Setup" headingId="setup">
         <p className="mt-2 text-muted-foreground">
           Configure the MCP server in your agent. The server reads{" "}
           <InlineCode>GRASPFUL_API_KEY</InlineCode>,{" "}
@@ -255,13 +250,10 @@ export default function MCPPage() {
   }
 }`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* The Two-YAML Workflow */}
-      <section className="mt-16">
-        <h2 className="text-2xl font-bold text-foreground" id="workflow">
-          The two-YAML workflow
-        </h2>
+      <DocSection title="The two-YAML workflow" headingId="workflow" className="mt-16">
         <p className="mt-2 text-muted-foreground max-w-2xl">
           Give source material to your external agent and plan the academy first.
           The agent then uses these tools with YAML strings. Between filling and
@@ -324,13 +316,10 @@ export default function MCPPage() {
             </div>
           ))}
         </div>
-      </section>
+      </DocSection>
 
       {/* Tools */}
-      <section className="mt-16">
-        <h2 className="text-2xl font-bold text-foreground" id="tools">
-          Tools
-        </h2>
+      <DocSection title="Tools" headingId="tools" className="mt-16">
         <p className="mt-2 text-muted-foreground">
           The tools below cover course and brand authoring. Tools that call the Graspful API
           require the <InlineCode>GRASPFUL_API_KEY</InlineCode> environment
@@ -463,7 +452,7 @@ The returned YAML includes brand identity, theme, landing page sections (hero, f
           required={["org"]}
           returns="Array of { courseId, name, published, stats }"
         />
-      </section>
-    </div>
+      </DocSection>
+    </DocPage>
   );
 }

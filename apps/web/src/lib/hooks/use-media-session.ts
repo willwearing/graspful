@@ -32,21 +32,24 @@ export function useMediaSession(options: MediaSessionOptions) {
     onPreviousTrack,
   } = options;
 
+  const itemTitle = currentItem?.title;
+  const itemId = currentItem?.id;
+
   useEffect(() => {
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) {
       return;
     }
 
-    if (!currentItem) {
+    if (itemId === undefined) {
       navigator.mediaSession.metadata = null;
       return;
     }
 
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentItem.title,
+      title: itemTitle,
       artist: "Audio Lesson",
     });
-  }, [currentItem]);
+  }, [itemId, itemTitle]);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) {

@@ -1,3 +1,6 @@
+import { Callout } from "@/components/docs/callout";
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock } from "@/components/docs/code-block";
@@ -24,22 +27,13 @@ export const metadata: Metadata = {
 
 export default function SpacedRepetitionPage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        Spaced Repetition
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Graspful uses the FIRe (Fractional Implicit Repetition) algorithm to
-        schedule reviews. FIRe is built for knowledge graphs — it gives credit
-        for implicit practice through encompassing edges, so students spend less
-        time drilling basics they already exercise through advanced work.
-      </p>
+    <DocPage
+      title="Spaced Repetition"
+      description="Graspful uses the FIRe (Fractional Implicit Repetition) algorithm to schedule reviews. FIRe is built for knowledge graphs — it gives credit for implicit practice through encompassing edges, so students spend less time drilling basics they already exercise through advanced work."
+    >
 
       {/* The spacing effect */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="spacing-effect">
-          The spacing effect
-        </h2>
+      <DocSection title="The spacing effect" headingId="spacing-effect">
         <p className="mt-2 text-muted-foreground">
           The spacing effect is one of the most robust findings in cognitive
           science: distributing practice over time produces stronger, longer-lasting
@@ -52,13 +46,10 @@ export default function SpacedRepetitionPage() {
           extends the interval. This is the core principle behind systems like
           Anki, SuperMemo, and Graspful&apos;s review scheduling.
         </p>
-      </section>
+      </DocSection>
 
       {/* Exponential forgetting */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="forgetting">
-          Exponential forgetting
-        </h2>
+      <DocSection title="Exponential forgetting" headingId="forgetting">
         <p className="mt-2 text-muted-foreground">
           Graspful models memory as an exponential decay function. After mastering
           a concept, the estimated retention drops over time:
@@ -97,13 +88,10 @@ export default function SpacedRepetitionPage() {
           </Link>
           .
         </p>
-      </section>
+      </DocSection>
 
       {/* FIRe Algorithm */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="fire">
-          The FIRe algorithm
-        </h2>
+      <DocSection title="The FIRe algorithm" headingId="fire">
         <p className="mt-2 text-muted-foreground">
           FIRe — Fractional Implicit Repetition — is Graspful&apos;s spaced
           repetition algorithm. It extends standard spaced repetition with two
@@ -188,13 +176,10 @@ concept_review:
           prevents a single bad day from destroying months of progress while
           still penalizing genuine forgetting.
         </p>
-      </section>
+      </DocSection>
 
       {/* Implicit repetition */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="implicit-repetition">
-          Implicit repetition via encompassing edges
-        </h2>
+      <DocSection title="Implicit repetition via encompassing edges" headingId="implicit-repetition">
         <p className="mt-2 text-muted-foreground">
           This is FIRe&apos;s key innovation. In a traditional spaced repetition
           system, every concept must be reviewed independently. In Graspful,
@@ -262,13 +247,10 @@ implicit_credit:
           further discounted to 0.8 x 0.25 = 0.2x — the student barely
           benefits because they already remember it well.
         </p>
-      </section>
+      </DocSection>
 
       {/* Memory decay service */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="decay-service">
-          Memory decay service
-        </h2>
+      <DocSection title="Memory decay service" headingId="decay-service">
         <p className="mt-2 text-muted-foreground">
           The memory decay service runs before every task selection call. It
           recalculates retention for all mastered concepts and transitions any
@@ -309,13 +291,10 @@ implicit_credit:
           queue. A student won&apos;t advance to new material if there are
           overdue reviews on prerequisite concepts.
         </p>
-      </section>
+      </DocSection>
 
       {/* Practical impact */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="practical-impact">
-          Practical impact
-        </h2>
+      <DocSection title="Practical impact" headingId="practical-impact">
         <p className="mt-2 text-muted-foreground">
           The combination of implicit repetition and the interval ladder means
           students spend significantly less time on explicit review than in
@@ -345,13 +324,10 @@ implicit_credit:
           edges behave like traditional flashcard systems — every concept needs
           independent review.
         </p>
-      </section>
+      </DocSection>
 
       {/* Configuring spaced repetition */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="configuration">
-          Configuration
-        </h2>
+      <DocSection title="Configuration" headingId="configuration">
         <p className="mt-2 text-muted-foreground">
           FIRe parameters are tuned at the platform level and generally
           don&apos;t need per-course adjustment. The main lever for course
@@ -387,11 +363,10 @@ concepts:
       - concept: arithmetic-operations
         weight: 0.3`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Next steps */}
-      <section className="mt-16 rounded-xl border border-border/50 bg-card p-8">
-        <h2 className="text-xl font-bold text-foreground mb-4">Next steps</h2>
+      <Callout as="section" className="mt-16 p-8" title="Next steps">
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href="/docs/concepts/knowledge-graph"
@@ -415,7 +390,7 @@ concepts:
             <span>Adaptive Diagnostics and MEPE</span>
           </Link>
         </div>
-      </section>
-    </div>
+      </Callout>
+    </DocPage>
   );
 }

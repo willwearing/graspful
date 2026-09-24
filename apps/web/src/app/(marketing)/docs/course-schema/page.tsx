@@ -1,3 +1,6 @@
+import { Callout } from "@/components/docs/callout";
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock, InlineCode } from "@/components/docs/code-block";
@@ -65,22 +68,18 @@ function FieldTable({
 
 export default function CourseSchemaPage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        Course Schema
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+    <DocPage
+      title="Course Schema"
+      description={<>
         Courses are defined as YAML files with three top-level keys:{" "}
         <InlineCode>course</InlineCode>, <InlineCode>sections</InlineCode>, and{" "}
         <InlineCode>concepts</InlineCode>. The schema is validated with Zod at
         import time.
-      </p>
+      </>}
+    >
 
       {/* Top-level structure */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="structure">
-          Top-level structure
-        </h2>
+      <DocSection title="Top-level structure" headingId="structure">
         <CodeBlock language="yaml">
           {`course:
   id: string              # kebab-case, globally unique
@@ -101,13 +100,10 @@ concepts:               # required, array of concept objects
     name: string
     ...`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Course metadata */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="course">
-          course
-        </h2>
+      <DocSection title="course" headingId="course">
         <p className="mt-2 text-muted-foreground">
           Top-level metadata about the course.
         </p>
@@ -121,13 +117,10 @@ concepts:               # required, array of concept objects
             { name: "sourceDocument", type: "string", required: false, description: "Reference to official source (e.g., exam guide, textbook)" },
           ]}
         />
-      </section>
+      </DocSection>
 
       {/* Sections */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="sections">
-          sections
-        </h2>
+      <DocSection title="sections" headingId="sections">
         <p className="mt-2 text-muted-foreground">
           Optional ordered list of sections. Concepts reference sections by ID.
         </p>
@@ -160,13 +153,10 @@ concepts:               # required, array of concept objects
             { name: "instructions", type: "string", required: false, description: "Exam instructions shown to learner" },
           ]}
         />
-      </section>
+      </DocSection>
 
       {/* Concepts */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="concepts">
-          concepts
-        </h2>
+      <DocSection title="concepts" headingId="concepts">
         <p className="mt-2 text-muted-foreground">
           A concept represents one teachable idea that can be tested
           independently. Too broad and students get stuck. Too narrow and the
@@ -186,13 +176,10 @@ concepts:               # required, array of concept objects
             { name: "knowledgePoints", type: "array", required: false, description: "Array of KP objects (see below). Empty = graph stub" },
           ]}
         />
-      </section>
+      </DocSection>
 
       {/* Knowledge Points */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="knowledge-points">
-          knowledgePoints
-        </h2>
+      <DocSection title="knowledgePoints" headingId="knowledge-points">
         <p className="mt-2 text-muted-foreground">
           Each knowledge point teaches one load-bearing move, distinction, or
           case. There is no fixed cap on KPs per concept. Fully-authored
@@ -210,13 +197,10 @@ concepts:               # required, array of concept objects
             { name: "problems", type: "array", required: false, description: "Array of problem objects (see below). Need 3+ per KP" },
           ]}
         />
-      </section>
+      </DocSection>
 
       {/* Content Blocks */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="content-blocks">
-          Content blocks
-        </h2>
+      <DocSection title="Content blocks" headingId="content-blocks">
         <p className="mt-2 text-muted-foreground">
           Used in <InlineCode>instructionContent</InlineCode> and{" "}
           <InlineCode>workedExampleContent</InlineCode> for media and references.
@@ -243,13 +227,10 @@ concepts:               # required, array of concept objects
             </div>
           ))}
         </div>
-      </section>
+      </DocSection>
 
       {/* Problems */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="problems">
-          problems
-        </h2>
+      <DocSection title="problems" headingId="problems">
         <p className="mt-2 text-muted-foreground">
           Practice problems attached to each knowledge point. The adaptive engine
           needs at least 3 problems per KP. Two consecutive correct answers
@@ -273,13 +254,10 @@ concepts:               # required, array of concept objects
           <li><strong>Ordering:</strong> List every option text once in the correct order, or supply comma-separated indices that include every option once.</li>
           <li><strong>Matching:</strong> Use left|right option pairs. Map every left label to an offered right label, or provide a full comma-separated index order.</li>
         </ul>
-      </section>
+      </DocSection>
 
       {/* Example */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="example">
-          Example course YAML
-        </h2>
+      <DocSection title="Example course YAML" headingId="example">
         <p className="mt-2 text-muted-foreground">
           This excerpt illustrates the schema. It needs complete teaching content
           and practice variants before publication. Review the source facts and
@@ -367,13 +345,10 @@ concepts:
       - shared-responsibility
     knowledgePoints: []  # stub — needs graspful fill concept`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Authoring guidelines */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="guidelines">
-          Authoring guidelines
-        </h2>
+      <DocSection title="Authoring guidelines" headingId="guidelines">
 
         <div className="mt-6 space-y-6">
           <div>
@@ -461,11 +436,10 @@ concepts:
             </p>
           </div>
         </div>
-      </section>
+      </DocSection>
 
       {/* Validation */}
-      <section className="mt-12 rounded-xl border border-border/50 bg-card p-6">
-        <h2 className="text-lg font-bold text-foreground">Validation rules</h2>
+      <Callout as="section" className="mt-12" title="Validation rules" titleClassName="text-lg font-bold text-foreground">
         <p className="mt-2 text-sm text-muted-foreground">
           The importer validates the following at import time:
         </p>
@@ -492,7 +466,7 @@ concepts:
           </Link>{" "}
           runs additional quality checks on top of schema validation.
         </p>
-      </section>
-    </div>
+      </Callout>
+    </DocPage>
   );
 }

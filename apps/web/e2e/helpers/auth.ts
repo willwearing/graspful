@@ -1,4 +1,4 @@
-import { type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { getE2eEnvironment } from "../../../../backend/scripts/e2e-env";
 
 const testEnv = getE2eEnvironment(process.env);
@@ -149,6 +149,8 @@ export async function signUpBrandedTestUser(
   }
 
   await page.goto("/sign-in");
+  // The server form is disabled until hydration installs its event handlers.
+  await expect(page.getByLabel("Email")).toBeEnabled();
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign In" }).click();
@@ -169,6 +171,8 @@ export async function signInTestUser(
   await setDevBrandCookie(page, brandId);
 
   await page.goto("/sign-in");
+  // The server form is disabled until hydration installs its event handlers.
+  await expect(page.getByLabel("Email")).toBeEnabled();
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign In" }).click();

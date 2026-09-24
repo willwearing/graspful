@@ -24,6 +24,7 @@ const SUPABASE_ANON_KEY = testEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 let courseId: string;
 let academyId: string;
+let academySlug: string;
 let diagnosticSessionId: string;
 let diagnosticQuestionNumber: number;
 let diagnosticQuestion: DiagnosticQuestion;
@@ -504,6 +505,12 @@ test.describe.serial(
       expect(ourCourse.academyId).toBeTruthy();
 
       academyId = ourCourse.academyId;
+      const academyRes = await request.get(`${BACKEND_URL}/orgs/${creatorOrgSlug}/academies/${academyId}`, {
+        headers: creatorAuthHeaders(),
+      });
+      expect(academyRes.status()).toBe(200);
+      academySlug = (await academyRes.json()).slug;
+      expect(academySlug).toBeTruthy();
     });
 
     // ── Step 7b: The first import creates the website ──────────────
@@ -694,13 +701,15 @@ test.describe.serial(
       await page.context().addCookies([
         {
           name: "dev-brand-override",
-          value: creatorOrgSlug,
+          value: GRASPFUL_BRAND,
           domain: "localhost",
           path: "/",
         },
       ]);
 
-      const diagnosticPath = `/academy/${academyId}/diagnostic`;
+      // An unverified creator brand cannot select a tenant host. Use the explicit
+      // tenant route so both diagnostic start and answer use the academy owner.
+      const diagnosticPath = `/learn/${creatorOrgSlug}/academies/${academySlug}/diagnostic`;
       await page.goto(`/sign-in?redirect=${encodeURIComponent(diagnosticPath)}`);
       await page.getByLabel("Email").fill(learnerEmail);
       await page.getByLabel("Password").fill(learnerPassword);
@@ -710,6 +719,7 @@ test.describe.serial(
       await expect(page.getByRole("heading", { name: "Diagnostic Assessment" })).toBeVisible({
         timeout: 15_000,
       });
+      await page.getByRole("button", { name: "Start Diagnostic Assessment", exact: true }).click();
       await expect(page.getByText(`Question ${diagnosticQuestionNumber} of ~4`, { exact: true })).toBeVisible();
       await expect(page.getByText(diagnosticQuestion.questionText, { exact: true })).toBeVisible();
 

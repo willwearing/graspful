@@ -1,3 +1,5 @@
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import { CodeBlock, InlineCode } from "@/components/docs/code-block";
 
@@ -64,21 +66,13 @@ function FieldTable({
 
 export default function BrandSchemaPage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        Brand Schema
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Brand YAML files configure white-label learning sites. Each brand gets
-        its own domain, theme, landing page, pricing, and SEO — learners never
-        see Graspful.
-      </p>
+    <DocPage
+      title="Brand Schema"
+      description="Brand YAML files configure white-label learning sites. Each brand gets its own domain, theme, landing page, pricing, and SEO — learners never see Graspful."
+    >
 
       {/* Top-level structure */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="structure">
-          Top-level structure
-        </h2>
+      <DocSection title="Top-level structure" headingId="structure">
         <CodeBlock language="yaml">
           {`brand:           # required — identity and domain
   id: string
@@ -112,13 +106,10 @@ pricing:         # optional — Stripe pricing config
 contentScope:    # optional — which courses this brand serves
   courseIds: [string]`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* brand */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="brand">
-          brand
-        </h2>
+      <DocSection title="brand" headingId="brand">
         <p className="mt-2 text-muted-foreground">
           Core identity for the white-label site.
         </p>
@@ -134,13 +125,10 @@ contentScope:    # optional — which courses this brand serves
             { name: "orgSlug", type: "string", required: true, description: "Organization slug that owns this brand" },
           ]}
         />
-      </section>
+      </DocSection>
 
       {/* theme */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="theme">
-          theme
-        </h2>
+      <DocSection title="theme" headingId="theme">
         <p className="mt-2 text-muted-foreground">
           Use a preset for quick theming, or specify individual HSL colors for
           light and dark modes.
@@ -199,13 +187,10 @@ contentScope:    # optional — which courses this brand serves
           secondaryForeground, muted, mutedForeground, accent, accentForeground,
           destructive, destructiveForeground, border, input, ring.
         </p>
-      </section>
+      </DocSection>
 
       {/* landing */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="landing">
-          landing
-        </h2>
+      <DocSection title="landing" headingId="landing">
         <p className="mt-2 text-muted-foreground">
           Configuration for the auto-generated landing page.
         </p>
@@ -260,13 +245,10 @@ contentScope:    # optional — which courses this brand serves
             { name: "subheadline", type: "string", required: false, description: "Optional supporting text" },
           ]}
         />
-      </section>
+      </DocSection>
 
       {/* seo */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="seo">
-          seo
-        </h2>
+      <DocSection title="seo" headingId="seo">
         <FieldTable
           fields={[
             { name: "title", type: "string", required: true, description: "Page title for meta tag and browser tab" },
@@ -274,13 +256,10 @@ contentScope:    # optional — which courses this brand serves
             { name: "keywords", type: "string[]", required: false, description: "Meta keywords array" },
           ]}
         />
-      </section>
+      </DocSection>
 
       {/* pricing */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="pricing">
-          pricing
-        </h2>
+      <DocSection title="pricing" headingId="pricing">
         <p className="mt-2 text-muted-foreground">
           Stripe pricing configuration. Set monthly to 0 for free courses.
         </p>
@@ -292,13 +271,10 @@ contentScope:    # optional — which courses this brand serves
             { name: "trialDays", type: "number", required: false, description: "Free trial period in days (default: 0)" },
           ]}
         />
-      </section>
+      </DocSection>
 
       {/* contentScope */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="content-scope">
-          contentScope
-        </h2>
+      <DocSection title="contentScope" headingId="content-scope">
         <p className="mt-2 text-muted-foreground">
           Controls which courses appear under this brand.
         </p>
@@ -307,13 +283,10 @@ contentScope:    # optional — which courses this brand serves
             { name: "courseIds", type: "string[]", required: false, description: "Array of course IDs to include. Empty = all courses in the org." },
           ]}
         />
-      </section>
+      </DocSection>
 
       {/* Example */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="example">
-          Example brand YAML
-        </h2>
+      <DocSection title="Example brand YAML" headingId="example">
         <CodeBlock language="yaml" title="aws-prep-brand.yaml">
           {`brand:
   id: aws-prep
@@ -383,7 +356,7 @@ contentScope:
   courseIds:
     - aws-saa-c03`}
         </CodeBlock>
-      </section>
-    </div>
+      </DocSection>
+    </DocPage>
   );
 }

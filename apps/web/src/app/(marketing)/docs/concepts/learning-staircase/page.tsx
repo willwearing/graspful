@@ -1,3 +1,6 @@
+import { Callout } from "@/components/docs/callout";
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock } from "@/components/docs/code-block";
@@ -67,24 +70,13 @@ const problemTypes = [
 
 export default function LearningStaircasePage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        The Learning Staircase
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Every concept is broken into however many knowledge points the
-        staircase actually requires. Many concepts land around 3-5 steps, but
-        there is no fixed cap. The recommended pattern is recognition, guided
-        application, then transfer — though course authors have flexibility in
-        how they structure each step. Each step is small enough that the
-        student never feels overwhelmed.
-      </p>
+    <DocPage
+      title="The Learning Staircase"
+      description="Every concept is broken into however many knowledge points the staircase actually requires. Many concepts land around 3-5 steps, but there is no fixed cap. The recommended pattern is recognition, guided application, then transfer — though course authors have flexibility in how they structure each step. Each step is small enough that the student never feels overwhelmed."
+    >
 
       {/* Cognitive load */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="cognitive-load">
-          Minimizing cognitive load
-        </h2>
+      <DocSection title="Minimizing cognitive load" headingId="cognitive-load">
         <p className="mt-2 text-muted-foreground">
           Working memory can hold about 4 items at once. If a lesson demands
           more than that — learning a new concept, understanding its notation,
@@ -106,13 +98,10 @@ export default function LearningStaircasePage() {
             Break the concept into smaller knowledge points.
           </p>
         </div>
-      </section>
+      </DocSection>
 
       {/* The four levels */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="kp-levels">
-          The four levels
-        </h2>
+      <DocSection title="The four levels" headingId="kp-levels">
         <p className="mt-2 text-muted-foreground">
           Not every concept needs all four levels. Simple definitional concepts
           may only need a short staircase. Complex applied concepts should use
@@ -149,13 +138,10 @@ export default function LearningStaircasePage() {
             </div>
           ))}
         </div>
-      </section>
+      </DocSection>
 
       {/* Worked examples */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="worked-examples">
-          Worked examples
-        </h2>
+      <DocSection title="Worked examples" headingId="worked-examples">
         <p className="mt-2 text-muted-foreground">
           A worked example shows the complete solution process, step by step.
           Research consistently shows that studying worked examples produces
@@ -188,13 +174,10 @@ export default function LearningStaircasePage() {
           examples are absent. The adaptive engine never shows scaffolding to a
           student who has demonstrated they don&apos;t need it.
         </p>
-      </section>
+      </DocSection>
 
       {/* Problem types */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="problem-types">
-          Problem types
-        </h2>
+      <DocSection title="Problem types" headingId="problem-types">
         <p className="mt-2 text-muted-foreground">
           Graspful supports six problem types. Different types suit different
           levels of the staircase.
@@ -228,13 +211,10 @@ export default function LearningStaircasePage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </DocSection>
 
       {/* Section exams */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="section-exams">
-          Section exams
-        </h2>
+      <DocSection title="Section exams" headingId="section-exams">
         <p className="mt-2 text-muted-foreground">
           Once a student masters all concepts in a section, they become eligible
           for the section exam — a cumulative assessment that verifies knowledge
@@ -248,13 +228,10 @@ export default function LearningStaircasePage() {
           understanding. A student might master each concept in isolation but
           struggle when concepts are mixed. The exam catches this.
         </p>
-      </section>
+      </DocSection>
 
       {/* YAML example */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="yaml-example">
-          Example: concept with 3 knowledge points
-        </h2>
+      <DocSection title="Example: concept with 3 knowledge points" headingId="yaml-example">
         <p className="mt-2 text-muted-foreground">
           This YAML shows a concept with three KPs progressing from recognition
           to independent application. Each KP has instruction, an optional
@@ -404,13 +381,10 @@ export default function LearningStaircasePage() {
           explanation: "A /23 gives 512 IPs (507 usable). 10.0.6.0/23 covers 10.0.6.0-10.0.7.255, which doesn't overlap with existing subnets."
           difficulty: 5`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Authoring guidance */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="authoring-guidance">
-          Authoring guidance
-        </h2>
+      <DocSection title="Authoring guidance" headingId="authoring-guidance">
         <div className="mt-4 space-y-4">
           <div>
             <h3 className="text-lg font-semibold text-foreground mt-6">
@@ -455,11 +429,10 @@ export default function LearningStaircasePage() {
             </p>
           </div>
         </div>
-      </section>
+      </DocSection>
 
       {/* Next steps */}
-      <section className="mt-16 rounded-xl border border-border/50 bg-card p-8">
-        <h2 className="text-xl font-bold text-foreground mb-4">Next steps</h2>
+      <Callout as="section" className="mt-16 p-8" title="Next steps">
         <div className="space-y-3">
           <Link
             href="/docs/concepts/knowledge-graph"
@@ -483,7 +456,7 @@ export default function LearningStaircasePage() {
             Course Schema — full YAML reference for authoring courses
           </Link>
         </div>
-      </section>
-    </div>
+      </Callout>
+    </DocPage>
   );
 }

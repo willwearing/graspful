@@ -1,23 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getBrowserSession } from "@/lib/access-token";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 
-export function useAuthToken(): string | null {
-  const [token, setToken] = useState<string | null>(null);
-
+export function useAuthSession() {
+  const [session, setSession] = useState<Session | null>(null);
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
-    supabase.auth.getSession().then(({ data }) => {
-      setToken(data.session?.access_token ?? null);
-    });
+    let active = true;
+    let authChanged = false;
+    getBrowserSession().then((current) => {
+      if (active && !authChanged) setSession(current);
+    }).catch(() => { if (active && !authChanged) setSession(null); });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setToken(session?.access_token ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, current) => {
+      authChanged = true;
+      if (active) setSession(current);
     });
-
-    return () => subscription.unsubscribe();
+    return () => { active = false; subscription.unsubscribe(); };
   }, []);
+  return session;
+}
 
-  return token;
+export function useAuthToken(): string | null {
+  return useAuthSession()?.access_token ?? null;
 }

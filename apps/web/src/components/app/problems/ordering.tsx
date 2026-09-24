@@ -20,26 +20,24 @@ interface OrderingItem {
   text: string;
 }
 
-function buildOrderingItems(problem: Problem): OrderingItem[] {
-  const values =
-    problem.items ??
-    problem.options?.map((option) =>
-      typeof option === "string" ? option : option.text,
-    ) ??
-    [];
-
+function buildOrderingItems(problemId: string, serializedItems: string): OrderingItem[] {
+  const values: string[] = JSON.parse(serializedItems);
   return values.map((text, index) => ({
-    id: `${problem.id}-${index}-${text}`,
+    id: `${problemId}-${index}-${text}`,
     text,
   }));
 }
 
 export function Ordering({ problem, onSubmit, disabled, loading, feedback }: OrderingProps) {
-  const [items, setItems] = useState<OrderingItem[]>(() => buildOrderingItems(problem));
+  const problemId = problem.id;
+  const serializedItems = JSON.stringify(problem.items ?? problem.options?.map((option) =>
+    typeof option === "string" ? option : option.text,
+  ) ?? []);
+  const [items, setItems] = useState<OrderingItem[]>(() => buildOrderingItems(problemId, serializedItems));
 
   useEffect(() => {
-    setItems(buildOrderingItems(problem));
-  }, [problem]);
+    setItems(buildOrderingItems(problemId, serializedItems));
+  }, [problemId, serializedItems]);
 
   function moveItem(index: number, direction: -1 | 1) {
     if (disabled) return;

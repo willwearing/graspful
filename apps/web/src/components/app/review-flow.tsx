@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
+import { useAnswerSubmission } from "@/lib/hooks/use-answer-submission";
+import { usePracticeLoop } from "@/lib/hooks/use-practice-loop";
+import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 import { apiClientFetch } from "@/lib/api-client";
 import { ProblemRenderer, type ProblemFeedback } from "@/components/app/problems/problem-renderer";
 import { Button } from "@/components/ui/button";
@@ -56,113 +59,56 @@ export function ReviewFlow({
   const [problemNumber, setProblemNumber] = useState(initialData.problemNumber);
   const [totalProblems] = useState(initialData.totalProblems);
   const [correctCount, setCorrectCount] = useState(0);
-  const [feedback, setFeedback] = useState<ProblemFeedback | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [finishing, setFinishing] = useState(false);
   const [answersComplete, setAnswersComplete] = useState(false);
   const [result, setResult] = useState<ReviewResult | null>(null);
-  const [error, setError] = useState<{ kind: "answer" | "completion"; message: string } | null>(null);
-  const startTimeRef = useRef(Date.now());
-  const mountedRef = useRef(true);
-  const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const requestInFlightRef = useRef(false);
-  const lastAnswerRef = useRef<ProblemAnswer | null>(null);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
-    };
-  }, []);
-
+  const startTimeRef = useRef(0);
+  const { feedback, present } = usePracticeLoop<ProblemFeedback>();
   const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
 
-  // Track review start on mount
-  useEffect(() => {
-    trackReviewStarted(conceptId, initialData.totalProblems);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useMountEffect(() => {
+    startTimeRef.current = Date.now(); trackReviewStarted(conceptId, initialData.totalProblems); });
 
-  async function handleComplete() {
-    if (requestInFlightRef.current) return;
-    requestInFlightRef.current = true;
-    setFinishing(true);
-    setError(null);
-    try {
-      const completeResult = await apiClientFetch<ReviewResult>(
-        `${basePath}/reviews/${conceptId}/complete`,
-        token,
-        { method: "POST", body: JSON.stringify({ sessionId }) },
-      );
-      if (!mountedRef.current) return;
-      trackReviewCompleted(conceptId, completeResult.passed, completeResult.score);
-      setResult(completeResult);
-    } catch {
-      if (mountedRef.current) {
-        setError({ kind: "completion", message: "Could not load your review result. Retry completion to check your saved answers." });
-      }
-    } finally {
-      requestInFlightRef.current = false;
-      if (mountedRef.current) setFinishing(false);
-    }
-  }
-
-  async function handleSubmit(answer: ProblemAnswer) {
-    if (requestInFlightRef.current || submitting || feedback || answersComplete) return;
-    requestInFlightRef.current = true;
-    setSubmitting(true);
-    setError(null);
-    lastAnswerRef.current = answer;
-
-    try {
-      const response = await apiClientFetch<ReviewAnswerResult>(
-        `${basePath}/reviews/${conceptId}/answer`,
-        token,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            sessionId,
-            problemId: problem.id,
-            answer,
-            responseTimeMs: Date.now() - startTimeRef.current,
-          }),
-        }
-      );
-      if (!mountedRef.current) return;
-      requestInFlightRef.current = false;
-      lastAnswerRef.current = null;
-
-      const wasCorrect = response.correct;
-      trackReviewProblemAnswered(
-        conceptId,
-        problem.id,
-        wasCorrect,
-        Date.now() - startTimeRef.current,
-      );
-      if (wasCorrect) setCorrectCount((prev) => prev + 1);
-      setFeedback({ wasCorrect, explanation: response.feedback });
+  const completion = useAnswerSubmission<void, ReviewResult>({
+    send: () => apiClientFetch(`${basePath}/reviews/${conceptId}/complete`, token,
+      { method: "POST", body: JSON.stringify({ sessionId }) }),
+    onSuccess: (response) => {
+      trackReviewCompleted(conceptId, response.passed, response.score);
+      setResult(response);
+    },
+    errorMessage: "Could not load your review result. Retry completion to check your saved answers.",
+  });
+  const submission = useAnswerSubmission<{ body: string; problemId: string; responseTimeMs: number }, ReviewAnswerResult>({
+    send: (request) => apiClientFetch(`${basePath}/reviews/${conceptId}/answer`, token,
+      { method: "POST", body: request.body }),
+    onSuccess: (response, request) => {
+      trackReviewProblemAnswered(conceptId, request.problemId, response.correct, request.responseTimeMs);
+      if (response.correct) setCorrectCount((previous) => previous + 1);
       if (!response.hasMore) setAnswersComplete(true);
-
-      advanceTimeoutRef.current = setTimeout(async () => {
-        if (!mountedRef.current) return;
-
+      return present({ wasCorrect: response.correct, explanation: response.feedback }, async () => {
         if (response.hasMore && response.nextProblem) {
-          setFeedback(null);
           setProblem(response.nextProblem);
           setProblemNumber(response.problemNumber);
           startTimeRef.current = Date.now();
-          setSubmitting(false);
         } else {
-          setSubmitting(false);
-          await handleComplete();
+          await completion.submit();
         }
-      }, 1500);
-    } catch {
-      requestInFlightRef.current = false;
-      setError({ kind: "answer", message: "Could not save your answer. Your selection is still here. Try again." });
-      setSubmitting(false);
-    }
+      });
+    },
+    errorMessage: "Could not save your answer. Your selection is still here. Try again.",
+  });
+  const submitting = submission.submitting;
+  const finishing = completion.submitting;
+  const error = completion.error
+    ? { kind: "completion" as const, message: completion.error }
+    : submission.error ? { kind: "answer" as const, message: submission.error } : null;
+
+  function handleSubmit(answer: ProblemAnswer) {
+    if (submission.pendingRequestRef.current || completion.pendingRequestRef.current || feedback || answersComplete) return;
+    const responseTimeMs = Date.now() - startTimeRef.current;
+    return submission.submit({
+      body: JSON.stringify({ sessionId, problemId: problem.id, answer, responseTimeMs }),
+      problemId: problem.id, responseTimeMs,
+    });
   }
 
   // Completion screen
@@ -213,8 +159,8 @@ export function ReviewFlow({
         <div role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
           {error.message}
           <Button variant="outline" className="mt-3" disabled={submitting || finishing} onClick={() => {
-            if (error.kind === "completion") void handleComplete();
-            else if (lastAnswerRef.current !== null) void handleSubmit(lastAnswerRef.current);
+            if (error.kind === "completion") void completion.retry();
+            else void submission.retry();
           }}>
             {error.kind === "completion" ? "Retry completion" : "Retry answer"}
           </Button>

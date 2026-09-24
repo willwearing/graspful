@@ -69,6 +69,9 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => { setHydrated(true); }, []);
   const trackedViews = useRef(new Set<string>());
   const trackedStarts = useRef(new Set<string>());
   const formKey = `${brand.id}:${mode}`;
@@ -239,6 +242,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     Email
                   </label>
                   <input
+                    disabled={!hydrated}
                     id="email"
                     type="email"
                     value={email}
@@ -259,6 +263,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     Password
                   </label>
                   <input
+                    disabled={!hydrated}
                     id="password"
                     type="password"
                     value={password}
@@ -289,7 +294,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 )}
 
                 <div className="space-y-3">
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full" disabled={loading || !hydrated}>
                     {loading ? "Loading..." : submitText}
                   </Button>
                   <Button

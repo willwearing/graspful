@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
+import { useAnswerSubmission } from "@/lib/hooks/use-answer-submission";
+import { useLatestRef } from "@/lib/hooks/use-latest-ref";
+import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 import { apiClientFetch } from "@/lib/api-client";
 import { ProblemRenderer } from "@/components/app/problems/problem-renderer";
 import { Button } from "@/components/ui/button";
@@ -47,34 +50,43 @@ export function QuizFlow({
 }: QuizFlowProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<QuizResult | null>(null);
-  const [error, setError] = useState<{ kind: "answer" | "completion"; message: string } | null>(null);
-  const questionStartRef = useRef(Date.now());
+  const [completionError, setCompletionError] = useState<string | null>(null);
+  const questionStartRef = useRef(0);
   const finishCalledRef = useRef(false);
-  const answeredCountRef = useRef(0);
-  const answerRequestRef = useRef<Promise<unknown> | null>(null);
-  const lastAnswerRef = useRef<ProblemAnswer | null>(null);
+  const answeredCountRef = useLatestRef(answeredCount);
   const [initialTimeMs] = useState(() => quizData.expiresAt !== undefined
     ? Math.max(0, quizData.expiresAt - Date.now())
     : quizData.timeLimitMs);
 
   const basePath = `/orgs/${orgSlug}/courses/${courseId}`;
 
-  useEffect(() => { answeredCountRef.current = answeredCount; }, [answeredCount]);
-
-  // Track quiz start
-  useEffect(() => {
-    trackQuizStarted(quizData.quizId, quizData.totalProblems, quizData.timeLimitMs);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useMountEffect(() => {
+    questionStartRef.current = Date.now(); trackQuizStarted(quizData.quizId, quizData.totalProblems, quizData.timeLimitMs); });
+  const submission = useAnswerSubmission<{ body: string; index: number; responseTimeMs: number }, { answeredCount: number; totalProblems: number }>({
+    send: (request) => apiClientFetch(`${basePath}/quizzes/${quizData.quizId}/answer`, token,
+      { method: "POST", body: request.body }),
+    onSuccess: (response, request) => {
+      trackQuizQuestionAnswered(quizData.quizId, request.index, request.responseTimeMs);
+      setAnsweredCount(response.answeredCount);
+      answeredCountRef.current = response.answeredCount;
+      if (request.index < quizData.problems.length - 1) {
+        setCurrentIndex(request.index + 1);
+        questionStartRef.current = Date.now();
+      }
+    },
+    errorMessage: "Could not save your answer. Your selection is still here. Try again.",
+  });
+  const { submitting, pendingRequestRef: answerRequestRef } = submission;
+  const error = completionError ? { kind: "completion", message: completionError }
+    : submission.error ? { kind: "answer", message: submission.error } : null;
 
   const handleFinish = useCallback(async () => {
     if (finishCalledRef.current) return;
     finishCalledRef.current = true;
     setFinishing(true);
-    setError(null);
+    setCompletionError(null);
     try {
       // The server must receive the pending answer before it calculates a score.
       await answerRequestRef.current?.catch(() => undefined);
@@ -91,11 +103,11 @@ export function QuizFlow({
       );
     } catch {
       finishCalledRef.current = false;
-      setError({ kind: "completion", message: "Could not load your quiz result. Retry completion to check your saved answers." });
+      setCompletionError("Could not load your quiz result. Retry completion to check your saved answers.");
     } finally {
       setFinishing(false);
     }
-  }, [basePath, quizData.quizId, token]);
+  }, [basePath, quizData.quizId, token, answerRequestRef]);
 
   const { remainingMs: timeLeftMs } = useTimer({
     timeLimitMs: initialTimeMs,
@@ -113,51 +125,14 @@ export function QuizFlow({
     return `${min}:${sec.toString().padStart(2, "0")}`;
   }
 
-  async function handleSubmit(answer: ProblemAnswer) {
+  function handleSubmit(answer: ProblemAnswer) {
     if (answerRequestRef.current || finishCalledRef.current || result || timeLeftMs <= 0 || answeredCount >= quizData.totalProblems) return;
-    const submittedIndex = currentIndex;
-    const nextIndex = Math.min(submittedIndex + 1, quizData.problems.length - 1);
-    const canAdvance = submittedIndex < quizData.problems.length - 1;
     const responseTimeMs = Date.now() - questionStartRef.current;
-
-    setSubmitting(true);
-    setError(null);
-    lastAnswerRef.current = answer;
-
-    try {
-      const request = apiClientFetch<{ answeredCount: number; totalProblems: number }>(
-        `${basePath}/quizzes/${quizData.quizId}/answer`,
-        token,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            problemId: quizData.problems[submittedIndex].id,
-            answer,
-            responseTimeMs,
-          }),
-        }
-      );
-      answerRequestRef.current = request;
-      const response = await request;
-
-      trackQuizQuestionAnswered(
-        quizData.quizId,
-        submittedIndex,
-        responseTimeMs,
-      );
-      setAnsweredCount(response.answeredCount);
-      answeredCountRef.current = response.answeredCount;
-      if (canAdvance) {
-        setCurrentIndex(nextIndex);
-        questionStartRef.current = Date.now();
-      }
-      lastAnswerRef.current = null;
-    } catch {
-      setError({ kind: "answer", message: "Could not save your answer. Your selection is still here. Try again." });
-    } finally {
-      answerRequestRef.current = null;
-      setSubmitting(false);
-    }
+    setCompletionError(null);
+    return submission.submit({
+      body: JSON.stringify({ problemId: quizData.problems[currentIndex].id, answer, responseTimeMs }),
+      index: currentIndex, responseTimeMs,
+    });
   }
 
   // Results screen
@@ -215,7 +190,7 @@ export function QuizFlow({
           {error.message}
           {error.kind === "answer" && timeLeftMs > 0 && (
             <Button variant="outline" className="mt-3" disabled={submitting || finishing} onClick={() => {
-              if (lastAnswerRef.current !== null) void handleSubmit(lastAnswerRef.current);
+              void submission.retry();
             }}>
               Retry answer
             </Button>

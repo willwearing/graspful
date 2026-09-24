@@ -157,3 +157,27 @@ test.describe("Creator Manage — Edit course", () => {
     ).toBeVisible({ timeout: 15_000 });
   });
 });
+
+// Reproduce the original setup race by holding the client scripts. Inputs must
+// wait for React handlers, so a fast fill cannot be erased during hydration.
+test("sign-in controls wait for hydration before accepting credentials", async ({ page }) => {
+  let releaseScripts!: () => void;
+  const scriptsReady = new Promise<void>((resolve) => { releaseScripts = resolve; });
+  await page.route("**/_next/static/**/*.js*", async (route) => {
+    await scriptsReady;
+    await route.continue();
+  });
+  try {
+    await page.goto("/sign-in", { waitUntil: "commit" });
+    await expect(page.getByLabel("Email")).toBeDisabled();
+    await expect(page.getByLabel("Password")).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Sign In", exact: true })).toBeDisabled();
+  } finally {
+    releaseScripts();
+  }
+  await expect(page.getByLabel("Email")).toBeEnabled();
+  await page.getByLabel("Email").fill("fast-typing@example.com");
+  await page.getByLabel("Password").fill("TestPassword123!");
+  await expect(page.getByLabel("Email")).toHaveValue("fast-typing@example.com");
+  await expect(page.getByLabel("Password")).toHaveValue("TestPassword123!");
+});

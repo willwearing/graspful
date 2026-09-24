@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Clock, Loader2 } from "lucide-react";
+import { useAnswerSubmission } from "@/lib/hooks/use-answer-submission";
+import { useLatestRef } from "@/lib/hooks/use-latest-ref";
+import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 import { apiClientFetch } from "@/lib/api-client";
 import { ProblemRenderer } from "@/components/app/problems/problem-renderer";
 import { Button } from "@/components/ui/button";
@@ -63,15 +66,13 @@ export function SectionExamFlow({
   const [answeredProblemIds, setAnsweredProblemIds] = useState(() => new Set(examData.answeredProblemIds ?? []));
   const currentIndex = examData.problems.findIndex((problem) => !answeredProblemIds.has(problem.id));
   const answeredCount = examData.problems.filter((problem) => answeredProblemIds.has(problem.id)).length;
-  const [submitting, setSubmitting] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<SectionExamResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [completionError, setCompletionError] = useState<string | null>(null);
   const [completionFailed, setCompletionFailed] = useState(false);
-  const questionStartRef = useRef(Date.now());
+  const questionStartRef = useRef(0);
   const finishCalledRef = useRef(false);
   const completedRef = useRef(false);
-  const pendingAnswerRef = useRef<Promise<void> | null>(null);
   const [deadline] = useState(() => {
     if (examData.expiresAt === null) return null;
     if (examData.expiresAt) return Date.parse(examData.expiresAt);
@@ -83,19 +84,32 @@ export function SectionExamFlow({
 
   const basePath = `/orgs/${orgSlug}/courses/${courseId}/sections/${sectionId}/exam`;
 
-  useEffect(() => {
+  useMountEffect(() => {
+    questionStartRef.current = Date.now();
     if (!examData.answeredProblemIds?.length) {
       trackSectionExamStarted(sectionId, examData.totalProblems, examData.timeLimitMs);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  });
+
+  const submission = useAnswerSubmission<{ body: string; problemId: string; index: number; responseTimeMs: number }, unknown>({
+    send: (request) => apiClientFetch(`${basePath}/${examData.sessionId}/answer`, token,
+      { method: "POST", body: request.body }),
+    onSuccess: (_response, request) => {
+      trackSectionExamQuestionAnswered(sectionId, request.index, request.responseTimeMs);
+      setAnsweredProblemIds((previous) => new Set([...previous, request.problemId]));
+      questionStartRef.current = Date.now();
+    },
+    errorMessage: "Could not save your answer. Your selection is kept. Try again.",
+  });
+  const { submitting, pendingRequestRef: pendingAnswerRef } = submission;
+  const error = completionError ?? submission.error;
 
   async function handleFinish() {
     if (finishCalledRef.current || completedRef.current) return;
     finishCalledRef.current = true;
     setFinishing(true);
     setCompletionFailed(false);
-    setError(null);
+    setCompletionError(null);
 
     // A submitted answer must settle before the server grades this attempt.
     await pendingAnswerRef.current;
@@ -110,17 +124,14 @@ export function SectionExamFlow({
       setResult(response);
     } catch {
       setCompletionFailed(true);
-      setError("Could not complete the section exam. Your saved answers are kept. Try again.");
+      setCompletionError("Could not complete the section exam. Your saved answers are kept. Try again.");
     } finally {
       finishCalledRef.current = false;
       setFinishing(false);
     }
   }
 
-  const finishRef = useRef(handleFinish);
-  useEffect(() => {
-    finishRef.current = handleFinish;
-  });
+  const finishRef = useLatestRef(handleFinish);
 
   useEffect(() => {
     if (deadline === null || result) return;
@@ -139,7 +150,7 @@ export function SectionExamFlow({
       interval = setInterval(updateRemainingTime, 1000);
     }
     return () => clearInterval(interval);
-  }, [deadline, result]);
+  }, [deadline, result, finishRef]);
 
   function formatTime(ms: number): string {
     const totalSec = Math.ceil(ms / 1000);
@@ -148,7 +159,7 @@ export function SectionExamFlow({
     return `${min}:${sec.toString().padStart(2, "0")}`;
   }
 
-  async function handleSubmit(answer: ProblemAnswer) {
+  function handleSubmit(answer: ProblemAnswer) {
     if (pendingAnswerRef.current || finishCalledRef.current || completedRef.current || currentIndex < 0) return;
     if (deadline !== null && deadline <= Date.now()) {
       setTimeLeftMs(0);
@@ -156,34 +167,12 @@ export function SectionExamFlow({
       return;
     }
     const problemId = examData.problems[currentIndex].id;
-    const submittedIndex = currentIndex;
     const responseTimeMs = Date.now() - questionStartRef.current;
-    setSubmitting(true);
-    setError(null);
-
-    const pending = (async () => {
-      try {
-        await apiClientFetch<{ answeredCount: number; totalProblems: number }>(
-          `${basePath}/${examData.sessionId}/answer`,
-          token,
-          {
-            method: "POST",
-            body: JSON.stringify({ problemId, answer, responseTimeMs }),
-          }
-        );
-        trackSectionExamQuestionAnswered(sectionId, submittedIndex, responseTimeMs);
-        setAnsweredProblemIds((previous) => new Set([...previous, problemId]));
-        questionStartRef.current = Date.now();
-      } catch {
-        // Keep the problem mounted so the learner can retry the selected answer.
-        setError("Could not save your answer. Your selection is kept. Try again.");
-      } finally {
-        pendingAnswerRef.current = null;
-        setSubmitting(false);
-      }
-    })();
-    pendingAnswerRef.current = pending;
-    await pending;
+    setCompletionError(null);
+    return submission.submit({
+      body: JSON.stringify({ problemId, answer, responseTimeMs }),
+      problemId, index: currentIndex, responseTimeMs,
+    });
   }
 
   if (result) {
