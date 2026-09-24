@@ -15,3 +15,12 @@ test('published packages point to each dependency own version without changing s
 test('fails before publishing unresolved workspace dependencies', () => {
   expect(() => resolveWorkspaceDependencies([{ name: 'cli', version: '1.0.0', dependencies: { unknown: 'workspace:*' } }])).toThrow('Unknown workspace dependency');
 });
+
+test('client declares the repository required by GitHub trusted publishing', () => {
+  const manifest = require('../../package.json');
+  expect(manifest.repository).toEqual({
+    type: 'git',
+    url: 'git+https://github.com/willwearing/graspful.git',
+    directory: 'packages/client',
+  });
+});
