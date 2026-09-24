@@ -77,7 +77,7 @@ jobs:
           bun run --cwd packages/mcp build
 
       - name: Test packages
-        run: bun test packages/shared/src packages/client/src packages/cli/src packages/mcp/src
+        run: bun test --preload ./packages/client/test-support/preload.ts packages/shared/src packages/client/src packages/cli/src packages/mcp/src
 
       - name: Resolve workspace protocol for npm publish
         run: node packages/client/scripts/resolve-workspace-dependencies.cjs

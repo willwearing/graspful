@@ -1,3 +1,4 @@
+import '../../test-support/preload';
 import { expect, test } from 'bun:test';
 const { resolveWorkspaceDependencies } = require('../../scripts/resolve-workspace-dependencies.cjs');
 

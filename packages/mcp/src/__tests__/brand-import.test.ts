@@ -1,3 +1,4 @@
+import '../../../client/test-support/preload';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import * as yaml from 'js-yaml';
 import { handleToolCall } from '../index';

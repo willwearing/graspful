@@ -2,7 +2,8 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { getBaseUrl, resolveCredentials } from '../lib/auth';
+import { resolveCredentials, saveApiKeyCredentials } from '../lib/auth';
+import { maskApiKey } from '@graspful/client';
 import { runBrowserAuthFlow } from '../lib/browser-auth';
 import { output, outputError } from '../lib/output';
 import { cliCapture } from '../lib/analytics';
@@ -47,7 +48,16 @@ function detectEditors(): Editor[] {
   return editors;
 }
 
-function writeMcpConfig(editor: Editor, apiKey: string, userId?: string): void {
+function mcpServerConfig(serversKey: Editor['serversKey'], env: Record<string, string>) {
+  return {
+    ...(serversKey === 'servers' ? { type: 'stdio' } : {}),
+    command: 'npx',
+    args: ['-y', '@graspful/mcp'],
+    ...(Object.keys(env).length > 0 ? { env } : {}),
+  };
+}
+
+function writeMcpConfig(editor: Editor, env: Record<string, string>): void {
   const { configPath, serversKey } = editor;
   const dir = path.dirname(configPath);
   if (!fs.existsSync(dir)) {
@@ -72,15 +82,7 @@ function writeMcpConfig(editor: Editor, apiKey: string, userId?: string): void {
     throw new Error(`Expected an object at ${serversKey} in ${configPath}. The existing file was preserved.`);
   }
   const mcpServers = configuredServers as Record<string, unknown>;
-  mcpServers['graspful'] = {
-    ...(serversKey === 'servers' ? { type: 'stdio' } : {}),
-    command: 'npx',
-    args: ['-y', '@graspful/mcp'],
-    env: {
-      GRASPFUL_API_KEY: apiKey,
-      ...(userId ? { GRASPFUL_USER_ID: userId } : {}),
-    },
-  };
+  mcpServers['graspful'] = mcpServerConfig(serversKey, env);
   existing[serversKey] = mcpServers;
 
   // Earlier CLI versions wrote Graspful under Cursor's key in VS Code files.
@@ -106,16 +108,28 @@ export function registerInitCommand(program: Command) {
     .option('--no-mcp', 'Skip MCP configuration')
     .option('--no-browser', 'Print the sign-up URL instead of opening it automatically')
     .action(async (opts: { email?: string; password?: string; apiUrl?: string; mcp: boolean; browser?: boolean }) => {
-      const baseUrl = (opts.apiUrl || getBaseUrl()).replace(/\/$/, '');
+      const existingCreds = resolveCredentials();
+      const baseUrl = (opts.apiUrl || existingCreds.baseUrl).replace(/\/$/, '');
+      const mcpEnv: Record<string, string> = {};
+      if (process.env.GRASPFUL_CONFIG_DIR) {
+        mcpEnv.GRASPFUL_CONFIG_DIR = path.resolve(process.env.GRASPFUL_CONFIG_DIR);
+      }
+      if (opts.apiUrl || process.env.GRASPFUL_API_URL) {
+        mcpEnv.GRASPFUL_API_URL = baseUrl;
+      }
 
       // ── Check if already authenticated ──────────────────────────────────
-      const existingCreds = resolveCredentials();
-      if (existingCreds.apiKey) {
+      if (existingCreds.apiKey || existingCreds.jwt) {
+        // Store an explicit shell key so an editor launched outside that shell
+        // can use the same credentials and pick up later login rotations.
+        if (process.env.GRASPFUL_API_KEY && existingCreds.apiKey) {
+          saveApiKeyCredentials(existingCreds.apiKey, baseUrl, existingCreds.userId);
+        }
         console.log('Already authenticated (credentials found).');
         console.log('Skipping registration. To re-register, delete ~/.graspful/credentials.json first.');
 
         // Still configure MCP if requested
-        if (opts.mcp && !configureMcp(existingCreds.apiKey, existingCreds.userId)) {
+        if (opts.mcp && !configureMcp(mcpEnv)) {
           process.exitCode = 1;
           return;
         }
@@ -142,10 +156,10 @@ export function registerInitCommand(program: Command) {
 
         console.log(`\nAccount created!`);
         console.log(`  Org: ${data.orgSlug}`);
-        console.log(`  API key: ${data.apiKey} (saved to ~/.graspful/credentials.json)`);
+        console.log(`  API key: ${maskApiKey(data.apiKey)} (saved to ~/.graspful/credentials.json)`);
 
         // ── Configure MCP ───────────────────────────────────────────────
-        if (opts.mcp && !configureMcp(data.apiKey, data.userId)) {
+        if (opts.mcp && !configureMcp(mcpEnv)) {
           process.exitCode = 1;
           return;
         }
@@ -154,7 +168,7 @@ export function registerInitCommand(program: Command) {
           {
             userId: data.userId,
             orgSlug: data.orgSlug,
-            apiKey: data.apiKey,
+            apiKey: maskApiKey(data.apiKey),
             baseUrl,
           },
           [
@@ -174,21 +188,14 @@ export function registerInitCommand(program: Command) {
     });
 }
 
-function configureMcp(apiKey: string, userId?: string): boolean {
+function configureMcp(env: Record<string, string>): boolean {
   const editors = detectEditors();
 
   if (editors.length === 0) {
     console.log('\nNo supported editors detected. Add MCP manually:');
     console.log(JSON.stringify({
       mcpServers: {
-        graspful: {
-          command: 'npx',
-          args: ['-y', '@graspful/mcp'],
-          env: {
-            GRASPFUL_API_KEY: apiKey,
-            ...(userId ? { GRASPFUL_USER_ID: userId } : {}),
-          },
-        },
+        graspful: mcpServerConfig('mcpServers', env),
       },
     }, null, 2));
     return true;
@@ -197,7 +204,7 @@ function configureMcp(apiKey: string, userId?: string): boolean {
   let configured = true;
   for (const editor of editors) {
     try {
-      writeMcpConfig(editor, apiKey, userId);
+      writeMcpConfig(editor, env);
       cliCapture('cli initialized', { editor: editor.name });
       console.log(`\nMCP configured for ${editor.name}: ${editor.configPath}`);
     } catch (error) {

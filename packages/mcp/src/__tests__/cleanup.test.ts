@@ -1,3 +1,4 @@
+import '../../../client/test-support/preload';
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { handleToolCall, TOOLS } from '../index';
 

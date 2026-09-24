@@ -355,3 +355,5 @@ The CLI sends command usage and outcome metadata to help improve Graspful. It ne
 Registration saves the full key to `~/.graspful/credentials.json`. Console and JSON output show a masked key. Both CLI and MCP read the saved credentials on each command. Set `GRASPFUL_CONFIG_DIR` to use another credential directory.
 
 Non-interactive login requires `--token`, `--token-stdin`, `--email` with `--password`, or an explicit `--no-browser` flow. Use `graspful login --token-stdin` when piping a token into the CLI. `--hours`, `--kps`, and `--problems` require positive integers.
+
+`graspful init` creates editor MCP configuration that uses saved credentials. Generated configuration contains no API key or user ID. Run init again to update older editor configurations that embedded a key. If init uses a key from `GRASPFUL_API_KEY`, it saves that key privately so the editor can start outside the shell. Later login changes take effect on the next MCP call. Explicit API URL and credential directory overrides are included in the editor configuration.

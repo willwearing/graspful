@@ -1,3 +1,4 @@
+import '../../../../client/test-support/preload';
 import { expect, test, beforeEach, afterEach } from 'bun:test';
 import { spawn } from 'node:child_process';
 import { resolve, join } from 'node:path';
@@ -20,7 +21,7 @@ function run(args: string[], keepStdinOpen = false, input?: string): Promise<{ c
   });
 }
 test('unexpected write failures return a nonzero exit code', async () => {
-  const result = await run(['create', 'course', '--topic', 'Test', '-o', '/missing-directory/course.yaml']);
+  const result = await run(['create', 'course', '--topic', 'Test', '-o', join(directory, 'missing-directory', 'course.yaml')]);
   expect(result.code).toBe(1);
   expect(result.output).toContain('ENOENT');
 });

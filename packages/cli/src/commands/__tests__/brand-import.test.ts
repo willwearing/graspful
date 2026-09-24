@@ -1,3 +1,4 @@
+import '../../../../client/test-support/preload';
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
 import { Command } from 'commander';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';

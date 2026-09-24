@@ -1,3 +1,4 @@
+import '../../../../client/test-support/preload';
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { execSync } from 'child_process';
 import * as fs from 'fs';

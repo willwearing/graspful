@@ -1,3 +1,4 @@
+import '../../../../client/test-support/preload';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import { cliDistinctId } from '../analytics';

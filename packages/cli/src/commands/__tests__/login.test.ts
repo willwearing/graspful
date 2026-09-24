@@ -1,3 +1,4 @@
+import '../../../../client/test-support/preload';
 import { describe, it, expect, beforeEach, afterEach, spyOn, mock } from 'bun:test';
 import * as fs from 'fs';
 import * as path from 'path';
