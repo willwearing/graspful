@@ -9,6 +9,7 @@ const BACKEND_URL = getE2eEnvironment(process.env).NEXT_PUBLIC_BACKEND_URL;
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 const CLI_PACKAGE_ROOT = path.resolve(REPO_ROOT, "packages/cli");
 const SHARED_PACKAGE_ROOT = path.resolve(REPO_ROOT, "packages/shared");
+const CLIENT_PACKAGE_ROOT = path.resolve(REPO_ROOT, "packages/client");
 const CLI_ENTRY = path.resolve(CLI_PACKAGE_ROOT, "dist/index.js");
 let cliBuilt = false;
 
@@ -19,6 +20,12 @@ function buildCliOnce() {
 
   execFileSync("bun", ["run", "build"], {
     cwd: SHARED_PACKAGE_ROOT,
+    encoding: "utf-8",
+    env: { ...process.env, NODE_ENV: "test" },
+  });
+
+  execFileSync("bun", ["run", "build"], {
+    cwd: CLIENT_PACKAGE_ROOT,
     encoding: "utf-8",
     env: { ...process.env, NODE_ENV: "test" },
   });
