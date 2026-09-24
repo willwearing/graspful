@@ -1,6 +1,6 @@
 import '../../../../client/test-support/preload';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { execFileSync } from 'node:child_process';
+import { buildCliOnce, CLI_BUILD_TIMEOUT_MS } from '../../../test-support/build-cli';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
@@ -25,12 +25,8 @@ describe('CLI publication results', () => {
   let responses: Array<{ body: unknown; status?: number }>;
   let requests: string[];
 
-  beforeAll(() => {
-    execFileSync('bun', ['run', 'build'], {
-      cwd: cliDir,
-      env: { ...process.env, NODE_ENV: 'test' },
-      stdio: 'pipe',
-    });
+  beforeAll(async () => {
+    await buildCliOnce();
     directory = mkdtempSync(path.join(tmpdir(), 'graspful-publication-test-'));
     writeFileSync(path.join(directory, 'course.yaml'), 'course: { id: course-one }\n');
     server = Bun.serve({
@@ -44,7 +40,7 @@ describe('CLI publication results', () => {
         });
       },
     });
-  });
+  }, CLI_BUILD_TIMEOUT_MS);
 
   beforeEach(() => {
     responses = [];
