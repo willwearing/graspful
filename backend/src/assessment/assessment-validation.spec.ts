@@ -1,6 +1,6 @@
 import { ExecutionContext, INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
+import { SupabaseAuthGuard, OrgMembershipGuard, CourseScopeGuard } from '@/auth';
 import { PostHogService } from '@/shared/application/posthog.service';
 import { AssessmentController } from './assessment.controller';
 import { ProblemSubmissionService } from './problem-submission.service';
@@ -25,6 +25,7 @@ describe('Assessment answer API validation', () => {
       ],
     })
       .overrideGuard(SupabaseAuthGuard).useValue({ canActivate: () => true })
+      .overrideGuard(CourseScopeGuard).useValue({ canActivate: () => true })
       .overrideGuard(OrgMembershipGuard).useValue({ canActivate: (context: ExecutionContext) => {
         context.switchToHttp().getRequest().orgContext = { orgId: 'org-1', userId: 'user-1' };
         return true;

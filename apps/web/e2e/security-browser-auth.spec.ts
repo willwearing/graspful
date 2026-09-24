@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { createServerClient } from "@supabase/ssr";
 import { createHash, randomUUID } from "node:crypto";
 import { cliAuthConfirmationCode } from "@graspful/shared";
-import { getE2eEnvironment } from "../../../scripts/e2e-env";
+import { getE2eEnvironment } from "../../../backend/scripts/e2e-env";
 import { getBrowserAccessToken, signInTestUser } from "./helpers/auth";
 
 // Fail before opening a database connection if any service is hosted.
