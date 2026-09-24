@@ -47,7 +47,7 @@ Final integrated run on 2026-09-24:
 
 | Check | Result |
 | --- | --- |
-| Unit, component, and package tests | 2,075 passed: backend 1,286; web 495; site 65; shared 81; client 20; CLI 70; MCP 58. |
+| Unit, component, and package tests | 2,076 passed: backend 1,286; web 496; site 65; shared 81; client 20; CLI 70; MCP 58. |
 | Repository script tests | 32 passed. |
 | Live migration tests | 12 passed, 80 assertions; row-security assertion passed. Earlier fresh deploy replay and Prisma schema diff also passed. |
 | Web browser tests | 307 passed, including 35 security regressions. |
@@ -55,8 +55,10 @@ Final integrated run on 2026-09-24:
 | Frozen dependency installation | Passed. |
 | Type checks | All workspaces passed. |
 | Lint | Passed with 0 errors and 10 component-length warnings under the new 150-line warning rule. |
-| Production builds | Backend, web app, and site passed. |
+| Production builds | Backend, web app, and site passed. Both Next apps also build with Supabase public configuration omitted, matching unconfigured preview builds. |
 | Package artifacts | Shared, client, CLI, and MCP tarballs checked locally; published entrypoints and dependency versions resolved. |
+
+The server Supabase factory reads request cookies before configuration validation, so Next can defer creator pages during static generation. A regression covers this order. Preview authentication still requires valid public Supabase configuration; authenticated flows were tested against isolated local Supabase.
 
 The CLI build runs in suite setup with its own bounded timeout. A controlled six-second compilation delay passed without increasing command-test timeouts.
 

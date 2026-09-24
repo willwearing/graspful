@@ -4,8 +4,9 @@ import { cookies } from "next/headers";
 import { requireSupabaseEnv } from "./supabase-env";
 
 export async function createSupabaseServerClient() {
-  const { url, anonKey } = requireSupabaseEnv();
+  // Read request state first so Next defers these pages during static generation.
   const cookieStore = await cookies();
+  const { url, anonKey } = requireSupabaseEnv();
 
   return createServerClient(url, anonKey, {
     cookies: {

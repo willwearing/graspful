@@ -90,10 +90,18 @@ describe("shared Supabase server factory", () => {
     expect(() => options.cookies.setAll([{ name: "session", value: "token", options: { path: "/" } }])).not.toThrow();
   });
 
-  it.each(["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"])("rejects missing %s before accessing request cookies", async (name) => {
+  it("lets Next defer request-only rendering before requiring deployment configuration", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    const requestOnly = new Error("Dynamic server usage: cookies");
+    cookies.mockRejectedValueOnce(requestOnly);
+    await expect(createSupabaseServerClient()).rejects.toBe(requestOnly);
+    expect(createServerClient).not.toHaveBeenCalled();
+  });
+
+  it.each(["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"])("rejects missing %s when handling a request", async (name) => {
     vi.stubEnv(name, "");
     await expect(createSupabaseServerClient()).rejects.toThrow("Supabase is not configured for this environment");
-    expect(cookies).not.toHaveBeenCalled();
+    expect(cookies).toHaveBeenCalledOnce();
     expect(createServerClient).not.toHaveBeenCalled();
   });
 });
