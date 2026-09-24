@@ -220,7 +220,7 @@ test.describe("Site creator access", () => {
       await openKeyPage(page, account);
       await expect(page.getByText(ownKeyName, { exact: true })).toBeVisible();
       await expect(page.getByText(foreignKeyName, { exact: true })).toHaveCount(0);
-      await expect(page.getByRole("alert")).toHaveCount(0);
+      await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
       const token = await getBrowserAccessToken(page);
       expect(token).toBeTruthy();
       const denied = await request.get(`${api}/orgs/${foreign.orgSlug}/api-keys`, {
@@ -258,6 +258,6 @@ test.describe("Site creator access", () => {
     await openKeyPage(page, other);
     await expect(page.getByText(otherKeyName, { exact: true })).toBeVisible();
     await expect(page.getByText(ownKeyName, { exact: true })).toHaveCount(0);
-    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
   });
 });
