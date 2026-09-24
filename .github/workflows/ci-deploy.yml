@@ -156,6 +156,9 @@ jobs:
       - name: Build shared package
         run: cd packages/shared && bun run build
 
+      - name: Build shared API client
+        run: bun run --cwd packages/client build
+
       - name: Generate Prisma client
         run: cd backend && bun x prisma generate
 
