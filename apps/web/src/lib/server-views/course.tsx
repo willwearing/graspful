@@ -49,7 +49,7 @@ export async function CourseView({ courseId, orgSlug, fetcher: apiFetch, routes 
   const masteryMap = new Map<string, MasteryState>();
 
   try {
-    // Fetch graph first — if this fails, the course doesn't exist
+    // Fetch graph first, if this fails, the course doesn't exist
     graph = await apiFetch<CourseGraph>(`/orgs/${orgSlug}/courses/${courseId}/graph`);
   } catch (error) {
     if (error instanceof ApiError && error.statusCode === 404) notFound();
@@ -57,7 +57,7 @@ export async function CourseView({ courseId, orgSlug, fetcher: apiFetch, routes 
   }
 
   if (graph) {
-    // Fetch learner-specific data — failures here shouldn't 404 the page
+    // Fetch learner-specific data, failures here shouldn't 404 the page
     const [profileRes, nextTaskRes, sectionsRes, masteryRes] =
       await Promise.allSettled([
         apiFetch<CourseProfile>(`/orgs/${orgSlug}/courses/${courseId}/profile`),

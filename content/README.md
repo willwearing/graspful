@@ -126,7 +126,7 @@ A concept = one teachable idea that can be tested independently. Too broad = stu
 ### Prerequisites
 
 - Max 3-4 direct prerequisites per concept (working memory limit)
-- Only list DIRECT prerequisites — transitive ones are inferred
+- Only list DIRECT prerequisites, transitive ones are inferred
 - If A→B→C, don't add A→C explicitly
 
 ### Encompassing Weights
@@ -213,7 +213,7 @@ The backend importer validates:
 - Every concept has at least 1 KP (when fully authored)
 - Every KP has at least 2 problems (when fully authored)
 
-Concepts with `# KPs to be authored` placeholders are imported as graph structure only — they won't appear in student-facing content until KPs are added.
+Concepts with `# KPs to be authored` placeholders are imported as graph structure only, they won't appear in student-facing content until KPs are added.
 
 ## Sample Courses
 
