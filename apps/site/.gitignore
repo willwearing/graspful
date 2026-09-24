@@ -4,3 +4,5 @@ node_modules
 playwright-report
 test-results
 tsconfig.tsbuildinfo
+
+!.env.local.example

@@ -574,14 +574,15 @@ graspful login [options]
 | Flag | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
 | `--api-url <url>` | string | No | `GRASPFUL_API_URL` or `https://api.graspful.ai` | API base URL. |
-| `--token <token>` | string | No | — | API key or JWT. Skips browser auth. |
+| `--token <token>` | string | No | None | API key or JWT. Skips browser auth. |
+| `--token-stdin` | boolean | No | `false` | Read an API key or JWT from piped stdin. |
 | `--email <email>` | string | No | — | Prefill the browser sign-in form. |
 | `--no-browser` | boolean | No | `false` | Print the sign-in URL instead of opening it automatically. |
 
 **Behavior:**
 - If `--token` is provided, saves it immediately.
 - If stdin is a TTY and no token is provided, starts browser sign-in and waits for completion.
-- If stdin is piped, reads the token from stdin.
+- With `--token-stdin`, reads the token from piped stdin. A bare non-interactive login exits with guidance.
 - Saves to `~/.graspful/credentials.json` with mode `0600`.
 
 **Example (interactive):**
@@ -602,7 +603,7 @@ Authenticated. API key saved for https://api.graspful.ai
 **Example (non-interactive):**
 
 ```bash
-graspful login --token sk-abc123
+graspful login --token gsk_example
 ```
 
 ---
@@ -611,7 +612,7 @@ graspful login --token sk-abc123
 
 Create a new Graspful account with browser-based authentication. After the
 browser session completes, Graspful issues an API key and saves it to
-`~/.graspful/credentials.json`.
+`~/.graspful/credentials.json`. Human and JSON output show a masked key. Registration creates a private workspace; course or brand imports create the public site. See [auth and access](auth-and-access.md).
 
 **Syntax:**
 
@@ -641,7 +642,7 @@ https://graspful.ai/cli-auth?mode=sign-up&email=alice%40example.com#token=...
 
 Waiting for browser authentication...
 Created org: alice-org
-API key: sk-abc123... (saved to ~/.graspful/credentials.json)
+API key: gsk_...1234 (saved to ~/.graspful/credentials.json)
 
 You're ready. Run: graspful import course.yaml --org alice-org
 ```
@@ -652,7 +653,7 @@ You're ready. Run: graspful import course.yaml --org alice-org
 {
   "userId": "uuid",
   "orgSlug": "alice-org",
-  "apiKey": "sk-abc123...",
+  "apiKey": "gsk_...1234",
   "baseUrl": "https://api.graspful.ai"
 }
 ```
@@ -661,7 +662,7 @@ You're ready. Run: graspful import course.yaml --org alice-org
 
 ## 2. MCP Tools Reference
 
-The Graspful MCP server exposes 12 tools over the Model Context Protocol (stdio transport). Server name: `graspful`, version `0.1.0`.
+The Graspful MCP server exposes course and academy tools over the Model Context Protocol (stdio transport). Server name: `graspful`. The server reports the installed package version.
 
 All tools return `{ content: [{ type: "text", text: "..." }], isError?: boolean }`. The `text` field contains either raw YAML or a JSON string depending on the tool.
 
@@ -1333,7 +1334,7 @@ Graspful uses two authentication methods:
 Set the `GRASPFUL_API_KEY` environment variable:
 
 ```bash
-export GRASPFUL_API_KEY=sk-your-api-key
+export GRASPFUL_API_KEY=gsk_your_api_key
 ```
 
 The API key is sent as a `Bearer` token in the `Authorization` header.
@@ -1344,7 +1345,7 @@ The API key is sent as a `Bearer` token in the `Authorization` header.
 
 ### JWT Token (interactive sessions)
 
-Obtained via `graspful login`. The JWT is saved to `~/.graspful/credentials.json`.
+Supabase issues browser session JWTs. `graspful login --token` and `--token-stdin` can save a supplied JWT. The standard browser CLI login flow issues an API key.
 
 ### Resolution Order
 
@@ -1356,6 +1357,7 @@ Obtained via `graspful login`. The JWT is saved to `~/.graspful/credentials.json
 
 | Operation | Auth Required |
 |-----------|--------------|
+| `create academy` | No |
 | `create course` | No |
 | `create brand` | No |
 | `fill concept` | No |
@@ -1366,12 +1368,14 @@ Obtained via `graspful login`. The JWT is saved to `~/.graspful/credentials.json
 | `publish` | Yes |
 | `login` | No (produces credentials) |
 | `register` | No (produces credentials) |
+| MCP `graspful_create_academy` | No |
 | MCP `graspful_scaffold_course` | No |
 | MCP `graspful_fill_concept` | No |
 | MCP `graspful_validate` | No |
 | MCP `graspful_review_course` | No |
 | MCP `graspful_describe_course` | No |
 | MCP `graspful_create_brand` | No |
+| MCP `graspful_import_academy` | Yes |
 | MCP `graspful_import_course` | Yes |
 | MCP `graspful_publish_course` | Yes |
 | MCP `graspful_import_brand` | Yes |
@@ -1379,7 +1383,7 @@ Obtained via `graspful login`. The JWT is saved to `~/.graspful/credentials.json
 
 ### MCP Server Authentication
 
-The MCP server reads `GRASPFUL_API_KEY` and `GRASPFUL_API_URL` from the environment. Configure these in your MCP client's server configuration.
+The MCP server checks environment overrides and saved CLI credentials for each authenticated tool call. Run `graspful register` or `graspful login` first. The next MCP call can use the saved key without a restart. `GRASPFUL_CONFIG_DIR` can select a separate credential directory.
 
 ### Credential Storage
 
@@ -1395,7 +1399,10 @@ Credentials file: `~/.graspful/credentials.json`
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GRASPFUL_API_KEY` | — | API key for authenticating with the Graspful API. Takes precedence over stored credentials. |
-| `GRASPFUL_API_URL` | `https://api.graspful.ai` | Base URL for the Graspful API. Used by both CLI and MCP server. Trailing slash is stripped automatically. |
+| `GRASPFUL_API_URL` | Saved URL or `https://api.graspful.ai` | Base URL override for the CLI and MCP server. Trailing slashes are stripped. |
+| `GRASPFUL_CONFIG_DIR` | `~/.graspful` | Directory containing `credentials.json`. |
+| `GRASPFUL_TELEMETRY_DISABLED` | Unset | Set to `1` to disable CLI and MCP analytics. |
+| `GRASPFUL_USER_ID` | Saved user ID | User identifier for analytics. |
 
 ---
 

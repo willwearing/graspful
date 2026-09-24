@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-import { getE2eEnvironment } from "../../scripts/e2e-env";
+import { getE2eEnvironment } from "../../backend/scripts/e2e-env";
 
 const testEnv = getE2eEnvironment(process.env);
 Object.assign(process.env, testEnv);

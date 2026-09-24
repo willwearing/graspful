@@ -23,19 +23,18 @@ export NEXT_PUBLIC_POSTHOG_KEY=
 
 The expected ports are Supabase API 54321, Postgres 54322, backend 3000, web 3001, and site 3002. The backend and browser Supabase URLs must have the same origin. `DIRECT_URL` defaults to `DATABASE_URL` when omitted.
 
-From the repository root, build shared code, then apply the database schema before the auth triggers and RLS policies:
+From the repository root, build shared code, then apply Prisma migrations. The migration chain includes auth triggers and RLS policies:
 
 ```sh
 bun install --frozen-lockfile
 (cd packages/shared && bun run build)
 (cd backend && bun x prisma generate && bun x prisma migrate deploy)
-for migration in supabase/migrations/*.sql; do
-  psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file "$migration"
-done
 (cd backend && bun x prisma db seed)
 (cd backend && bun x ts-node prisma/seeds/brands.ts)
 (cd apps/web && bun x playwright install chromium)
 ```
+
+After migrations, verify the public-schema RLS policies with `psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file backend/test/assert-public-rls.sql`. CI runs the same policy assertion.
 
 Run either suite from the repository root:
 
@@ -50,4 +49,4 @@ By default, tests refuse to reuse an existing app server. Set `E2E_REUSE_EXISTIN
 
 When testing a production Next.js build, set the local public environment variables and empty PostHog keys above before `bun run build`. Public variables are embedded in the browser bundle. Empty source map credentials prevent uploads from local verification builds. Start the backend directly from `dist/main.js` with `NODE_ENV=development`, as CI does, and start the built Next.js apps with `NODE_ENV=production`.
 
-`bun run test:e2e:list` in `apps/web` and `bun x playwright test --list` in `apps/site` use the same environment checks. `bun test scripts/e2e-env.test.ts` verifies missing configuration, hosted URL rejection, and integration isolation without starting services.
+`bun run test:e2e:list` in `apps/web` and `bun x playwright test --list` in `apps/site` use the same environment checks. `bun test backend/scripts/e2e-env.test.ts` verifies missing configuration, hosted URL rejection, and integration isolation without starting services.

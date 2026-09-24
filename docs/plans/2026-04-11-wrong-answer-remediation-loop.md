@@ -3,7 +3,7 @@
 **Date:** 2026-04-11
 **Status:** Approved — execute all 7 workstreams
 **Owner:** Will
-**Related:** `docs/adaptive-learning-architecture.md`, `docs/academy-graph-engine-plan.md`, `math-academy-way.pdf`
+**Related:** `docs/adaptive-learning-architecture.md`, [The Math Academy Way PDF](https://www.justinmath.com/files/the-math-academy-way.pdf)
 
 ## TL;DR
 
@@ -230,11 +230,11 @@ Workstream A is the critical-path long pole if done serially — which is why it
 
 ### Workstream G — hard requirement
 
-The agent updating `docs/adaptive-learning-architecture.md` **MUST read `math-academy-way.pdf` first** — specifically Ch 4 (Knowledge Graph, key prerequisites), Ch 13 (Mastery Learning / ZPD), Ch 14 (Cognitive Load / worked examples), Ch 18 (Spaced Repetition / FIRe), Ch 21 (Targeted Remediation), and the FAQ sections on Practice Experience and Remediation (pp. 397–425).
+The agent updating `docs/adaptive-learning-architecture.md` **MUST read [The Math Academy Way PDF](https://www.justinmath.com/files/the-math-academy-way.pdf) first** — specifically Ch 4 (Knowledge Graph, key prerequisites), Ch 13 (Mastery Learning / ZPD), Ch 14 (Cognitive Load / worked examples), Ch 18 (Spaced Repetition / FIRe), Ch 21 (Targeted Remediation), and the FAQ sections on Practice Experience and Remediation (pp. 397–425).
 
 Do not paraphrase from memory, the summary in §8 of this plan, or prior training data. Every new doctrine added to the architecture doc must be grounded in a direct citation from the book (page number required). The point of the update is to codify Math Academy's rules, not invent Graspful-flavored variants. If the agent can't find a book quote supporting a claim, the claim does not go in the doc.
 
-The book lives at `/Users/will/github/graspful/math-academy-way.pdf`. Read it via the `Read` tool with the `pages` parameter in chunks of 15–20 pages.
+Read the [public PDF](https://www.justinmath.com/files/the-math-academy-way.pdf) in chunks of 15 to 20 pages. Keep any local download outside version control.
 
 ---
 

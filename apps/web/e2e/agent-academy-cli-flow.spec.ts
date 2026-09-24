@@ -3,7 +3,7 @@ import { execFileSync } from "child_process";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { getE2eEnvironment } from "../../../scripts/e2e-env";
+import { getE2eEnvironment } from "../../../backend/scripts/e2e-env";
 
 const BACKEND_URL = getE2eEnvironment(process.env).NEXT_PUBLIC_BACKEND_URL;
 const REPO_ROOT = path.resolve(__dirname, "../../..");

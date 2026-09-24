@@ -2,10 +2,10 @@
  * k6 load test for graspful API.
  *
  * Usage:
- *   k6 run scripts/load-test.js --env API_URL=http://localhost:3000
+ *   k6 run backend/scripts/load-test.js --env API_URL=http://localhost:3000
  *
  * Authenticated endpoints (required for meaningful tests):
- *   k6 run scripts/load-test.js \
+ *   k6 run backend/scripts/load-test.js \
  *     --env API_URL=http://localhost:3000 \
  *     --env AUTH_TOKEN=<jwt> \
  *     --env ORG_ID=<uuid> \

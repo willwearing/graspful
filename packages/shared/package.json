@@ -4,7 +4,9 @@
   "description": "Shared schemas and types for the Graspful platform",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/willwearing/graspful.git",
@@ -14,7 +16,9 @@
   "scripts": {
     "build": "bun x tsc",
     "dev": "bun x tsc --watch",
-    "test": "bun test"
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint --config ../../eslint.config.mjs src"
   },
   "dependencies": {
     "zod": "^3.24.0"

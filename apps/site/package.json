@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "bun x vitest run",
     "test:watch": "bun x vitest",
-    "test:e2e": "bun x playwright test"
+    "test:e2e": "bun x playwright test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

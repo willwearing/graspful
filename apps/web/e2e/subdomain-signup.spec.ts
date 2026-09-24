@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { getBrowserAccessToken } from "./helpers/auth";
-import { getE2eEnvironment } from "../../../scripts/e2e-env";
+import { getE2eEnvironment } from "../../../backend/scripts/e2e-env";
 
 const BACKEND_URL = getE2eEnvironment(process.env).NEXT_PUBLIC_BACKEND_URL;
 const prisma = new PrismaClient();

@@ -3,14 +3,14 @@
  * Idempotent: safe to re-run.
  *
  * Usage:
- *   cd backend && npx ts-node ../scripts/import-tam-academy.ts
+ *   cd backend && bunx ts-node -r tsconfig-paths/register scripts/import-tam-academy.ts
  */
 import * as fs from 'fs';
 import * as path from 'path';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../backend/src/app.module';
-import { PrismaService } from '../backend/src/prisma/prisma.service';
-import { AcademyImporterService } from '../backend/src/knowledge-graph/academy-importer.service';
+import { AppModule } from '../src/app.module';
+import { PrismaService } from '../src/prisma/prisma.service';
+import { AcademyImporterService } from '../src/knowledge-graph/academy-importer.service';
 
 async function main() {
   const app = await NestFactory.createApplicationContext(AppModule, {
@@ -50,7 +50,7 @@ async function main() {
   });
 
   // 3. Read academy manifest and course YAMLs
-  const academyDir = path.resolve(__dirname, '../content/academies/posthog-tam');
+  const academyDir = path.resolve(__dirname, '../../content/academies/posthog-tam');
   const manifestYaml = fs.readFileSync(
     path.join(academyDir, 'academy.yaml'),
     'utf-8',

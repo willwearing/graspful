@@ -7,19 +7,20 @@ Adaptive learning platform. Multi-tenant white-label SaaS.
 - **CLI or MCP for everything.** Browser auth is only used to mint credentials for the CLI; course creation and publishing stay programmatic.
 - **Use `bun` not `npm`.**
 - **Read `docs/adding-a-course.md` before building any course.** It is the canonical agent runbook.
+- **Auth, routing, and entitlement changes require regression proof.** Verify anonymous access, signed-in but non-entitled access, and entitled access, and cover shell/chrome expectations on the affected route with automated tests. For user-facing access control changes, run the relevant e2e path before considering the work done.
 
-## Course Creation — Agent Workflow
+## Course Creation , Agent Workflow
 
-> If a user asks you to build, draft, author, or create a course, follow this section. Do NOT improvise a workflow — use the CLI/MCP tools below.
+> If a user asks you to build, draft, author, or create a course, follow this section. Do NOT improvise a workflow , use the CLI/MCP tools below.
 
-### Authentication — Read This First
+### Authentication , Read This First
 
 **You can scaffold, fill, validate, and review courses without any account.** These operations run locally.
 
-**You MUST authenticate before importing or publishing.** Four tools require auth: `graspful_import_course`, `graspful_publish_course`, `graspful_import_brand`, `graspful_list_courses`.
+**You MUST authenticate before importing or publishing.** Five tools require auth: `graspful_import_academy`, `graspful_import_course`, `graspful_publish_course`, `graspful_import_brand`, `graspful_list_courses`.
 
 To authenticate, do ONE of:
-1. **CLI (recommended for first-time setup):** Run `graspful register [--email <email>]` — this opens browser auth, then saves an API key to `~/.graspful/credentials.json`.
+1. **CLI (recommended for first-time setup):** Run `graspful register [--email <email>]` , this opens browser auth, then saves an API key to `~/.graspful/credentials.json`.
 2. **Environment variable:** Set `GRASPFUL_API_KEY=gsk_...` before starting the MCP server.
 
 If you try an authenticated tool without auth, you'll get a clear error telling you to register first.
@@ -27,7 +28,7 @@ If you try an authenticated tool without auth, you'll get a clear error telling 
 ### Step 1: Install the CLI
 
 ```bash
-npx @graspful/cli init
+bunx @graspful/cli init
 ```
 
 This auto-detects your editor (Claude Code, Cursor, Windsurf, Codex) and configures MCP if supported. No global install needed.
@@ -36,7 +37,7 @@ If you have MCP configured, skip the CLI and use MCP tools directly (see Step 1b
 
 ### Step 1b: MCP alternative
 
-If MCP is already configured, you have these tools available — no CLI needed:
+If MCP is already configured, you have these tools available , no CLI needed:
 
 | Tool | Auth? | Description |
 |------|:---:|-------------|
@@ -46,14 +47,14 @@ If MCP is already configured, you have these tools available — no CLI needed:
 | `graspful_validate` | No | Validate YAML against schema |
 | `graspful_review_course` | No | Run 10 quality checks, including teaching alignment |
 | `graspful_describe_course` | No | Course statistics |
-| `graspful_create_brand` | No | Generate brand YAML (required — every org needs a brand) |
-| `graspful_import_academy` | **Yes** | Import academy manifest + course YAMLs (set `GRASPFUL_API_KEY` first) |
-| `graspful_import_course` | **Yes** | Import course to platform (set `GRASPFUL_API_KEY` first) |
-| `graspful_publish_course` | **Yes** | Publish a draft course (set `GRASPFUL_API_KEY` first) |
-| `graspful_import_brand` | **Yes** | Import brand config — required for site to work (set `GRASPFUL_API_KEY` first) |
-| `graspful_list_courses` | **Yes** | List org courses (set `GRASPFUL_API_KEY` first) |
+| `graspful_create_brand` | No | Generate brand YAML (required , every org needs a brand) |
+| `graspful_import_academy` | **Yes** | Import academy manifest + course YAMLs (saved CLI credentials or `GRASPFUL_API_KEY`) |
+| `graspful_import_course` | **Yes** | Import course to platform (saved CLI credentials or `GRASPFUL_API_KEY`) |
+| `graspful_publish_course` | **Yes** | Publish a draft course (saved CLI credentials or `GRASPFUL_API_KEY`) |
+| `graspful_import_brand` | **Yes** | Import brand config , required for site to work (saved CLI credentials or `GRASPFUL_API_KEY`) |
+| `graspful_list_courses` | **Yes** | List org courses (saved CLI credentials or `GRASPFUL_API_KEY`) |
 
-Tools marked "No" for auth work offline — no account needed. Tools marked **Yes** will fail with a clear error if you haven't authenticated. Run `graspful register`, then restart MCP with `GRASPFUL_API_KEY`.
+Tools marked "No" for auth work offline , no account needed. Tools marked **Yes** will fail with a clear error if you haven't authenticated. Run `graspful register`. MCP reads the saved CLI credentials when a tool runs; `GRASPFUL_API_KEY` can override them.
 
 **MCP discovery:** To check if MCP is active, try calling `graspful_validate` with any small YAML string. If it responds, MCP is working. If you get a "tool not found" error, fall back to the CLI.
 
@@ -66,14 +67,14 @@ If you haven't already authenticated (see "Authentication" above), do it now bef
 graspful register --email <email>
 ```
 
-This creates an account, org, and API key through browser auth. To use MCP tools that require auth, restart the MCP server with `GRASPFUL_API_KEY` set to the saved key.
+This creates an account, private org workspace, and API key through browser auth. MCP can use the saved CLI credentials. Registration does not create a public website. See [auth and access](docs/auth-and-access.md).
 
 ### Step 3: Build a course
 
 The workflow is: academy plan -> course graphs -> fill -> validate -> review -> import.
 
 **Before writing any YAML**, follow the detailed runbook in `docs/adding-a-course.md`. Key steps:
-1. Gather source material (official docs, syllabi, PDFs — not marketing copy)
+1. Gather source material (official docs, syllabi, PDFs , not marketing copy)
 2. Model it as an academy first, even if it starts with one course
 3. Decompose the academy into foundations -> structures -> operations -> applied judgment
 4. Build the prerequisite graph (roots -> trunk -> branches -> leaves)
@@ -157,7 +158,7 @@ instructionContent:
     body: The explanation text here.
 ```
 
-**Important:** `instruction` and `workedExample` (the plain text fields) should remain readable as standalone text because they power audio. Put images, diagrams, external references, and video links in the `*Content` blocks — do not bury URLs in the prose.
+**Important:** `instruction` and `workedExample` (the plain text fields) should remain readable as standalone text because they power audio. Put images, diagrams, external references, and video links in the `*Content` blocks , do not bury URLs in the prose.
 
 When a user asks for images or visual comparisons in a course, use `image` content blocks with publicly accessible URLs. Every knowledge point can have multiple content blocks.
 
@@ -169,12 +170,11 @@ When building a course from a PDF or document:
 2. Extract the key concepts, facts, and distinctions
 3. Map them to a prerequisite graph (what must be learned before what?)
 4. For visual content (photos, diagrams, comparisons), find or request publicly accessible image URLs and use `image` content blocks
-5. Do not copy-paste prose verbatim — rewrite for the lesson pattern (instruction -> worked example -> problems)
+5. Do not copy-paste prose verbatim , rewrite for the lesson pattern (instruction -> worked example -> problems)
 
 ### Step 4: Create or update the academy landing page and brand
 
-Every org needs a brand for the site to work. Registration creates a minimal default, 
-but you should update it with content relevant to the course topic.
+A public website needs a brand. Registration creates a private org workspace. A course import can create a public brand, including when the imported course is a draft. Customize its content for the course topic.
 
 Use `graspful_create_brand` to generate a brand YAML tailored to the course topic, 
 then import it with `graspful_import_brand`. This updates the landing page headline, 
@@ -186,8 +186,7 @@ Important:
 - the page should name the learner, the outcome, the curriculum shape, and the proof for why this academy is worth joining
 - treat landing-page authoring as part of the academy build, not post-launch polish
 
-If the org already has a brand (from registration), importing a new one updates it 
-in place (upsert by slug).
+If the org already has a brand with the same slug, importing it updates that brand in place.
 
 Create a white-label landing page and theme:
 
@@ -197,7 +196,7 @@ graspful import brand.yaml
 ```
 
 **Brand theme requirements:** When creating a brand with custom `light`/`dark` theme colors (not using a preset), you **must** also include:
-- A `gradient` object with hex colors: `start`, `mid`, `end`, `accent` — used for CTA buttons, text gradients, and decorative orbs on marketing pages.
+- A `gradient` object with hex colors: `start`, `mid`, `end`, `accent` , used for CTA buttons, text gradients, and decorative orbs on marketing pages.
 - All 18 color fields in both `light` and `dark`: `primary`, `primaryForeground`, `secondary`, `secondaryForeground`, `accent`, `accentForeground`, `background`, `foreground`, `card`, `cardForeground`, `popover`, `popoverForeground`, `muted`, `mutedForeground`, `destructive`, `border`, `input`, `ring`.
 
 Missing fields will fall back to defaults, but providing them all ensures visual consistency. **After importing a brand, run the brand resilience tests:**
@@ -236,7 +235,7 @@ graspful validate course.yaml --format json
 - **Auth:** Supabase Auth (JWT)
 - **Monorepo:** Turborepo, bun as package manager
 
-## Architecture — DDD Bounded Contexts
+## Architecture , DDD Bounded Contexts
 
 The backend follows Domain-Driven Design with bounded contexts. Each NestJS module owns its domain. **Do not leak domain logic across boundaries.**
 
@@ -255,11 +254,11 @@ The backend follows Domain-Driven Design with bounded contexts. Each NestJS modu
 1. **Services call services, not repositories of other modules.** If Diagnostic needs mastery data, it calls `StudentStateService`, not `prisma.studentConceptState` directly.
 2. **Controllers are thin.** Extract, validate, delegate to service, return. No domain logic in controllers.
 3. **Each module owns its Prisma queries.** Other modules request data through the owning module's service.
-4. **Cross-context data for the frontend** should be composed at the API/controller layer or in a dedicated query service — not by having one domain service reach into another's tables.
+4. **Cross-context data for the frontend** should be composed at the API/controller layer or in a dedicated query service , not by having one domain service reach into another's tables.
 
 ## Backend
 
-- Build: `cd backend && /path/to/tsc -p tsconfig.build.json --outDir dist` (nest build has symlink issues with bun)
+- Build: `cd backend && bun run build` (generates Prisma client, then compiles NestJS)
 - Run: `TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/main.js`
 - Dev: `bun run dev` (nest start --watch)
 - Test: `bun run test`
@@ -268,36 +267,38 @@ The backend follows Domain-Driven Design with bounded contexts. Each NestJS modu
 ## Frontend
 
 - Dev: `bun run dev` (port 3001)
-- Build: `npx next build`
-- E2E: `cd apps/web && npx playwright test`
+- Build: `bunx next build`
+- E2E: `cd apps/web && bunx playwright test`
 
 ## Prisma
 
 - Schema: `backend/prisma/schema.prisma`
-- Migrate: `cd backend && npx prisma migrate dev --name <name>`
-- Generate: `npx prisma generate` (runs automatically after migrate)
+- Migrate: `cd backend && bunx prisma migrate dev --name <name>`
+- Generate: `bunx prisma generate` (runs automatically after migrate)
 
 ## Conventions
 
 - Use `bun` not `npm`
 - snake_case for DB columns (Prisma `@@map`), camelCase for TypeScript
 - All Prisma models use `@db.Uuid` for IDs and `@db.Timestamptz` for dates
-- Tests: Jest for backend unit tests, Playwright for e2e
-- E2E helpers: `apps/web/e2e/helpers/auth.ts` — `signUpTestUser()` creates fresh users
+- Tests: Jest for backend unit tests, Vitest for app component tests, `bun test` for package and script tests, Playwright for e2e
+- Checks: `bun run lint`, `bun run typecheck`, and `bun run test:scripts` from the root
+- Local setup and browser tests: [docs/local-e2e.md](docs/local-e2e.md)
+- E2E helpers: `apps/web/e2e/helpers/auth.ts` , `signUpTestUser()` creates fresh users
 - Brand cookie: `dev-brand-override` selects org in dev
 
 ## E2E Test Coverage Requirements
 
-**Every live site page and API endpoint MUST have an e2e test.** This is non-negotiable — bread-and-butter functionality that users depend on must have regression coverage.
+**Every live site page and API endpoint MUST have an e2e test.** This is non-negotiable , bread-and-butter functionality that users depend on must have regression coverage.
 
 ### What must be tested:
 
-1. **All pages render** — every route under `(marketing)` and `(app)` must have a smoke test verifying it returns 200 and renders its heading. See `e2e/docs-smoke.spec.ts` for the pattern.
-2. **Auth flows** — sign-up, sign-in, sign-out, email confirmation callback, org provisioning
-3. **Creator flows** — API key CRUD, course import, brand config import, course publish
-4. **CLI registration** — `graspful register` opens browser auth, then stores an API key locally for later CLI/MCP use
-5. **API provisioning** — `POST /auth/provision` creates personal org for web UI sign-ups
-6. **Learner flows** — browse, enroll, diagnostic, study session
+1. **All pages render** , every route under `(marketing)` and `(app)` must have a smoke test verifying it returns 200 and renders its heading. See `e2e/docs-smoke.spec.ts` for the pattern.
+2. **Auth flows** , sign-up, sign-in, sign-out, email confirmation callback, org provisioning
+3. **Creator flows** , API key CRUD, course import, brand config import, course publish
+4. **CLI registration** , `graspful register` opens browser auth, then stores an API key locally for later CLI/MCP use
+5. **API provisioning** , `POST /auth/provision` creates personal org for web UI sign-ups
+6. **Learner flows** , browse, enroll, diagnostic, study session
 
 ### When adding a new page or endpoint:
 

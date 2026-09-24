@@ -342,67 +342,20 @@ Run `graspful review course.yaml` to validate content quality. See [Course Revie
 
 Do not mark the course complete until both the graph review and the content review pass.
 
-## 1. Create the Organization & Brand
+## 1. Create the organization and brand
 
-Every course belongs to an organization, and every org needs a brand to be visible in the app.
+Run `graspful register` to authenticate and create a private organization workspace. Use the org slug returned by the CLI for imports. Registration creates no public website.
 
-### Step 1: Create the org in the database
+Import a reviewed draft with `graspful import course.yaml --org <org-slug>`. The course import can create a default public brand and landing page before the course is published. Publish after reviewing the draft result.
+
+Create or update the landing page through a brand YAML import:
 
 ```bash
-cd backend
-bun -e "
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-prisma.organization.create({
-  data: { slug: 'my-org-slug', name: 'My Org Name', niche: 'my-niche' }
-}).then(org => { console.log('Created org:', org.id, org.slug); prisma.\$disconnect(); });
-"
+graspful create brand --niche tech --topic "Your topic" --name "My academy" --org <org-slug> -o brand.yaml
+graspful import brand.yaml
 ```
 
-Note the UUID — you'll need it for the import step.
-
-### Step 2: Add a brand config
-
-Three files need updating:
-
-**`apps/web/src/lib/brand/defaults.ts`** — Add a new brand config:
-
-```typescript
-export const myBrand: BrandConfig = {
-  id: "my-brand",
-  name: "My Brand Name",
-  domain: "mybrand.audio",
-  tagline: "Tagline here",
-  logoUrl: "/images/logo-firefighter.svg",  // reuse or add your own
-  faviconUrl: "/favicon.ico",
-  ogImageUrl: "/images/og-firefighter.png",
-  orgId: "my-org-slug",  // must match the org slug from step 1
-
-  theme: { /* copy from an existing brand and customize */ },
-  landing: { /* hero, features, howItWorks, faq */ },
-  seo: { /* title, description, keywords */ },
-  pricing: { monthly: 0, yearly: 0, currency: "USD", trialDays: 0 },
-  contentScope: { courseIds: [] },
-};
-```
-
-**`apps/web/src/lib/brand/resolve.ts`** — Register the brand:
-
-```typescript
-import { ..., myBrand } from "./defaults";
-
-// Add to brandsByDomain:
-["mybrand.audio", myBrand],
-
-// Add to brandsById:
-["my-brand", myBrand],
-```
-
-**`apps/web/src/components/dev/brand-switcher.tsx`** — Add to the BRANDS array:
-
-```typescript
-{ id: "my-brand", name: "My Brand Name", emoji: "🎯", orgId: "my-org-slug" },
-```
+Edit the YAML first to set the learner promise, curriculum, theme, and domain. Brand records are stored in the database. See [auth and access](auth-and-access.md) and [multi-brand architecture](multi-brand-architecture.md) for roles, site creation, and custom-domain setup.
 
 ## 2. Create the YAML File
 
@@ -648,7 +601,7 @@ if (ok) console.log('All section dependencies flow forward');
 
 #### References
 
-- Skycak, J. (2026). *The Math Academy Way: Using the Power of Science to Supercharge Student Learning.* Working Draft. (`math-academy-way.pdf` in repo root)
+- Skycak, J. (2026). *The Math Academy Way: Using the Power of Science to Supercharge Student Learning.* Working Draft. ([public PDF](https://www.justinmath.com/files/the-math-academy-way.pdf))
   - Ch 4: Knowledge Graph — course graphs as compressed DAGs (pp. 69-80)
   - Ch 13: Mastery Learning — knowledge frontier as Zone of Proximal Development (pp. 207-214)
   - Ch 14: Minimizing Cognitive Load — the learning staircase, micro-scaffolding (pp. 217-224)
@@ -734,7 +687,7 @@ See [`content/README.md`](../content/README.md) for detailed guidelines on:
 
 ## 3. Validate the Schema
 
-The Zod schema lives at `backend/src/knowledge-graph/schemas/course-yaml.schema.ts`. The importer validates:
+The Zod schema lives at `packages/shared/src/schemas/course-yaml.schema.ts`. The importer validates:
 
 - All required fields present
 - No cycles in the prerequisite graph
@@ -791,11 +744,11 @@ Content-Type: application/json
 }
 ```
 
-Requires `admin` role on the org.
+Requires `owner` or `admin` role on the org. API keys are also restricted to their issuing org.
 
 ### Option D: Seed Script
 
-For demo/dev environments, create a script in `scripts/` following the pattern in `scripts/seed-electrical.ts`. This can create the org, load the YAML, and set up a subscription in one step.
+For isolated demo/dev environments, run `cd backend && bun run seed:demo electrical` or `bun run seed:demo javascript`. The shared `backend/scripts/seed-demo.ts` creates the org, imports its course, and creates a free demo subscription. Keep production authoring on the authenticated CLI/MCP path.
 
 ## 4.1 Progress-Safe Course Evolution
 
@@ -830,16 +783,16 @@ Imported: 4 sections, 50 concepts, 120 knowledge points, 340 problems, 65 prereq
 
 Then verify in the app:
 1. Start dev servers: `bun run dev`
-2. Open the brand switcher and switch to your new brand
+2. Open the configured academy hostname
 3. Sign up / sign in
-4. Browse courses — your new course should appear
+4. Publish the reviewed course, then confirm it appears in the learner catalog
 5. Click into it — sections and concepts should display correctly
 6. Start a lesson — confirm instruction, supporting content, and practice problems all appear in the intended order
 
 ## Checklist
 
-- [ ] Org created in database
-- [ ] Brand config added (`defaults.ts`, `resolve.ts`, `brand-switcher.tsx`)
+- [ ] Private org workspace created through registration
+- [ ] Brand YAML authored and imported for the target org
 - [ ] YAML file written and passes Zod validation
 - [ ] Course imported into the correct org
 - [ ] Replace import path used for updates; no delete-and-recreate workflow
@@ -853,13 +806,13 @@ Then verify in the app:
 | File | Purpose |
 |------|---------|
 | `content/README.md` | Authoring guidelines |
-| `backend/src/knowledge-graph/schemas/course-yaml.schema.ts` | Zod schema (source of truth) |
+| `packages/shared/src/schemas/course-yaml.schema.ts` | Zod schema (source of truth) |
 | `backend/src/knowledge-graph/course-importer.service.ts` | YAML-to-DB importer |
 | `backend/scripts/load-course.ts` | Progress-safe CLI import tool |
 | `backend/scripts/import-course-quick.ts` | Alias to the progress-safe CLI import path |
 | `backend/prisma/schema.prisma` | Database schema |
-| `apps/web/src/lib/brand/defaults.ts` | Brand configs |
-| `apps/web/src/lib/brand/resolve.ts` | Brand registry |
+| `backend/src/brands/brands.service.ts` | Database brand records |
+| `apps/web/src/lib/brand/resolve-db.ts` | Database brand resolution |
 | `apps/web/src/components/dev/brand-switcher.tsx` | Dev brand switcher |
 | `docs/course-review-gate.md` | Review specification and quality gate checks |
 

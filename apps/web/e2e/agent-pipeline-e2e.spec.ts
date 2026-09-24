@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { runQualityGate } from "@graspful/shared";
 import { parse } from "yaml";
-import { getE2eEnvironment } from "../../../scripts/e2e-env";
+import { getE2eEnvironment } from "../../../backend/scripts/e2e-env";
 
 const testEnv = getE2eEnvironment(process.env);
 const BACKEND_URL = testEnv.NEXT_PUBLIC_BACKEND_URL;

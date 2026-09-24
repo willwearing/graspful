@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { test, expect, type Page } from "@playwright/test";
-import { getE2eEnvironment } from "../../../scripts/e2e-env";
+import { getE2eEnvironment } from "../../../backend/scripts/e2e-env";
 import {
   getBrowserAccessToken,
   getSupabaseUserIdByEmail,

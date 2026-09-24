@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "node:path";
-import { getE2eEnvironment } from "../../scripts/e2e-env";
+import { getE2eEnvironment } from "../../backend/scripts/e2e-env";
 
 const backendDir = path.resolve(__dirname, "../../backend");
 

@@ -2,12 +2,12 @@
  * CLI script to trigger batch audio generation for an org.
  *
  * Usage:
- *   cd backend && npx ts-node ../scripts/generate-audio.ts --orgId <uuid> [--voices af_heart,am_adam] [--concurrency 5]
+ *   cd backend && bunx ts-node -r tsconfig-paths/register scripts/generate-audio.ts --orgId <uuid> [--voices af_heart,am_adam] [--concurrency 5]
  */
 
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../backend/src/app.module';
-import { AudioGenerationService } from '../backend/src/audio-generation/audio-generation.service';
+import { AppModule } from '../src/app.module';
+import { AudioGenerationService } from '../src/audio-generation/audio-generation.service';
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -19,7 +19,7 @@ function parseArgs() {
   }
 
   if (!parsed.orgId) {
-    console.error('Usage: npx ts-node scripts/generate-audio.ts --orgId <uuid> [--voices af_heart,am_adam] [--concurrency 5]');
+    console.error('Usage: bunx ts-node -r tsconfig-paths/register scripts/generate-audio.ts --orgId <uuid> [--voices af_heart,am_adam] [--concurrency 5]');
     process.exit(1);
   }
 

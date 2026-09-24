@@ -106,7 +106,7 @@ After a course has active learners, course updates must preserve slug identity:
 - Keep `course.id`, section `id`, concept `id`, and KP `id` stable across revisions.
 - Safe changes: refine instruction, add worked examples, revise problems, add content blocks, add new concepts, add new sections, adjust edges.
 - Unsafe changes: renaming existing slugs in-place. Removing slugs is only safe when you intentionally archive them during import instead of deleting them.
-- Use the progress-safe import scripts (`scripts/load-course.ts` or `scripts/import-course-quick.ts`) instead of deleting and recreating the course.
+- Use the progress-safe import scripts (`backend/scripts/load-course.ts` or `backend/scripts/import-course-quick.ts`) instead of deleting and recreating the course.
 - When retiring content, re-run the importer with `--archiveMissing true`. That hides removed sections, concepts, and KPs from active delivery while preserving historical student state on the archived rows.
 
 Practical rule:
