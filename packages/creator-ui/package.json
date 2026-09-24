@@ -23,7 +23,8 @@
     "./creator-org-shared": "./src/creator-org-shared.ts",
     "./creator-org-server": "./src/creator-org-server.ts",
     "./api-keys": "./src/api-keys/index.ts",
-    "./use-browser-session": "./src/use-browser-session.ts"
+    "./use-browser-session": "./src/use-browser-session.ts",
+    "./public-academies": "./src/public-academies.ts"
   },
   "dependencies": {
     "@graspful/shared": "workspace:*",
