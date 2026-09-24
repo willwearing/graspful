@@ -1,3 +1,4 @@
+import { CourseScopeGuard } from '@/auth';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DiagnosticController } from './diagnostic.controller';
 import { DiagnosticSessionService } from './diagnostic-session.service';
@@ -27,6 +28,8 @@ describe('DiagnosticController', () => {
       .useValue(mockGuard)
       .overrideGuard(OrgMembershipGuard)
       .useValue(mockGuard)
+      .overrideGuard(CourseScopeGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     controller = module.get(DiagnosticController);

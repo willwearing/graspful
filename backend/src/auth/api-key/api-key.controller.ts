@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtOrApiKeyGuard, OrgMembershipGuard, CurrentOrg, MinRole } from '@/auth';
-import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import type { OrgContext } from '@/auth/org-context';
 import { ApiKeyService } from './api-key.service';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
 

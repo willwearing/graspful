@@ -1,3 +1,4 @@
+import { AcademyScopeGuard } from '@/auth';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AcademyGraphController } from './academy-graph.controller';
 import { CourseManagementService } from './application/course-management.service';
@@ -37,6 +38,8 @@ describe('AcademyGraphController', () => {
       .useValue(mockGuard)
       .overrideGuard(OrgMembershipGuard)
       .useValue(mockGuard)
+      .overrideGuard(AcademyScopeGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     controller = module.get(AcademyGraphController);

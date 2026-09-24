@@ -5,8 +5,10 @@ import { StreakService } from './streak.service';
 import { LeaderboardService } from './leaderboard.service';
 import { CompletionEstimateService } from './completion-estimate.service';
 import { CourseProgressReadService } from './course-progress-read.service';
-import { StudentStateService } from '@/student-model/student-state.service';
-import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
+import { SupabaseAuthGuard, OrgMembershipGuard, CourseScopeGuard } from '@/auth';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
+import { REQUIRE_ENROLLMENT_KEY } from '@/auth/decorators/require-enrollment.decorator';
 
 const mockGuard = { canActivate: () => true };
 
@@ -29,11 +31,6 @@ describe('GamificationController', () => {
     getGraph: jest.fn(),
   };
 
-  const mockStudentState = {
-    assertAcademyAccess: jest.fn().mockResolvedValue({ id: 'academy-1', orgId: 'org-1' }),
-    assertAssessmentAccess: jest.fn().mockResolvedValue({ academyId: 'academy-1' }),
-  };
-
   beforeEach(async () => {
     jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
@@ -44,12 +41,13 @@ describe('GamificationController', () => {
         { provide: LeaderboardService, useValue: mockLeaderboardService },
         { provide: CompletionEstimateService, useValue: mockCompletionEstimateService },
         { provide: CourseProgressReadService, useValue: mockCourseProgressReadService },
-        { provide: StudentStateService, useValue: mockStudentState },
       ],
     })
       .overrideGuard(SupabaseAuthGuard)
       .useValue(mockGuard)
       .overrideGuard(OrgMembershipGuard)
+      .useValue(mockGuard)
+      .overrideGuard(CourseScopeGuard)
       .useValue(mockGuard)
       .compile();
     controller = module.get(GamificationController);
@@ -66,6 +64,7 @@ describe('GamificationController', () => {
     } as any);
 
     expect(result).toEqual(summary);
+    expect(mockXPService.getXPSummary).toHaveBeenCalledWith('user-1', 'course-1');
   });
 
   it('should return weekly XP breakdown', async () => {
@@ -79,6 +78,7 @@ describe('GamificationController', () => {
     } as any);
 
     expect(result).toEqual(breakdown);
+    expect(mockXPService.getWeeklyXPBreakdown).toHaveBeenCalledWith('user-1', 'course-1');
   });
 
   it('should return streak status', async () => {
@@ -99,6 +99,7 @@ describe('GamificationController', () => {
     } as any);
 
     expect(result).toEqual(streak);
+    expect(mockStreakService.getStreakStatus).toHaveBeenCalledWith('user-1', 'course-1');
   });
 
   it('should return leaderboard', async () => {
@@ -109,17 +110,23 @@ describe('GamificationController', () => {
     const result = await controller.getLeaderboard('course-1', org);
 
     expect(result).toEqual(board);
-    expect(mockStudentState.assertAssessmentAccess).toHaveBeenCalledWith('user-1', 'org-1', 'course-1');
     expect(mockLeaderboardService.getWeeklyLeaderboard).toHaveBeenCalledWith('org-1', 'course-1');
   });
 
-  it('rejects the course leaderboard when the caller has no access', async () => {
-    mockStudentState.assertAssessmentAccess.mockRejectedValueOnce(new Error('Assessment content or enrollment not found'));
-    const org = { userId: 'user-1', orgId: 'org-1', role: 'member' } as any;
-
-    await expect(controller.getLeaderboard('other-org-course', org)).rejects.toThrow('Assessment content or enrollment not found');
-    expect(mockLeaderboardService.getWeeklyLeaderboard).not.toHaveBeenCalled();
+  it('checks authentication, membership, and resource scope in order', () => {
+    expect(Reflect.getMetadata(GUARDS_METADATA, GamificationController)).toEqual([
+      SupabaseAuthGuard, OrgMembershipGuard, CourseScopeGuard,
+    ]);
   });
+
+  it.each(['getXPSummary', 'getWeeklyXP', 'getStreak', 'getLeaderboard', 'getStats', 'getGraph'] as const)(
+    'requires enrollment for %s',
+    (method) => {
+      expect(new Reflector().getAllAndOverride(REQUIRE_ENROLLMENT_KEY, [
+        GamificationController.prototype[method], GamificationController,
+      ])).toBe(true);
+    },
+  );
 
   it('should return completion estimate', async () => {
     const estimate = {
@@ -140,6 +147,7 @@ describe('GamificationController', () => {
     } as any);
 
     expect(result).toEqual(estimate);
+    expect(mockCompletionEstimateService.getEstimate).toHaveBeenCalledWith('user-1', 'course-1');
   });
 
   it('returns the learner graph projection', async () => {

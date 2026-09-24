@@ -1,7 +1,7 @@
 export { SupabaseAuthGuard } from './guards/supabase-auth.guard';
 export type { AuthUser } from './guards/supabase-auth.guard';
 export { OrgMembershipGuard, MIN_ROLE_KEY } from './guards/org-membership.guard';
-export type { OrgContext } from './guards/org-membership.guard';
+export type { OrgContext } from './org-context';
 export { GlobalAdminGuard } from './guards/global-admin.guard';
 export { JwtOrApiKeyGuard } from './guards/jwt-or-apikey.guard';
 export { MinRole } from './decorators/min-role.decorator';
@@ -12,3 +12,6 @@ export { OrgMembershipService } from './org-membership.service';
 export { ApiKeyModule } from './api-key/api-key.module';
 export { ApiKeyService } from './api-key/api-key.service';
 export { ApiKeyGuard } from './api-key/api-key.guard';
+export { CourseScopeGuard } from './guards/course-scope.guard';
+export { AcademyScopeGuard } from './guards/academy-scope.guard';
+export { RequireEnrollment } from './decorators/require-enrollment.decorator';

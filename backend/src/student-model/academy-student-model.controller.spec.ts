@@ -1,14 +1,15 @@
-import { NotFoundException } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
-import { OrgMembershipGuard, SupabaseAuthGuard } from '@/auth';
-import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import { Reflector } from '@nestjs/core';
+import { AcademyScopeGuard, OrgMembershipGuard, SupabaseAuthGuard } from '@/auth';
+import { REQUIRE_ENROLLMENT_KEY } from '@/auth/decorators/require-enrollment.decorator';
+import type { OrgContext } from '@/auth/org-context';
 import { PostHogService } from '@/shared/application/posthog.service';
 import { AcademyStudentModelController } from './academy-student-model.controller';
 import { EnrollmentService } from './enrollment.service';
 import { AcademyProgressQueryService } from './queries/academy-progress.query';
 import { StudentStateService } from './student-state.service';
 
-describe('AcademyStudentModelController access control', () => {
+describe('AcademyStudentModelController', () => {
   const academyId = 'academy-1';
   const org: OrgContext = {
     userId: 'student-1',
@@ -17,92 +18,75 @@ describe('AcademyStudentModelController access control', () => {
     role: 'member',
   };
   let controller: AcademyStudentModelController;
-  let studentState: {
-    assertAcademyAccess: jest.Mock;
-    getConceptStatesForAcademy: jest.Mock;
-  };
-  let academyProgress: {
-    getCourseMasterySummary: jest.Mock;
-    getProfileSummary: jest.Mock;
-  };
+  let studentState: { getConceptStatesForAcademy: jest.Mock };
+  let academyProgress: { getCourseMasterySummary: jest.Mock; getProfileSummary: jest.Mock };
+  let enrollment: { enrollInAcademy: jest.Mock };
+  let posthog: { capture: jest.Mock };
 
   beforeEach(() => {
-    studentState = {
-      assertAcademyAccess: jest.fn(),
-      getConceptStatesForAcademy: jest.fn(),
-    };
-    academyProgress = {
-      getCourseMasterySummary: jest.fn(),
-      getProfileSummary: jest.fn(),
-    };
+    studentState = { getConceptStatesForAcademy: jest.fn() };
+    academyProgress = { getCourseMasterySummary: jest.fn(), getProfileSummary: jest.fn() };
+    enrollment = { enrollInAcademy: jest.fn() };
+    posthog = { capture: jest.fn() };
     controller = new AcademyStudentModelController(
-      { enrollInAcademy: jest.fn() } as unknown as EnrollmentService,
+      enrollment as unknown as EnrollmentService,
       studentState as unknown as StudentStateService,
       academyProgress as unknown as AcademyProgressQueryService,
-      { capture: jest.fn() } as unknown as PostHogService,
+      posthog as unknown as PostHogService,
     );
   });
 
-  function expectNoQueries() {
-    expect(studentState.getConceptStatesForAcademy).not.toHaveBeenCalled();
-    expect(academyProgress.getCourseMasterySummary).not.toHaveBeenCalled();
-    expect(academyProgress.getProfileSummary).not.toHaveBeenCalled();
-  }
-
-  it('requires authentication and organization membership', () => {
-    expect(
-      Reflect.getMetadata(GUARDS_METADATA, AcademyStudentModelController),
-    ).toEqual(expect.arrayContaining([SupabaseAuthGuard, OrgMembershipGuard]));
+  it('checks authentication, membership, and academy scope in order', () => {
+    expect(Reflect.getMetadata(GUARDS_METADATA, AcademyStudentModelController)).toEqual([
+      SupabaseAuthGuard, OrgMembershipGuard, AcademyScopeGuard,
+    ]);
   });
 
-  describe.each([
+  it.each([
+    ['getMastery', true],
+    ['getCourseMastery', true],
+    ['getProfile', true],
+    ['enroll', false],
+  ] as const)('requires enrollment for %s: %s', (method, expected) => {
+    expect(new Reflector().getAllAndOverride(REQUIRE_ENROLLMENT_KEY, [
+      AcademyStudentModelController.prototype[method], AcademyStudentModelController,
+    ])).toBe(expected);
+  });
+
+  it.each([
     ['getMastery', 'getConceptStatesForAcademy'],
     ['getCourseMastery', 'getCourseMasterySummary'],
     ['getProfile', 'getProfileSummary'],
-  ] as const)('%s', (method, queryMethod) => {
-    it('waits for academy access approval before reading the current student data', async () => {
-      let allowAccess!: () => void;
-      studentState.assertAcademyAccess.mockReturnValue(
-        new Promise<void>((resolve) => {
-          allowAccess = resolve;
-        }),
-      );
-      const response = { academyId, userId: org.userId };
-      const query = queryMethod === 'getConceptStatesForAcademy'
-        ? studentState[queryMethod]
-        : academyProgress[queryMethod];
-      query.mockResolvedValue(response);
+  ] as const)('%s reads the current student and academy data', async (method, queryMethod) => {
+    const response = { academyId, userId: org.userId };
+    const query = queryMethod === 'getConceptStatesForAcademy'
+      ? studentState[queryMethod]
+      : academyProgress[queryMethod];
+    query.mockResolvedValue(response);
 
-      const result = controller[method](academyId, org);
+    await expect(controller[method](academyId, org)).resolves.toBe(response);
 
-      expect(studentState.assertAcademyAccess).toHaveBeenCalledTimes(1);
-      expect(studentState.assertAcademyAccess).toHaveBeenCalledWith(
-        org.userId,
-        org.orgId,
-        academyId,
-      );
-      expectNoQueries();
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query).toHaveBeenCalledWith(org.userId, academyId);
+  });
 
-      allowAccess();
+  it('enrolls the current student and reports the completed enrollment', async () => {
+    const result = { id: 'enrollment-1', academyId, userId: org.userId };
+    enrollment.enrollInAcademy.mockResolvedValue(result);
 
-      await expect(result).resolves.toBe(response);
-      expect(query).toHaveBeenCalledTimes(1);
-      expect(query).toHaveBeenCalledWith(org.userId, academyId);
-    });
+    await expect(controller.enroll(academyId, org)).resolves.toEqual(result);
 
-    it('returns the access error without reading or creating student data', async () => {
-      const denied = new NotFoundException('Academy not found');
-      studentState.assertAcademyAccess.mockRejectedValue(denied);
+    expect(enrollment.enrollInAcademy).toHaveBeenCalledWith(org.orgId, org.userId, academyId);
+    expect(posthog.capture).toHaveBeenCalledWith(
+      { distinctId: org.userId }, 'student enrolled', { academy_id: academyId, org_id: org.orgId },
+    );
+  });
 
-      await expect(controller[method](academyId, org)).rejects.toBe(denied);
+  it('does not report enrollment when the enrollment service rejects it', async () => {
+    enrollment.enrollInAcademy.mockRejectedValue(new Error('Enrollment unavailable'));
 
-      expect(studentState.assertAcademyAccess).toHaveBeenCalledTimes(1);
-      expect(studentState.assertAcademyAccess).toHaveBeenCalledWith(
-        org.userId,
-        org.orgId,
-        academyId,
-      );
-      expectNoQueries();
-    });
+    await expect(controller.enroll(academyId, org)).rejects.toThrow('Enrollment unavailable');
+
+    expect(posthog.capture).not.toHaveBeenCalled();
   });
 });

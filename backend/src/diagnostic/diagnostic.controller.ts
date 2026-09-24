@@ -6,14 +6,15 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
-import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, CourseScopeGuard, RequireEnrollment } from '@/auth';
+import type { OrgContext } from '@/auth/org-context';
 import { DiagnosticSessionService } from './diagnostic-session.service';
 import { SubmitDiagnosticAnswerDto } from './dto/submit-diagnostic-answer.dto';
 
 /** @deprecated Use AcademyDiagnosticController instead. Kept as compatibility shim. */
 @Controller('orgs/:orgId/courses/:courseId/diagnostic')
-@UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
+@UseGuards(SupabaseAuthGuard, OrgMembershipGuard, CourseScopeGuard)
+@RequireEnrollment()
 export class DiagnosticController {
   constructor(private diagnosticSession: DiagnosticSessionService) {}
 

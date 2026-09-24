@@ -5,22 +5,21 @@ import {
   Param,
   UseGuards,
 } from '@nestjs/common';
-import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
-import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, CourseScopeGuard, RequireEnrollment } from '@/auth';
+import type { OrgContext } from '@/auth/org-context';
 import { PostHogService } from '@/shared/application/posthog.service';
-import { StudentStateService } from '@/student-model/student-state.service';
 import { LearningEngineService } from './learning-engine.service';
 import { LessonService } from './lesson.service';
 
 /** @deprecated Use AcademyLearningEngineController instead. Kept as compatibility shim. */
 @Controller('orgs/:orgId/courses/:courseId')
-@UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
+@UseGuards(SupabaseAuthGuard, OrgMembershipGuard, CourseScopeGuard)
+@RequireEnrollment()
 export class LearningEngineController {
   constructor(
     private engine: LearningEngineService,
     private lessonService: LessonService,
     private posthog: PostHogService,
-    private studentState: StudentStateService,
   ) {}
 
   @Get('next-task')
@@ -28,7 +27,6 @@ export class LearningEngineController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    await this.studentState.assertAssessmentAccess(org.userId, org.orgId, courseId);
     return this.engine.getNextTaskForCourse(org.userId, courseId);
   }
 
@@ -37,7 +35,6 @@ export class LearningEngineController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    await this.studentState.assertAssessmentAccess(org.userId, org.orgId, courseId);
     return this.engine.getStudySessionForCourse(org.userId, courseId);
   }
 

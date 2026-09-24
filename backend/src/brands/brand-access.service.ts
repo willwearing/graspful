@@ -4,16 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrgRole } from '@prisma/client';
+import { hasMinRole } from '@/auth/roles';
 import { PrismaService } from '@/prisma/prisma.service';
 import type { AuthUser } from '@/auth/guards/supabase-auth.guard';
 import { PLATFORM_ORG_SLUG } from '@/auth/org-membership.service';
 import { isReservedDomain, isValidHostname, normalizeBrandDomain } from './domain-policy';
 
 type BrandCaller = Pick<AuthUser, 'userId' | 'apiKeyOrgId'>;
-
-/** Roles allowed to create, modify, or deactivate a brand. */
-const MANAGE_ROLES: readonly OrgRole[] = ['owner', 'admin'];
 
 /**
  * Authorization for brand mutations.
@@ -48,7 +45,7 @@ export class BrandAccessService {
       select: { role: true },
     });
 
-    if (!membership || !MANAGE_ROLES.includes(membership.role)) {
+    if (!membership || !hasMinRole(membership.role, 'admin')) {
       throw new ForbiddenException('Insufficient permissions for this organization');
     }
   }

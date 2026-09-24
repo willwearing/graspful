@@ -1,13 +1,14 @@
 import { LearningEngineController } from './learning-engine.controller';
-import { LearningEngineService } from './learning-engine.service';
-import { LessonService } from './lesson.service';
 import { NotFoundException } from '@nestjs/common';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
+import { SupabaseAuthGuard, OrgMembershipGuard, CourseScopeGuard } from '@/auth';
+import { REQUIRE_ENROLLMENT_KEY } from '@/auth/decorators/require-enrollment.decorator';
 
 describe('LearningEngineController', () => {
   let controller: LearningEngineController;
   let mockEngine: any;
   let mockLesson: any;
-  let mockStudentState: any;
   let mockPosthog: any;
 
   const orgCtx = {
@@ -56,8 +57,7 @@ describe('LearningEngineController', () => {
     };
 
     mockPosthog = { capture: jest.fn() };
-    mockStudentState = { assertAssessmentAccess: jest.fn().mockResolvedValue({ academyId: 'academy-1' }) };
-    controller = new LearningEngineController(mockEngine, mockLesson, mockPosthog, mockStudentState);
+    controller = new LearningEngineController(mockEngine, mockLesson, mockPosthog);
   });
 
   describe('GET /next-task', () => {
@@ -67,7 +67,6 @@ describe('LearningEngineController', () => {
       expect(result.taskType).toBe('lesson');
       expect(result.conceptId).toBe('c2');
       expect(mockEngine.getNextTaskForCourse).toHaveBeenCalledWith('u1', 'course-1');
-      expect(mockStudentState.assertAssessmentAccess).toHaveBeenCalledWith('u1', 'org-1', 'course-1');
     });
   });
 
@@ -117,14 +116,18 @@ describe('LearningEngineController', () => {
     });
   });
 
-  it.each(['getNextTask', 'getStudySession'] as const)(
-    'rejects %s outside the route organization or enrollment before selecting or mutating tasks',
-    async (method) => {
-      mockStudentState.assertAssessmentAccess.mockRejectedValue(new NotFoundException('Access denied'));
-      await expect(controller[method]('foreign-course', orgCtx as any)).rejects.toThrow(NotFoundException);
-      expect(mockStudentState.assertAssessmentAccess).toHaveBeenCalledWith('u1', 'org-1', 'foreign-course');
-      expect(mockEngine.getNextTaskForCourse).not.toHaveBeenCalled();
-      expect(mockEngine.getStudySessionForCourse).not.toHaveBeenCalled();
+  it('checks authentication, membership, and course scope in order', () => {
+    expect(Reflect.getMetadata(GUARDS_METADATA, LearningEngineController)).toEqual([
+      SupabaseAuthGuard, OrgMembershipGuard, CourseScopeGuard,
+    ]);
+  });
+
+  it.each(['getNextTask', 'getStudySession', 'startLesson', 'completeLesson'] as const)(
+    'requires enrollment for %s',
+    (method) => {
+      expect(new Reflector().getAllAndOverride(REQUIRE_ENROLLMENT_KEY, [
+        LearningEngineController.prototype[method], LearningEngineController,
+      ])).toBe(true);
     },
   );
 

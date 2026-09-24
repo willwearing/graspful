@@ -7,7 +7,7 @@ import { AcademyImporterService } from '../academy-importer.service';
 import { CourseYamlExportService } from '../course-yaml-export.service';
 import { ReviewService } from '../review.service';
 import type { ReviewResult } from '../review.service';
-import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import type { OrgContext } from '@/auth/org-context';
 import type { ImportCourseDto } from '../dto/import-course.dto';
 import type { ImportAcademyDto } from '../dto/import-academy.dto';
 import type { ImportResult } from '../course-importer.service';

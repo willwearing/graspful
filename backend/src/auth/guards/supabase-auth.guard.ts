@@ -8,12 +8,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { createRemoteJWKSet, jwtVerify, FlattenedJWSInput, JWSHeaderParameters, GetKeyFunction } from 'jose';
 
-export interface AuthUser {
-  userId: string;
-  email: string;
-  /** Set when the caller used an API key. The key is only valid for this org. */
-  apiKeyOrgId?: string;
-}
+import type { AuthUser } from '@graspful/shared';
+export type { AuthUser } from '@graspful/shared';
 
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate, OnModuleInit {
@@ -37,7 +33,7 @@ export class SupabaseAuthGuard implements CanActivate, OnModuleInit {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization;
 
-    if (!authHeader?.startsWith('Bearer ')) {
+    if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException('Missing or invalid authorization header');
     }
 

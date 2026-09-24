@@ -23,7 +23,7 @@ beforeAll(async () => {
   };
 });
 
-function createMockContext(authHeader?: string): ExecutionContext {
+function createMockContext(authHeader?: unknown): ExecutionContext {
   const request = { headers: { authorization: authHeader }, user: undefined as AuthUser | undefined };
   return {
     switchToHttp: () => ({
@@ -66,6 +66,10 @@ describe('SupabaseAuthGuard', () => {
   it('should throw UnauthorizedException when header does not start with Bearer', async () => {
     const ctx = createMockContext('Basic abc123');
     await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
+  });
+
+  it.each([[['Bearer token']], [7]])('rejects malformed authorization headers: %p', async (header) => {
+    await expect(guard.canActivate(createMockContext(header))).rejects.toThrow(UnauthorizedException);
   });
 
   it('should throw UnauthorizedException for invalid token', async () => {

@@ -9,8 +9,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { OrgMembershipGuard, CurrentOrg, MinRole, JwtOrApiKeyGuard } from '@/auth';
-import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import { OrgMembershipGuard, CurrentOrg, MinRole, JwtOrApiKeyGuard, CourseScopeGuard } from '@/auth';
+import type { OrgContext } from '@/auth/org-context';
 import { PostHogService } from '@/shared/application/posthog.service';
 import { CourseReadService } from './course-read.service';
 import { CourseYamlExportService } from './course-yaml-export.service';
@@ -19,7 +19,7 @@ import { ImportCourseDto, ReviewCourseDto } from './dto/import-course.dto';
 import { CourseManagementService } from './application/course-management.service';
 
 @Controller('orgs/:orgId/courses')
-@UseGuards(JwtOrApiKeyGuard, OrgMembershipGuard)
+@UseGuards(JwtOrApiKeyGuard, OrgMembershipGuard, CourseScopeGuard)
 export class KnowledgeGraphController {
   constructor(
     private readonly courseReads: CourseReadService,

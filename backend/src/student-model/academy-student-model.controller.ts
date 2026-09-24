@@ -5,15 +5,16 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
-import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, AcademyScopeGuard, RequireEnrollment } from '@/auth';
+import type { OrgContext } from '@/auth/org-context';
 import { PostHogService } from '@/shared/application/posthog.service';
 import { EnrollmentService } from './enrollment.service';
 import { StudentStateService } from './student-state.service';
 import { AcademyProgressQueryService } from './queries/academy-progress.query';
 
 @Controller('orgs/:orgId/academies/:academyId')
-@UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
+@UseGuards(SupabaseAuthGuard, OrgMembershipGuard, AcademyScopeGuard)
+@RequireEnrollment()
 export class AcademyStudentModelController {
   constructor(
     private enrollment: EnrollmentService,
@@ -23,6 +24,7 @@ export class AcademyStudentModelController {
   ) {}
 
   @Post('enroll')
+  @RequireEnrollment(false)
   async enroll(
     @Param('academyId') academyId: string,
     @CurrentOrg() org: OrgContext,
@@ -40,7 +42,6 @@ export class AcademyStudentModelController {
     @Param('academyId') academyId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    await this.studentState.assertAcademyAccess(org.userId, org.orgId, academyId);
     return this.studentState.getConceptStatesForAcademy(org.userId, academyId);
   }
 
@@ -49,7 +50,6 @@ export class AcademyStudentModelController {
     @Param('academyId') academyId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    await this.studentState.assertAcademyAccess(org.userId, org.orgId, academyId);
     return this.academyProgressQuery.getCourseMasterySummary(
       org.userId,
       academyId,
@@ -61,7 +61,6 @@ export class AcademyStudentModelController {
     @Param('academyId') academyId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    await this.studentState.assertAcademyAccess(org.userId, org.orgId, academyId);
     return this.academyProgressQuery.getProfileSummary(org.userId, academyId);
   }
 }

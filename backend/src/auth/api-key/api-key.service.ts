@@ -33,7 +33,7 @@ export class ApiKeyService {
     });
 
     if (!apiKey) return null;
-    if (apiKey.expiresAt && apiKey.expiresAt < new Date()) return null;
+    if (apiKey.expiresAt && apiKey.expiresAt <= new Date()) return null;
 
     // Update last used timestamp (fire-and-forget to avoid timing oracle)
     this.prisma.apiKey.update({

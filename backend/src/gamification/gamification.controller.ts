@@ -1,15 +1,15 @@
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
-import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
-import type { OrgContext } from '@/auth';
+import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, CourseScopeGuard, RequireEnrollment } from '@/auth';
+import type { OrgContext } from '@/auth/org-context';
 import { XPService } from './xp.service';
 import { StreakService } from './streak.service';
 import { LeaderboardService } from './leaderboard.service';
 import { CompletionEstimateService } from './completion-estimate.service';
 import { CourseProgressReadService } from './course-progress-read.service';
-import { StudentStateService } from '@/student-model/student-state.service';
 
 @Controller('orgs/:orgId/courses/:courseId')
-@UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
+@UseGuards(SupabaseAuthGuard, OrgMembershipGuard, CourseScopeGuard)
+@RequireEnrollment()
 export class GamificationController {
   constructor(
     private xpService: XPService,
@@ -17,7 +17,6 @@ export class GamificationController {
     private leaderboardService: LeaderboardService,
     private completionEstimate: CompletionEstimateService,
     private courseProgressReads: CourseProgressReadService,
-    private studentState: StudentStateService,
   ) {}
 
   @Get('xp')
@@ -49,7 +48,6 @@ export class GamificationController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    await this.studentState.assertAssessmentAccess(org.userId, org.orgId, courseId);
     return this.leaderboardService.getWeeklyLeaderboard(org.orgId, courseId);
   }
 

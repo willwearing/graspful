@@ -1,35 +1,46 @@
-import { NotFoundException } from '@nestjs/common';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
+import { SupabaseAuthGuard, OrgMembershipGuard, AcademyScopeGuard } from '@/auth';
+import { REQUIRE_ENROLLMENT_KEY } from '@/auth/decorators/require-enrollment.decorator';
 import { AcademyLearningEngineController } from './academy-learning-engine.controller';
 import type { LearningEngineService } from './learning-engine.service';
-import type { StudentStateService } from '@/student-model/student-state.service';
-import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import type { OrgContext } from '@/auth/org-context';
 
-describe('AcademyLearningEngineController access', () => {
+describe('AcademyLearningEngineController', () => {
   const org = { orgId: 'org-1', userId: 'learner', role: 'member' } as OrgContext;
   let engine: { getNextTask: jest.Mock; getStudySession: jest.Mock };
-  let studentState: { assertAcademyAccess: jest.Mock };
   let controller: AcademyLearningEngineController;
 
   beforeEach(() => {
-    engine = { getNextTask: jest.fn().mockResolvedValue({ taskType: 'lesson' }), getStudySession: jest.fn().mockResolvedValue({ tasks: [] }) };
-    studentState = { assertAcademyAccess: jest.fn().mockResolvedValue({ id: 'academy-1', orgId: 'org-1' }) };
-    controller = new AcademyLearningEngineController(
-      engine as unknown as LearningEngineService,
-      studentState as unknown as StudentStateService,
-    );
+    engine = {
+      getNextTask: jest.fn().mockResolvedValue({ taskType: 'lesson' }),
+      getStudySession: jest.fn().mockResolvedValue({ tasks: [] }),
+    };
+    controller = new AcademyLearningEngineController(engine as unknown as LearningEngineService);
   });
 
-  it.each(['getNextTask', 'getStudySession'] as const)('passes authorized academy %s to the engine', async (method) => {
-    await controller[method]('academy-1', org);
-    expect(studentState.assertAcademyAccess).toHaveBeenCalledWith('learner', 'org-1', 'academy-1');
-    expect(engine[method]).toHaveBeenCalledWith('learner', 'academy-1');
+  it('checks authentication, membership, and academy scope in order', () => {
+    expect(Reflect.getMetadata(GUARDS_METADATA, AcademyLearningEngineController)).toEqual([
+      SupabaseAuthGuard, OrgMembershipGuard, AcademyScopeGuard,
+    ]);
   });
 
-  it.each(['getNextTask', 'getStudySession'] as const)('rejects unauthorized academy %s before any study work', async (method) => {
-    studentState.assertAcademyAccess.mockRejectedValue(new NotFoundException('Academy or enrollment not found'));
-    await expect(controller[method]('foreign-academy', org)).rejects.toThrow(NotFoundException);
-    expect(studentState.assertAcademyAccess).toHaveBeenCalledWith('learner', 'org-1', 'foreign-academy');
-    expect(engine.getNextTask).not.toHaveBeenCalled();
-    expect(engine.getStudySession).not.toHaveBeenCalled();
+  it.each(['getNextTask', 'getStudySession'] as const)('requires enrollment for %s', (method) => {
+    expect(new Reflector().getAllAndOverride(REQUIRE_ENROLLMENT_KEY, [
+      AcademyLearningEngineController.prototype[method], AcademyLearningEngineController,
+    ])).toBe(true);
   });
+
+  it.each(['getNextTask', 'getStudySession'] as const)(
+    'passes the current learner and academy to %s',
+    async (method) => {
+      const response = { academyId: 'academy-1', taskType: 'lesson' };
+      engine[method].mockResolvedValue(response);
+
+      const result = await controller[method]('academy-1', org);
+
+      expect(engine[method]).toHaveBeenCalledWith('learner', 'academy-1');
+      expect(result).toEqual(response);
+    },
+  );
 });

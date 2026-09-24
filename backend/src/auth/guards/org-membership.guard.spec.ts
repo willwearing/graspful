@@ -1,5 +1,5 @@
 import { OrgMembershipGuard, MIN_ROLE_KEY } from './org-membership.guard';
-import type { OrgContext } from './org-membership.guard';
+import type { OrgContext } from '@/auth/org-context';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
@@ -18,6 +18,7 @@ function createMockContext(user: any, orgId: string | undefined): ExecutionConte
       getRequest: () => request,
     }),
     getHandler: () => ({}),
+    getClass: () => class TestController {},
   } as unknown as ExecutionContext;
 }
 
@@ -75,7 +76,7 @@ describe('OrgMembershipGuard', () => {
 
   it('should throw ForbiddenException when member tries admin-only route', async () => {
     const reflector = new Reflector();
-    jest.spyOn(reflector, 'get').mockReturnValue('admin');
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('admin');
     const guard = new OrgMembershipGuard(createMockPrisma({ role: 'member' }), reflector);
     const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, '00000000-0000-0000-0000-000000000001');
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
@@ -83,7 +84,7 @@ describe('OrgMembershipGuard', () => {
 
   it('should allow owner on admin-only route', async () => {
     const reflector = new Reflector();
-    jest.spyOn(reflector, 'get').mockReturnValue('admin');
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('admin');
     const guard = new OrgMembershipGuard(createMockPrisma({ role: 'owner' }), reflector);
     const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, '00000000-0000-0000-0000-000000000001');
     const result = await guard.canActivate(ctx);
@@ -92,7 +93,7 @@ describe('OrgMembershipGuard', () => {
 
   it('should allow admin on admin-only route', async () => {
     const reflector = new Reflector();
-    jest.spyOn(reflector, 'get').mockReturnValue('admin');
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('admin');
     const guard = new OrgMembershipGuard(createMockPrisma({ role: 'admin' }), reflector);
     const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, '00000000-0000-0000-0000-000000000001');
     const result = await guard.canActivate(ctx);
@@ -101,9 +102,45 @@ describe('OrgMembershipGuard', () => {
 
   it('should throw when admin tries owner-only route', async () => {
     const reflector = new Reflector();
-    jest.spyOn(reflector, 'get').mockReturnValue('owner');
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('owner');
     const guard = new OrgMembershipGuard(createMockPrisma({ role: 'admin' }), reflector);
     const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, '00000000-0000-0000-0000-000000000001');
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
+  });
+});
+
+describe('OrgMembershipGuard role metadata inheritance', () => {
+  const user = { userId: 'user-1', email: 'a@b.com' };
+  const orgId = '00000000-0000-0000-0000-000000000001';
+
+  it('enforces a controller-level minimum role', async () => {
+    class AdminController { action() {} }
+    Reflect.defineMetadata(MIN_ROLE_KEY, 'admin', AdminController);
+    const context = createMockContext(user, orgId);
+    context.getClass = (() => AdminController) as ExecutionContext['getClass'];
+    context.getHandler = () => AdminController.prototype.action;
+    const guard = new OrgMembershipGuard(createMockPrisma({ role: 'member' }), new Reflector());
+    await expect(guard.canActivate(context)).rejects.toThrow('Insufficient role');
+  });
+
+  it('allows a handler role to override the controller role', async () => {
+    class AdminController { action() {} }
+    Reflect.defineMetadata(MIN_ROLE_KEY, 'admin', AdminController);
+    Reflect.defineMetadata(MIN_ROLE_KEY, 'member', AdminController.prototype.action);
+    const context = createMockContext(user, orgId);
+    context.getClass = (() => AdminController) as ExecutionContext['getClass'];
+    context.getHandler = () => AdminController.prototype.action;
+    const guard = new OrgMembershipGuard(createMockPrisma({ role: 'member' }), new Reflector());
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+  });
+
+  it('resolves a slug before checking membership and populating org context', async () => {
+    const prisma = createMockPrisma({ role: 'admin' });
+    prisma.organization = { findUnique: jest.fn().mockResolvedValue({ id: orgId }) };
+    const guard = new OrgMembershipGuard(prisma, new Reflector());
+    const context = createMockContext(user, 'org-slug');
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(prisma.orgMembership.findUnique).toHaveBeenCalledWith({ where: { orgId_userId: { orgId, userId: user.userId } } });
+    expect(context.switchToHttp().getRequest().orgContext.orgId).toBe(orgId);
   });
 });

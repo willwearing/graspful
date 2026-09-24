@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { CourseScopeGuard } from './guards/course-scope.guard';
+import { AcademyScopeGuard } from './guards/academy-scope.guard';
 import { SupabaseAuthGuard } from './guards/supabase-auth.guard';
 import { OrgMembershipGuard } from './guards/org-membership.guard';
 import { GlobalAdminGuard } from './guards/global-admin.guard';
@@ -24,7 +25,6 @@ import { MyOrganizationsQueryService } from './queries/my-organizations.query';
   imports: [
     ApiKeyModule,
     SharedApplicationModule,
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
   ],
   controllers: [
     OrgJoinController,
@@ -38,6 +38,8 @@ import { MyOrganizationsQueryService } from './queries/my-organizations.query';
   providers: [
     SupabaseAuthGuard,
     OrgMembershipGuard,
+    CourseScopeGuard,
+    AcademyScopeGuard,
     GlobalAdminGuard,
     JwtOrApiKeyGuard,
     OrgMembershipService,
@@ -51,6 +53,8 @@ import { MyOrganizationsQueryService } from './queries/my-organizations.query';
     ApiKeyModule,
     SupabaseAuthGuard,
     OrgMembershipGuard,
+    CourseScopeGuard,
+    AcademyScopeGuard,
     GlobalAdminGuard,
     JwtOrApiKeyGuard,
     OrgMembershipService,

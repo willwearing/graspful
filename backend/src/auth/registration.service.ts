@@ -66,17 +66,15 @@ export class RegistrationService {
 
     const supabaseUserId = authData.user.id;
 
-    // 2. Generate slug
-    let orgSlug = this.emailToOrgSlug(email);
-    const existing = await this.prisma.organization.findUnique({ where: { slug: orgSlug } });
-    if (existing) orgSlug = `${orgSlug}-${Date.now().toString(36).slice(-4)}`;
-    const orgName = humanizeSlug(orgSlug);
-
-    // 3. Create DB records
-    // Note: Supabase has an AFTER INSERT trigger on auth.users that auto-creates
-    // a public.users row. We use upsert to handle the race gracefully.
+    let txResult: { userId: string; orgId: string; orgSlug: string; apiKey: string };
+    // Keep all database work in the cleanup boundary until the transaction commits.
     try {
-      const txResult = await this.prisma.$transaction(async (tx) => {
+      let orgSlug = this.emailToOrgSlug(email);
+      const existing = await this.prisma.organization.findUnique({ where: { slug: orgSlug } });
+      if (existing) orgSlug = `${orgSlug}-${Date.now().toString(36).slice(-4)}`;
+      const orgName = humanizeSlug(orgSlug);
+
+      txResult = await this.prisma.$transaction(async (tx) => {
         const user = await tx.user.upsert({
           where: { id: supabaseUserId },
           update: { email },
@@ -95,16 +93,6 @@ export class RegistrationService {
 
         return { userId: user.id, orgId: org.id, orgSlug: org.slug, apiKey: rawApiKey };
       });
-
-      this.posthog.recordAccountCreated({
-        userId: txResult.userId,
-        email,
-        orgId: txResult.orgId,
-        orgSlug: txResult.orgSlug,
-        source: 'registration',
-      });
-
-      return { userId: txResult.userId, orgSlug: txResult.orgSlug, apiKey: txResult.apiKey };
     } catch (error) {
       this.logger.error('Prisma transaction failed during registration', {
         message: (error as Error).message,
@@ -115,6 +103,20 @@ export class RegistrationService {
       });
       throw new InternalServerErrorException('Registration failed');
     }
+
+    // Account creation has committed. Analytics failures must not remove its user.
+    try {
+      this.posthog.recordAccountCreated({
+        userId: txResult.userId,
+        email,
+        orgId: txResult.orgId,
+        orgSlug: txResult.orgSlug,
+        source: 'registration',
+      });
+    } catch (error) {
+      this.logger.warn('Account creation analytics failed', error);
+    }
+    return { userId: txResult.userId, orgSlug: txResult.orgSlug, apiKey: txResult.apiKey };
   }
 
   private emailToOrgSlug(email: string): string {

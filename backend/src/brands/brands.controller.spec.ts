@@ -18,7 +18,7 @@ import type { CreateBrandDto } from './dto/create-brand.dto';
 describe('BrandsController authorization', () => {
   let controller: BrandsController;
   let brandsService: {
-    upsert: jest.Mock;
+    createWithDomain: jest.Mock;
     update: jest.Mock;
     delete: jest.Mock;
   };
@@ -45,7 +45,7 @@ describe('BrandsController authorization', () => {
 
   beforeEach(async () => {
     brandsService = {
-      upsert: jest.fn().mockResolvedValue({ slug: 'victim-brand', domain: 'd' }),
+      createWithDomain: jest.fn().mockResolvedValue({ slug: 'victim-brand', domain: 'd' }),
       update: jest.fn().mockResolvedValue({}),
       delete: jest.fn().mockResolvedValue({}),
     };
@@ -91,7 +91,7 @@ describe('BrandsController authorization', () => {
         'victim-brand',
         'victim-org',
       );
-      expect(brandsService.upsert).toHaveBeenCalled();
+      expect(brandsService.createWithDomain).toHaveBeenCalledWith({ ...dto, domain: 'evil.example.com' });
     });
 
     it('does not write or provision a domain when the org check fails', async () => {
@@ -101,7 +101,7 @@ describe('BrandsController authorization', () => {
         ForbiddenException,
       );
 
-      expect(brandsService.upsert).not.toHaveBeenCalled();
+      expect(brandsService.createWithDomain).not.toHaveBeenCalled();
       expect(vercel.addDomain).not.toHaveBeenCalled();
     });
 
@@ -114,7 +114,7 @@ describe('BrandsController authorization', () => {
         ForbiddenException,
       );
 
-      expect(brandsService.upsert).not.toHaveBeenCalled();
+      expect(brandsService.createWithDomain).not.toHaveBeenCalled();
       expect(vercel.addDomain).not.toHaveBeenCalled();
     });
 
@@ -127,7 +127,7 @@ describe('BrandsController authorization', () => {
         ForbiddenException,
       );
 
-      expect(brandsService.upsert).not.toHaveBeenCalled();
+      expect(brandsService.createWithDomain).not.toHaveBeenCalled();
       expect(vercel.addDomain).not.toHaveBeenCalled();
     });
   });

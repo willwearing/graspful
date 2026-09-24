@@ -1,7 +1,7 @@
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { JwtOrApiKeyGuard } from './jwt-or-apikey.guard';
 
-function mockExecutionContext(authHeader?: string): ExecutionContext {
+function mockExecutionContext(authHeader?: unknown): ExecutionContext {
   const request: any = {
     headers: authHeader ? { authorization: authHeader } : {},
     user: undefined,
@@ -50,6 +50,12 @@ describe('JwtOrApiKeyGuard', () => {
   it('throws UnauthorizedException when Authorization is not Bearer', async () => {
     const ctx = mockExecutionContext('Basic abc123');
     await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
+  });
+
+  it.each([[['Bearer gsk_key']], [7]])('rejects malformed authorization headers: %p', async (header) => {
+    await expect(guard.canActivate(mockExecutionContext(header))).rejects.toThrow(UnauthorizedException);
+    expect(mockApiKeyGuard.canActivate).not.toHaveBeenCalled();
+    expect(mockSupabaseGuard.canActivate).not.toHaveBeenCalled();
   });
 
   it('delegates to ApiKeyGuard when token starts with gsk_', async () => {
