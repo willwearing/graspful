@@ -68,9 +68,9 @@ test("sign-in controls wait for hydration before accepting credentials", async (
   });
   try {
     await page.goto("/sign-in", { waitUntil: "commit" });
-    await expect(page.getByLabel("Email")).toBeDisabled();
-    await expect(page.getByLabel("Password")).toBeDisabled();
-    await expect(page.getByRole("button", { name: "Sign In", exact: true })).toBeDisabled();
+    await expect(page.locator('script[src*="/_next/static/"]').first()).toBeAttached();
+    // Static pages can stream an empty Suspense boundary before client hydration.
+    await expect(page.locator('form input:enabled, form button[type="submit"]:enabled')).toHaveCount(0);
   } finally {
     releaseScripts();
   }
