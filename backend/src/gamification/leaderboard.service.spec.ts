@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { LeaderboardService } from './leaderboard.service';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -7,6 +8,8 @@ const mockPrisma = {
   course: {
     findUnique: jest.fn(),
   },
+  academyEnrollment: { findUnique: jest.fn() },
+  courseEnrollment: { findUnique: jest.fn() },
   xPEvent: {
     groupBy: jest.fn(),
   },
@@ -21,6 +24,7 @@ describe('LeaderboardService', () => {
   beforeEach(async () => {
     jest.resetAllMocks();
     mockPrisma.course.findUnique.mockResolvedValue({ academyId: 'academy-1' });
+    mockPrisma.academyEnrollment.findUnique.mockResolvedValue({ id: 'enrollment-1', academy: { orgId: 'org-1' } });
     const module = await Test.createTestingModule({
       providers: [
         LeaderboardService,
@@ -32,6 +36,20 @@ describe('LeaderboardService', () => {
   });
 
   describe('getWeeklyLeaderboard', () => {
+    it('rejects a legacy course-only learner before reading academy XP or learner profiles', async () => {
+      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({ userId: 'learner-1', courseId: 'course-1' });
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue(null);
+      mockPrisma.xPEvent.groupBy.mockResolvedValue([]);
+
+      await expect(service.getWeeklyLeaderboard('org-1', 'course-1', 'learner-1')).rejects.toBeInstanceOf(NotFoundException);
+      expect(mockPrisma.academyEnrollment.findUnique).toHaveBeenCalledWith({
+        where: { userId_academyId: { userId: 'learner-1', academyId: 'academy-1' } },
+        include: { academy: { select: { orgId: true } } },
+      });
+      expect(mockPrisma.xPEvent.groupBy).not.toHaveBeenCalled();
+      expect(mockPrisma.user.findMany).not.toHaveBeenCalled();
+    });
+
     it('should return ranked users sorted by weekly XP', async () => {
       mockPrisma.xPEvent.groupBy.mockResolvedValue([
         { userId: 'user-a', _sum: { amount: 200 } },
@@ -44,7 +62,7 @@ describe('LeaderboardService', () => {
         { id: 'user-c', displayName: 'Carol', avatarUrl: null },
       ]);
 
-      const board = await service.getWeeklyLeaderboard('org-1', 'course-1');
+      const board = await service.getWeeklyLeaderboard('org-1', 'course-1', 'learner-1');
 
       expect(mockPrisma.xPEvent.groupBy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -71,7 +89,7 @@ describe('LeaderboardService', () => {
         { id: 'user-c', displayName: 'Carol', avatarUrl: null },
       ]);
 
-      const board = await service.getWeeklyLeaderboard('org-1', 'course-1');
+      const board = await service.getWeeklyLeaderboard('org-1', 'course-1', 'learner-1');
 
       expect(board[0].rank).toBe(1);
       expect(board[1].rank).toBe(1); // Tied
@@ -81,7 +99,7 @@ describe('LeaderboardService', () => {
     it('should return empty array when no XP events', async () => {
       mockPrisma.xPEvent.groupBy.mockResolvedValue([]);
 
-      const board = await service.getWeeklyLeaderboard('org-1', 'course-1');
+      const board = await service.getWeeklyLeaderboard('org-1', 'course-1', 'learner-1');
 
       expect(board).toEqual([]);
     });

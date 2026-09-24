@@ -48,7 +48,7 @@ export class GamificationController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.leaderboardService.getWeeklyLeaderboard(org.orgId, courseId);
+    return this.leaderboardService.getWeeklyLeaderboard(org.orgId, courseId, org.userId);
   }
 
   @Get('stats')

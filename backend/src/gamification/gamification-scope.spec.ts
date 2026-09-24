@@ -126,7 +126,7 @@ describe('gamification academy scope', () => {
   });
 
   it('keeps leaderboard aggregation inside the requested org and resolved academy', async () => {
-    await leaderboard.getWeeklyLeaderboard('org-1', 'course-1');
+    await leaderboard.getWeeklyLeaderboard('org-1', 'course-1', 'learner-1');
     expect(prisma.xPEvent.groupBy).toHaveBeenCalledWith(expect.objectContaining({
       where: {
         academyId: 'academy-1', academy: { orgId: 'org-1' },

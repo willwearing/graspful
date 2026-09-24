@@ -110,7 +110,7 @@ describe('GamificationController', () => {
     const result = await controller.getLeaderboard('course-1', org);
 
     expect(result).toEqual(board);
-    expect(mockLeaderboardService.getWeeklyLeaderboard).toHaveBeenCalledWith('org-1', 'course-1');
+    expect(mockLeaderboardService.getWeeklyLeaderboard).toHaveBeenCalledWith('org-1', 'course-1', 'user-1');
   });
 
   it('checks authentication, membership, and resource scope in order', () => {

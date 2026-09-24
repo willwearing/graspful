@@ -67,8 +67,10 @@ export class LeaderboardService {
   async getWeeklyLeaderboard(
     orgId: string,
     courseId: string,
+    userId: string,
   ): Promise<LeaderboardEntry[]> {
     const academyId = await this.enrollments.getAcademyIdForCourse(courseId);
+    await this.enrollments.requireAcademyEnrollment(userId, academyId);
     return this.getAcademyWeeklyLeaderboard(orgId, academyId);
   }
 }
