@@ -21,13 +21,13 @@ function ApiKeysManager({ orgId, token }: { orgId: string; token: string | null 
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
           <div><CardTitle>API Keys</CardTitle><CardDescription>Manage API keys for programmatic access</CardDescription></div>
-          <CreateKeyDialog create={state.create} pending={state.pending} disabled={state.loading || !token} />
+          <CreateKeyDialog error={state.error} create={state.create} pending={state.pending} disabled={state.loading || !token} />
         </div>
       </CardHeader>
       <CardContent>
         {state.error && <p role="alert" className="mb-4 text-sm text-destructive">{state.error}</p>}
         {state.newKey && <NewKey key={state.newKey} value={state.newKey} />}
-        {state.loading ? <p>Loading API keys...</p> : <KeyList keys={state.keys} revoke={state.revoke} pending={state.pending} />}
+        {state.loading ? <p>Loading API keys...</p> : <KeyList error={state.error} keys={state.keys} revoke={state.revoke} pending={state.pending} />}
       </CardContent>
     </Card>
   );

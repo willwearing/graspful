@@ -101,4 +101,46 @@ it("shows a created secret when the access token refreshes while creation is pen
   view.rerender(<ApiKeysSettings orgId="org-one" />);
   await act(async () => finishCreate({ key: "gsk_pending_secret", id: "key-1" }));
   expect(await screen.findByText("gsk_pending_secret")).toBeVisible();
+  expect(fetchApi).toHaveBeenLastCalledWith("/orgs/org-one/api-keys", "user-one-refreshed");
+});
+
+it("shows a failed create request inside the open dialog", async () => {
+  fetchApi.mockResolvedValueOnce([]).mockRejectedValueOnce(new Error("create failed"));
+  render(<ApiKeysSettings orgId="org-one" />);
+  await screen.findByText(/No API keys yet/);
+  fireEvent.click(screen.getByRole("button", { name: "Create API Key" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "API key name" }), { target: { value: "CLI key" } });
+  fireEvent.click(screen.getByRole("button", { name: "Create Key" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Failed to create API key");
+  expect(screen.getByRole("dialog")).toContainElement(screen.getByRole("alert"));
+});
+
+it("keeps a failed revocation visible inside its confirmation dialog", async () => {
+  fetchApi.mockResolvedValueOnce([metadata]).mockRejectedValueOnce(new Error("revoke failed"));
+  render(<ApiKeysSettings orgId="org-one" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Revoke CLI key" }));
+  fireEvent.click(screen.getByRole("button", { name: "Revoke Key" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Failed to revoke API key");
+  expect(screen.getByRole("dialog")).toContainElement(screen.getByRole("alert"));
+});
+
+it("ignores a stale list error after a successful post-create refresh", async () => {
+  let finishCreate!: (value: { key: string; id: string }) => void;
+  let failOldList!: (error: Error) => void;
+  fetchApi.mockResolvedValueOnce([])
+    .mockImplementationOnce(() => new Promise((resolve) => { finishCreate = resolve; }))
+    .mockImplementationOnce(() => new Promise((_resolve, reject) => { failOldList = reject; }))
+    .mockResolvedValue([metadata]);
+  const view = render(<ApiKeysSettings orgId="org-one" />);
+  await screen.findByText(/No API keys yet/);
+  fireEvent.click(screen.getByRole("button", { name: "Create API Key" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "API key name" }), { target: { value: "CLI key" } });
+  fireEvent.click(screen.getByRole("button", { name: "Create Key" }));
+  auth.token = "user-one-refreshed";
+  view.rerender(<ApiKeysSettings orgId="org-one" />);
+  await act(async () => finishCreate({ key: "gsk_pending_secret", id: "key-1" }));
+  await screen.findByText("gsk_pending_secret");
+  await act(async () => failOldList(new Error("stale failure")));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.getByText("CLI key")).toBeVisible();
 });

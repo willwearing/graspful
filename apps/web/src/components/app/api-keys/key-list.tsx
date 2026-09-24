@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { ApiKeyMeta } from "@/lib/hooks/use-api-keys";
 
-export function KeyList({ keys, revoke, pending }: {
+export function KeyList({ keys, revoke, pending, error }: {
   keys: ApiKeyMeta[];
   revoke: (id: string) => Promise<boolean>;
   pending: boolean;
+  error: string | null;
 }) {
   const [target, setTarget] = useState<ApiKeyMeta | null>(null);
   if (!keys.length) return <div className="py-8 text-center"><Key className="mx-auto mb-3 size-8 text-muted-foreground" /><p>No API keys yet. Create one to use the CLI or MCP server.</p></div>;
@@ -36,6 +37,7 @@ export function KeyList({ keys, revoke, pending }: {
             <DialogTitle>Revoke API Key</DialogTitle>
             <DialogDescription>Revoke {target?.name}? Integrations that use this key will stop working immediately.</DialogDescription>
           </DialogHeader>
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setTarget(null)}>Cancel</Button>
             <Button variant="destructive" disabled={pending} onClick={async () => { if (target && await revoke(target.id)) setTarget(null); }}>{pending ? "Revoking..." : "Revoke Key"}</Button>

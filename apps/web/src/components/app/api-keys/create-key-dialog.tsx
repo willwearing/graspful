@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-export function CreateKeyDialog({ create, pending, disabled }: {
+export function CreateKeyDialog({ create, pending, disabled, error }: {
   create: (name: string) => Promise<boolean>;
   pending: boolean;
   disabled?: boolean;
+  error: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -27,6 +28,7 @@ export function CreateKeyDialog({ create, pending, disabled }: {
         <Input aria-label="API key name" placeholder="e.g. My Laptop CLI" value={name}
           onChange={(event) => setName(event.target.value)} maxLength={100} autoFocus
           onKeyDown={(event) => { if (event.key === "Enter" && name.trim() && !pending) void submit(); }} />
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button onClick={submit} disabled={!name.trim() || pending}>{pending ? "Creating..." : "Create Key"}</Button>
         </DialogFooter>

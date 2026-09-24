@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiClientFetch } from "@/lib/api-client";
+import { useLatestRef } from "./use-latest-ref";
 
 export interface ApiKeyMeta {
   id: string;
@@ -26,24 +27,26 @@ export function useApiKeys(orgId: string, token: string | null) {
     return () => { active.current = false; };
   }, []);
 
-  const fetchKeys = useCallback(async () => {
-    if (!token) return;
+  const fetchKeys = useCallback(async (failure = "Failed to load API keys") => {
+    if (!token || !active.current) return;
     const version = ++listVersion.current;
-    const data = await apiClientFetch<ApiKeyMeta[]>(`/orgs/${orgId}/api-keys`, token);
-    if (active.current && version === listVersion.current) setKeys(data);
+    const isCurrent = () => active.current && version === listVersion.current;
+    setLoading(true);
+    try {
+      const data = await apiClientFetch<ApiKeyMeta[]>(`/orgs/${orgId}/api-keys`, token);
+      if (isCurrent()) { setKeys(data); setError(null); }
+    } catch {
+      if (isCurrent()) setError(failure);
+    } finally {
+      if (isCurrent()) setLoading(false);
+    }
   }, [orgId, token]);
+  const latestFetchKeys = useLatestRef(fetchKeys);
 
   useEffect(() => {
-    let cancelled = false;
-    if (!token) return;
-    setLoading(true);
-    const version = ++listVersion.current;
-    apiClientFetch<ApiKeyMeta[]>(`/orgs/${orgId}/api-keys`, token)
-      .then((data) => { if (!cancelled && version === listVersion.current) { setKeys(data); setError(null); } })
-      .catch(() => { if (!cancelled) setError("Failed to load API keys"); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [orgId, token]);
+    void fetchKeys();
+    return () => { listVersion.current += 1; };
+  }, [fetchKeys]);
 
   async function mutate(operation: () => Promise<void>, failure: string) {
     if (!token || mutation.current) return false;
@@ -69,8 +72,7 @@ export function useApiKeys(orgId: string, token: string | null) {
         method: "POST", body: JSON.stringify({ name: name.trim() }),
       });
       if (active.current) setNewKey(result.key);
-      try { await fetchKeys(); }
-      catch { if (active.current) setError("Key created. Could not refresh the list."); }
+      await latestFetchKeys.current("Key created. Could not refresh the list.");
     }, "Failed to create API key");
   }
 
@@ -78,7 +80,10 @@ export function useApiKeys(orgId: string, token: string | null) {
     return mutate(async () => {
       await apiClientFetch(`/orgs/${orgId}/api-keys/${id}`, token!, { method: "DELETE" });
       listVersion.current += 1;
-      if (active.current) setKeys((current) => current.filter((key) => key.id !== id));
+      if (active.current) {
+        setKeys((current) => current.filter((key) => key.id !== id));
+        setLoading(false);
+      }
     }, "Failed to revoke API key");
   }
   return { keys, loading, error, newKey, pending, create, revoke };
