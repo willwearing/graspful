@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { setOutputFormat, OutputFormat } from './lib/output';
+import { setOutputFormat, OutputFormat, outputError } from './lib/output';
 import { cliShutdown } from './lib/analytics';
 import { registerValidateCommand } from './commands/validate';
 import { registerImportCommand } from './commands/import';
@@ -20,7 +20,7 @@ const program = new Command();
 program
   .name('graspful')
   .description('Create adaptive learning courses from YAML')
-  .version('0.2.9')
+  .version((require('../package.json') as { version: string }).version)
   .option('--format <format>', 'Output format: human or json', 'human')
   .hook('preAction', (thisCommand) => {
     const opts = thisCommand.opts();
@@ -36,10 +36,16 @@ registerReviewCommand(program);
 const createCmd = registerCreateCourseCommand(program);
 registerCreateAcademyCommand(createCmd);
 registerCreateBrandCommand(createCmd);
-const fillCmd = registerFillConceptCommand(program);
+registerFillConceptCommand(program);
 registerDescribeCommand(program);
 registerLoginCommand(program);
 registerRegisterCommand(program);
 registerInitCommand(program);
 
-program.parseAsync().then(() => cliShutdown()).catch(() => cliShutdown());
+program.parseAsync().catch((error: unknown) => {
+  outputError(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+}).finally(() => cliShutdown()).catch((error: unknown) => {
+  outputError(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});

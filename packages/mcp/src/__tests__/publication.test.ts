@@ -141,7 +141,7 @@ describe('graspful_import_course publication results', () => {
     expect(requests).toEqual([{
       url: 'https://publication.test/api/v1/orgs/test-org/courses/import',
       method: 'POST',
-      body: { yaml: 'course: { id: measurement }', publish: false },
+      body: { yaml: 'course: { id: measurement }', publish: false, replace: false, archiveMissing: false },
     }]);
   });
 
@@ -161,7 +161,7 @@ describe('graspful_import_course publication results', () => {
       status: 'imported_but_not_published',
       publicationFailures: [failureText],
     });
-    expect(requests[0].body).toEqual({ yaml: 'course: { id: measurement }', publish: true });
+    expect(requests[0].body).toEqual({ yaml: 'course: { id: measurement }', publish: true, replace: false, archiveMissing: false });
   });
 
   test.each([undefined, null, 'true', 1])('requires an explicit publication confirmation after import, received %p', async (published) => {

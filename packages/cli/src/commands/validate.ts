@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
-import * as yaml from 'js-yaml';
+import { readYamlFile } from '@graspful/client';
 import { validateParsedYaml } from '@graspful/shared';
 import { output, outputError } from '../lib/output';
 import { cliCapture } from '../lib/analytics';
@@ -17,12 +17,12 @@ export function registerValidateCommand(program: Command) {
 
       let raw: unknown;
       try {
-        raw = yaml.load(fs.readFileSync(file, 'utf-8'));
+        raw = readYamlFile(file).raw;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         output(
-          { valid: false, errors: [`YAML parse error: ${msg}`], stats: {} },
-          `FAIL  YAML parse error: ${msg}`,
+          { valid: false, errors: [msg], stats: {} },
+          `FAIL  ${msg}`,
         );
         process.exit(1);
       }

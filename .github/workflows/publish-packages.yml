@@ -24,6 +24,7 @@ on:
       - 'packages/cli/**'
       - 'packages/mcp/**'
       - 'packages/shared/**'
+      - 'packages/client/**'
     tags:
       - 'v*'
       - 'cli@*'
@@ -68,15 +69,18 @@ jobs:
             echo "target=all" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Resolve workspace protocol for npm publish
+      - name: Build package dependencies
         run: |
-          SHARED_VERSION=$(node -p "require('./packages/shared/package.json').version")
-          for pkg in packages/cli/package.json packages/mcp/package.json; do
-            sed -i "s|\"workspace:\\*\"|\"^${SHARED_VERSION}\"|g" "$pkg"
-          done
+          bun run --cwd packages/shared build
+          bun run --cwd packages/client build
+          bun run --cwd packages/cli build
+          bun run --cwd packages/mcp build
 
-      - name: Build @graspful/shared
-        run: cd packages/shared && bun run build
+      - name: Test packages
+        run: bun test packages/shared/src packages/client/src packages/cli/src packages/mcp/src
+
+      - name: Resolve workspace protocol for npm publish
+        run: node packages/client/scripts/resolve-workspace-dependencies.cjs
 
       - name: Publish @graspful/shared
         if: github.event.inputs.dry_run != 'true'
@@ -88,13 +92,16 @@ jobs:
           else
             npm publish --access public
           fi
-      - name: Build CLI
-        if: steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli'
-        run: cd packages/cli && bun run build
-
-      - name: Build MCP
-        if: steps.target.outputs.target == 'all' || steps.target.outputs.target == 'mcp'
-        run: cd packages/mcp && bun run build
+      - name: Publish @graspful/client
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          cd packages/client
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "@graspful/client@$VERSION" version >/dev/null 2>&1; then
+            echo "@graspful/client@$VERSION is already published"
+          else
+            npm publish --access public
+          fi
 
       - name: Publish @graspful/cli
         if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli') && github.event.inputs.dry_run != 'true'
@@ -118,10 +125,16 @@ jobs:
             npm publish --access public
           fi
 
-      - name: Dry run — CLI
+      - name: Dry run shared dependencies
+        if: github.event.inputs.dry_run == 'true'
+        run: |
+          cd packages/shared && npm publish --access public --dry-run
+          cd ../client && npm publish --access public --dry-run
+
+      - name: Dry run CLI
         if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'cli') && github.event.inputs.dry_run == 'true'
         run: cd packages/cli && npm publish --access public --dry-run
 
-      - name: Dry run — MCP
+      - name: Dry run MCP
         if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'mcp') && github.event.inputs.dry_run == 'true'
         run: cd packages/mcp && npm publish --access public --dry-run

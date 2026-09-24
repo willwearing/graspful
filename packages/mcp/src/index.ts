@@ -6,9 +6,12 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import * as yaml from 'js-yaml';
+import { GraspfulApi, resolveCredentials, requireAuth, dumpYaml, parseYaml, telemetryConfig, hashCredential } from '@graspful/client';
+import { zodToJsonSchema } from 'zod-to-json-schema';
+import type { ZodTypeAny } from 'zod/v3';
+import { TOOL_SCHEMAS } from './tool-schemas';
 import { PostHog } from 'posthog-node';
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import {
   CourseYamlSchema,
   QUALITY_CHECK_METADATA,
@@ -20,23 +23,14 @@ import {
   scaffoldBrandObject,
   fillConceptInRaw,
   publicationFailures,
-  type CoursePublicationResponse,
 } from '@graspful/shared';
 
 // ─── PostHog analytics ──────────────────────────────────────────────────────
 
-const DEFAULT_POSTHOG_KEY = 'phc_ahQLCJsOBzeuro1yDeurs1a3xx07pIreJWeXG9T4d4';
-const telemetryDisabled =
-  process.env.GRASPFUL_TELEMETRY_DISABLED === '1' ||
-  process.env.NODE_ENV === 'test';
-const posthogKey = telemetryDisabled
-  ? null
-  : process.env.POSTHOG_API_KEY ||
-    process.env.NEXT_PUBLIC_POSTHOG_KEY ||
-    DEFAULT_POSTHOG_KEY;
+const { key: posthogKey, host: posthogHost } = telemetryConfig();
 const posthogClient = posthogKey
   ? new PostHog(posthogKey, {
-      host: process.env.POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+      host: posthogHost,
       flushAt: 1,
       flushInterval: 0,
     })
@@ -48,12 +42,10 @@ export function mcpDistinctId(): string {
     return process.env.GRASPFUL_USER_ID;
   }
 
-  if (process.env.GRASPFUL_API_KEY) {
-    const digest = createHash('sha256')
-      .update(process.env.GRASPFUL_API_KEY)
-      .digest('hex');
-    return `credential:${digest}`;
-  }
+  const credentials = resolveCredentials();
+  if (credentials.userId) return credentials.userId;
+  const token = credentials.apiKey || credentials.jwt;
+  if (token) return hashCredential(token);
 
   return anonymousMcpDistinctId;
 }
@@ -64,62 +56,6 @@ function mcpCapture(event: string, properties: Record<string, unknown> = {}) {
     event,
     properties: { ...properties, source: 'mcp' },
   });
-}
-
-// ─── Auth guard ─────────────────────────────────────────────────────────────
-
-const AUTH_REQUIRED_ERROR =
-  'Not authenticated. To authenticate, either:\n' +
-  '1. Run `graspful register` in a terminal to complete browser auth and mint an API key, OR\n' +
-  '2. Set the GRASPFUL_API_KEY environment variable (e.g., GRASPFUL_API_KEY=gsk_...).\n\n' +
-  'You can scaffold, validate, and review courses without authentication. ' +
-  'Authentication is only required for importing, publishing, and listing courses.';
-
-function requireApiAuth(): void {
-  const apiKey = process.env.GRASPFUL_API_KEY;
-  if (!apiKey) {
-    throw new Error(AUTH_REQUIRED_ERROR);
-  }
-}
-
-// ─── API Client ─────────────────────────────────────────────────────────────
-
-function getApiCredentials(): { baseUrl: string; authHeader?: string } {
-  const baseUrl = (process.env.GRASPFUL_API_URL || 'https://api.graspful.ai').replace(/\/$/, '');
-  const apiKey = process.env.GRASPFUL_API_KEY;
-  if (apiKey) {
-    return { baseUrl, authHeader: `Bearer ${apiKey}` };
-  }
-  return { baseUrl };
-}
-
-async function apiFetch<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
-  const { baseUrl, authHeader } = getApiCredentials();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (authHeader) headers['Authorization'] = authHeader;
-
-  const res = await fetch(`${baseUrl}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`API error ${res.status}: ${text}`);
-  }
-  return res.json() as T;
-}
-
-// ─── YAML helpers ───────────────────────────────────────────────────────────
-
-const YAML_DUMP_OPTS = { lineWidth: 120, noRefs: true };
-
-function parseYaml(yamlStr: string): unknown {
-  return yaml.load(yamlStr);
-}
-
-function dumpYaml(obj: unknown): string {
-  return yaml.dump(obj, YAML_DUMP_OPTS);
 }
 
 // ─── Tool definitions ───────────────────────────────────────────────────────
@@ -134,25 +70,17 @@ interface ToolDef {
   };
 }
 
+function inputSchema(schema: ZodTypeAny): ToolDef['inputSchema'] {
+  return zodToJsonSchema(schema, { $refStrategy: 'none' }) as ToolDef['inputSchema'];
+}
+
 const TOOLS: ToolDef[] = [
   {
     name: 'graspful_create_academy',
     description: `Generate an academy plan and manifest scaffold for an academy-first workflow. Every academy is a connected curriculum made of one or more real courses.
 
 Use this before authoring course YAML when the topic should be decomposed into learner-facing parts. If you do not pass courseNames, the scaffold creates the four default planning layers: foundations, core structures, operational flows, and applied judgment. The result includes authoring gates for source material, learner promise, landing-page proof, graph checks, and review before publishing.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        topic: { type: 'string', description: 'Academy topic name (e.g., "PostHog TAM", "Linear Algebra")' },
-        courseNames: {
-          type: 'array',
-          description: 'Optional ordered course names to include in the manifest',
-          items: { type: 'string' },
-        },
-        version: { type: 'string', description: 'Academy version string (default: 2026.1)' },
-      },
-      required: ['topic'],
-    },
+    inputSchema: inputSchema(TOOL_SCHEMAS.graspful_create_academy),
   },
   {
     name: 'graspful_scaffold_course',
@@ -162,20 +90,12 @@ This is step 1 of the Graspful two-YAML workflow:
 1. Scaffold: Create the course graph (sections, concepts, prerequisites, difficulty levels)
 2. Fill: Add knowledge points and problems to each concept using graspful_fill_concept
 
-The scaffold contains NO learning content — just the graph structure. You should:
+The scaffold contains NO learning content, just the graph structure. You should:
 - Edit the returned YAML to add more concepts, adjust prerequisites, set correct difficulty levels (1-10)
 - Set estimatedMinutes per concept
 - Group concepts into sections
 - Then call graspful_fill_concept for each concept to add KPs and problems`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        topic: { type: 'string', description: 'Course topic name (e.g., "Linear Algebra", "AWS Solutions Architect")' },
-        estimatedHours: { type: 'number', description: 'Estimated total course hours (default: 10)' },
-        sourceDocument: { type: 'string', description: 'Reference to source material (e.g., textbook, spec URL)' },
-      },
-      required: ['topic'],
-    },
+    inputSchema: inputSchema(TOOL_SCHEMAS.graspful_scaffold_course),
   },
   {
     name: 'graspful_fill_concept',
@@ -193,16 +113,7 @@ After filling, you should replace the TODO placeholders with real content:
 - Ensure each KP has 3+ problems for the adaptive engine to work well
 
 Fails if the concept already has KPs (to prevent accidental overwrites).`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        yaml: { type: 'string', description: 'The full course YAML string' },
-        conceptId: { type: 'string', description: 'ID of the concept to fill (must exist in the YAML and have 0 KPs)' },
-        kps: { type: 'number', description: 'Number of KP stubs to add as a starting point (default: 3, not a cap)' },
-        problemsPerKp: { type: 'number', description: 'Number of problem stubs per KP (default: 3)' },
-      },
-      required: ['yaml', 'conceptId'],
-    },
+    inputSchema: inputSchema(TOOL_SCHEMAS.graspful_fill_concept),
   },
   {
     name: 'graspful_validate',
@@ -216,13 +127,7 @@ Returns { valid, fileType, errors, stats }. If valid is false, errors contains h
 Stats include concept/KP/problem counts for courses.
 
 Run this before graspful_import_course to catch errors early.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        yaml: { type: 'string', description: 'The YAML string to validate (course, brand, or academy manifest)' },
-      },
-      required: ['yaml'],
-    },
+    inputSchema: inputSchema(TOOL_SCHEMAS.graspful_validate),
   },
   {
     name: 'graspful_review_course',
@@ -232,13 +137,7 @@ The checks are:
 ${QUALITY_CHECK_METADATA.map((check, index) => `${index + 1}. ${check.name}: ${check.description}`).join('\n')}
 
 All automated checks must pass before publishing. Check factual accuracy against your sources separately. Run this before graspful_import_course with publish=true.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        yaml: { type: 'string', description: 'The full course YAML string to review' },
-      },
-      required: ['yaml'],
-    },
+    inputSchema: inputSchema(TOOL_SCHEMAS.graspful_review_course),
   },
   {
     name: 'graspful_import_academy',
@@ -247,21 +146,7 @@ All automated checks must pass before publishing. Check factual accuracy against
 IMPORTANT: Requires authentication. If not authenticated, run \`graspful register\` in a terminal first or set the \`GRASPFUL_API_KEY\` environment variable. Without auth, this tool will fail.
 
 If publish=true, Graspful imports the academy first and then attempts to publish each imported course. Returns the academy result plus confirmed publishedCourseIds and publishFailures. If any requested publication fails, isError is true and the result preserves the imported academy and successful publications.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        manifestYaml: { type: 'string', description: 'The full academy manifest YAML string' },
-        courseYamls: {
-          type: 'object',
-          description: 'Object mapping manifest file paths to the full course YAML strings',
-        },
-        org: { type: 'string', description: 'Organization slug (e.g., "acme-learning")' },
-        publish: { type: 'boolean', description: 'If true, publish every imported course after academy import. Default: false' },
-        replace: { type: 'boolean', description: 'Replace existing academy/course content on re-import. Default: false' },
-        archiveMissing: { type: 'boolean', description: 'Archive removed content on re-import. Default: false' },
-      },
-      required: ['manifestYaml', 'courseYamls', 'org'],
-    },
+    inputSchema: inputSchema(TOOL_SCHEMAS.graspful_import_academy),
   },
   {
     name: 'graspful_import_course',
@@ -272,15 +157,7 @@ IMPORTANT: Requires authentication. If not authenticated, run \`graspful registe
 If publish=true, the server runs the review gate first - the course must pass all 10 quality checks to be published. If review fails, the course is imported as a draft and failures are returned.
 
 Returns { courseId, url, published, review?, reviewFailures? }. If requested publication fails, isError is true and the result includes publicationFailures and status: imported_but_not_published.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        yaml: { type: 'string', description: 'The full course YAML string to import' },
-        org: { type: 'string', description: 'Organization slug (e.g., "acme-learning")' },
-        publish: { type: 'boolean', description: 'If true, publish immediately (runs review gate). Default: false' },
-      },
-      required: ['yaml', 'org'],
-    },
+    inputSchema: inputSchema(TOOL_SCHEMAS.graspful_import_course),
   },
   {
     name: 'graspful_publish_course',
@@ -289,14 +166,7 @@ Returns { courseId, url, published, review?, reviewFailures? }. If requested pub
 IMPORTANT: Requires authentication. If not authenticated, run \`graspful register\` in a terminal first or set the \`GRASPFUL_API_KEY\` environment variable. Without auth, this tool will fail.
 
 Returns { courseId, published, url, review }. Publication is successful only when published is true. Otherwise isError is true and publicationFailures explains the review failures.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        courseId: { type: 'string', description: 'The course ID (UUID) to publish' },
-        org: { type: 'string', description: 'Organization slug' },
-      },
-      required: ['courseId', 'org'],
-    },
+    inputSchema: inputSchema(TOOL_SCHEMAS.graspful_publish_course),
   },
   {
     name: 'graspful_describe_course',
@@ -310,13 +180,7 @@ Returns:
 - Per-section breakdown
 
 Use this to check your progress: "How many concepts still need content?"`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        yaml: { type: 'string', description: 'The full course YAML string' },
-      },
-      required: ['yaml'],
-    },
+    inputSchema: inputSchema(TOOL_SCHEMAS.graspful_describe_course),
   },
   {
     name: 'graspful_create_brand',
@@ -331,17 +195,7 @@ The returned YAML has the full brand structure:
 - seo: title, description, keywords
 
 Edit the YAML to customize, then import with \`graspful_import_brand\`.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        niche: { type: 'string', description: 'Brand niche: education, healthcare, finance, tech, or legal' },
-        name: { type: 'string', description: 'Brand name (default: "{Niche} Academy")' },
-        topic: { type: 'string', description: 'Academy topic for more specific landing-page copy' },
-        domain: { type: 'string', description: 'Custom domain (default: "{slug}.graspful.ai")' },
-        orgSlug: { type: 'string', description: 'Organization slug to associate with' },
-      },
-      required: ['niche'],
-    },
+    inputSchema: inputSchema(TOOL_SCHEMAS.graspful_create_brand),
   },
   {
     name: 'graspful_import_brand',
@@ -349,14 +203,8 @@ Edit the YAML to customize, then import with \`graspful_import_brand\`.`,
 
 IMPORTANT: Requires authentication. If not authenticated, run \`graspful register\` in a terminal first or set the \`GRASPFUL_API_KEY\` environment variable. Without auth, this tool will fail.
 
-Returns { slug, domain, verificationStatus }.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        yaml: { type: 'string', description: 'The full brand YAML string to import' },
-      },
-      required: ['yaml'],
-    },
+Returns { brand: { slug, domain }, domain: { verified, error?, dnsInstructions? } }.`,
+    inputSchema: inputSchema(TOOL_SCHEMAS.graspful_import_brand),
   },
   {
     name: 'graspful_list_courses',
@@ -365,13 +213,7 @@ Returns { slug, domain, verificationStatus }.`,
 IMPORTANT: Requires authentication. If not authenticated, run \`graspful register\` in a terminal first or set the \`GRASPFUL_API_KEY\` environment variable. Without auth, this tool will fail.
 
 Returns an array of courses with their IDs, names, published status, and stats.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        org: { type: 'string', description: 'Organization slug (e.g., "acme-learning")' },
-      },
-      required: ['org'],
-    },
+    inputSchema: inputSchema(TOOL_SCHEMAS.graspful_list_courses),
   },
 ];
 
@@ -391,6 +233,12 @@ function errorResult(text: string): ToolResult {
 }
 
 async function handleToolCall(name: string, args: Record<string, unknown>): Promise<ToolResult> {
+  if (!Object.hasOwn(TOOL_SCHEMAS, name)) return errorResult(`Unknown tool: ${name}`);
+  const schema = TOOL_SCHEMAS[name as keyof typeof TOOL_SCHEMAS];
+  if (!schema) return errorResult(`Unknown tool: ${name}`);
+  const parsed = schema.safeParse(args);
+  if (!parsed.success) return errorResult(`Invalid arguments for ${name}: ${parsed.error.message}`);
+  args = parsed.data;
   switch (name) {
     case 'graspful_create_academy': {
       const topic = args.topic as string;
@@ -461,50 +309,15 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
 
     case 'graspful_import_academy': {
       try {
-        requireApiAuth();
-        const result = await apiFetch<{
-          academyId: string;
-          academySlug: string;
-          partCount: number;
-          courseCount: number;
-          courseResults: Array<{ courseId: string }>;
-          warnings: string[];
-        }>(
-          'POST',
-          `/api/v1/orgs/${args.org}/academies/import`,
-          {
-            manifestYaml: args.manifestYaml,
-            courseYamls: args.courseYamls,
-            replace: args.replace ?? false,
-            archiveMissing: args.archiveMissing ?? false,
-          },
-        );
-
-        const publishedCourseIds: string[] = [];
-        const publishFailures: string[] = [];
-
-        if (args.publish) {
-          for (const courseResult of result.courseResults) {
-            try {
-              const publication = await apiFetch<CoursePublicationResponse>(
-                'POST',
-                `/api/v1/orgs/${args.org}/courses/${courseResult.courseId}/publish`,
-                {},
-              );
-              if (publication.published === true) {
-                publishedCourseIds.push(courseResult.courseId);
-              } else {
-                publishFailures.push(
-                  `${courseResult.courseId}: ${publicationFailures(publication).join('; ')}`,
-                );
-              }
-            } catch (error) {
-              publishFailures.push(
-                `${courseResult.courseId}: ${error instanceof Error ? error.message : String(error)}`,
-              );
-            }
-          }
-        }
+        const api = new GraspfulApi(requireAuth());
+        const result = await api.importAcademy(args.org as string, {
+          manifestYaml: args.manifestYaml as string,
+          courseYamls: args.courseYamls as Record<string, string>,
+          publish: args.publish as boolean | undefined,
+          replace: args.replace as boolean | undefined,
+          archiveMissing: args.archiveMissing as boolean | undefined,
+        });
+        const { publishedCourseIds, publishFailures } = result;
 
         mcpCapture('academy imported', {
           academy_id: result.academyId,
@@ -513,20 +326,7 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
           published_count: publishedCourseIds.length,
         });
         const resultMessage = publishFailures.length > 0 ? errorResult : textResult;
-        return resultMessage(
-          JSON.stringify(
-            {
-              ...result,
-              publishedCourseIds,
-              publishFailures,
-              ...(publishFailures.length > 0 ? {
-                status: publishedCourseIds.length > 0 ? 'partially_published' : 'imported_but_not_published',
-              } : {}),
-            },
-            null,
-            2,
-          ),
-        );
+        return resultMessage(JSON.stringify(result, null, 2));
       } catch (e) {
         return errorResult(`Academy import failed: ${e instanceof Error ? e.message : String(e)}`);
       }
@@ -534,12 +334,13 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
 
     case 'graspful_import_course': {
       try {
-        requireApiAuth();
-        const result = await apiFetch<CoursePublicationResponse>(
-          'POST',
-          `/api/v1/orgs/${args.org}/courses/import`,
-          { yaml: args.yaml, publish: args.publish ?? false },
-        );
+        const api = new GraspfulApi(requireAuth());
+        const result = await api.importCourse(args.org as string, {
+          yaml: args.yaml as string,
+          publish: args.publish as boolean | undefined,
+          replace: args.replace as boolean | undefined,
+          archiveMissing: args.archiveMissing as boolean | undefined,
+        });
         mcpCapture('course imported', { course_id: result.courseId, org: args.org, published: result.published });
         if (args.publish && result.published !== true) {
           return errorResult(JSON.stringify({
@@ -556,12 +357,8 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
 
     case 'graspful_publish_course': {
       try {
-        requireApiAuth();
-        const result = await apiFetch<CoursePublicationResponse>(
-          'POST',
-          `/api/v1/orgs/${args.org}/courses/${args.courseId}/publish`,
-          {},
-        );
+        const api = new GraspfulApi(requireAuth());
+        const result = await api.publish(args.org as string, args.courseId as string);
         if (result.published !== true) {
           return errorResult(JSON.stringify({
             ...result,
@@ -602,36 +399,15 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
 
     case 'graspful_import_brand': {
       try {
-        requireApiAuth();
+        const api = new GraspfulApi(requireAuth());
         let raw: unknown;
         try {
           raw = parseYaml(args.yaml as string);
         } catch (e) {
           throw new Error(`YAML parse error: ${e instanceof Error ? e.message : String(e)}`);
         }
-        const parsed = raw as Record<string, unknown>;
-        const brandSection = (parsed.brand || {}) as Record<string, unknown>;
-        const dto = {
-          slug: brandSection.id || brandSection.slug,
-          name: brandSection.name,
-          domain: brandSection.domain,
-          tagline: brandSection.tagline || '',
-          logoUrl: (brandSection.logoUrl as string) || '/logo.svg',
-          faviconUrl: brandSection.faviconUrl,
-          ogImageUrl: brandSection.ogImageUrl,
-          orgSlug: brandSection.orgSlug,
-          theme: parsed.theme || {},
-          landing: parsed.landing || {},
-          seo: parsed.seo || {},
-          pricing: parsed.pricing || {},
-          contentScope: parsed.contentScope,
-        };
-        const result = await apiFetch<{ slug: string; domain: string; verificationStatus: string }>(
-          'POST',
-          '/api/v1/brands',
-          dto,
-        );
-        mcpCapture('brand imported', { slug: result.slug, domain: result.domain });
+        const result = await api.importBrand(raw);
+        mcpCapture('brand imported', { slug: result.brand.slug, domain: result.brand.domain });
         return textResult(JSON.stringify(result, null, 2));
       } catch (e) {
         return errorResult(`Brand import failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -640,11 +416,8 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
 
     case 'graspful_list_courses': {
       try {
-        requireApiAuth();
-        const result = await apiFetch<unknown[]>(
-          'GET',
-          `/api/v1/orgs/${args.org}/courses`,
-        );
+        const api = new GraspfulApi(requireAuth());
+        const result = await api.listCourses(args.org as string);
         mcpCapture('courses listed', { org: args.org, count: result.length });
         return textResult(JSON.stringify(result, null, 2));
       } catch (e) {
@@ -665,7 +438,7 @@ if (require.main === module) {
   const server = new Server(
     {
       name: 'graspful',
-      version: '0.2.6',
+      version: (require('../package.json') as { version: string }).version,
     },
     {
       capabilities: {

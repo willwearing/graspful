@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
-import * as yaml from 'js-yaml';
+import { readYamlFile } from '@graspful/client';
 import { runQualityGate } from '@graspful/shared';
 import { output, outputError } from '../lib/output';
 import { cliCapture } from '../lib/analytics';
@@ -17,10 +17,10 @@ export function registerReviewCommand(program: Command) {
 
       let raw: unknown;
       try {
-        raw = yaml.load(fs.readFileSync(file, 'utf-8'));
+        raw = readYamlFile(file).raw;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        outputError(`YAML parse error: ${message}`);
+        outputError(message);
         process.exit(1);
       }
 

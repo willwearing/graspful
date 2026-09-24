@@ -149,17 +149,31 @@
     },
     "packages/cli": {
       "name": "@graspful/cli",
-      "version": "0.2.9",
+      "version": "0.3.0",
       "bin": {
         "graspful": "dist/index.js",
       },
       "dependencies": {
+        "@graspful/client": "workspace:*",
         "@graspful/shared": "workspace:*",
         "chalk": "^5.4.0",
         "commander": "^13.0.0",
-        "js-yaml": "^4.1.0",
         "posthog-node": "^5.28.8",
         "zod": "^3.24.0",
+      },
+      "devDependencies": {
+        "@types/js-yaml": "^4.0.9",
+        "@types/node": "^22.0.0",
+        "js-yaml": "^4.1.0",
+        "typescript": "^5.7.0",
+      },
+    },
+    "packages/client": {
+      "name": "@graspful/client",
+      "version": "0.1.0",
+      "dependencies": {
+        "@graspful/shared": "workspace:*",
+        "js-yaml": "^4.1.0",
       },
       "devDependencies": {
         "@types/js-yaml": "^4.0.9",
@@ -191,20 +205,22 @@
     },
     "packages/mcp": {
       "name": "@graspful/mcp",
-      "version": "0.2.6",
+      "version": "0.3.0",
       "bin": {
         "graspful-mcp": "dist/index.js",
       },
       "dependencies": {
+        "@graspful/client": "workspace:*",
         "@graspful/shared": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.27.1",
-        "js-yaml": "^4.1.0",
         "posthog-node": "^5.28.8",
-        "zod": "^3.24.0",
+        "zod": "^3.25.0",
+        "zod-to-json-schema": "^3.24.0",
       },
       "devDependencies": {
         "@types/js-yaml": "^4.0.9",
         "@types/node": "^25.5.0",
+        "js-yaml": "^4.1.0",
         "typescript": "^5.7.0",
       },
     },
@@ -404,6 +420,8 @@
     "@graspful/backend": ["@graspful/backend@workspace:backend"],
 
     "@graspful/cli": ["@graspful/cli@workspace:packages/cli"],
+
+    "@graspful/client": ["@graspful/client@workspace:packages/client"],
 
     "@graspful/creator-ui": ["@graspful/creator-ui@workspace:packages/creator-ui"],
 

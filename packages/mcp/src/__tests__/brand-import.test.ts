@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import * as yaml from 'js-yaml';
 import { handleToolCall } from '../index';
+import { scaffoldBrandObject, BrandYamlSchema } from '@graspful/shared';
 
 const originalFetch = globalThis.fetch;
 const originalApiKey = process.env.GRASPFUL_API_KEY;
@@ -18,9 +19,8 @@ beforeEach(() => {
       body: JSON.parse(String(init?.body)),
     });
     return Response.json({
-      slug: 'field-basics',
-      domain: 'field-basics.example.com',
-      verificationStatus: 'pending',
+      brand: { slug: 'field-basics', domain: 'field-basics.example.com' },
+      domain: { verified: false },
     });
   }) as typeof fetch;
 });
@@ -43,9 +43,10 @@ const brand = {
 
 async function importBrand(brandFields: Record<string, unknown> = {}, rootFields: Record<string, unknown> = {}) {
   const result = await handleToolCall('graspful_import_brand', {
-    yaml: yaml.dump({ brand: { ...brand, ...brandFields }, ...rootFields }),
+    yaml: yaml.dump({ ...scaffoldBrandObject('education', {}), brand: { ...brand, ...brandFields }, ...rootFields }),
   });
   expect(result.isError).toBeUndefined();
+  expect(JSON.parse(result.content[0].text)).toEqual({ brand: { slug: 'field-basics', domain: 'field-basics.example.com' }, domain: { verified: false } });
   expect(requests).toHaveLength(1);
   expect(requests[0].url).toBe('https://brand-import.test/api/v1/brands');
   expect(requests[0].method).toBe('POST');
@@ -65,14 +66,14 @@ describe('graspful_import_brand HTTP payload', () => {
       name: brand.name,
       domain: brand.domain,
       tagline: brand.tagline,
-      logoUrl: '/logo.svg',
+      logoUrl: '/icon.svg',
       faviconUrl,
       ogImageUrl,
       orgSlug: brand.orgSlug,
-      theme: {},
-      landing: {},
-      seo: {},
-      pricing: {},
+      theme: BrandYamlSchema.parse(scaffoldBrandObject('education', {})).theme,
+      landing: BrandYamlSchema.parse(scaffoldBrandObject('education', {})).landing,
+      seo: BrandYamlSchema.parse(scaffoldBrandObject('education', {})).seo,
+      pricing: BrandYamlSchema.parse(scaffoldBrandObject('education', {})).pricing,
       contentScope,
     });
   });
@@ -90,6 +91,6 @@ describe('graspful_import_brand HTTP payload', () => {
 
     expect(body).toHaveProperty('faviconUrl', '');
     expect(body).toHaveProperty('ogImageUrl', '');
-    expect(body).toHaveProperty('contentScope', contentScope);
+    expect(body).toHaveProperty('contentScope', { courseIds: [] });
   });
 });

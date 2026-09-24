@@ -17,6 +17,11 @@ function buildCliOnce() {
     env: { ...process.env, NODE_ENV: 'test' },
   });
   execSync('bun run build', {
+    cwd: path.resolve(CLI_CWD, '..', 'client'),
+    encoding: 'utf-8',
+    env: { ...process.env, NODE_ENV: 'test' },
+  });
+  execSync('bun run build', {
     cwd: CLI_CWD,
     encoding: 'utf-8',
     env: { ...process.env, NODE_ENV: 'test' },
@@ -214,7 +219,7 @@ describe('offline CLI commands', () => {
       try {
         output = run(`review ${courseFile}`);
       } catch (e: any) {
-        // review exits non-zero on failure — grab stdout from the error
+        // review exits non-zero on failure, read stdout from the error
         output = e.message;
       }
       expect(output).toContain('Score:');
