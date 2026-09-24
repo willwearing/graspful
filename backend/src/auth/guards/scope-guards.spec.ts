@@ -30,6 +30,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RequireEnrollment, REQUIRE_ENROLLMENT_KEY } from '../decorators/require-enrollment.decorator';
 import { AcademyScopeGuard } from './academy-scope.guard';
 import { CourseScopeGuard } from './course-scope.guard';
+import type { CourseContext } from './course-scope.guard';
+import { CurrentCourse } from '../decorators/current-course.decorator';
 import type { OrgContext } from '../org-context';
 import { OrgMembershipGuard } from './org-membership.guard';
 import { JwtOrApiKeyGuard } from './jwt-or-apikey.guard';
@@ -272,9 +274,9 @@ const controllerCall = jest.fn();
 @RequireEnrollment()
 class CourseProbeController {
   @Get('study')
-  study(@Req() request: Row) {
+  study(@CurrentCourse() course: CourseContext) {
     controllerCall();
-    return request.courseContext;
+    return course;
   }
 
   @Post('enroll')

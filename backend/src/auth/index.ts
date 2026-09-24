@@ -15,3 +15,4 @@ export { ApiKeyGuard } from './api-key/api-key.guard';
 export { CourseScopeGuard } from './guards/course-scope.guard';
 export { AcademyScopeGuard } from './guards/academy-scope.guard';
 export { RequireEnrollment } from './decorators/require-enrollment.decorator';
+export { CurrentCourse } from './decorators/current-course.decorator';

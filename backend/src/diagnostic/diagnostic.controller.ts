@@ -6,7 +6,8 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, CourseScopeGuard, RequireEnrollment } from '@/auth';
+import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, CurrentCourse, CourseScopeGuard, RequireEnrollment } from '@/auth';
+import type { CourseContext } from '@/auth/guards/course-scope.guard';
 import type { OrgContext } from '@/auth/org-context';
 import { DiagnosticSessionService } from './diagnostic-session.service';
 import { SubmitDiagnosticAnswerDto } from './dto/submit-diagnostic-answer.dto';
@@ -32,22 +33,22 @@ export class DiagnosticController {
 
   @Post('answer')
   async submitAnswer(
-    @Param('courseId') courseId: string,
+    @CurrentCourse() course: CourseContext,
     @Body() body: SubmitDiagnosticAnswerDto,
     @CurrentOrg() org: OrgContext,
   ) {
     return this.diagnosticSession.submitAnswer(body.sessionId, org.userId, {
       answer: body.answer,
       responseTimeMs: body.responseTimeMs,
-    });
+    }, course.academyId);
   }
 
   @Get('result/:sessionId')
   async getResult(
-    @Param('courseId') courseId: string,
+    @CurrentCourse() course: CourseContext,
     @Param('sessionId') sessionId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.diagnosticSession.getResult(sessionId, org.userId);
+    return this.diagnosticSession.getResult(sessionId, org.userId, course.academyId);
   }
 }

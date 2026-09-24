@@ -41,21 +41,23 @@ export class AcademyDiagnosticController {
 
   @Post('answer')
   async submitAnswer(
+    @Param('academyId') academyId: string,
     @Body() body: SubmitDiagnosticAnswerDto,
     @CurrentOrg() org: OrgContext,
   ) {
     return this.diagnosticSession.submitAnswer(body.sessionId, org.userId, {
       answer: body.answer,
       responseTimeMs: body.responseTimeMs,
-    });
+    }, academyId);
   }
 
   @Get('result/:sessionId')
   async getResult(
+    @Param('academyId') academyId: string,
     @Param('sessionId') sessionId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    const result = await this.diagnosticSession.getResult(sessionId, org.userId);
+    const result = await this.diagnosticSession.getResult(sessionId, org.userId, academyId);
     this.posthog.capture({ distinctId: org.userId }, 'diagnostic completed', {
       session_id: sessionId,
       org_id: org.orgId,
