@@ -1,8 +1,7 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import * as yaml from 'js-yaml';
 import { PrismaService } from '@/prisma/prisma.service';
 import { BrandsService } from '@/brands/brands.service';
-import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
 import { CourseImporterService } from '../course-importer.service';
 import { AcademyImporterService } from '../academy-importer.service';
 import { CourseYamlExportService } from '../course-yaml-export.service';
@@ -15,15 +14,12 @@ import type { ImportResult } from '../course-importer.service';
 
 @Injectable()
 export class CourseManagementService {
-  private readonly logger = new Logger(CourseManagementService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly importer: CourseImporterService,
     private readonly reviewService: ReviewService,
     private readonly courseYamlExport: CourseYamlExportService,
     private readonly brandsService: BrandsService,
-    private readonly vercelDomainsService: VercelDomainsService,
     private readonly academyImporter: AcademyImporterService,
   ) {}
 
@@ -77,7 +73,7 @@ export class CourseManagementService {
       });
     }
 
-    await this.ensureBrandForOrg(org, this.importer.parseCourseYaml(body.yaml).course);
+    await this.brandsService.ensureDefaultForOrg(org, this.importer.parseCourseYaml(body.yaml).course);
 
     const url = await this.buildCourseUrl(org.orgId, result.courseId);
     const reviewFailures = review && !review.passed ? review.failures : undefined;
@@ -94,7 +90,7 @@ export class CourseManagementService {
     );
 
     const manifest = this.academyImporter.parseManifest(body.manifestYaml);
-    await this.ensureBrandForOrg(org, manifest.academy);
+    await this.brandsService.ensureDefaultForOrg(org, manifest.academy);
     return result;
   }
 
@@ -129,111 +125,6 @@ export class CourseManagementService {
 
     const url = await this.buildCourseUrl(orgId, courseId);
     return { courseId, published: review.passed, url, review };
-  }
-
-  private async ensureBrandForOrg(
-    org: OrgContext,
-    metadata: { id: string; name: string; description?: string },
-  ) {
-    try {
-      const orgRecord = await this.prisma.organization.findUnique({
-        where: { id: org.orgId },
-        select: { slug: true },
-      });
-      if (!orgRecord) return;
-
-      const existingBrands = await this.prisma.brand.findFirst({
-        where: { orgSlug: orgRecord.slug },
-      });
-      if (existingBrands) return;
-
-      const username = org.email
-        .split('@')[0]
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '');
-
-      const slug = `${username}-${metadata.id}`
-        .toLowerCase()
-        .replace(/[^a-z0-9-]/g, '-')
-        .replace(/-+/g, '-');
-      let attempt = 0;
-      let finalSlug = slug;
-
-      while (await this.brandsService.findBySlug(finalSlug)) {
-        attempt++;
-        finalSlug = `${slug}-${attempt}`;
-      }
-
-      const domain = `${finalSlug}.graspful.ai`;
-
-      try {
-        const name = metadata.name;
-        const description = metadata.description ?? name;
-        await this.brandsService.create({
-          slug: finalSlug,
-          name,
-          domain,
-          tagline: description,
-          logoUrl: '/icon.svg',
-          orgSlug: orgRecord.slug,
-          theme: {},
-          landing: {
-            hero: {
-              headline: `Learn ${name}`,
-              subheadline: description,
-              ctaText: 'Start Learning',
-            },
-            features: {
-              heading: 'Why choose us?',
-              items: [
-                {
-                  title: 'Adaptive Learning',
-                  description: 'Content adapts to your knowledge level',
-                  icon: 'Brain',
-                },
-                {
-                  title: 'Spaced Repetition',
-                  description: 'Review at optimal intervals for lasting memory',
-                  icon: 'Timer',
-                },
-                {
-                  title: 'Progress Tracking',
-                  description: 'See exactly where you stand',
-                  icon: 'Workflow',
-                },
-              ],
-            },
-            howItWorks: {
-              heading: 'How it works',
-              items: [
-                { title: 'Take a diagnostic', description: 'We assess what you already know' },
-                { title: 'Learn adaptively', description: 'Focus on gaps, skip what you know' },
-                { title: 'Master the material', description: 'Prove mastery through progressive challenges' },
-              ],
-            },
-            faq: [],
-            bottomCta: {
-              headline: `Ready to learn ${name}?`,
-              subheadline: 'Start your adaptive learning journey today.',
-            },
-          },
-          seo: {
-            title: `${name}: Adaptive Learning`,
-            description,
-            keywords: [],
-          },
-          pricing: {},
-        });
-
-        this.vercelDomainsService.addDomain(domain).catch((err) => {
-          this.logger.warn(`Brand domain provisioning failed for ${domain}: ${err}`);
-        });
-      } catch (err) {
-        this.logger.warn(`Auto brand creation failed for org ${org.orgId}: ${err}`);
-      }
-    } catch (err) {
-      this.logger.warn(`Auto brand lookup failed for org ${org.orgId}: ${err}`);
-    }
   }
 
   private async buildCourseUrl(orgId: string, courseId: string): Promise<string | null> {

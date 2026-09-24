@@ -1,6 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BrandsService } from './brands.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
+import { Logger } from '@nestjs/common';
+import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
 
 describe('BrandsService', () => {
   let service: BrandsService;
@@ -11,13 +14,23 @@ describe('BrandsService', () => {
       findMany: jest.Mock;
       create: jest.Mock;
       update: jest.Mock;
+      upsert: jest.Mock;
     };
     academy: {
       findMany: jest.Mock;
     };
+    organization: {
+      findUnique: jest.Mock;
+    };
   };
 
+  let domains: { addDomain: jest.Mock; getDnsInstructions: jest.Mock };
+
+  afterEach(() => jest.restoreAllMocks());
+
   beforeEach(async () => {
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+    domains = { addDomain: jest.fn().mockResolvedValue({ verified: true }), getDnsInstructions: jest.fn() };
     prisma = {
       brand: {
         findFirst: jest.fn(),
@@ -25,16 +38,19 @@ describe('BrandsService', () => {
         findMany: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
+        upsert: jest.fn(),
       },
       academy: {
         findMany: jest.fn(),
       },
+      organization: { findUnique: jest.fn() },
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BrandsService,
         { provide: PrismaService, useValue: prisma },
+        { provide: VercelDomainsService, useValue: domains },
       ],
     }).compile();
 
@@ -389,6 +405,186 @@ describe('BrandsService', () => {
           ],
         },
       ]);
+    });
+  });
+
+  describe('createWithDomain', () => {
+    const dto = {
+      slug: 'field', name: 'Field academy', domain: 'field.graspful.com',
+      tagline: 'Learn', orgSlug: 'org', theme: {}, landing: {}, seo: {},
+    };
+    const brand = { id: 'brand-1', domain: 'field.graspful.ai' };
+    const dns = { type: 'CNAME', name: 'field', value: 'cname.vercel-dns.com' };
+
+    beforeEach(() => {
+      prisma.brand.upsert.mockResolvedValue(brand);
+      domains.getDnsInstructions.mockResolvedValue(dns);
+    });
+
+    it('upserts before provisioning the persisted canonical domain and returns verification details', async () => {
+      const verification = [{ type: 'TXT', domain: '_vercel.field.graspful.ai', value: 'verify', reason: 'ownership' }];
+      domains.addDomain.mockResolvedValue({ verified: false, verification });
+
+      await expect(service.createWithDomain(dto)).resolves.toEqual({
+        brand, domain: { verified: false, verification, dnsInstructions: dns },
+      });
+
+      expect(prisma.brand.upsert).toHaveBeenCalledWith(expect.objectContaining({
+        where: { slug: 'field' },
+        create: expect.objectContaining({ orgSlug: 'org', domain: 'field.graspful.ai' }),
+      }));
+      expect(domains.addDomain).toHaveBeenCalledWith('field.graspful.ai');
+      expect(domains.getDnsInstructions).toHaveBeenCalledWith('field.graspful.ai');
+      expect(prisma.brand.upsert.mock.invocationCallOrder[0]).toBeLessThan(domains.addDomain.mock.invocationCallOrder[0]);
+    });
+
+    it('retains the saved brand and DNS instructions when provisioning fails', async () => {
+      domains.addDomain.mockRejectedValue(new Error('Vercel unavailable'));
+
+      await expect(service.createWithDomain(dto)).resolves.toEqual({
+        brand, domain: {
+          verified: false, error: 'Domain provisioning failed. Configure DNS manually.', dnsInstructions: dns,
+        },
+      });
+    });
+
+    it('returns empty DNS instructions when both provisioning and DNS lookup fail', async () => {
+      domains.addDomain.mockRejectedValue(new Error('Vercel unavailable'));
+      domains.getDnsInstructions.mockRejectedValue(new Error('DNS unavailable'));
+
+      await expect(service.createWithDomain(dto)).resolves.toEqual({
+        brand, domain: {
+          verified: false, error: 'Domain provisioning failed. Configure DNS manually.', dnsInstructions: null,
+        },
+      });
+    });
+
+    it('propagates persistence failures before provisioning a domain', async () => {
+      prisma.brand.upsert.mockRejectedValue(new Error('Database unavailable'));
+
+      await expect(service.createWithDomain(dto)).rejects.toThrow('Database unavailable');
+      expect(domains.addDomain).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('ensureDefaultForOrg', () => {
+    const org = { orgId: 'org-1', email: 'Test.User@example.com' };
+    const metadata = { id: 'field-academy', name: 'Field academy', description: 'Identify wildlife' };
+    const duplicate = () => new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002', clientVersion: 'test', meta: { target: ['slug'] },
+    });
+
+    beforeEach(() => {
+      prisma.organization.findUnique.mockResolvedValue({ slug: 'org' });
+      prisma.brand.findFirst.mockResolvedValue(null);
+      prisma.brand.create.mockImplementation(async ({ data }) => ({ id: 'brand-1', ...data }));
+    });
+
+    it('creates the default website from metadata and provisions its domain', async () => {
+      await service.ensureDefaultForOrg(org, metadata);
+
+      expect(prisma.brand.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+        slug: 'testuser-field-academy', domain: 'testuser-field-academy.graspful.ai',
+        name: 'Field academy', tagline: 'Identify wildlife', orgSlug: 'org',
+        landing: expect.objectContaining({ hero: {
+          headline: 'Learn Field academy', subheadline: 'Identify wildlife', ctaText: 'Start Learning',
+        } }),
+      }) });
+      expect(domains.addDomain).toHaveBeenCalledWith('testuser-field-academy.graspful.ai');
+    });
+
+    it('uses the academy name when the description is absent', async () => {
+      await service.ensureDefaultForOrg(org, { id: 'field-academy', name: 'Field academy' });
+
+      expect(prisma.brand.create).toHaveBeenCalledWith({ data: expect.objectContaining({ tagline: 'Field academy' }) });
+    });
+
+    it('preserves an existing organization brand', async () => {
+      prisma.brand.findFirst.mockResolvedValue({ id: 'custom-brand', domain: 'learn.example.com' });
+
+      await service.ensureDefaultForOrg(org, metadata);
+
+      expect(prisma.brand.create).not.toHaveBeenCalled();
+      expect(domains.addDomain).not.toHaveBeenCalled();
+    });
+
+    it('does not create a website for a missing organization', async () => {
+      prisma.organization.findUnique.mockResolvedValue(null);
+
+      await service.ensureDefaultForOrg(org, metadata);
+
+      expect(prisma.brand.findFirst).not.toHaveBeenCalled();
+      expect(prisma.brand.create).not.toHaveBeenCalled();
+    });
+
+    it('retries a unique constraint collision with the next slug without a stale availability check', async () => {
+      prisma.brand.create.mockRejectedValueOnce(duplicate());
+
+      await service.ensureDefaultForOrg(org, metadata);
+
+      expect(prisma.brand.create).toHaveBeenCalledTimes(2);
+      expect(prisma.brand.create).toHaveBeenLastCalledWith({ data: expect.objectContaining({
+        slug: 'testuser-field-academy-1', domain: 'testuser-field-academy-1.graspful.ai',
+      }) });
+      expect(prisma.brand.findUnique).not.toHaveBeenCalled();
+      expect(domains.addDomain).toHaveBeenCalledTimes(1);
+      expect(domains.addDomain).toHaveBeenCalledWith('testuser-field-academy-1.graspful.ai');
+    });
+
+    it('reuses the same organization brand created by a concurrent request', async () => {
+      prisma.brand.create.mockRejectedValueOnce(duplicate());
+      prisma.brand.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'concurrent-brand', orgSlug: 'org' });
+
+      await service.ensureDefaultForOrg(org, metadata);
+
+      expect(prisma.brand.findFirst).toHaveBeenCalledTimes(2);
+      expect(prisma.brand.findFirst).toHaveBeenLastCalledWith({ where: { orgSlug: 'org' } });
+      expect(prisma.brand.create).toHaveBeenCalledTimes(1);
+      expect(domains.addDomain).not.toHaveBeenCalled();
+    });
+
+    it('bounds repeated unique constraint retries and leaves a successful import intact', async () => {
+      prisma.brand.create.mockRejectedValue(duplicate());
+
+      await expect(service.ensureDefaultForOrg(org, metadata)).resolves.toBeUndefined();
+
+      expect(prisma.brand.create).toHaveBeenCalledTimes(5);
+      expect(prisma.brand.create).toHaveBeenLastCalledWith({ data: expect.objectContaining({ slug: 'testuser-field-academy-4' }) });
+      expect(domains.addDomain).not.toHaveBeenCalled();
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+    });
+
+    it('does not retry a non-unique persistence failure or fail the import', async () => {
+      prisma.brand.create.mockRejectedValue(new Error('Database unavailable'));
+
+      await expect(service.ensureDefaultForOrg(org, metadata)).resolves.toBeUndefined();
+
+      expect(prisma.brand.create).toHaveBeenCalledTimes(1);
+      expect(domains.addDomain).not.toHaveBeenCalled();
+    });
+
+    it('keeps organization lookup failures best effort', async () => {
+      prisma.organization.findUnique.mockRejectedValue(new Error('Database unavailable'));
+
+      await expect(service.ensureDefaultForOrg(org, metadata)).resolves.toBeUndefined();
+      expect(prisma.brand.create).not.toHaveBeenCalled();
+    });
+
+    it('does not hold the import open while domain provisioning is pending', async () => {
+      domains.addDomain.mockReturnValue(new Promise(() => {}));
+
+      await expect(service.ensureDefaultForOrg(org, metadata)).resolves.toBeUndefined();
+      expect(domains.addDomain).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the created brand when asynchronous domain provisioning fails', async () => {
+      domains.addDomain.mockRejectedValue(new Error('Vercel unavailable'));
+
+      await expect(service.ensureDefaultForOrg(org, metadata)).resolves.toBeUndefined();
+      expect(prisma.brand.create).toHaveBeenCalledTimes(1);
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(expect.stringContaining('Brand domain provisioning failed'));
     });
   });
 
