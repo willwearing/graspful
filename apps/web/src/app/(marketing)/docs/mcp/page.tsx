@@ -103,8 +103,8 @@ export default function MCPPage() {
       {/* Getting your API key */}
       <DocSection title="Getting your API key" headingId="api-key">
         <p className="mt-2 text-muted-foreground">
-          The MCP server requires a <InlineCode>GRASPFUL_API_KEY</InlineCode> to
-          import or publish. Local scaffold, fill, validate, and review tools
+          The MCP server requires an API key to import or publish. Set{" "}
+          <InlineCode>GRASPFUL_API_KEY</InlineCode> or sign in with the CLI. Local scaffold, fill, validate, and review tools
           work without a key. Install the CLI first with
           <InlineCode>bun add -g @graspful/cli</InlineCode>. You can get a key
           through browser registration or the creator dashboard:
@@ -151,8 +151,9 @@ export default function MCPPage() {
                 Credentials file
               </p>
               <p className="text-sm text-muted-foreground mt-0.5">
-                If you have already logged in or registered, find your key in{" "}
-                <InlineCode>~/.graspful/credentials.json</InlineCode>.
+                The MCP server reads saved credentials from{" "}
+                <InlineCode>~/.graspful/credentials.json</InlineCode> for each tool call.
+                After CLI login or registration, the next tool call uses the new credentials.
               </p>
             </div>
           </div>

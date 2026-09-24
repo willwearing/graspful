@@ -1018,8 +1018,7 @@ contentScope:
           {`# Import the brand
 graspful import js-mastery-brand.yaml
 
-# Check domain verification separately from course publication.
-graspful domain-status js-mastery`}
+# Read the domain verification status and DNS instructions in the import output.`}
         </CodeBlock>
       </DocSection>
 
