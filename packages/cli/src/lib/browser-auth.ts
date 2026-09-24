@@ -1,4 +1,5 @@
 import { spawn } from 'child_process';
+import { cliAuthConfirmationCode } from '@graspful/shared';
 import { saveApiKeyCredentials } from './auth';
 
 export type BrowserAuthMode = 'sign-in' | 'sign-up';
@@ -113,6 +114,7 @@ export async function runBrowserAuthFlow(options: BrowserAuthOptions): Promise<B
 
   const startData = (await startRes.json()) as StartBrowserAuthResponse;
   const authUrl = buildCliAuthUrl(baseUrl, startData.token, options.mode, options.email);
+  const confirmationCode = await cliAuthConfirmationCode(startData.token);
 
   if (!options.noBrowser) {
     const opened = openUrl(authUrl);
@@ -127,6 +129,8 @@ export async function runBrowserAuthFlow(options: BrowserAuthOptions): Promise<B
         ? 'Complete sign-up in your browser to finish CLI setup.'
         : 'Complete sign-in in your browser to finish CLI setup.',
       `Open this URL if it did not launch automatically:\n${authUrl}`,
+      '',
+      `Confirm the browser shows this code before approving: ${confirmationCode}`,
       '',
       'Waiting for browser authentication...',
     ].join('\n'),

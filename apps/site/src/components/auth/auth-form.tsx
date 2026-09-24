@@ -7,6 +7,7 @@ import { createSupabaseBrowserClient, hasSupabaseBrowserEnv } from "@/lib/supaba
 import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { safeRedirectPath } from "@graspful/shared";
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up";
@@ -18,11 +19,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const searchParams = useSearchParams();
   const reason = searchParams.get("reason");
   const presetEmail = searchParams.get("email") || "";
-  const rawRedirect = searchParams.get("redirect") || "/creator";
-  const redirectTo =
-    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
-      ? rawRedirect
-      : "/creator";
+  const redirectTo = safeRedirectPath(searchParams.get("redirect"), "/creator");
   const [email, setEmail] = useState(presetEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);

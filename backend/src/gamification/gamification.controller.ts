@@ -6,6 +6,7 @@ import { StreakService } from './streak.service';
 import { LeaderboardService } from './leaderboard.service';
 import { CompletionEstimateService } from './completion-estimate.service';
 import { CourseProgressReadService } from './course-progress-read.service';
+import { StudentStateService } from '@/student-model/student-state.service';
 
 @Controller('orgs/:orgId/courses/:courseId')
 @UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
@@ -16,6 +17,7 @@ export class GamificationController {
     private leaderboardService: LeaderboardService,
     private completionEstimate: CompletionEstimateService,
     private courseProgressReads: CourseProgressReadService,
+    private studentState: StudentStateService,
   ) {}
 
   @Get('xp')
@@ -44,10 +46,11 @@ export class GamificationController {
 
   @Get('leaderboard')
   async getLeaderboard(
-    @Param('orgId') orgId: string,
     @Param('courseId') courseId: string,
+    @CurrentOrg() org: OrgContext,
   ) {
-    return this.leaderboardService.getWeeklyLeaderboard(orgId, courseId);
+    await this.studentState.assertAssessmentAccess(org.userId, org.orgId, courseId);
+    return this.leaderboardService.getWeeklyLeaderboard(org.orgId, courseId);
   }
 
   @Get('stats')

@@ -27,7 +27,7 @@ export class ApiKeyGuard implements CanActivate {
 
     request.apiKeyOrg = apiKey.org;
     request.apiKeyUser = apiKey.user;
-    request.orgId = apiKey.orgId;
+    request.apiKeyOrgId = apiKey.orgId;
 
     return true;
   }

@@ -11,6 +11,8 @@ import { createRemoteJWKSet, jwtVerify, FlattenedJWSInput, JWSHeaderParameters, 
 export interface AuthUser {
   userId: string;
   email: string;
+  /** Set when the caller used an API key. The key is only valid for this org. */
+  apiKeyOrgId?: string;
 }
 
 @Injectable()

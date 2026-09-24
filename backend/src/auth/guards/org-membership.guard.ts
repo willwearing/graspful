@@ -52,6 +52,10 @@ export class OrgMembershipGuard implements CanActivate {
       orgId = org.id;
     }
 
+    if (user.apiKeyOrgId && user.apiKeyOrgId !== orgId) {
+      throw new ForbiddenException('API key is not valid for this organization');
+    }
+
     const membership = await this.prisma.orgMembership.findUnique({
       where: { orgId_userId: { orgId, userId: user.userId } },
     });

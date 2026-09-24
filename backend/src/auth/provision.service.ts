@@ -108,16 +108,23 @@ export class ProvisionService {
   }
 
   /**
-   * Adds the user as a member of the given org if not already a member.
-   * Used to auto-enroll learners when they sign up on a branded academy site.
+   * Adds the user as a learner member of an org that runs a public site.
+   * Signing up on an active brand site is open by design; orgs without one
+   * (e.g. private creator workspaces) cannot be joined this way.
    */
   async ensureLearnerMembership(userId: string, orgSlug: string): Promise<void> {
-    const org = await this.prisma.organization.findUnique({
-      where: { slug: orgSlug },
-      select: { id: true },
-    });
-    if (!org) {
-      this.logger.warn(`Cannot add learner to non-existent org: ${orgSlug}`);
+    const [org, brand] = await Promise.all([
+      this.prisma.organization.findUnique({
+        where: { slug: orgSlug },
+        select: { id: true, isActive: true },
+      }),
+      this.prisma.brand.findFirst({
+        where: { orgSlug, isActive: true },
+        select: { id: true },
+      }),
+    ]);
+    if (!org?.isActive || !brand) {
+      this.logger.warn(`Refusing learner membership for org without an active site: ${orgSlug}`);
       return;
     }
 

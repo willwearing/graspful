@@ -40,6 +40,11 @@ describe('LeaderboardService', () => {
 
       const board = await service.getWeeklyLeaderboard('org-1', 'course-1');
 
+      expect(mockPrisma.xPEvent.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ courseId: 'course-1', course: { orgId: 'org-1' } }),
+        }),
+      );
       expect(board).toHaveLength(3);
       expect(board[0].rank).toBe(1);
       expect(board[0].displayName).toBe('Alice');
@@ -94,10 +99,10 @@ describe('LeaderboardService', () => {
       expect(board[0].weeklyXP).toBe(300);
       expect(board[1].rank).toBe(2);
 
-      // Verify the query used academyId
+      // Verify the query used academyId and stayed inside the org
       expect(mockPrisma.xPEvent.groupBy).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ academyId: 'academy-1' }),
+          where: expect.objectContaining({ academyId: 'academy-1', academy: { orgId: 'org-1' } }),
         }),
       );
     });

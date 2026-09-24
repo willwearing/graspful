@@ -43,3 +43,39 @@ describe('ProvisionService first-account event', () => {
     expect(posthog.recordAccountCreated).not.toHaveBeenCalled();
   });
 });
+
+describe('ProvisionService learner membership', () => {
+  function setup({ org, brand }: { org: unknown; brand: unknown }) {
+    const prisma = {
+      organization: { findUnique: jest.fn().mockResolvedValue(org) },
+      brand: { findFirst: jest.fn().mockResolvedValue(brand) },
+      orgMembership: { upsert: jest.fn().mockResolvedValue({}) },
+    };
+    const service = new ProvisionService(prisma as any, {} as any, {} as any);
+    return { service, prisma };
+  }
+
+  it('adds a member role for an org with an active public site', async () => {
+    const { service, prisma } = setup({ org: { id: 'org-1', isActive: true }, brand: { id: 'brand-1' } });
+    await service.ensureLearnerMembership('user-1', 'academy');
+    expect(prisma.brand.findFirst).toHaveBeenCalledWith({
+      where: { orgSlug: 'academy', isActive: true },
+      select: { id: true },
+    });
+    expect(prisma.orgMembership.upsert).toHaveBeenCalledWith({
+      where: { orgId_userId: { orgId: 'org-1', userId: 'user-1' } },
+      update: {},
+      create: { orgId: 'org-1', userId: 'user-1', role: 'member' },
+    });
+  });
+
+  it.each([
+    ['the org does not exist', null, { id: 'brand-1' }],
+    ['the org is archived', { id: 'org-1', isActive: false }, { id: 'brand-1' }],
+    ['the org has no active site', { id: 'org-1', isActive: true }, null],
+  ])('does not add membership when %s', async (_case, org, brand) => {
+    const { service, prisma } = setup({ org, brand });
+    await service.ensureLearnerMembership('user-1', 'private-org');
+    expect(prisma.orgMembership.upsert).not.toHaveBeenCalled();
+  });
+});

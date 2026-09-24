@@ -16,6 +16,7 @@ import {
 import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { safeRedirectPath } from "@graspful/shared";
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up";
@@ -59,13 +60,10 @@ export function AuthForm({ mode }: AuthFormProps) {
   const searchParams = useSearchParams();
   const reason = searchParams.get("reason");
   const presetEmail = searchParams.get("email") || "";
-  const rawRedirect =
-    searchParams.get("redirect") || getDefaultAuthRedirectPath(hostSurface);
-  // Prevent open redirect: must be a relative path, not protocol-relative
-  const redirectTo =
-    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
-      ? rawRedirect
-      : "/dashboard";
+  const redirectTo = safeRedirectPath(
+    searchParams.get("redirect"),
+    getDefaultAuthRedirectPath(hostSurface)
+  );
   const [email, setEmail] = useState(presetEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);

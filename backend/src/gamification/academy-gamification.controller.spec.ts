@@ -5,6 +5,7 @@ import { StreakService } from './streak.service';
 import { LeaderboardService } from './leaderboard.service';
 import { CompletionEstimateService } from './completion-estimate.service';
 import { CourseProgressReadService } from './course-progress-read.service';
+import { StudentStateService } from '@/student-model/student-state.service';
 import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
 
 const mockGuard = { canActivate: () => true };
@@ -28,6 +29,11 @@ describe('AcademyGamificationController', () => {
     getAcademyGraph: jest.fn(),
   };
 
+  const mockStudentState = {
+    assertAcademyAccess: jest.fn().mockResolvedValue({ id: 'academy-1', orgId: 'org-1' }),
+    assertAssessmentAccess: jest.fn().mockResolvedValue({ academyId: 'academy-1' }),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
@@ -38,6 +44,7 @@ describe('AcademyGamificationController', () => {
         { provide: LeaderboardService, useValue: mockLeaderboardService },
         { provide: CompletionEstimateService, useValue: mockCompletionEstimateService },
         { provide: CourseProgressReadService, useValue: mockCourseProgressReadService },
+        { provide: StudentStateService, useValue: mockStudentState },
       ],
     })
       .overrideGuard(SupabaseAuthGuard)
@@ -99,10 +106,20 @@ describe('AcademyGamificationController', () => {
     const board = [{ rank: 1, userId: 'u1', displayName: 'Alice', avatarUrl: null, weeklyXP: 200 }];
     mockLeaderboardService.getAcademyWeeklyLeaderboard.mockResolvedValue(board);
 
-    const result = await controller.getLeaderboard('org-1', 'academy-1');
+    const org = { userId: 'user-1', orgId: 'org-1', role: 'member' } as any;
+    const result = await controller.getLeaderboard('academy-1', org);
 
     expect(result).toEqual(board);
+    expect(mockStudentState.assertAcademyAccess).toHaveBeenCalledWith('user-1', 'org-1', 'academy-1');
     expect(mockLeaderboardService.getAcademyWeeklyLeaderboard).toHaveBeenCalledWith('org-1', 'academy-1');
+  });
+
+  it('rejects the academy leaderboard when the caller has no access', async () => {
+    mockStudentState.assertAcademyAccess.mockRejectedValueOnce(new Error('Academy or enrollment not found'));
+    const org = { userId: 'user-1', orgId: 'org-1', role: 'member' } as any;
+
+    await expect(controller.getLeaderboard('other-org-academy', org)).rejects.toThrow('Academy or enrollment not found');
+    expect(mockLeaderboardService.getAcademyWeeklyLeaderboard).not.toHaveBeenCalled();
   });
 
   it('should return academy completion estimate', async () => {

@@ -3,6 +3,7 @@ import { type EmailOtpType } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { emitServerLog, flushServerLogsAfterResponse } from "@/lib/posthog/server-logs";
 import { getDefaultAuthRedirectPath, getHostSurface, getRequestHost } from "@/lib/hosts";
+import { safeRedirectPath } from "@graspful/shared";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -10,11 +11,7 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as EmailOtpType | null;
   const surface = getHostSurface(getRequestHost(request.headers));
   const fallbackPath = getDefaultAuthRedirectPath(surface);
-  const rawNext = searchParams.get("next") ?? fallbackPath;
-  const next =
-    rawNext.startsWith("/") && !rawNext.startsWith("//")
-      ? rawNext
-      : fallbackPath;
+  const next = safeRedirectPath(searchParams.get("next"), fallbackPath);
   const cookiesToSet: Array<{
     name: string;
     value: string;
