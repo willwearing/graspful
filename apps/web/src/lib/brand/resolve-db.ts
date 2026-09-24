@@ -1,3 +1,4 @@
+import "server-only";
 import type { BrandConfig, BrandThemeColors } from "./config";
 import type { THEME_PRESETS } from "@graspful/shared";
 import { defaultBrand } from "./defaults";

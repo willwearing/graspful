@@ -1,9 +1,8 @@
-import { redirect, notFound } from "next/navigation";
+import { ApiError } from "@/lib/api";
+import { requireAppSession } from "@/lib/app-session";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createApiFetcher } from "@/lib/api";
-import { resolvePageBrand } from "@/lib/brand/resolve";
 import { CourseCard } from "@/components/app/course-card";
 import { KnowledgeGraphSection } from "@/components/app/knowledge-graph-section";
 import { Button } from "@/components/ui/button";
@@ -24,20 +23,7 @@ export default async function AcademyPage({
 }) {
   const { academyId } = await params;
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/sign-in");
-  }
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const serverApiFetch = createApiFetcher(session?.access_token);
-  const brand = await resolvePageBrand();
+  const { fetcher: serverApiFetch, brand } = await requireAppSession();
 
   let academy: AcademyDetail | null = null;
   let courses: AcademyCourse[] = [];
@@ -46,8 +32,9 @@ export default async function AcademyPage({
   try {
     // Fetch academy detail first — if this fails, the academy doesn't exist
     academy = await serverApiFetch<AcademyDetail>(`/orgs/${brand.orgSlug}/academies/${academyId}`);
-  } catch {
-    // Backend may not be running or academy may not exist
+  } catch (error) {
+    if (error instanceof ApiError && error.statusCode === 404) notFound();
+    throw error;
   }
 
   if (academy) {

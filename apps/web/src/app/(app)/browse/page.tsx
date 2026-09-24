@@ -1,7 +1,4 @@
-import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createApiFetcher } from "@/lib/api";
-import { resolvePageBrand } from "@/lib/brand/resolve";
+import { requireAppSession } from "@/lib/app-session";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -24,19 +21,7 @@ interface Academy {
 }
 
 export default async function BrowsePage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/sign-in");
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const serverApiFetch = createApiFetcher(session?.access_token);
-
-  const brand = await resolvePageBrand();
+  const { fetcher: serverApiFetch, brand } = await requireAppSession();
 
   let academies: Academy[] = [];
   try {

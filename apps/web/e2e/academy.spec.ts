@@ -168,6 +168,7 @@ test.describe("Academy features", () => {
     await expect(page).toHaveURL(`/study/${courseId}/lesson/${conceptId}`, {
       timeout: 15_000,
     });
+    await page.getByRole("button", { name: "Start Lesson" }).click();
     await expect(page.getByText("Knowledge Point 1 of 1", { exact: true })).toBeVisible();
     await expect(page.getByText(instruction, { exact: true })).toBeVisible();
     await expect(page.getByRole("complementary").getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();

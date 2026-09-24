@@ -12,3 +12,4 @@ export * from './describe';
 export * from './scaffold';
 export * from './cli-auth';
 export * from './safe-redirect';
+export * from './types/learning';

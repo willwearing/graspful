@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactElement } from "react";
 import CourseStudyPage from "@/app/(app)/study/[courseId]/page";
 import AcademyStudyPage from "@/app/(app)/academy/[academyId]/study/page";
@@ -17,6 +17,7 @@ const push = vi.fn();
 const redirect = vi.fn();
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh: vi.fn() }), redirect: (...args: unknown[]) => redirect(...args) }));
+vi.mock("@/lib/api-client", () => ({ apiClientFetch: (...args: unknown[]) => apiFetch(...args) }));
 vi.mock("@/lib/api", () => ({ apiFetch: (...args: unknown[]) => apiFetch(...args), createApiFetcher: () => apiFetch }));
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: async () => ({ auth: {
@@ -94,9 +95,11 @@ describe("Activity start recovery", () => {
   ])("keeps the %s start failure available for retry", async (_name, page) => {
     apiFetch.mockRejectedValueOnce(new Error("backend unavailable"));
     render(await page());
-    expect(screen.getByRole("alert")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Back to Course" })).toHaveAttribute("href");
+    expect(apiFetch).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /^Start / }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("backend unavailable");
+    expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
+    expect(screen.getByRole("link", { name: "Back to Course" })).toHaveAttribute("href");
     expect(redirect).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
   });

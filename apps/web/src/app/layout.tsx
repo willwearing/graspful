@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import { BrandProvider } from "@/lib/brand/context";
 import { BrandThemeStyle } from "@/lib/brand/theme-style";
-import { resolveBrand } from "@/lib/brand/resolve";
+import { resolvePageBrand } from "@/lib/brand/resolve";
 import { HostSurfaceProvider } from "@/lib/host-context";
 import { getHostSurface, getRequestHost, isLocalHost } from "@/lib/hosts";
 import { PostHogProvider } from "@/lib/posthog/provider";
@@ -22,8 +22,7 @@ const inter = Inter({
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = await headers();
   const hostname = getRequestHost(headersList);
-  const cookieHeader = headersList.get("cookie");
-  const brand = await resolveBrand(hostname, cookieHeader);
+  const brand = await resolvePageBrand();
   const canonicalHost = isLocalHost(hostname) ? brand.domain : hostname;
   const surface = getHostSurface(hostname);
 
@@ -95,8 +94,7 @@ export default async function RootLayout({
 }) {
   const headersList = await headers();
   const hostname = getRequestHost(headersList);
-  const cookieHeader = headersList.get("cookie");
-  const brand = await resolveBrand(hostname, cookieHeader);
+  const brand = await resolvePageBrand();
   const hostSurface = getHostSurface(hostname);
   const canonicalHost = isLocalHost(hostname) ? brand.domain : hostname;
 

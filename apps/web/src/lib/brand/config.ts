@@ -1,3 +1,8 @@
+/** The platform brand uses the creator experience on local development hosts. */
+export function isPlatformBrand(brand: Pick<BrandConfig, "id">): boolean {
+  return brand.id === "graspful";
+}
+
 export interface BrandThemeColors {
   primary: string;
   primaryForeground: string;

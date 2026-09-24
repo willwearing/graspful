@@ -3,26 +3,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { resolveBrand } from "@/lib/brand/resolve";
 import { decideRoute, getHostSurface, getRequestHost } from "@/lib/hosts";
 
-function createBrandResponse(request: NextRequest, brandId: string) {
-  const response = NextResponse.next({ request });
-  response.headers.set("x-brand-id", brandId);
-  response.cookies.set("brand-id", brandId, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-  });
-  return response;
-}
-
 export async function proxy(request: NextRequest) {
   try {
     const hostname = getRequestHost(request.headers);
     const surface = getHostSurface(hostname);
     const cookieHeader = request.headers.get("cookie");
 
-    const brand = await resolveBrand(hostname, cookieHeader);
-    let response = createBrandResponse(request, brand.id);
+    const brandId = surface === "local" ? (await resolveBrand(hostname, cookieHeader)).id : undefined;
+    let response = NextResponse.next({ request });
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -40,7 +28,7 @@ export async function proxy(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => {
             request.cookies.set(name, value);
           });
-          response = createBrandResponse(request, brand.id);
+          response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options);
           });
@@ -53,12 +41,14 @@ export async function proxy(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     const decision = decideRoute(request.nextUrl.pathname, !!user, {
-      brandId: brand.id,
+      brandId,
       currentUrl: request.nextUrl,
       surface,
     });
     if (decision.action === "redirect") {
-      return NextResponse.redirect(new URL(decision.to, request.url));
+      const redirectResponse = NextResponse.redirect(new URL(decision.to, request.url));
+      response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+      return redirectResponse;
     }
 
     return response;

@@ -1,39 +1,20 @@
+import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-export { ApiError, apiClientFetch } from "@/lib/api-client";
-import { ApiError } from "@/lib/api-client";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
-
-export interface ApiFetchOptions {
-  method?: string;
-  body?: unknown;
-}
-
-export type ApiFetcher = <T>(
-  path: string,
-  options?: ApiFetchOptions,
-) => Promise<T>;
+import { apiRequest, readApiResponse, type ApiFetchOptions, type ApiFetcher } from "@/lib/api-core";
+export { ApiError, type ApiFetchOptions, type ApiFetcher } from "@/lib/api-core";
 
 async function apiFetchWithAccessToken<T>(
   path: string,
   accessToken?: string,
   options?: ApiFetchOptions,
 ): Promise<T> {
-  const res = await fetch(`${BACKEND_URL}${path}`, {
+  const res = await apiRequest(path, accessToken, {
     method: options?.method ?? "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    },
     ...(options?.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
     cache: "no-store",
   });
 
-  if (!res.ok) {
-    throw new ApiError(res.status, `API error: ${res.statusText}`);
-  }
-
-  return res.json();
+  return readApiResponse<T>(res);
 }
 
 export function createApiFetcher(accessToken?: string): ApiFetcher {

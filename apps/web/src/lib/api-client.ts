@@ -1,52 +1,31 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import posthog from "posthog-js";
-import { readApiErrorMessage } from "@graspful/creator-ui/api-errors";
+import { ApiError, apiRequest, readApiResponse } from "@/lib/api-core";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api/v1";
-
-// Cache the latest valid token so subsequent calls use it after a refresh
-let cachedToken: string | null = null;
-
-export class ApiError extends Error {
-  constructor(
-    public statusCode: number,
-    message: string
-  ) {
-    super(message);
-    this.name = "ApiError";
-  }
-}
+export { ApiError } from "@/lib/api-core";
 
 /**
  * Client-side API fetch with automatic token refresh on 401.
- * Uses the most recently known good token, falling back to the
- * one passed by the caller. After a successful refresh the new
- * token is cached for all future calls.
+ * Refreshed credentials belong to this call only.
  */
 export async function apiClientFetch<T>(
   path: string,
   token: string,
   options?: RequestInit
 ): Promise<T> {
-  const posthogHeaders: Record<string, string> = {};
+  const headers = new Headers(options?.headers);
   const distinctId = posthog.get_distinct_id?.();
-  if (distinctId) posthogHeaders["x-posthog-distinct-id"] = distinctId;
+  if (distinctId) headers.set("x-posthog-distinct-id", distinctId);
   const sessionId = posthog.get_session_id?.();
-  if (sessionId) posthogHeaders["x-posthog-session-id"] = sessionId;
+  if (sessionId) headers.set("x-posthog-session-id", sessionId);
 
   const doFetch = (t: string) =>
-    fetch(`${BACKEND_URL}${path}`, {
+    apiRequest(path, t, {
       ...options,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${t}`,
-        ...posthogHeaders,
-        ...options?.headers,
-      },
+      headers,
     });
 
-  const activeToken = cachedToken ?? token;
-  let res = await doFetch(activeToken);
+  let res = await doFetch(token);
 
   if (res.status === 401) {
     // Attempt a silent token refresh
@@ -55,21 +34,15 @@ export async function apiClientFetch<T>(
     const newToken = data.session?.access_token;
 
     if (newToken) {
-      cachedToken = newToken;
       res = await doFetch(newToken);
     }
   }
 
   if (res.status === 401) {
-    cachedToken = null;
     const redirectPath = encodeURIComponent(window.location.pathname);
     window.location.href = `/sign-in?redirect=${redirectPath}&reason=session_expired`;
     throw new ApiError(401, "Session expired");
   }
 
-  if (!res.ok) {
-    throw new ApiError(res.status, await readApiErrorMessage(res));
-  }
-
-  return res.json();
+  return readApiResponse<T>(res);
 }
