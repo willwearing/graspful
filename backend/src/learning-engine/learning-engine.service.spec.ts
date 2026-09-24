@@ -1,3 +1,4 @@
+import { EnrollmentService } from '@/student-model/enrollment.service';
 import { LearningEngineService } from './learning-engine.service';
 
 describe('LearningEngineService', () => {
@@ -119,7 +120,7 @@ describe('LearningEngineService', () => {
     };
 
     service = new LearningEngineService(
-      mockPrisma,
+      new EnrollmentService(mockPrisma),
       mockStudentState,
       mockGraphQuery,
       mockCourseRead,

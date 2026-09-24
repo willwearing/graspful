@@ -1,5 +1,5 @@
 import { DiagnosticSessionService } from './diagnostic-session.service';
-import { StudentStateService } from '@/student-model/student-state.service';
+import { EnrollmentService } from '@/student-model/enrollment.service';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 
 describe('DiagnosticSessionService', () => {
@@ -55,7 +55,7 @@ describe('DiagnosticSessionService', () => {
         createMany: jest.fn(),
         upsert: jest.fn(),
       },
-      $transaction: jest.fn(),
+      $transaction: jest.fn(async (work) => typeof work === 'function' ? work(mockPrisma) : Promise.all(work)),
     };
 
     mockStudentState = {
@@ -67,7 +67,16 @@ describe('DiagnosticSessionService', () => {
       getMasteryMapForAcademy: jest.fn(),
     };
 
-    service = new DiagnosticSessionService(mockPrisma, mockStudentState);
+    const mockEnrollment = {
+      requireAcademyEnrollment: jest.fn(async (userId: string, academyId: string) => {
+        const enrollment = await mockPrisma.academyEnrollment.findUnique({
+          where: { userId_academyId: { userId, academyId } },
+        });
+        if (!enrollment) throw new NotFoundException('Not enrolled in this academy');
+        return enrollment;
+      }),
+    } as unknown as EnrollmentService;
+    service = new DiagnosticSessionService(mockPrisma, mockStudentState, mockEnrollment);
   });
 
   describe('startDiagnostic', () => {
@@ -322,8 +331,6 @@ describe('DiagnosticSessionService', () => {
       mockStudentState.markDiagnosticComplete.mockResolvedValue({});
       mockPrisma.academyEnrollment.update.mockResolvedValue({});
 
-      // $transaction receives an array of promises
-      mockPrisma.$transaction.mockResolvedValue([]);
       mockPrisma.diagnosticSession.update.mockResolvedValue({});
       mockPrisma.problemAttempt.create.mockResolvedValue({ id: 'attempt-1' });
 
@@ -375,7 +382,6 @@ describe('DiagnosticSessionService', () => {
       });
       mockPrisma.concept.findMany.mockResolvedValue([{ id: 'c1', difficultyTheta: 0, courseId }]);
       mockPrisma.prerequisiteEdge.findMany.mockResolvedValue([]);
-      mockPrisma.$transaction.mockResolvedValue([]);
       mockPrisma.problem.findMany.mockResolvedValue([]);
 
       const result = await service.submitAnswer(sessionId, userId, {

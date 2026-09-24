@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { createHash } from 'node:crypto';
 import { PrismaService } from '@/prisma/prisma.service';
+import type { DailyXP, XPSummary } from '@graspful/shared';
+import { EnrollmentService } from '@/student-model/enrollment.service';
+import { startOfDayUtc, startOfWeekUtc } from '@/shared/utils/utc-date';
 
 export interface RecordXPInput {
   userId: string;
@@ -13,24 +16,14 @@ export interface RecordXPInput {
   idempotencyKey?: string;
 }
 
-export interface XPSummary {
-  today: number;
-  thisWeek: number;
-  total: number;
-  dailyTarget: number;
-  dailyCap: number;
-}
-
-export interface DailyXP {
-  date: string;
-  xp: number;
-}
-
 const DAILY_XP_CAP = 500;
 
 @Injectable()
 export class XPService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private enrollments: EnrollmentService,
+  ) {}
 
   async recordXPEvent(
     input: RecordXPInput,
@@ -81,8 +74,7 @@ export class XPService {
       }
     }
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const todayStart = startOfDayUtc();
     const todayXP = await tx.xPEvent.aggregate({
       where: {
         userId: input.userId,
@@ -115,15 +107,11 @@ export class XPService {
       return { amount: 0 };
     }
 
-    const academyEnrollment = await tx.academyEnrollment.findUnique({
-      where: {
-        userId_academyId: {
-          userId: input.userId,
-          academyId: scope.academyId,
-        },
-      },
-      include: { academy: { select: { orgId: true } } },
-    });
+    const academyEnrollment = await this.enrollments.findAcademyEnrollment(
+      input.userId,
+      scope.academyId,
+      tx,
+    );
 
     if (academyEnrollment) {
       await tx.academyEnrollment.update({
@@ -186,88 +174,24 @@ export class XPService {
   }
 
   async getXPSummary(userId: string, courseId: string): Promise<XPSummary> {
-    const enrollment = await this.prisma.courseEnrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Sunday
-    weekStart.setHours(0, 0, 0, 0);
-
-    const [todayAgg, weekAgg] = await Promise.all([
-      this.prisma.xPEvent.aggregate({
-        where: { userId, courseId, createdAt: { gte: todayStart } },
-        _sum: { amount: true },
-      }),
-      this.prisma.xPEvent.aggregate({
-        where: { userId, courseId, createdAt: { gte: weekStart } },
-        _sum: { amount: true },
-      }),
-    ]);
-
-    return {
-      today: todayAgg._sum.amount ?? 0,
-      thisWeek: weekAgg._sum.amount ?? 0,
-      total: enrollment?.totalXPEarned ?? 0,
-      dailyTarget: enrollment?.dailyXPTarget ?? 40,
-      dailyCap: DAILY_XP_CAP,
-    };
+    const academyId = await this.enrollments.getAcademyIdForCourse(courseId);
+    return this.getAcademyXPSummary(userId, academyId);
   }
 
   async getWeeklyXPBreakdown(userId: string, courseId: string): Promise<DailyXP[]> {
-    const days: DailyXP[] = [];
-    const now = new Date();
-
-    for (let i = 6; i >= 0; i--) {
-      const dayStart = new Date(now);
-      dayStart.setDate(now.getDate() - i);
-      dayStart.setHours(0, 0, 0, 0);
-
-      days.push({
-        date: dayStart.toISOString().split('T')[0],
-        xp: 0,
-      });
-    }
-
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - 6);
-    weekStart.setHours(0, 0, 0, 0);
-
-    const events = await this.prisma.xPEvent.findMany({
-      where: {
-        userId,
-        courseId,
-        createdAt: { gte: weekStart },
-      },
-      select: { createdAt: true, amount: true },
-    });
-
-    for (const event of events) {
-      const dateStr = event.createdAt.toISOString().split('T')[0];
-      const day = days.find((d) => d.date === dateStr);
-      if (day) day.xp += event.amount;
-    }
-
-    return days;
+    const academyId = await this.enrollments.getAcademyIdForCourse(courseId);
+    return this.getAcademyWeeklyXPBreakdown(userId, academyId);
   }
 
   async getAcademyXPSummary(
     userId: string,
     academyId: string,
   ): Promise<XPSummary> {
-    const enrollment = await this.prisma.academyEnrollment.findUnique({
-      where: { userId_academyId: { userId, academyId } },
-    });
+    const enrollment = await this.enrollments.requireAcademyEnrollment(userId, academyId);
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const todayStart = startOfDayUtc();
 
-    const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-    weekStart.setHours(0, 0, 0, 0);
+    const weekStart = startOfWeekUtc(todayStart);
 
     const [todayAgg, weekAgg] = await Promise.all([
       this.prisma.xPEvent.aggregate({
@@ -283,8 +207,8 @@ export class XPService {
     return {
       today: todayAgg._sum.amount ?? 0,
       thisWeek: weekAgg._sum.amount ?? 0,
-      total: enrollment?.totalXPEarned ?? 0,
-      dailyTarget: enrollment?.dailyXPTarget ?? 40,
+      total: enrollment.totalXPEarned,
+      dailyTarget: enrollment.dailyXPTarget,
       dailyCap: DAILY_XP_CAP,
     };
   }
@@ -293,13 +217,13 @@ export class XPService {
     userId: string,
     academyId: string,
   ): Promise<DailyXP[]> {
+    await this.enrollments.requireAcademyEnrollment(userId, academyId);
     const days: DailyXP[] = [];
-    const now = new Date();
+    const todayStart = startOfDayUtc();
 
     for (let i = 6; i >= 0; i--) {
-      const dayStart = new Date(now);
-      dayStart.setDate(now.getDate() - i);
-      dayStart.setHours(0, 0, 0, 0);
+      const dayStart = new Date(todayStart);
+      dayStart.setUTCDate(todayStart.getUTCDate() - i);
 
       days.push({
         date: dayStart.toISOString().split('T')[0],
@@ -307,9 +231,8 @@ export class XPService {
       });
     }
 
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - 6);
-    weekStart.setHours(0, 0, 0, 0);
+    const weekStart = new Date(todayStart);
+    weekStart.setUTCDate(todayStart.getUTCDate() - 6);
 
     const events = await this.prisma.xPEvent.findMany({
       where: {
@@ -332,14 +255,7 @@ export class XPService {
   }
 
   async getXPSinceLastQuiz(userId: string, academyId: string): Promise<number> {
-    const enrollment = await this.prisma.academyEnrollment.findUnique({
-      where: { userId_academyId: { userId, academyId } },
-      select: { totalXPEarned: true },
-    });
-
-    if (!enrollment) {
-      return 0;
-    }
+    const enrollment = await this.enrollments.requireAcademyEnrollment(userId, academyId);
 
     // Find the most recent quiz XP event
     const lastQuizXP = await this.prisma.xPEvent.findFirst({
@@ -379,15 +295,9 @@ export class XPService {
       return { academyId, courseId };
     }
 
-    const course = await tx.course.findUnique({
-      where: { id: courseId },
-      select: { academyId: true },
-    });
-
-    if (!course?.academyId) {
-      throw new Error(`Course ${courseId} is missing academyId`);
-    }
-
-    return { academyId: course.academyId, courseId };
+    return {
+      academyId: await this.enrollments.getAcademyIdForCourse(courseId, tx),
+      courseId,
+    };
   }
 }

@@ -1,10 +1,11 @@
 import { Prisma } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
+import { EnrollmentService } from '@/student-model/enrollment.service';
 import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class RemediationService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private enrollmentService: EnrollmentService) {}
 
   async getActiveRemediations(userId: string, academyId: string, tx: Prisma.TransactionClient = this.prisma) {
     return tx.remediation.findMany({
@@ -75,21 +76,8 @@ export class RemediationService {
     courseId: string,
     tx: Prisma.TransactionClient = this.prisma,
   ): Promise<Set<string>> {
-    const academyId = await this.getAcademyIdForCourse(courseId, tx);
+    const academyId = await this.enrollmentService.getAcademyIdForCourse(courseId, tx);
     return this.getBlockedConceptIds(userId, academyId, tx);
-  }
-
-  private async getAcademyIdForCourse(courseId: string, tx: Prisma.TransactionClient): Promise<string> {
-    const course = await tx.course.findUnique({
-      where: { id: courseId },
-      select: { academyId: true },
-    });
-
-    if (!course?.academyId) {
-      throw new Error(`Course ${courseId} is missing academyId`);
-    }
-
-    return course.academyId;
   }
 
 }

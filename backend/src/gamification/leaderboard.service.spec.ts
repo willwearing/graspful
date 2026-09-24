@@ -1,8 +1,12 @@
 import { Test } from '@nestjs/testing';
-import { LeaderboardService, LeaderboardEntry } from './leaderboard.service';
+import { LeaderboardService } from './leaderboard.service';
 import { PrismaService } from '@/prisma/prisma.service';
+import { EnrollmentService } from '@/student-model/enrollment.service';
 
 const mockPrisma = {
+  course: {
+    findUnique: jest.fn(),
+  },
   xPEvent: {
     groupBy: jest.fn(),
   },
@@ -15,11 +19,13 @@ describe('LeaderboardService', () => {
   let service: LeaderboardService;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+    mockPrisma.course.findUnique.mockResolvedValue({ academyId: 'academy-1' });
     const module = await Test.createTestingModule({
       providers: [
         LeaderboardService,
         { provide: PrismaService, useValue: mockPrisma },
+        EnrollmentService,
       ],
     }).compile();
     service = module.get(LeaderboardService);
@@ -42,7 +48,7 @@ describe('LeaderboardService', () => {
 
       expect(mockPrisma.xPEvent.groupBy).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ courseId: 'course-1', course: { orgId: 'org-1' } }),
+          where: expect.objectContaining({ academyId: 'academy-1', academy: { orgId: 'org-1' } }),
         }),
       );
       expect(board).toHaveLength(3);

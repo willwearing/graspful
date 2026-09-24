@@ -1,9 +1,14 @@
 import { Test } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { XPService, RecordXPInput } from './xp.service';
 import { PrismaService } from '@/prisma/prisma.service';
+import { EnrollmentService } from '@/student-model/enrollment.service';
 
 const mockPrisma = {
+  course: {
+    findUnique: jest.fn(),
+  },
   $transaction: jest.fn(),
   xPEvent: {
     findUnique: jest.fn(),
@@ -30,6 +35,7 @@ describe('XPService', () => {
 
   beforeEach(async () => {
     jest.resetAllMocks();
+    mockPrisma.course.findUnique.mockResolvedValue({ academyId: 'academy-1' });
     mockPrisma.$transaction.mockImplementation((work) => work(mockPrisma));
     mockPrisma.xPEvent.findUnique.mockResolvedValue(null);
     mockPrisma.xPEvent.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
@@ -40,12 +46,52 @@ describe('XPService', () => {
       providers: [
         XPService,
         { provide: PrismaService, useValue: mockPrisma },
+        EnrollmentService,
       ],
     }).compile();
     service = module.get(XPService);
   });
 
   describe('recordXPEvent', () => {
+    it('uses the same UTC date for the daily cap and streak award', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-03-08T00:30:00.000Z'));
+      try {
+        await service.recordXPEvent({
+          userId: 'user-1',
+          academyId: 'academy-1',
+          courseId: 'course-1',
+          source: 'lesson',
+          amount: 15,
+        });
+        const utcMidnight = new Date('2026-03-08T00:00:00.000Z');
+        expect(mockPrisma.xPEvent.aggregate).toHaveBeenCalledWith({
+          where: {
+            userId: 'user-1',
+            academyId: 'academy-1',
+            createdAt: { gte: utcMidnight },
+          },
+          _sum: { amount: true },
+        });
+        expect(mockPrisma.userStreak.upsert).toHaveBeenCalledWith({
+          where: { userId_orgId_date: { userId: 'user-1', orgId: 'org-1', date: utcMidnight } },
+          create: { userId: 'user-1', orgId: 'org-1', date: utcMidnight, xpEarned: 15 },
+          update: { xpEarned: { increment: 15 } },
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('rejects a missing course with a typed exception before an award is written', async () => {
+      mockPrisma.course.findUnique.mockResolvedValue(null);
+      await expect(service.recordXPEvent({
+        userId: 'user-1', courseId: 'missing', source: 'lesson', amount: 15,
+      })).rejects.toBeInstanceOf(NotFoundException);
+      expect(mockPrisma.xPEvent.create).not.toHaveBeenCalled();
+      expect(mockPrisma.xPEvent.aggregate).not.toHaveBeenCalled();
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+    });
+
     it('should create an XP event and increment enrollment totalXPEarned', async () => {
       mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         id: 'enroll-1',
@@ -370,7 +416,7 @@ describe('XPService', () => {
 
   describe('getXPSummary', () => {
     it('should return today, week, and total XP', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         totalXPEarned: 250,
         dailyXPTarget: 40,
       });

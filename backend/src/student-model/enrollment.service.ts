@@ -15,6 +15,52 @@ type PrismaTx = Prisma.TransactionClient;
 export class EnrollmentService {
   constructor(private prisma: PrismaService) {}
 
+  async getAcademyIdForCourse(
+    courseId: string,
+    tx: PrismaTx = this.prisma,
+  ): Promise<string> {
+    const course = await tx.course.findUnique({
+      where: { id: courseId },
+      select: { academyId: true },
+    });
+    if (!course?.academyId) {
+      throw new NotFoundException('Course academy not found');
+    }
+    return course.academyId;
+  }
+
+  async findAcademyEnrollment(
+    userId: string,
+    academyId: string,
+    tx: PrismaTx = this.prisma,
+  ) {
+    return tx.academyEnrollment.findUnique({
+      where: { userId_academyId: { userId, academyId } },
+      include: { academy: { select: { orgId: true } } },
+    });
+  }
+
+  async requireAcademyEnrollment(
+    userId: string,
+    academyId: string,
+    tx: PrismaTx = this.prisma,
+  ) {
+    const enrollment = await this.findAcademyEnrollment(userId, academyId, tx);
+    if (!enrollment) {
+      throw new NotFoundException('Not enrolled in this academy');
+    }
+    return enrollment;
+  }
+
+  async requireCourseEnrollment(
+    userId: string,
+    courseId: string,
+    tx: PrismaTx = this.prisma,
+  ) {
+    const academyId = await this.getAcademyIdForCourse(courseId, tx);
+    return this.requireAcademyEnrollment(userId, academyId, tx);
+  }
+
   async enrollStudent(orgId: string, userId: string, courseId: string) {
     return this.prisma.$transaction(async (tx) => {
       const course = await tx.course.findFirst({
@@ -103,9 +149,7 @@ export class EnrollmentService {
       throw new NotFoundException('Academy not found');
     }
 
-    const existing = await tx.academyEnrollment.findUnique({
-      where: { userId_academyId: { userId, academyId } },
-    });
+    const existing = await this.findAcademyEnrollment(userId, academyId, tx);
 
     const enrollment =
       existing ??

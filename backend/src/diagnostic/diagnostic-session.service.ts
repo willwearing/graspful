@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { StudentStateService } from '@/student-model/student-state.service';
+import { EnrollmentService } from '@/student-model/enrollment.service';
 import {
   getDiagnosticResult,
   startDiagnosticForCourse,
@@ -19,6 +20,7 @@ export class DiagnosticSessionService {
   constructor(
     private prisma: PrismaService,
     private studentState: StudentStateService,
+    private enrollment: EnrollmentService,
   ) {}
 
   async startDiagnostic(
@@ -30,6 +32,7 @@ export class DiagnosticSessionService {
     return startDiagnosticSession(
       this.prisma,
       this.studentState,
+      this.enrollment,
       orgId,
       userId,
       academyId,
@@ -45,6 +48,7 @@ export class DiagnosticSessionService {
     return startDiagnosticForCourse(
       this.prisma,
       this.studentState,
+      this.enrollment,
       orgId,
       userId,
       courseId,
@@ -55,6 +59,7 @@ export class DiagnosticSessionService {
     sessionId: string,
     userId: string,
     input: DiagnosticAnswerInput,
+    expectedAcademyId?: string,
   ): Promise<DiagnosticSessionProgress | DiagnosticSessionCompletion> {
     return submitDiagnosticAnswer(
       this.prisma,
@@ -62,10 +67,11 @@ export class DiagnosticSessionService {
       sessionId,
       userId,
       input,
+      expectedAcademyId,
     );
   }
 
-  async getResult(sessionId: string, userId: string) {
-    return getDiagnosticResult(this.prisma, sessionId, userId);
+  async getResult(sessionId: string, userId: string, expectedAcademyId?: string) {
+    return getDiagnosticResult(this.prisma, sessionId, userId, expectedAcademyId);
   }
 }

@@ -1,3 +1,4 @@
+import { StudentModelCoreModule } from '@/student-model/application/student-model-core.module';
 import { Module } from '@nestjs/common';
 import { RemediationService } from './remediation.service';
 
@@ -8,6 +9,7 @@ import { RemediationService } from './remediation.service';
  * after a KP plateau) without introducing a circular module import.
  */
 @Module({
+  imports: [StudentModelCoreModule],
   providers: [RemediationService],
   exports: [RemediationService],
 })

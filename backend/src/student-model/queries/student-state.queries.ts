@@ -226,7 +226,7 @@ export async function loadKPStatesForIds(
       userId,
       knowledgePointId: { in: knowledgePointIds },
     },
-    select: { passed: true },
+    select: { knowledgePointId: true, passed: true, consecutiveCorrect: true, attempts: true },
   });
 }
 
