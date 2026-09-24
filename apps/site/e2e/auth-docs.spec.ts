@@ -56,3 +56,27 @@ test.describe("Auth and docs", () => {
     await expect(page.getByText(/Paid subscriptions are not available yet/)).toBeVisible();
   });
 });
+
+// Reproduce the original setup race by holding the client scripts. Inputs must
+// wait for React handlers, so a fast fill cannot be erased during hydration.
+test("sign-in controls wait for hydration before accepting credentials", async ({ page }) => {
+  let releaseScripts!: () => void;
+  const scriptsReady = new Promise<void>((resolve) => { releaseScripts = resolve; });
+  await page.route("**/_next/static/**/*.js*", async (route) => {
+    await scriptsReady;
+    await route.continue();
+  });
+  try {
+    await page.goto("/sign-in", { waitUntil: "commit" });
+    await expect(page.locator('script[src*="/_next/static/"]').first()).toBeAttached();
+    // Static pages can stream an empty Suspense boundary before client hydration.
+    await expect(page.locator('form input:enabled, form button[type="submit"]:enabled')).toHaveCount(0);
+  } finally {
+    releaseScripts();
+  }
+  await expect(page.getByLabel("Email")).toBeEnabled();
+  await page.getByLabel("Email").fill("fast-typing@example.com");
+  await page.getByLabel("Password").fill("TestPassword123!");
+  await expect(page.getByLabel("Email")).toHaveValue("fast-typing@example.com");
+  await expect(page.getByLabel("Password")).toHaveValue("TestPassword123!");
+});

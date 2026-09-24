@@ -1,3 +1,4 @@
+import { EnrollmentService } from '@/student-model/enrollment.service';
 import { NotFoundException } from '@nestjs/common';
 import { StudentStateService } from './student-state.service';
 import { activeConceptWhere, activeSectionWhere } from '@/knowledge-graph/active-course-content';
@@ -40,7 +41,7 @@ describe('StudentStateService', () => {
       },
     };
 
-    service = new StudentStateService(mockPrisma);
+    service = new StudentStateService(mockPrisma, new EnrollmentService(mockPrisma));
   });
 
   describe('getConceptStates', () => {

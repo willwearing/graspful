@@ -1,5 +1,5 @@
 import { CourseYamlSchema } from './course-yaml.schema';
-import { CourseYamlSchema as SharedCourseYamlSchema } from '../../../../packages/shared/src/schemas/course-yaml.schema';
+import { CourseYamlSchema as SharedCourseYamlSchema } from '@graspful/shared';
 
 describe('CourseYamlSchema', () => {
   it('should validate a minimal valid course', () => {

@@ -1,6 +1,7 @@
+import { AcademyScopeGuard } from '@/auth';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AcademyGraphController } from './academy-graph.controller';
-import { AcademyImporterService } from './academy-importer.service';
+import { CourseManagementService } from './application/course-management.service';
 import { CourseReadService } from './course-read.service';
 import { JwtOrApiKeyGuard, OrgMembershipGuard } from '@/auth';
 
@@ -9,7 +10,7 @@ const mockGuard = { canActivate: () => true };
 describe('AcademyGraphController', () => {
   let controller: AcademyGraphController;
   let mockCourseReads: any;
-  let mockAcademyImporter: any;
+  let mockCourseManagement: any;
 
   beforeEach(async () => {
     mockCourseReads = {
@@ -22,27 +23,29 @@ describe('AcademyGraphController', () => {
       getAcademyKnowledgeFrontier: jest.fn(),
     };
 
-    mockAcademyImporter = {
-      importFromManifest: jest.fn(),
+    mockCourseManagement = {
+      importAcademy: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AcademyGraphController],
       providers: [
         { provide: CourseReadService, useValue: mockCourseReads },
-        { provide: AcademyImporterService, useValue: mockAcademyImporter },
+        { provide: CourseManagementService, useValue: mockCourseManagement },
       ],
     })
       .overrideGuard(JwtOrApiKeyGuard)
       .useValue(mockGuard)
       .overrideGuard(OrgMembershipGuard)
       .useValue(mockGuard)
+      .overrideGuard(AcademyScopeGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     controller = module.get(AcademyGraphController);
   });
 
-  it('imports an academy manifest through the academy importer', async () => {
+  it('delegates academy import and website setup to course management', async () => {
     const importResult = {
       academyId: 'academy-1',
       academySlug: 'tam-academy',
@@ -51,7 +54,7 @@ describe('AcademyGraphController', () => {
       courseResults: [],
       warnings: [],
     };
-    mockAcademyImporter.importFromManifest.mockResolvedValue(importResult);
+    mockCourseManagement.importAcademy.mockResolvedValue(importResult);
 
     const orgCtx = {
       orgId: 'org-1',
@@ -68,12 +71,7 @@ describe('AcademyGraphController', () => {
     await expect(controller.importAcademy(body, orgCtx as any)).resolves.toEqual(
       importResult,
     );
-    expect(mockAcademyImporter.importFromManifest).toHaveBeenCalledWith(
-      body.manifestYaml,
-      body.courseYamls,
-      'org-1',
-      { replace: true, archiveMissing: undefined },
-    );
+    expect(mockCourseManagement.importAcademy).toHaveBeenCalledWith(orgCtx, body);
   });
 
   it('validates an academy graph', async () => {

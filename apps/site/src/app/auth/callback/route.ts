@@ -1,15 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
+import { safeRedirectPath } from "@graspful/shared";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const rawRedirect = searchParams.get("redirect") || "/creator";
-  const redirect =
-    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
-      ? rawRedirect
-      : "/creator";
+  const redirect = safeRedirectPath(searchParams.get("redirect"), "/creator");
 
   if (code) {
     const cookieStore = await cookies();

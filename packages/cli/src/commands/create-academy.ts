@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
-import * as yaml from 'js-yaml';
+import { dumpYaml } from '@graspful/client';
 import { scaffoldAcademyObject } from '@graspful/shared';
 import { output } from '../lib/output';
 import { cliCapture } from '../lib/analytics';
@@ -34,7 +34,7 @@ export function registerCreateAcademyCommand(createCmd: Command) {
           courseNames: opts.course,
           version: opts.version,
         });
-        const yamlContent = yaml.dump(obj, { lineWidth: 120, noRefs: true });
+        const yamlContent = dumpYaml(obj);
 
         cliCapture('academy scaffolded', {
           topic: opts.topic,

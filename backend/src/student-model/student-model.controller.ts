@@ -5,15 +5,16 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
-import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, CourseScopeGuard, RequireEnrollment } from '@/auth';
+import type { OrgContext } from '@/auth/org-context';
 import { EnrollmentService } from './enrollment.service';
 import { StudentStateService } from './student-state.service';
 import { SectionExamService } from '@/assessment/section-exam.service';
 
 /** @deprecated Use AcademyStudentModelController instead. Kept as compatibility shim. */
 @Controller('orgs/:orgId/courses/:courseId')
-@UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
+@UseGuards(SupabaseAuthGuard, OrgMembershipGuard, CourseScopeGuard)
+@RequireEnrollment()
 export class StudentModelController {
   constructor(
     private enrollment: EnrollmentService,
@@ -22,6 +23,7 @@ export class StudentModelController {
   ) {}
 
   @Post('enroll')
+  @RequireEnrollment(false)
   async enroll(
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
@@ -34,7 +36,6 @@ export class StudentModelController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    await this.studentState.assertAssessmentAccess(org.userId, org.orgId, courseId);
     return this.studentState.getConceptStates(org.userId, courseId);
   }
 
@@ -43,7 +44,6 @@ export class StudentModelController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    await this.studentState.assertAssessmentAccess(org.userId, org.orgId, courseId);
     return this.sectionExamService.getSectionStates(org.userId, courseId);
   }
 
@@ -52,7 +52,6 @@ export class StudentModelController {
     @Param('courseId') courseId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    await this.studentState.assertAssessmentAccess(org.userId, org.orgId, courseId);
     const [profile, sectionStates] = await Promise.all([
       this.studentState.getProfileSummary(org.userId, courseId),
       this.sectionExamService.getSectionStates(org.userId, courseId),

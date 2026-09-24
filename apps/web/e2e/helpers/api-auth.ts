@@ -1,6 +1,6 @@
 import { type Page, type APIRequestContext } from "@playwright/test";
 import { signUpBrandedTestUser, signInTestUser, TEST_BRAND_ID } from "./auth";
-import { getE2eEnvironment } from "../../../../scripts/e2e-env";
+import { getE2eEnvironment } from "../../../../backend/scripts/e2e-env";
 
 const BACKEND_URL = getE2eEnvironment(process.env).NEXT_PUBLIC_BACKEND_URL;
 const PASSWORD = "TestPassword123!";

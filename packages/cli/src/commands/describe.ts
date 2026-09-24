@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
-import * as yaml from 'js-yaml';
+import { readYamlFile } from '@graspful/client';
 import { CourseYamlSchema, describeCourse } from '@graspful/shared';
 import { output, outputError } from '../lib/output';
 import { cliCapture } from '../lib/analytics';
@@ -17,10 +17,10 @@ export function registerDescribeCommand(program: Command) {
 
       let raw: unknown;
       try {
-        raw = yaml.load(fs.readFileSync(file, 'utf-8'));
+        raw = readYamlFile(file).raw;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        outputError(`YAML parse error: ${msg}`);
+        outputError(msg);
         process.exit(1);
       }
 

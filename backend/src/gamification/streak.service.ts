@@ -1,84 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-
-export interface StreakStatus {
-  currentStreak: number;
-  longestStreak: number;
-  todayComplete: boolean;
-  todayXP: number;
-  dailyTarget: number;
-  freezeTokensRemaining: number;
-}
+import type { StreakStatus } from '@graspful/shared';
+import { EnrollmentService } from '@/student-model/enrollment.service';
+import { startOfDayUtc } from '@/shared/utils/utc-date';
 
 @Injectable()
 export class StreakService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private enrollments: EnrollmentService,
+  ) {}
 
   async getStreakStatus(userId: string, courseId: string): Promise<StreakStatus> {
-    const enrollment = await this.prisma.courseEnrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-      include: { course: { select: { orgId: true } } },
-    });
-
-    const dailyTarget = enrollment?.dailyXPTarget ?? 40;
-    const freezeTokens = (enrollment as any)?.streakFreezeTokens ?? 1;
-    const orgId = enrollment?.course?.orgId;
-
-    if (!orgId) {
-      return {
-        currentStreak: 0,
-        longestStreak: 0,
-        todayComplete: false,
-        todayXP: 0,
-        dailyTarget,
-        freezeTokensRemaining: freezeTokens,
-      };
-    }
-
-    // Fetch last 90 days of streak records
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    ninetyDaysAgo.setHours(0, 0, 0, 0);
-
-    const streaks = await this.prisma.userStreak.findMany({
-      where: {
-        userId,
-        orgId,
-        date: { gte: ninetyDaysAgo },
-      },
-      orderBy: { date: 'desc' },
-    });
-
-    // Build a date->xp map
-    const xpByDate = new Map<string, number>();
-    for (const s of streaks) {
-      const dateStr = s.date.toISOString().split('T')[0];
-      xpByDate.set(dateStr, (s as any).xpEarned ?? 0);
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
-    const todayXP = xpByDate.get(todayStr) ?? 0;
-    const todayComplete = todayXP >= dailyTarget;
-
-    // Count current streak (consecutive days from today, backward)
-    const { streak: currentStreak, freezesUsed } = this.countStreak(
-      xpByDate,
-      today,
-      dailyTarget,
-      freezeTokens,
-    );
-    const longestStreak = await this.getLongestStreak(userId, courseId);
-
-    return {
-      currentStreak,
-      longestStreak,
-      todayComplete,
-      todayXP,
-      dailyTarget,
-      freezeTokensRemaining: Math.max(0, freezeTokens - freezesUsed),
-    };
+    const academyId = await this.enrollments.getAcademyIdForCourse(courseId);
+    return this.getAcademyStreakStatus(userId, academyId);
   }
 
   private countStreak(
@@ -112,7 +47,7 @@ export class StreakService {
         break; // Streak broken
       }
 
-      date.setDate(date.getDate() - 1);
+      date.setUTCDate(date.getUTCDate() - 1);
     }
 
     return { streak, freezesUsed };
@@ -122,29 +57,13 @@ export class StreakService {
     userId: string,
     academyId: string,
   ): Promise<StreakStatus> {
-    const enrollment = await this.prisma.academyEnrollment.findUnique({
-      where: { userId_academyId: { userId, academyId } },
-      include: { academy: { select: { orgId: true } } },
-    });
-
-    const dailyTarget = enrollment?.dailyXPTarget ?? 40;
-    const freezeTokens = (enrollment as any)?.streakFreezeTokens ?? 1;
-    const orgId = enrollment?.academy?.orgId;
-
-    if (!orgId) {
-      return {
-        currentStreak: 0,
-        longestStreak: 0,
-        todayComplete: false,
-        todayXP: 0,
-        dailyTarget,
-        freezeTokensRemaining: freezeTokens,
-      };
-    }
-
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    ninetyDaysAgo.setHours(0, 0, 0, 0);
+    const enrollment = await this.enrollments.requireAcademyEnrollment(userId, academyId);
+    const dailyTarget = enrollment.dailyXPTarget;
+    const freezeTokens = enrollment.streakFreezeTokens;
+    const orgId = enrollment.academy.orgId;
+    const today = startOfDayUtc();
+    const ninetyDaysAgo = new Date(today);
+    ninetyDaysAgo.setUTCDate(ninetyDaysAgo.getUTCDate() - 90);
 
     const streaks = await this.prisma.userStreak.findMany({
       where: {
@@ -158,11 +77,9 @@ export class StreakService {
     const xpByDate = new Map<string, number>();
     for (const s of streaks) {
       const dateStr = s.date.toISOString().split('T')[0];
-      xpByDate.set(dateStr, (s as any).xpEarned ?? 0);
+      xpByDate.set(dateStr, s.xpEarned);
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
     const todayXP = xpByDate.get(todayStr) ?? 0;
     const todayComplete = todayXP >= dailyTarget;
@@ -173,7 +90,7 @@ export class StreakService {
       dailyTarget,
       freezeTokens,
     );
-    const longestStreak = await this.getLongestAcademyStreak(userId, academyId);
+    const longestStreak = await this.computeLongestStreak(userId, orgId, dailyTarget);
 
     return {
       currentStreak,
@@ -186,31 +103,15 @@ export class StreakService {
   }
 
   async getLongestStreak(userId: string, courseId: string): Promise<number> {
-    const enrollment = await this.prisma.courseEnrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-      include: { course: { select: { orgId: true } } },
-    });
-
-    if (!enrollment?.course?.orgId) return 0;
-
-    return this.computeLongestStreak(
-      userId,
-      enrollment.course.orgId,
-      enrollment.dailyXPTarget,
-    );
+    const academyId = await this.enrollments.getAcademyIdForCourse(courseId);
+    return this.getLongestAcademyStreak(userId, academyId);
   }
 
   async getLongestAcademyStreak(
     userId: string,
     academyId: string,
   ): Promise<number> {
-    const enrollment = await this.prisma.academyEnrollment.findUnique({
-      where: { userId_academyId: { userId, academyId } },
-      include: { academy: { select: { orgId: true } } },
-    });
-
-    if (!enrollment?.academy?.orgId) return 0;
-
+    const enrollment = await this.enrollments.requireAcademyEnrollment(userId, academyId);
     return this.computeLongestStreak(
       userId,
       enrollment.academy.orgId,
@@ -233,7 +134,7 @@ export class StreakService {
     let lastDate: Date | null = null;
 
     for (const s of streaks) {
-      const xp = (s as any).xpEarned ?? 0;
+      const xp = s.xpEarned;
       if (xp < dailyTarget) {
         current = 0;
         lastDate = s.date;

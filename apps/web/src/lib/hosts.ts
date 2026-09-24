@@ -1,3 +1,5 @@
+import { isPlatformBrand } from "@/lib/brand/config";
+
 export type HostSurface = "local" | "platform" | "app" | "academy";
 
 const DEFAULT_PLATFORM_HOST = "graspful.ai";
@@ -16,52 +18,7 @@ const APP_HOSTS = new Set([
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);
 
-const LOCAL_PUBLIC_ROUTES = [
-  "/",
-  "/sign-in",
-  "/sign-up",
-  "/cli-auth",
-  "/auth/callback",
-  "/auth/confirm",
-  "/forgot-password",
-  "/reset-password",
-  "/pricing",
-  "/agents",
-  "/ai-course-builder",
-  "/academies",
-  "/docs",
-  "/sentry-example-page",
-];
-
-const PLATFORM_PUBLIC_ROUTES = [
-  "/",
-  "/sign-in",
-  "/sign-up",
-  "/cli-auth",
-  "/auth/callback",
-  "/auth/confirm",
-  "/forgot-password",
-  "/reset-password",
-  "/pricing",
-  "/agents",
-  "/ai-course-builder",
-  "/academies",
-  "/docs",
-  "/sentry-example-page",
-];
-
-const APP_PUBLIC_ROUTES = [
-  "/",
-  "/sign-in",
-  "/sign-up",
-  "/auth/callback",
-  "/auth/confirm",
-  "/forgot-password",
-  "/reset-password",
-];
-
-const ACADEMY_PUBLIC_ROUTES = [
-  "/",
+const AUTH_ROUTES = [
   "/sign-in",
   "/sign-up",
   "/auth/callback",
@@ -83,6 +40,14 @@ const MARKETING_ROUTES = [
 const CREATOR_ROUTES = ["/creator"];
 const LEARNER_ROUTES = ["/dashboard", "/browse", "/study", "/diagnostic", "/academy"];
 const PLATFORM_LEARNER_ROUTES = ["/learn"];
+
+/** Route policy for each host surface. Shared groups keep auth paths consistent. */
+const HOST_ROUTES = {
+  local: { public: [...AUTH_ROUTES, ...MARKETING_ROUTES], authRedirect: "/dashboard" },
+  platform: { public: [...AUTH_ROUTES, ...MARKETING_ROUTES], authRedirect: "/creator" },
+  app: { public: ["/", ...AUTH_ROUTES], authRedirect: "/creator" },
+  academy: { public: ["/", ...AUTH_ROUTES], authRedirect: "/dashboard" },
+} satisfies Record<HostSurface, { public: readonly string[]; authRedirect: string }>;
 
 export interface RoutingContext {
   brandId?: string;
@@ -147,15 +112,7 @@ export function getRequestHost(
 }
 
 export function getDefaultAuthRedirectPath(surface: HostSurface): string {
-  switch (surface) {
-    case "platform":
-    case "app":
-      return "/creator";
-    case "academy":
-    case "local":
-    default:
-      return "/dashboard";
-  }
+  return HOST_ROUTES[surface].authRedirect;
 }
 
 export function isMarketingRoute(pathname: string): boolean {
@@ -182,16 +139,7 @@ export function isPublicRoute(
   pathname: string,
   surface: HostSurface = "local",
 ): boolean {
-  const routes =
-    surface === "platform"
-      ? PLATFORM_PUBLIC_ROUTES
-      : surface === "app"
-        ? APP_PUBLIC_ROUTES
-        : surface === "academy"
-          ? ACADEMY_PUBLIC_ROUTES
-          : LOCAL_PUBLIC_ROUTES;
-
-  return routes.some((route) => routeMatches(pathname, route));
+  return HOST_ROUTES[surface].public.some((route) => routeMatches(pathname, route));
 }
 
 function buildHostUrl(currentUrl: URL, targetHost: string, destination: string): string {
@@ -223,6 +171,7 @@ export function decideRoute(
 ): RoutingDecision {
   const surface = context.surface ?? "local";
   const brandId = context.brandId ?? "student-brand";
+  const platformBrand = isPlatformBrand({ id: brandId });
   const currentUrl = context.currentUrl;
   const appHost = getAppHost();
   const platformHost = getPlatformHost();
@@ -236,16 +185,15 @@ export function decideRoute(
     if (user && (pathname === "/" || isAuthPage(pathname))) {
       return {
         action: "redirect",
-        to: brandId === "graspful" ? "/creator" : "/dashboard",
+        to: platformBrand ? "/creator" : "/dashboard",
       };
     }
 
     if (user) {
-      const isGraspful = brandId === "graspful";
-      if (isGraspful && pathname === "/dashboard") {
+      if (platformBrand && pathname === "/dashboard") {
         return { action: "redirect", to: "/creator" };
       }
-      if (!isGraspful && isCreatorRoute(pathname)) {
+      if (!platformBrand && isCreatorRoute(pathname)) {
         return { action: "redirect", to: "/dashboard" };
       }
     }

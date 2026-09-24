@@ -1,3 +1,6 @@
+import { Callout } from "@/components/docs/callout";
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock } from "@/components/docs/code-block";
@@ -13,20 +16,12 @@ export const metadata: Metadata = {
 
 export default function QuickstartPage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        Quickstart
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Author and review a course on your computer. When the content is ready,
-        sign in, import a draft, and publish it. Authoring time depends on the
-        source material and the size of the course.
-      </p>
+    <DocPage
+      title="Quickstart"
+      description="Author and review a course on your computer. When the content is ready, sign in, import a draft, and publish it. Authoring time depends on the source material and the size of the course."
+    >
 
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="install">
-          1. Install the CLI
-        </h2>
+      <DocSection title="1. Install the CLI" headingId="install">
         <p className="mt-2 text-muted-foreground">
           Install with Bun, then check that the command is available.
           Local scaffolding, validation, and review work without an account.
@@ -41,12 +36,9 @@ graspful --help`}
           Give PDFs, notes, and official references to that external agent. It
           reads your source and writes the YAML on your computer.
         </p>
-      </section>
+      </DocSection>
 
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="authoring">
-          2. Plan and author the course
-        </h2>
+      <DocSection title="2. Plan and author the course" headingId="authoring">
         <p className="mt-2 text-muted-foreground">
           Start with an official syllabus, handbook, or other source you can
           verify. Record its version and the intended learner. Follow the{" "}
@@ -88,12 +80,9 @@ graspful describe course.yaml`}
           practice problems with correct answers and explanations. Repeat for
           each concept. Compare the completed content with your source.
         </p>
-      </section>
+      </DocSection>
 
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="review">
-          3. Validate and review
-        </h2>
+      <DocSection title="3. Validate and review" headingId="review">
         <CodeBlock language="bash">
           {`graspful validate course.yaml
 graspful review course.yaml`}
@@ -108,12 +97,9 @@ graspful review course.yaml`}
           </Link>{" "}
           for the checks and their limits.
         </p>
-      </section>
+      </DocSection>
 
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="register">
-          4. Register before importing
-        </h2>
+      <DocSection title="4. Register before importing" headingId="register">
         <CodeBlock language="bash">
           {`graspful register --email you@example.com`}
         </CodeBlock>
@@ -122,12 +108,9 @@ graspful review course.yaml`}
           when you finish. Use the organization slug returned by registration
           in place of <code>my-org</code> below. Keep your API key private.
         </p>
-      </section>
+      </DocSection>
 
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="import">
-          5. Import as a draft
-        </h2>
+      <DocSection title="5. Import as a draft" headingId="import">
         <CodeBlock language="bash">
           {`graspful import course.yaml --org my-org --format json`}
         </CodeBlock>
@@ -141,12 +124,9 @@ graspful review course.yaml`}
           {`# Use this for an academy after reviewing all referenced course files.
 graspful import academy.yaml --org my-org --course-dir . --format json`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="publish">
-          6. Publish and confirm the result
-        </h2>
+      <DocSection title="6. Publish and confirm the result" headingId="publish">
         <CodeBlock language="bash">
           {`# Replace <course-id> with the courseId returned by import.
 graspful publish <course-id> --org my-org --format json`}
@@ -168,12 +148,9 @@ graspful publish <course-id> --org my-org --format json`}
           course you intend to offer. The optional <code>--publish</code> import
           flag requests publication during import; check its returned state too.
         </p>
-      </section>
+      </DocSection>
 
-      <section className="mt-12" id="brand">
-        <h2 className="text-2xl font-bold text-foreground">
-          Add a branded landing page
-        </h2>
+      <DocSection title="Add a branded landing page" id="brand">
         <p className="mt-2 text-muted-foreground">
           Use a brand YAML to configure the landing page, theme, and domain.
           Write copy that describes the actual lessons and learner. Confirm
@@ -182,10 +159,9 @@ graspful publish <course-id> --org my-org --format json`}
           <Link href="/docs/brand-schema" className="text-primary hover:underline">brand schema</Link>{" "}
           and <Link href="/docs/billing" className="text-primary hover:underline">billing guide</Link>.
         </p>
-      </section>
+      </DocSection>
 
-      <section className="mt-16 rounded-xl border border-border/50 bg-card p-8">
-        <h2 className="text-xl font-bold text-foreground mb-4">Next steps</h2>
+      <Callout as="section" className="mt-16 p-8" title="Next steps">
         <div className="grid gap-3 sm:grid-cols-2">
           {[
             { href: "/docs/cli", label: "Full CLI reference" },
@@ -199,7 +175,7 @@ graspful publish <course-id> --org my-org --format json`}
             </Link>
           ))}
         </div>
-      </section>
-    </div>
+      </Callout>
+    </DocPage>
   );
 }

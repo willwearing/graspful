@@ -1,6 +1,7 @@
 import { Command } from 'commander';
+import { positiveInteger } from '../lib/numbers';
 import * as fs from 'fs';
-import * as yaml from 'js-yaml';
+import { readYamlFile, dumpYaml } from '@graspful/client';
 import { fillConceptInRaw } from '@graspful/shared';
 import { output, outputError } from '../lib/output';
 import { cliCapture } from '../lib/analytics';
@@ -13,36 +14,35 @@ export function registerFillConceptCommand(program: Command) {
   fill
     .command('concept <file> <conceptId>')
     .description('Add KP stubs to a specific concept')
-    .option('--kps <count>', 'Number of KP stubs to add (authoring starting point, not a cap)', '3')
-    .option('--problems <count>', 'Number of problem stubs per KP', '3')
-    .action(async (file: string, conceptId: string, opts: { kps: string; problems: string }) => {
+    .option('--kps <count>', 'Number of KP stubs to add (authoring starting point, not a cap)', positiveInteger, 3)
+    .option('--problems <count>', 'Number of problem stubs per KP', positiveInteger, 3)
+    .action(async (file: string, conceptId: string, opts: { kps: number; problems: number }) => {
       if (!fs.existsSync(file)) {
         outputError(`File not found: ${file}`);
         process.exit(1);
       }
 
-      const content = fs.readFileSync(file, 'utf-8');
       let raw: unknown;
       try {
-        raw = yaml.load(content);
+        raw = readYamlFile(file).raw;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        outputError(`YAML parse error: ${msg}`);
+        outputError(msg);
         process.exit(1);
       }
 
       try {
         const updated = fillConceptInRaw(raw, conceptId, {
-          kps: parseInt(opts.kps, 10),
-          problemsPerKp: parseInt(opts.problems, 10),
+          kps: opts.kps,
+          problemsPerKp: opts.problems,
         });
 
-        const updatedYaml = yaml.dump(updated, { lineWidth: 120, noRefs: true, schema: yaml.JSON_SCHEMA });
+        const updatedYaml = dumpYaml(updated);
         fs.writeFileSync(file, updatedYaml);
 
         cliCapture('concept filled', { concept_id: conceptId });
         output(
-          { conceptId, kpsAdded: parseInt(opts.kps, 10), problemsPerKp: parseInt(opts.problems, 10), file },
+          { conceptId, kpsAdded: opts.kps, problemsPerKp: opts.problems, file },
           `Added ${opts.kps} KP stub(s) with ${opts.problems} problem(s) each to "${conceptId}" in ${file}`,
         );
       } catch (e) {

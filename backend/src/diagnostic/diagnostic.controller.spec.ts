@@ -1,3 +1,4 @@
+import { CourseScopeGuard } from '@/auth';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DiagnosticController } from './diagnostic.controller';
 import { DiagnosticSessionService } from './diagnostic-session.service';
@@ -27,6 +28,8 @@ describe('DiagnosticController', () => {
       .useValue(mockGuard)
       .overrideGuard(OrgMembershipGuard)
       .useValue(mockGuard)
+      .overrideGuard(CourseScopeGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     controller = module.get(DiagnosticController);
@@ -63,13 +66,13 @@ describe('DiagnosticController', () => {
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
       const body = { sessionId: 'sess-1', answer: 'A', responseTimeMs: 5000 };
-      const result = await controller.submitAnswer('course-1', body, orgCtx as any);
+      const result = await controller.submitAnswer({ id: 'course-1', orgId: 'org-1', academyId: 'academy-1' }, body, orgCtx as any);
 
       expect(result).toEqual(answerResult);
       expect(mockDiagnostic.submitAnswer).toHaveBeenCalledWith('sess-1', 'u1', {
         answer: 'A',
         responseTimeMs: 5000,
-      });
+      }, 'academy-1');
     });
   });
 
@@ -83,10 +86,10 @@ describe('DiagnosticController', () => {
       mockDiagnostic.getResult.mockResolvedValue(diagnosticResult);
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
-      const result = await controller.getResult('course-1', 'sess-1', orgCtx as any);
+      const result = await controller.getResult({ id: 'course-1', orgId: 'org-1', academyId: 'academy-1' }, 'sess-1', orgCtx as any);
 
       expect(result).toEqual(diagnosticResult);
-      expect(mockDiagnostic.getResult).toHaveBeenCalledWith('sess-1', 'u1');
+      expect(mockDiagnostic.getResult).toHaveBeenCalledWith('sess-1', 'u1', 'academy-1');
     });
   });
 });

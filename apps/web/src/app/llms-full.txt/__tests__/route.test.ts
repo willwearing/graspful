@@ -1,52 +1,15 @@
 // @vitest-environment node
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import ts from "typescript";
+import { TOOL_SCHEMAS } from "../../../../../../packages/mcp/src/tool-schemas";
 import { describe, expect, it } from "vitest";
 import { QUALITY_CHECK_METADATA } from "@graspful/shared";
 import { GET } from "../route";
 
 function mcpToolContracts() {
-  const file = fileURLToPath(new URL("../../../../../../packages/mcp/src/index.ts", import.meta.url));
-  const source = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true);
-  let tools: ts.ArrayLiteralExpression | undefined;
-  const visit = (node: ts.Node) => {
-    if (ts.isVariableDeclaration(node) && node.name.getText(source) === "TOOLS" && node.initializer && ts.isArrayLiteralExpression(node.initializer)) {
-      tools = node.initializer;
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(source);
-  if (!tools) throw new Error("MCP tool registry was not found");
-
-  const property = (node: ts.ObjectLiteralExpression, name: string) => {
-    const entry = node.properties.find((item) => ts.isPropertyAssignment(item) && item.name.getText(source) === name);
-    if (!entry || !ts.isPropertyAssignment(entry)) throw new Error(`Missing MCP property: ${name}`);
-    return entry.initializer;
-  };
-
-  return tools.elements.map((entry) => {
-    if (!ts.isObjectLiteralExpression(entry)) throw new Error("Expected MCP tool definition");
-    const name = property(entry, "name");
-    const schema = property(entry, "inputSchema");
-    if (!ts.isStringLiteral(name) || !ts.isObjectLiteralExpression(schema)) throw new Error("Invalid MCP tool shape");
-    const properties = property(schema, "properties");
-    const required = property(schema, "required");
-    if (!ts.isObjectLiteralExpression(properties) || !ts.isArrayLiteralExpression(required)) throw new Error("Invalid MCP input schema");
-    const requiredNames = required.elements.map((field) => {
-      if (!ts.isStringLiteral(field)) throw new Error("Expected required input name");
-      return field.text;
-    });
-    const inputNames = properties.properties.map((field) => {
-      if (!ts.isPropertyAssignment(field)) throw new Error("Expected MCP input property");
-      return field.name.getText(source);
-    });
-    return {
-      name: name.text,
-      required: requiredNames,
-      optional: inputNames.filter((field) => !requiredNames.includes(field)),
-    };
-  });
+  return Object.entries(TOOL_SCHEMAS).map(([name, schema]) => ({
+    name,
+    required: Object.entries(schema.shape).filter(([, field]) => !field.isOptional()).map(([field]) => field),
+    optional: Object.entries(schema.shape).filter(([, field]) => field.isOptional()).map(([field]) => field),
+  }));
 }
 
 describe("GET /llms-full.txt", () => {

@@ -124,7 +124,7 @@ test.describe("Agent Registration (API)", () => {
     expect(importBody.courseId).toBeTruthy();
   });
 
-  test("registration auto-creates brand for the org", async ({ request }) => {
+  test("registration creates a private org without a public brand", async ({ request }) => {
     const email = `e2e-agent-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.example.com`;
 
     // Register
@@ -135,16 +135,11 @@ test.describe("Agent Registration (API)", () => {
     expect(regRes.status()).toBe(201);
     const { orgSlug } = await regRes.json();
 
-    // Check the brand was auto-created by querying the brands API
+    // Account registration must leave public website creation to an import.
     const brandRes = await request.get(`${BACKEND_URL}/brands/${orgSlug}`, {
       headers: { "Content-Type": "application/json" },
     });
 
-    // Brand may or may not auto-create depending on implementation.
-    // At minimum the org should exist. If brand exists, verify it.
-    if (brandRes.ok()) {
-      const brand = await brandRes.json();
-      expect(brand.slug).toBe(orgSlug);
-    }
+    expect(brandRes.status()).toBe(404);
   });
 });

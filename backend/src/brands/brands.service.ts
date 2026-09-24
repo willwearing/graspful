@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
+import { normalizeBrandDomain } from './domain-policy';
+import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
 
 export interface PublicCatalogCourse {
   slug: string;
@@ -31,7 +33,12 @@ export interface PublicCatalogBrand {
 
 @Injectable()
 export class BrandsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(BrandsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly vercelDomainsService: VercelDomainsService,
+  ) {}
 
   async findByDomain(domain: string) {
     // Can't use findUnique with isActive because it's not part of the unique constraint
@@ -192,7 +199,7 @@ export class BrandsService {
       data: {
         slug: dto.slug,
         name: dto.name,
-        domain: this.normalizeDomain(dto.domain),
+        domain: normalizeBrandDomain(dto.domain),
         tagline: dto.tagline,
         logoUrl: dto.logoUrl || '/icon.svg',
         faviconUrl: dto.faviconUrl || '/favicon.ico',
@@ -210,7 +217,7 @@ export class BrandsService {
   async upsert(dto: CreateBrandDto) {
     const data = {
       name: dto.name,
-      domain: this.normalizeDomain(dto.domain),
+      domain: normalizeBrandDomain(dto.domain),
       tagline: dto.tagline,
       logoUrl: dto.logoUrl || '/icon.svg',
       faviconUrl: dto.faviconUrl || '/favicon.ico',
@@ -226,6 +233,159 @@ export class BrandsService {
       update: data,
       create: { ...data, slug: dto.slug, orgSlug: dto.orgSlug },
     });
+  }
+
+  async createWithDomain(dto: CreateBrandDto) {
+    const brand = await this.upsert(dto);
+
+    // Provision the normalized domain on Vercel (brand.domain has the
+    // canonical suffix applied by BrandsService, so always use that).
+    const normalizedDomain = brand.domain;
+    try {
+      const vercelResult = await this.vercelDomainsService.addDomain(
+        normalizedDomain,
+      );
+      const dnsInstructions =
+        await this.vercelDomainsService.getDnsInstructions(normalizedDomain);
+      return {
+        brand,
+        domain: {
+          verified: vercelResult.verified,
+          verification: vercelResult.verification,
+          dnsInstructions,
+        },
+      };
+    } catch (error) {
+      this.logger.warn(
+        `Domain provisioning failed for ${normalizedDomain}: ${error}`,
+      );
+      let dnsInstructions: { type: string; name: string; value: string } | null = null;
+      try {
+        dnsInstructions =
+          await this.vercelDomainsService.getDnsInstructions(normalizedDomain);
+      } catch {
+        // DNS lookup also failed, so return empty instructions
+      }
+      return {
+        brand,
+        domain: {
+          verified: false,
+          error: 'Domain provisioning failed. Configure DNS manually.',
+          dnsInstructions,
+        },
+      };
+    }
+  }
+
+  async ensureDefaultForOrg(
+    org: { orgId: string; email: string },
+    metadata: { id: string; name: string; description?: string },
+  ) {
+    try {
+      const orgRecord = await this.prisma.organization.findUnique({
+        where: { id: org.orgId },
+        select: { slug: true },
+      });
+      if (!orgRecord) return;
+
+      const existingBrands = await this.prisma.brand.findFirst({
+        where: { orgSlug: orgRecord.slug },
+      });
+      if (existingBrands) return;
+
+      const username = org.email
+        .split('@')[0]
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
+
+      const slug = `${username}-${metadata.id}`
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-');
+      const maxAttempts = 5;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const finalSlug = attempt === 0 ? slug : `${slug}-${attempt}`;
+        const domain = `${finalSlug}.graspful.ai`;
+
+        try {
+          const name = metadata.name;
+          const description = metadata.description ?? name;
+          await this.create({
+            slug: finalSlug,
+            name,
+            domain,
+            tagline: description,
+            logoUrl: '/icon.svg',
+            orgSlug: orgRecord.slug,
+            theme: {},
+            landing: {
+              hero: {
+                headline: `Learn ${name}`,
+                subheadline: description,
+                ctaText: 'Start Learning',
+              },
+              features: {
+                heading: 'Why choose us?',
+                items: [
+                  {
+                    title: 'Adaptive Learning',
+                    description: 'Content adapts to your knowledge level',
+                    icon: 'Brain',
+                  },
+                  {
+                    title: 'Spaced Repetition',
+                    description: 'Review at optimal intervals for lasting memory',
+                    icon: 'Timer',
+                  },
+                  {
+                    title: 'Progress Tracking',
+                    description: 'See exactly where you stand',
+                    icon: 'Workflow',
+                  },
+                ],
+              },
+              howItWorks: {
+                heading: 'How it works',
+                items: [
+                  { title: 'Take a diagnostic', description: 'We assess what you already know' },
+                  { title: 'Learn adaptively', description: 'Focus on gaps, skip what you know' },
+                  { title: 'Master the material', description: 'Prove mastery through progressive challenges' },
+                ],
+              },
+              faq: [],
+              bottomCta: {
+                headline: `Ready to learn ${name}?`,
+                subheadline: 'Start your adaptive learning journey today.',
+              },
+            },
+            seo: {
+              title: `${name}: Adaptive Learning`,
+              description,
+              keywords: [],
+            },
+            pricing: {},
+          });
+
+          this.vercelDomainsService.addDomain(domain).catch((err) => {
+            this.logger.warn(`Brand domain provisioning failed for ${domain}: ${err}`);
+          });
+          return;
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            // A concurrent import may have created this org's default brand.
+            const concurrentBrand = await this.prisma.brand.findFirst({
+              where: { orgSlug: orgRecord.slug },
+            });
+            if (concurrentBrand) return;
+            if (attempt < maxAttempts - 1) continue;
+          }
+          throw error;
+        }
+      }
+    } catch (error) {
+      // Website setup must not invalidate an otherwise successful import.
+      this.logger.warn(`Auto brand setup failed for org ${org.orgId}: ${error}`);
+    }
   }
 
   async update(slug: string, dto: UpdateBrandDto) {
@@ -252,15 +412,6 @@ export class BrandsService {
       where: { slug },
       data: { isActive: false },
     });
-  }
-
-  /**
-   * Normalizes brand domains so that the legacy `.graspful.com` suffix
-   * is rewritten to the canonical `.graspful.ai`.  Custom domains
-   * (e.g. `prep.yourdomain.com`) are left untouched.
-   */
-  private normalizeDomain(domain: string): string {
-    return domain.replace(/\.graspful\.com$/, '.graspful.ai');
   }
 
   private getScopedCourseIds(contentScope: Prisma.JsonValue | null | undefined): string[] {

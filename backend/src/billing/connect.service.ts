@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
@@ -85,22 +86,29 @@ export class ConnectService {
     };
   }
 
-  async getRevenue(orgId: string) {
-    const events = await this.prisma.revenueEvent.findMany({
-      where: { orgId },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const totals = events.reduce(
-      (acc, e) => ({
-        grossRevenue: acc.grossRevenue + e.grossAmount,
-        platformFees: acc.platformFees + e.platformFee,
-        creatorEarnings: acc.creatorEarnings + e.creatorPayout,
+  async getRevenue(orgId: string, options: { includeRecentEvents?: boolean } = {}) {
+    // Totals and the list must describe one committed snapshot.
+    const [totals, recentEvents] = await this.prisma.$transaction(async (tx) => Promise.all([
+      tx.revenueEvent.aggregate({
+        where: { orgId },
+        _sum: { grossAmount: true, platformFee: true, creatorPayout: true },
+        _count: { _all: true },
       }),
-      { grossRevenue: 0, platformFees: 0, creatorEarnings: 0 },
-    );
+      options.includeRecentEvents === false ? [] : tx.revenueEvent.findMany({
+        where: { orgId },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+    ]), { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
 
-    return { ...totals, currency: 'usd', eventCount: events.length, recentEvents: events.slice(0, 20) };
+    return {
+      grossRevenue: totals._sum.grossAmount ?? 0,
+      platformFees: totals._sum.platformFee ?? 0,
+      creatorEarnings: totals._sum.creatorPayout ?? 0,
+      currency: 'usd',
+      eventCount: totals._count._all,
+      recentEvents,
+    };
   }
 
   async recordRevenueEvent(

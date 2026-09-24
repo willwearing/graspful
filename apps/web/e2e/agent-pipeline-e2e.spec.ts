@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { runQualityGate } from "@graspful/shared";
 import { parse } from "yaml";
-import { getE2eEnvironment } from "../../../scripts/e2e-env";
+import { getE2eEnvironment } from "../../../backend/scripts/e2e-env";
 
 const testEnv = getE2eEnvironment(process.env);
 const BACKEND_URL = testEnv.NEXT_PUBLIC_BACKEND_URL;
@@ -24,6 +24,7 @@ const SUPABASE_ANON_KEY = testEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 let courseId: string;
 let academyId: string;
+let academySlug: string;
 let diagnosticSessionId: string;
 let diagnosticQuestionNumber: number;
 let diagnosticQuestion: DiagnosticQuestion;
@@ -349,54 +350,16 @@ test.describe.serial(
       creatorOrgSlug = body.orgSlug;
     });
 
-    // ── Step 2: Brand auto-created ─────────────────────────────────
-    test("step 2: brand auto-created — by-domain returns brand with matching orgSlug", async ({
+    // ── Step 2: Registration creates no public website ─────────────
+    test("step 2: registration creates a private org without a public website", async ({
       request,
     }) => {
-      const domain = `${creatorOrgSlug}.graspful.ai`;
-
       const res = await request.get(
-        `${BACKEND_URL}/brands/by-domain/${domain}`,
+        `${BACKEND_URL}/brands/by-domain/${creatorOrgSlug}.graspful.ai`,
         { headers: { "Content-Type": "application/json" } }
       );
 
-      expect(res.status()).toBe(200);
-
-      const body = await res.json();
-      expect(body.orgSlug).toBe(creatorOrgSlug);
-    });
-
-    // Step 2b: Registration provides readable default brand content.
-    test("step 2b: default brand has a readable name and landing text", async ({
-      request,
-    }) => {
-      const domain = `${creatorOrgSlug}.graspful.ai`;
-
-      const res = await request.get(
-        `${BACKEND_URL}/brands/by-domain/${domain}`,
-        { headers: { "Content-Type": "application/json" } }
-      );
-
-      expect(res.status()).toBe(200);
-
-      const brand = await res.json();
-
-      // Brand name should NOT equal the raw slug
-      expect(brand.name).not.toBe(creatorOrgSlug);
-
-      // Brand name should be title-cased (not lowercase with spaces)
-      expect(brand.name).not.toBe(creatorOrgSlug.replace(/-/g, ' '));
-
-      // Landing hero headline should NOT be the raw slug
-      const headline = brand.landing?.hero?.headline;
-      expect(headline).toBeTruthy();
-      expect(headline).not.toBe(creatorOrgSlug);
-      expect(headline).not.toBe(creatorOrgSlug.replace(/-/g, ' '));
-      expect(headline.length).toBeGreaterThanOrEqual(10);
-
-      // Brand tagline should be at least 10 characters
-      expect(brand.tagline).toBeTruthy();
-      expect(brand.tagline.length).toBeGreaterThanOrEqual(10);
+      expect(res.status()).toBe(404);
     });
 
     // Step 3: Validate the authored fixture before importing it.
@@ -542,6 +505,37 @@ test.describe.serial(
       expect(ourCourse.academyId).toBeTruthy();
 
       academyId = ourCourse.academyId;
+      const academyRes = await request.get(`${BACKEND_URL}/orgs/${creatorOrgSlug}/academies/${academyId}`, {
+        headers: creatorAuthHeaders(),
+      });
+      expect(academyRes.status()).toBe(200);
+      academySlug = (await academyRes.json()).slug;
+      expect(academySlug).toBeTruthy();
+    });
+
+    // ── Step 7b: The first import creates the website ──────────────
+    test("step 7b: course import creates one website with readable landing copy", async ({
+      request,
+    }) => {
+      const res = await request.get(`${BACKEND_URL}/brands`, {
+        headers: { "Content-Type": "application/json" },
+      });
+      expect(res.status()).toBe(200);
+
+      const brands = (await res.json()).filter(
+        (b: { orgSlug: string }) => b.orgSlug === creatorOrgSlug
+      );
+      expect(brands).toHaveLength(1);
+
+      const [brand] = brands;
+      expect(brand.domain).toMatch(/\.graspful\.ai$/);
+      expect(brand.name).not.toBe(creatorOrgSlug);
+
+      const headline = brand.landing?.hero?.headline;
+      expect(headline).toBeTruthy();
+      expect(headline).not.toBe(creatorOrgSlug);
+      expect(headline.length).toBeGreaterThanOrEqual(10);
+      expect(brand.tagline).toBeTruthy();
     });
 
     // ══════════════════════════════════════════════════════════════════
@@ -707,13 +701,15 @@ test.describe.serial(
       await page.context().addCookies([
         {
           name: "dev-brand-override",
-          value: creatorOrgSlug,
+          value: GRASPFUL_BRAND,
           domain: "localhost",
           path: "/",
         },
       ]);
 
-      const diagnosticPath = `/academy/${academyId}/diagnostic`;
+      // An unverified creator brand cannot select a tenant host. Use the explicit
+      // tenant route so both diagnostic start and answer use the academy owner.
+      const diagnosticPath = `/learn/${creatorOrgSlug}/academies/${academySlug}/diagnostic`;
       await page.goto(`/sign-in?redirect=${encodeURIComponent(diagnosticPath)}`);
       await page.getByLabel("Email").fill(learnerEmail);
       await page.getByLabel("Password").fill(learnerPassword);
@@ -723,6 +719,7 @@ test.describe.serial(
       await expect(page.getByRole("heading", { name: "Diagnostic Assessment" })).toBeVisible({
         timeout: 15_000,
       });
+      await page.getByRole("button", { name: "Start Diagnostic Assessment", exact: true }).click();
       await expect(page.getByText(`Question ${diagnosticQuestionNumber} of ~4`, { exact: true })).toBeVisible();
       await expect(page.getByText(diagnosticQuestion.questionText, { exact: true })).toBeVisible();
 

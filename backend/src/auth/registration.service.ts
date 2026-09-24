@@ -2,7 +2,6 @@ import { Injectable, BadRequestException, ConflictException, InternalServerError
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PrismaService } from '@/prisma/prisma.service';
-import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
 import { PostHogService } from '@/shared/application/posthog.service';
 import { ApiKeyService } from './api-key/api-key.service';
 import * as crypto from 'crypto';
@@ -24,7 +23,6 @@ export class RegistrationService {
     private prisma: PrismaService,
     private apiKeyService: ApiKeyService,
     private config: ConfigService,
-    private vercelDomains: VercelDomainsService,
     private posthog: PostHogService,
   ) {
     this.supabase = createClient(
@@ -33,7 +31,7 @@ export class RegistrationService {
     );
   }
 
-  async register(email: string, password: string): Promise<{ userId: string; orgSlug: string; apiKey: string; brandDomain: string }> {
+  async register(email: string, password: string): Promise<{ userId: string; orgSlug: string; apiKey: string }> {
     // 1. Create Supabase user
     const { data: authData, error: authError } =
       await this.supabase.auth.admin.createUser({
@@ -68,17 +66,15 @@ export class RegistrationService {
 
     const supabaseUserId = authData.user.id;
 
-    // 2. Generate slug
-    let orgSlug = this.emailToOrgSlug(email);
-    const existing = await this.prisma.organization.findUnique({ where: { slug: orgSlug } });
-    if (existing) orgSlug = `${orgSlug}-${Date.now().toString(36).slice(-4)}`;
-    const orgName = humanizeSlug(orgSlug);
-
-    // 3. Create DB records
-    // Note: Supabase has an AFTER INSERT trigger on auth.users that auto-creates
-    // a public.users row. We use upsert to handle the race gracefully.
+    let txResult: { userId: string; orgId: string; orgSlug: string; apiKey: string };
+    // Keep all database work in the cleanup boundary until the transaction commits.
     try {
-      const txResult = await this.prisma.$transaction(async (tx) => {
+      let orgSlug = this.emailToOrgSlug(email);
+      const existing = await this.prisma.organization.findUnique({ where: { slug: orgSlug } });
+      if (existing) orgSlug = `${orgSlug}-${Date.now().toString(36).slice(-4)}`;
+      const orgName = humanizeSlug(orgSlug);
+
+      txResult = await this.prisma.$transaction(async (tx) => {
         const user = await tx.user.upsert({
           where: { id: supabaseUserId },
           update: { email },
@@ -86,31 +82,6 @@ export class RegistrationService {
         });
         const org = await tx.organization.create({ data: { slug: orgSlug, name: orgName, niche: 'general' } });
         await tx.orgMembership.create({ data: { orgId: org.id, userId: user.id, role: 'owner' } });
-
-        // Create a default brand so the org is accessible via the web UI.
-        // This is a placeholder — it gets replaced when the user imports a brand YAML.
-        // Uses upsert for idempotency in case a brand with this slug already exists.
-        const domain = `${orgSlug}.graspful.ai`;
-        const brandData = {
-          name: orgName,
-          domain,
-          tagline: `Adaptive learning by ${orgName}`,
-          logoUrl: '/icon.svg',
-          orgSlug,
-          theme: { preset: 'indigo', radius: '0.5rem' },
-          landing: {
-            hero: { headline: `Welcome to ${orgName}`, subheadline: 'Adaptive learning that meets you where you are', ctaText: 'Start Learning' },
-            features: { heading: 'Features', items: [] },
-            howItWorks: { heading: 'How it works', items: [] },
-            faq: [],
-          },
-          seo: { title: orgName, description: `Adaptive learning by ${orgName}`, keywords: [] },
-        };
-        await tx.brand.upsert({
-          where: { slug: orgSlug },
-          update: brandData,
-          create: { slug: orgSlug, ...brandData },
-        });
 
         // Create API key inside the transaction so it can see the uncommitted org
         const rawApiKey = `gsk_${crypto.randomBytes(32).toString('hex')}`;
@@ -120,25 +91,8 @@ export class RegistrationService {
           data: { orgId: org.id, userId: user.id, name: 'default', keyHash, keyPrefix },
         });
 
-        return { userId: user.id, orgId: org.id, orgSlug: org.slug, apiKey: rawApiKey, domain };
+        return { userId: user.id, orgId: org.id, orgSlug: org.slug, apiKey: rawApiKey };
       });
-
-      this.posthog.recordAccountCreated({
-        userId: txResult.userId,
-        email,
-        orgId: txResult.orgId,
-        orgSlug: txResult.orgSlug,
-        source: 'registration',
-      });
-
-      // Provision the subdomain on Vercel (non-blocking — registration shouldn't fail if Vercel is down)
-      try {
-        await this.vercelDomains.addDomain(txResult.domain);
-      } catch (err) {
-        this.logger.warn(`Failed to provision domain ${txResult.domain} on Vercel: ${err}`);
-      }
-
-      return { userId: txResult.userId, orgSlug: txResult.orgSlug, apiKey: txResult.apiKey, brandDomain: txResult.domain };
     } catch (error) {
       this.logger.error('Prisma transaction failed during registration', {
         message: (error as Error).message,
@@ -149,6 +103,20 @@ export class RegistrationService {
       });
       throw new InternalServerErrorException('Registration failed');
     }
+
+    // Account creation has committed. Analytics failures must not remove its user.
+    try {
+      this.posthog.recordAccountCreated({
+        userId: txResult.userId,
+        email,
+        orgId: txResult.orgId,
+        orgSlug: txResult.orgSlug,
+        source: 'registration',
+      });
+    } catch (error) {
+      this.logger.warn('Account creation analytics failed', error);
+    }
+    return { userId: txResult.userId, orgSlug: txResult.orgSlug, apiKey: txResult.apiKey };
   }
 
   private emailToOrgSlug(email: string): string {

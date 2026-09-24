@@ -1,8 +1,8 @@
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
+import { SupabaseAuthGuard, OrgMembershipGuard, CourseScopeGuard } from '@/auth';
+import { REQUIRE_ENROLLMENT_KEY } from '@/auth/decorators/require-enrollment.decorator';
 import { StudentModelController } from './student-model.controller';
-import { EnrollmentService } from './enrollment.service';
-import { StudentStateService } from './student-state.service';
-import { SectionExamService } from '@/assessment/section-exam.service';
-import { NotFoundException } from '@nestjs/common';
 
 describe('StudentModelController', () => {
   let controller: StudentModelController;
@@ -16,11 +16,7 @@ describe('StudentModelController', () => {
     };
 
     mockStudentState = {
-      assertAssessmentAccess: jest.fn().mockResolvedValue({ academyId: 'academy-1' }),
-      getAcademyIdForCourse: jest.fn(),
       getConceptStates: jest.fn(),
-      getMasteryMap: jest.fn(),
-      isDiagnosticCompleted: jest.fn(),
       getProfileSummary: jest.fn(),
     };
 
@@ -59,19 +55,12 @@ describe('StudentModelController', () => {
       const result = await controller.getMastery('course-1', orgCtx as any);
 
       expect(result).toEqual(states);
-      expect(mockStudentState.assertAssessmentAccess).toHaveBeenCalledWith('u1', 'org-1', 'course-1');
       expect(mockStudentState.getConceptStates).toHaveBeenCalledWith('u1', 'course-1');
     });
   });
 
   describe('getProfile', () => {
     it('should return mastery breakdown with counts', async () => {
-      const states = [
-        { conceptId: 'c1', masteryState: 'mastered' },
-        { conceptId: 'c2', masteryState: 'mastered' },
-        { conceptId: 'c3', masteryState: 'unstarted' },
-        { conceptId: 'c4', masteryState: 'in_progress' },
-      ];
       mockStudentState.getProfileSummary.mockResolvedValue({
         totalConcepts: 4,
         mastered: 2,
@@ -102,44 +91,31 @@ describe('StudentModelController', () => {
   });
 
   describe('course access', () => {
-    const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
+    it('checks authentication, membership, and course scope in order', () => {
+      expect(Reflect.getMetadata(GUARDS_METADATA, StudentModelController)).toEqual([
+        SupabaseAuthGuard, OrgMembershipGuard, CourseScopeGuard,
+      ]);
+    });
 
-    it.each(['getMastery', 'getSectionStates', 'getProfile'] as const)(
-      '%s rejects an unenrolled or out-of-scope caller before reads can sync states',
-      async (method) => {
-        mockStudentState.assertAssessmentAccess.mockRejectedValue(new NotFoundException());
+    it.each([
+      ['getMastery', true],
+      ['getSectionStates', true],
+      ['getProfile', true],
+      ['enroll', false],
+    ] as const)('requires enrollment for %s: %s', (method, expected) => {
+      expect(new Reflector().getAllAndOverride(REQUIRE_ENROLLMENT_KEY, [
+        StudentModelController.prototype[method], StudentModelController,
+      ])).toBe(expected);
+    });
+  });
 
-        await expect(controller[method]('course-1', orgCtx as any)).rejects.toThrow(NotFoundException);
-        expect(mockStudentState.assertAssessmentAccess).toHaveBeenCalledWith('u1', 'org-1', 'course-1');
-        expect(mockStudentState.getConceptStates).not.toHaveBeenCalled();
-        expect(mockStudentState.getProfileSummary).not.toHaveBeenCalled();
-        expect(mockSectionExam.getSectionStates).not.toHaveBeenCalled();
-      },
-    );
+  it('reads section states for the current student and course', async () => {
+    const states = [{ sectionId: 'section-1', status: 'certified' }];
+    mockSectionExam.getSectionStates.mockResolvedValue(states);
+    const org = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
 
-    it.each(['getMastery', 'getSectionStates', 'getProfile'] as const)(
-      '%s waits for access approval before starting state queries',
-      async (method) => {
-        let grantAccess!: (access: { academyId: string }) => void;
-        mockStudentState.assertAssessmentAccess.mockReturnValue(new Promise((resolve) => {
-          grantAccess = resolve;
-        }));
-        mockStudentState.getProfileSummary.mockResolvedValue({ totalConcepts: 0 });
+    await expect(controller.getSectionStates('course-1', org as any)).resolves.toEqual(states);
 
-        const pending = controller[method]('course-1', orgCtx as any);
-        expect(mockStudentState.getConceptStates).not.toHaveBeenCalled();
-        expect(mockStudentState.getProfileSummary).not.toHaveBeenCalled();
-        expect(mockSectionExam.getSectionStates).not.toHaveBeenCalled();
-        grantAccess({ academyId: 'academy-1' });
-        await pending;
-
-        const query = method === 'getMastery'
-          ? mockStudentState.getConceptStates
-          : method === 'getProfile'
-            ? mockStudentState.getProfileSummary
-            : mockSectionExam.getSectionStates;
-        expect(query).toHaveBeenCalledWith('u1', 'course-1');
-      },
-    );
+    expect(mockSectionExam.getSectionStates).toHaveBeenCalledWith('u1', 'course-1');
   });
 });

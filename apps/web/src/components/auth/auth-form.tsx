@@ -16,6 +16,8 @@ import {
 import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { safeRedirectPath } from "@graspful/shared";
+import { useHydrated } from "@graspful/creator-ui/use-hydrated";
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up";
@@ -59,18 +61,17 @@ export function AuthForm({ mode }: AuthFormProps) {
   const searchParams = useSearchParams();
   const reason = searchParams.get("reason");
   const presetEmail = searchParams.get("email") || "";
-  const rawRedirect =
-    searchParams.get("redirect") || getDefaultAuthRedirectPath(hostSurface);
-  // Prevent open redirect: must be a relative path, not protocol-relative
-  const redirectTo =
-    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
-      ? rawRedirect
-      : "/dashboard";
+  const redirectTo = safeRedirectPath(
+    searchParams.get("redirect"),
+    getDefaultAuthRedirectPath(hostSurface)
+  );
   const [email, setEmail] = useState(presetEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const hydrated = useHydrated();
+
   const trackedViews = useRef(new Set<string>());
   const trackedStarts = useRef(new Set<string>());
   const formKey = `${brand.id}:${mode}`;
@@ -241,6 +242,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     Email
                   </label>
                   <input
+                    disabled={!hydrated}
                     id="email"
                     type="email"
                     value={email}
@@ -261,6 +263,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     Password
                   </label>
                   <input
+                    disabled={!hydrated}
                     id="password"
                     type="password"
                     value={password}
@@ -291,7 +294,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 )}
 
                 <div className="space-y-3">
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full" disabled={loading || !hydrated}>
                     {loading ? "Loading..." : submitText}
                   </Button>
                   <Button

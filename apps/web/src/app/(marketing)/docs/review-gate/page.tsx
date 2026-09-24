@@ -1,3 +1,6 @@
+import { Callout } from "@/components/docs/callout";
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import { QUALITY_CHECK_METADATA } from "@graspful/shared";
 import { CodeBlock, InlineCode } from "@/components/docs/code-block";
@@ -11,16 +14,17 @@ export const metadata: Metadata = {
 export default function ReviewGatePage() {
   const checkCount = QUALITY_CHECK_METADATA.length;
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-tight text-foreground">Review gate</h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+    <DocPage
+      title="Review gate"
+      titleClassName="tracking-tight"
+      description={<>
         A course must pass {checkCount} automated checks before publication.
         A score of {checkCount}/{checkCount} means these checks passed. Review
         the teaching, answers, and factual accuracy against your sources before
         you publish.
-      </p>
-      <section className="mt-10">
-        <h2 className="text-2xl font-bold text-foreground" id="how-it-works">How review works</h2>
+      </>}
+    >
+      <DocSection title="How review works" headingId="how-it-works" className="mt-10">
         <p className="mt-3 text-muted-foreground">Run the review locally with the CLI or the <InlineCode>graspful_review_course</InlineCode> MCP tool. The server runs the same checks when you request publication.</p>
         <CodeBlock language="bash">{`graspful validate course.yaml
 graspful review course.yaml
@@ -29,9 +33,8 @@ graspful review course.yaml
 graspful review course.yaml --format json`}</CodeBlock>
         <p className="mt-3 text-muted-foreground">A draft may contain empty concepts while you author it. Publication requires teaching content, answerable questions, and completed concepts. Replace scaffold placeholders before you request publication.</p>
         <p className="mt-3 text-muted-foreground">If publication fails, inspect the returned failures and keep working on the draft. Confirm <InlineCode>published: true</InlineCode> in the server response before sharing a course as published.</p>
-      </section>
-      <section className="mt-10">
-        <h2 className="text-2xl font-bold text-foreground" id="checks">The {checkCount} checks</h2>
+      </DocSection>
+      <DocSection title={<>The {checkCount} checks</>} headingId="checks" className="mt-10">
         <p className="mt-3 text-sm text-muted-foreground">This list comes from the same shared registry as the course reviewer.</p>
         <ol className="mt-6 space-y-4">
           {QUALITY_CHECK_METADATA.map((check, index) => (
@@ -45,12 +48,11 @@ graspful review course.yaml --format json`}</CodeBlock>
             </li>
           ))}
         </ol>
-      </section>
-      <section className="mt-10 rounded-xl border border-border bg-muted/30 p-6">
-        <h2 className="text-xl font-bold text-foreground" id="scoring">What the score means</h2>
+      </DocSection>
+      <Callout as="section" className="mt-10 border-border bg-muted/30" title="What the score means" headingId="scoring" titleClassName="text-xl font-bold text-foreground">
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">The score counts automated checks that passed. It does not measure a learner&apos;s mastery or establish that every fact and explanation is correct. Vocabulary alignment is a heuristic. It can miss ambiguous, misleading, or poorly taught questions.</p>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">Read warnings as well as failures. Warnings, such as missing key-prerequisite links, can identify improvements even when the publication checks pass. Import can also fail for account permissions, conflicting course IDs, or service errors.</p>
-      </section>
-    </div>
+      </Callout>
+    </DocPage>
   );
 }

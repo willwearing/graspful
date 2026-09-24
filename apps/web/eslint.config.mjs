@@ -16,8 +16,13 @@ const eslintConfig = defineConfig([
     "src/__tests__/**",
   ]),
   {
+    files: ["src/components/**/*.{ts,tsx}"],
+    ignores: ["**/__tests__/**", "**/*.test.{ts,tsx}"],
+    rules: { "max-lines": ["warn", { max: 150, skipBlankLines: true, skipComments: true }] },
+  },
+  {
     rules: {
-      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-explicit-any": "error",
       "react-hooks/immutability": "off",
       "react-hooks/refs": "off",
       "react-hooks/set-state-in-effect": "off",

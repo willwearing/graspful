@@ -1,3 +1,6 @@
+import { Callout } from "@/components/docs/callout";
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock } from "@/components/docs/code-block";
@@ -24,22 +27,13 @@ export const metadata: Metadata = {
 
 export default function MasteryLearningPage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        Mastery Learning
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Graspful enforces mastery at every step. Students don&apos;t advance to
-        new concepts until their prerequisites are solid. The system uses
-        Bayesian Knowledge Tracing to estimate what each student knows and
-        decides when mastery is achieved.
-      </p>
+    <DocPage
+      title="Mastery Learning"
+      description="Graspful enforces mastery at every step. Students don&apos;t advance to new concepts until their prerequisites are solid. The system uses Bayesian Knowledge Tracing to estimate what each student knows and decides when mastery is achieved."
+    >
 
       {/* Bloom's Two-Sigma Problem */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="two-sigma">
-          Bloom&apos;s Two-Sigma Problem
-        </h2>
+      <DocSection title="Bloom&apos;s Two-Sigma Problem" headingId="two-sigma">
         <p className="mt-2 text-muted-foreground">
           In 1984, Benjamin Bloom published a finding that changed education
           research: students who received one-on-one tutoring with mastery
@@ -55,13 +49,10 @@ export default function MasteryLearningPage() {
           move on until you&apos;ve got it) and <strong>adaptive pacing</strong>{" "}
           (adjust to each student&apos;s speed and knowledge gaps).
         </p>
-      </section>
+      </DocSection>
 
       {/* What is mastery learning */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="what-is-mastery">
-          What is mastery learning?
-        </h2>
+      <DocSection title="What is mastery learning?" headingId="what-is-mastery">
         <p className="mt-2 text-muted-foreground">
           Mastery learning is simple: don&apos;t advance until the current
           material is solid. In a traditional classroom, everyone moves to
@@ -95,13 +86,10 @@ export default function MasteryLearningPage() {
           </Link>{" "}
           when every prerequisite is mastered.
         </p>
-      </section>
+      </DocSection>
 
       {/* Bayesian Knowledge Tracing */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="bkt">
-          Bayesian Knowledge Tracing (BKT)
-        </h2>
+      <DocSection title="Bayesian Knowledge Tracing (BKT)" headingId="bkt">
         <p className="mt-2 text-muted-foreground">
           BKT is the probabilistic model that powers mastery estimation. For
           each concept, the system maintains a probability{" "}
@@ -179,13 +167,10 @@ export default function MasteryLearningPage() {
           &quot;X out of Y correct&quot; — it accounts for guessing, slipping,
           and learning-in-progress.
         </p>
-      </section>
+      </DocSection>
 
       {/* Mastery states */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="mastery-states">
-          Mastery states
-        </h2>
+      <DocSection title="Mastery states" headingId="mastery-states">
         <p className="mt-2 text-muted-foreground">
           Each concept in a student&apos;s profile has one of four states:
         </p>
@@ -235,13 +220,10 @@ student_concept_state:
   total_attempts: 4
   last_attempt_at: "2026-03-22T14:30:00Z"`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Consecutive correct threshold */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="consecutive-correct">
-          Consecutive correct answers
-        </h2>
+      <DocSection title="Consecutive correct answers" headingId="consecutive-correct">
         <p className="mt-2 text-muted-foreground">
           A high P(Learned) alone isn&apos;t enough for mastery. The system also
           requires a minimum number of consecutive correct answers — typically 2.
@@ -254,13 +236,10 @@ student_concept_state:
           counter to zero, even if P(Learned) remains above the threshold (since
           the Bayes update will likely lower it anyway).
         </p>
-      </section>
+      </DocSection>
 
       {/* How mastery enforcement prevents gaps */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="gap-prevention">
-          How mastery enforcement prevents knowledge gaps
-        </h2>
+      <DocSection title="How mastery enforcement prevents knowledge gaps" headingId="gap-prevention">
         <p className="mt-2 text-muted-foreground">
           Traditional courses produce a predictable pattern: students with shaky
           foundations accumulate gaps, those gaps compound, and eventually the
@@ -295,13 +274,10 @@ student_concept_state:
             review before the student encounters dependent concepts.
           </li>
         </ul>
-      </section>
+      </DocSection>
 
       {/* BKT in the course YAML */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="bkt-in-yaml">
-          BKT parameters in course YAML
-        </h2>
+      <DocSection title="BKT parameters in course YAML" headingId="bkt-in-yaml">
         <p className="mt-2 text-muted-foreground">
           Course authors don&apos;t need to set BKT parameters — sensible
           defaults work for most courses. But you can override them per concept
@@ -339,11 +315,10 @@ student_concept_state:
           </Link>{" "}
           for details.
         </p>
-      </section>
+      </DocSection>
 
       {/* Next steps */}
-      <section className="mt-16 rounded-xl border border-border/50 bg-card p-8">
-        <h2 className="text-xl font-bold text-foreground mb-4">Next steps</h2>
+      <Callout as="section" className="mt-16 p-8" title="Next steps">
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href="/docs/concepts/knowledge-graph"
@@ -367,7 +342,7 @@ student_concept_state:
             <span>Spaced Repetition and the FIRe algorithm</span>
           </Link>
         </div>
-      </section>
-    </div>
+      </Callout>
+    </DocPage>
   );
 }

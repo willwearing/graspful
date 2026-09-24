@@ -5,7 +5,10 @@ import { StreakService } from './streak.service';
 import { LeaderboardService } from './leaderboard.service';
 import { CompletionEstimateService } from './completion-estimate.service';
 import { CourseProgressReadService } from './course-progress-read.service';
-import { SupabaseAuthGuard, OrgMembershipGuard } from '@/auth';
+import { SupabaseAuthGuard, OrgMembershipGuard, AcademyScopeGuard } from '@/auth';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
+import { REQUIRE_ENROLLMENT_KEY } from '@/auth/decorators/require-enrollment.decorator';
 
 const mockGuard = { canActivate: () => true };
 
@@ -44,6 +47,8 @@ describe('AcademyGamificationController', () => {
       .useValue(mockGuard)
       .overrideGuard(OrgMembershipGuard)
       .useValue(mockGuard)
+      .overrideGuard(AcademyScopeGuard)
+      .useValue(mockGuard)
       .compile();
     controller = module.get(AcademyGamificationController);
   });
@@ -73,6 +78,7 @@ describe('AcademyGamificationController', () => {
     } as any);
 
     expect(result).toEqual(breakdown);
+    expect(mockXPService.getAcademyWeeklyXPBreakdown).toHaveBeenCalledWith('user-1', 'academy-1');
   });
 
   it('should return academy streak status', async () => {
@@ -93,17 +99,34 @@ describe('AcademyGamificationController', () => {
     } as any);
 
     expect(result).toEqual(streak);
+    expect(mockStreakService.getAcademyStreakStatus).toHaveBeenCalledWith('user-1', 'academy-1');
   });
 
   it('should return academy leaderboard', async () => {
     const board = [{ rank: 1, userId: 'u1', displayName: 'Alice', avatarUrl: null, weeklyXP: 200 }];
     mockLeaderboardService.getAcademyWeeklyLeaderboard.mockResolvedValue(board);
 
-    const result = await controller.getLeaderboard('org-1', 'academy-1');
+    const org = { userId: 'user-1', orgId: 'org-1', role: 'member' } as any;
+    const result = await controller.getLeaderboard('academy-1', org);
 
     expect(result).toEqual(board);
     expect(mockLeaderboardService.getAcademyWeeklyLeaderboard).toHaveBeenCalledWith('org-1', 'academy-1');
   });
+
+  it('checks authentication, membership, and resource scope in order', () => {
+    expect(Reflect.getMetadata(GUARDS_METADATA, AcademyGamificationController)).toEqual([
+      SupabaseAuthGuard, OrgMembershipGuard, AcademyScopeGuard,
+    ]);
+  });
+
+  it.each(['getXPSummary', 'getWeeklyXP', 'getStreak', 'getLeaderboard', 'getStats', 'getGraph'] as const)(
+    'requires enrollment for %s',
+    (method) => {
+      expect(new Reflector().getAllAndOverride(REQUIRE_ENROLLMENT_KEY, [
+        AcademyGamificationController.prototype[method], AcademyGamificationController,
+      ])).toBe(true);
+    },
+  );
 
   it('should return academy completion estimate', async () => {
     const estimate = {
@@ -124,6 +147,7 @@ describe('AcademyGamificationController', () => {
     } as any);
 
     expect(result).toEqual(estimate);
+    expect(mockCompletionEstimateService.getAcademyEstimate).toHaveBeenCalledWith('user-1', 'academy-1');
   });
 
   it('returns the academy graph projection', async () => {

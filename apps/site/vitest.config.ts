@@ -12,6 +12,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      "server-only": path.resolve(__dirname, "./src/test-server-only.ts"),
       "@": path.resolve(__dirname, "./src"),
       "@graspful/shared": path.resolve(__dirname, "../../packages/shared/src/index.ts"),
     },

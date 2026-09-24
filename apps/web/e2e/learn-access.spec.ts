@@ -153,6 +153,36 @@ test.afterAll(async () => {
 });
 
 test.describe("Platform learner access", () => {
+  test("activity route rendering does not enroll learners or create sessions", async ({ page }) => {
+    const email = await signUpAsCreator(page);
+    const userId = await grantLearnerMembership(email);
+    const courseHref = `${hubHref}/courses/${courseSlug}`;
+    const routes = [
+      { href: `${courseHref}/diagnostic`, title: "Diagnostic Assessment" },
+      { href: `${hubHref}/academies/${academySlug}/diagnostic`, title: "Diagnostic Assessment" },
+      { href: lessonHref, title: "Lesson" },
+      { href: `${courseHref}/study/quiz`, title: "Quiz" },
+      { href: `${courseHref}/study/review/${conceptId}`, title: "Concept Review" },
+      { href: `${courseHref}/study/sections/${conceptId}/exam`, title: "Section Exam" },
+    ];
+    const mutations: string[] = [];
+    page.on("request", (request) => {
+      if (request.method() === "POST" && request.url().includes(`/orgs/${orgSlug}/`)) mutations.push(request.url());
+    });
+    for (const route of routes) {
+      const response = await page.goto(route.href);
+      expect(response?.status()).toBe(200);
+      await expectLearnerShell(page);
+      await expect(page.getByRole("heading", { name: route.title, exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: `Start ${route.title}`, exact: true })).toBeEnabled();
+    }
+    expect(mutations).toEqual([]);
+    expect(await prisma.academyEnrollment.count({ where: { academyId, userId } })).toBe(0);
+    expect(await prisma.studentCourseState.count({ where: { courseId, userId } })).toBe(0);
+    expect(await prisma.diagnosticSession.count({ where: { orgId, userId } })).toBe(0);
+    expect(await prisma.sectionExamSession.count({ where: { courseId, userId } })).toBe(0);
+  });
+
   test("an unentitled user cannot open the learning hub or acquire membership", async ({ page }) => {
     const email = await signUpAsCreator(page);
     const userId = await getSupabaseUserIdByEmail(email);
@@ -247,6 +277,7 @@ test.describe("Platform learner access", () => {
       // server/client boundary. The browser must execute StudyRouter and render the lesson.
       await expect(page).toHaveURL(lessonHref, { timeout: 15_000 });
       await expectLearnerShell(page);
+      await page.getByRole("button", { name: "Start Lesson" }).click();
       await expect(page.getByText("Knowledge Point 1 of 1", { exact: true })).toBeVisible();
       await expect(page.getByText("Add two numbers by counting their combined total.")).toBeVisible();
       await expect(page.getByText("Lesson Unavailable", { exact: true })).toHaveCount(0);

@@ -14,8 +14,8 @@ import { ProvisionService } from './provision.service';
  * Called after Supabase Auth sign-up/sign-in to ensure the user has a
  * personal organization and DB user record. The web UI sign-up flow
  * uses Supabase Auth directly (not /auth/register), so this endpoint
- * fills the gap by creating the org + brand that the legacy register
- * flow would have created.
+ * fills the gap by creating the private org workspace. Public websites
+ * are created by course or brand imports.
  *
  * Idempotent: if the user already has an org, returns it unchanged.
  *

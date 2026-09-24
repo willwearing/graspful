@@ -1,12 +1,12 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as yaml from 'js-yaml';
+import { readYamlFile } from '@graspful/client';
 import { requireAuth } from '../lib/auth';
 import { ApiClient } from '../lib/api-client';
 import { output, outputError } from '../lib/output';
 import { cliCapture } from '../lib/analytics';
-import { detectFileType, publicationFailures, type CoursePublicationResponse } from '@graspful/shared';
+import { detectFileType, publicationFailures } from '@graspful/shared';
 
 export function registerImportCommand(program: Command) {
   program
@@ -26,13 +26,13 @@ export function registerImportCommand(program: Command) {
         process.exit(1);
       }
 
-      const content = fs.readFileSync(file, 'utf-8');
+      let content: string;
       let raw: unknown;
       try {
-        raw = yaml.load(content);
+        ({ content, raw } = readYamlFile(file));
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        outputError(`YAML parse error: ${msg}`);
+        outputError(msg);
         process.exit(1);
       }
 
@@ -53,10 +53,9 @@ export function registerImportCommand(program: Command) {
         }
 
         try {
-          const result = await api.post<CoursePublicationResponse>(
-            `/api/v1/orgs/${orgSlug}/courses/import`,
-            { yaml: content, publish: opts.publish, replace: opts.replace, archiveMissing: opts.archiveMissing },
-          );
+          const result = await api.importCourse(orgSlug, {
+            yaml: content, publish: opts.publish, replace: opts.replace, archiveMissing: opts.archiveMissing,
+          });
 
           cliCapture('course imported', { course_id: result.courseId, org: orgSlug, published: result.published });
           if (opts.publish && result.published !== true) {
@@ -108,52 +107,12 @@ export function registerImportCommand(program: Command) {
             courseYamls[courseFile] = fs.readFileSync(resolvedPath, 'utf-8');
           }
 
-          const result = await api.post<{
-            academyId: string;
-            academySlug: string;
-            partCount: number;
-            courseCount: number;
-            courseResults: Array<{ courseId: string }>;
-            warnings: string[];
-          }>(`/api/v1/orgs/${orgSlug}/academies/import`, {
-            manifestYaml: content,
-            courseYamls,
-            replace: opts.replace,
-            archiveMissing: opts.archiveMissing,
+          const response = await api.importAcademy(orgSlug, {
+            manifestYaml: content, courseYamls, publish: opts.publish,
+            replace: opts.replace, archiveMissing: opts.archiveMissing,
           });
-
-          const publishedCourseIds: string[] = [];
-          const publishFailures: string[] = [];
-
-          if (opts.publish) {
-            for (const courseResult of result.courseResults) {
-              try {
-                const publication = await api.post<CoursePublicationResponse>(
-                  `/api/v1/orgs/${orgSlug}/courses/${courseResult.courseId}/publish`,
-                  {},
-                );
-                if (publication.published === true) {
-                  publishedCourseIds.push(courseResult.courseId);
-                } else {
-                  publishFailures.push(
-                    `${courseResult.courseId}: ${publicationFailures(publication).join('; ')}`,
-                  );
-                }
-              } catch (error) {
-                const msg = error instanceof Error ? error.message : String(error);
-                publishFailures.push(`${courseResult.courseId}: ${msg}`);
-              }
-            }
-          }
-
-          const response = {
-            ...result,
-            publishedCourseIds,
-            publishFailures,
-            ...(publishFailures.length > 0 ? {
-              status: publishedCourseIds.length > 0 ? 'partially_published' : 'imported_but_not_published',
-            } : {}),
-          };
+          const { publishedCourseIds, publishFailures } = response;
+          const result = response;
 
           cliCapture('academy imported', {
             academy_id: result.academyId,
@@ -180,47 +139,16 @@ export function registerImportCommand(program: Command) {
           process.exit(1);
         }
       } else {
-        // Brand import — unwrap YAML structure to flat DTO
         try {
-          const parsed = raw as Record<string, unknown>;
-          const brandSection = (parsed.brand || {}) as Record<string, unknown>;
-          const dto = {
-            slug: brandSection.id || brandSection.slug,
-            name: brandSection.name,
-            domain: brandSection.domain,
-            tagline: brandSection.tagline || '',
-            logoUrl: (brandSection.logoUrl as string) || '/icon.svg',
-            faviconUrl: brandSection.faviconUrl,
-            ogImageUrl: brandSection.ogImageUrl,
-            orgSlug: brandSection.orgSlug,
-            theme: parsed.theme || {},
-            landing: parsed.landing || {},
-            seo: parsed.seo || {},
-            pricing: parsed.pricing || {},
-            contentScope: parsed.contentScope,
-          };
-          const result = await api.post<{
-            brand: { slug: string; domain: string };
-            domain: {
-              verified: boolean;
-              error?: string;
-              dnsInstructions?: { type: string; name: string; value: string };
-            };
-          }>('/api/v1/brands', dto);
-
-          const slug = result.brand?.slug || dto.slug;
-          const domain = result.brand?.domain || dto.domain;
-          const verified = result.domain?.verified ?? false;
-          const dns = result.domain?.dnsInstructions;
+          const result = await api.importBrand(raw);
+          const { slug, domain } = result.brand;
+          const verified = result.domain.verified;
+          const dns = result.domain.dnsInstructions;
 
           let msg = `Imported brand: ${slug}\n  Domain: ${domain} (${verified ? 'verified' : 'not yet verified'})`;
           if (dns) {
             msg += `\n\n  Configure DNS:\n    ${dns.type}  ${dns.name}  →  ${dns.value}`;
           }
-          if (!verified) {
-            msg += `\n\n  Check status later: graspful domain-status ${slug}`;
-          }
-
           cliCapture('brand imported', { slug: slug, domain: domain });
           output(result, msg);
         } catch (e) {

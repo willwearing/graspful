@@ -45,7 +45,7 @@ export async function GET() {
   // Handle both shapes: { heading, subheading, items } (current) or raw array (legacy)
   const featureItems = brand.landing.features.items || brand.landing.features;
   const features = Array.isArray(featureItems)
-    ? featureItems.map((f: any) => `${f.title}: ${f.description}`)
+    ? featureItems.map((f) => `${f.title}: ${f.description}`)
     : [];
 
   const content = generateLlmsTxt({

@@ -1,3 +1,6 @@
+import { Callout } from "@/components/docs/callout";
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock } from "@/components/docs/code-block";
@@ -23,22 +26,13 @@ export const metadata: Metadata = {
 
 export default function KnowledgeGraphPage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        Knowledge Graph
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Every Graspful course is a directed acyclic graph. Concepts are nodes.
-        Edges encode two kinds of relationships: prerequisites and encompassing
-        links. The graph drives everything — task selection, diagnostics, spaced
-        repetition, and mastery enforcement.
-      </p>
+    <DocPage
+      title="Knowledge Graph"
+      description="Every Graspful course is a directed acyclic graph. Concepts are nodes. Edges encode two kinds of relationships: prerequisites and encompassing links. The graph drives everything — task selection, diagnostics, spaced repetition, and mastery enforcement."
+    >
 
       {/* What is a knowledge graph */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="what-is-it">
-          What is a knowledge graph?
-        </h2>
+      <DocSection title="What is a knowledge graph?" headingId="what-is-it">
         <p className="mt-2 text-muted-foreground">
           A knowledge graph is a directed acyclic graph (DAG) where each node
           represents one teachable concept — a single idea that can be tested
@@ -53,13 +47,10 @@ export default function KnowledgeGraphPage() {
           &quot;All of circuit analysis&quot; is too broad.
           &quot;The letter V in V=IR&quot; is too narrow.
         </p>
-      </section>
+      </DocSection>
 
       {/* Prerequisite edges */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="prerequisite-edges">
-          Prerequisite edges
-        </h2>
+      <DocSection title="Prerequisite edges" headingId="prerequisite-edges">
         <p className="mt-2 text-muted-foreground">
           A prerequisite edge from concept A to concept B means &quot;you must
           understand A before you can learn B.&quot; The adaptive engine enforces
@@ -95,13 +86,10 @@ export default function KnowledgeGraphPage() {
       - ohms-law         # only list the direct prerequisite
                           # voltage is inferred transitively`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Encompassing edges */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="encompassing-edges">
-          Encompassing edges
-        </h2>
+      <DocSection title="Encompassing edges" headingId="encompassing-edges">
         <p className="mt-2 text-muted-foreground">
           An encompassing edge says &quot;practicing concept B automatically
           exercises concept A.&quot; Each edge carries a weight between 0.0 and
@@ -144,13 +132,10 @@ export default function KnowledgeGraphPage() {
   # This means advanced students don't need to go back
   # and drill basics separately — the graph handles it.`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* The frontier */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="frontier">
-          The knowledge frontier
-        </h2>
+      <DocSection title="The knowledge frontier" headingId="frontier">
         <p className="mt-2 text-muted-foreground">
           The frontier is the set of concepts a student is ready to learn right
           now. A concept is on the frontier when all of its prerequisites are
@@ -167,13 +152,10 @@ export default function KnowledgeGraphPage() {
           everything, it shrinks. A fully mastered course has an empty frontier
           (until spaced repetition flags something for review).
         </p>
-      </section>
+      </DocSection>
 
       {/* Course graph structure */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="course-graph">
-          Course graph: sections and concepts
-        </h2>
+      <DocSection title="Course graph: sections and concepts" headingId="course-graph">
         <p className="mt-2 text-muted-foreground">
           The underlying knowledge graph is a flat DAG — no hierarchy. But
           humans need structure. Courses add two organizational layers on top of
@@ -256,13 +238,10 @@ concepts:
       - concept: ohms-law
         weight: 0.7`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Graph validation */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="validation">
-          Graph validation
-        </h2>
+      <DocSection title="Graph validation" headingId="validation">
         <p className="mt-2 text-muted-foreground">
           The importer validates several graph properties at import time.
           Violations are rejected before any data is written.
@@ -280,11 +259,10 @@ concepts:
           </code>{" "}
           locally to catch graph errors before importing.
         </p>
-      </section>
+      </DocSection>
 
       {/* Next steps */}
-      <section className="mt-16 rounded-xl border border-border/50 bg-card p-8">
-        <h2 className="text-xl font-bold text-foreground mb-4">Next steps</h2>
+      <Callout as="section" className="mt-16 p-8" title="Next steps">
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href="/docs/concepts/mastery-learning"
@@ -308,7 +286,7 @@ concepts:
             <span>Course YAML schema reference</span>
           </Link>
         </div>
-      </section>
-    </div>
+      </Callout>
+    </DocPage>
   );
 }

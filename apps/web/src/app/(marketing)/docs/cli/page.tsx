@@ -1,3 +1,6 @@
+import { Callout } from "@/components/docs/callout";
+import { DocPage } from "@/components/docs/doc-page";
+import { DocSection } from "@/components/docs/doc-section";
 import type { Metadata } from "next";
 import { CodeBlock, InlineCode } from "@/components/docs/code-block";
 
@@ -31,8 +34,7 @@ function CommandSection({
   jsonOutput?: string;
 }) {
   return (
-    <section className="mt-12 scroll-mt-24" id={name.replace(/\s+/g, "-").toLowerCase()}>
-      <h2 className="text-2xl font-bold text-foreground">{name}</h2>
+    <DocSection title={<>{name}</>} id={name.replace(/\s+/g, "-").toLowerCase()} className="scroll-mt-24">
       <p className="mt-2 text-muted-foreground">{description}</p>
       <CodeBlock language="bash">{synopsis}</CodeBlock>
 
@@ -80,23 +82,22 @@ function CommandSection({
           <CodeBlock language="json">{jsonOutput}</CodeBlock>
         </div>
       )}
-    </section>
+    </DocSection>
   );
 }
 
 export default function CLIReferencePage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        CLI Reference
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+    <DocPage
+      title="CLI Reference"
+      description={<>
         The <InlineCode>@graspful/cli</InlineCode> package provides a complete
         command-line interface for creating, validating, reviewing, and
         publishing adaptive learning courses.
-      </p>
+      </>}
+    >
 
-      <div className="mt-6 rounded-xl border border-border/50 bg-card p-4">
+      <Callout className="mt-6 p-4">
         <p className="text-sm text-muted-foreground">
           <strong className="text-foreground">Global option:</strong> All
           commands support{" "}
@@ -105,12 +106,12 @@ export default function CLIReferencePage() {
           <InlineCode>--format json</InlineCode> for machine-readable output in
           automated workflows.
         </p>
-      </div>
+      </Callout>
 
       <CommandSection
         name="graspful register"
         synopsis={`graspful register [--email <email>] [--no-browser]`}
-        description="Create a new Graspful account with browser-based auth. Once the browser flow completes, the CLI saves an API key automatically to ~/.graspful/credentials.json."
+        description="Create a new Graspful account with browser-based auth. Once the browser flow completes, the CLI saves an API key automatically to ~/.graspful/credentials.json and masks the key in terminal and JSON output."
         options={[
           { flag: "--email <email>", description: "Prefill the browser sign-up form" },
           { flag: "--no-browser", description: "Print the sign-up URL instead of opening it automatically" },
@@ -129,11 +130,13 @@ export default function CLIReferencePage() {
 
       <CommandSection
         name="graspful login"
-        synopsis={`graspful login [--api-url <url>] [--token <token>] [--email <email>] [--no-browser]`}
+        synopsis={`graspful login [--api-url <url>] [--token <token> | --token-stdin] [--email <email>] [--password <password>] [--no-browser]`}
         description="Authenticate with a Graspful instance. Saves credentials locally for subsequent commands. Supports browser sign-in by default and API key auth for non-interactive environments."
         options={[
           { flag: "--api-url <url>", description: "API base URL (defaults to https://api.graspful.ai)" },
           { flag: "--token <token>", description: "API key or JWT (skips browser auth)" },
+          { flag: "--token-stdin", description: "Read an API key or JWT from stdin. Use this flag when piping a token." },
+          { flag: "--password <password>", description: "Use with --email for non-interactive authentication" },
           { flag: "--email <email>", description: "Prefill the browser sign-in form" },
           { flag: "--no-browser", description: "Print the sign-in URL instead of opening it automatically" },
         ]}
@@ -148,7 +151,7 @@ export default function CLIReferencePage() {
           },
           {
             label: "Pipe from a secret manager",
-            code: "vault read -field=token secret/graspful | graspful login",
+            code: "vault read -field=token secret/graspful | graspful login --token-stdin",
           },
         ]}
         jsonOutput={`{
@@ -226,15 +229,13 @@ export default function CLIReferencePage() {
   --topic <topic> \\
   [--hours <hours>] \\
   [--source <source>] \\
-  [-o, --output <file>] \\
-  [--scaffold-only]`}
+  [-o, --output <file>]`}
         description="Generate a course YAML scaffold with sections, concepts, and prerequisite edges. The scaffold contains no learning content — just the graph structure with TODO placeholders. Edit the output to add concepts, adjust prerequisites, and set difficulty levels before filling."
         options={[
           { flag: "--topic <topic>", description: "Course topic name (required)" },
           { flag: "--hours <hours>", description: "Estimated total course hours (default: 10)" },
           { flag: "--source <source>", description: "Source document reference (e.g., textbook, exam guide)" },
           { flag: "-o, --output <file>", description: "Output file path (defaults to stdout)" },
-          { flag: "--scaffold-only", description: "Generate scaffold without AI enrichment (default: true)" },
         ]}
         examples={[
           {
@@ -244,7 +245,6 @@ export default function CLIReferencePage() {
           {
             label: "Scaffold to file with source",
             code: `graspful create course \\
-  --scaffold-only \\
   --topic "AWS Solutions Architect" \\
   --source "AWS SAA-C03 Exam Guide" \\
   --hours 40 \\
@@ -437,6 +437,6 @@ export default function CLIReferencePage() {
           },
         ]}
       />
-    </div>
+    </DocPage>
   );
 }

@@ -6,13 +6,15 @@ import {
 } from '@nestjs/common';
 import { SupabaseAuthGuard } from './supabase-auth.guard';
 import { ApiKeyGuard } from '../api-key/api-key.guard';
+import type { AuthUser } from './supabase-auth.guard';
 
 /**
  * Composite guard: accepts either a Supabase JWT or a `gsk_` API key.
  *
  * When an API key is used, it maps `request.apiKeyUser` into `request.user`
  * so downstream guards (OrgMembershipGuard) and decorators (CurrentUser)
- * see a consistent AuthUser shape.
+ * see a consistent AuthUser shape. `apiKeyOrgId` pins the request to the
+ * org the key was minted for.
  */
 @Injectable()
 export class JwtOrApiKeyGuard implements CanActivate {
@@ -25,7 +27,7 @@ export class JwtOrApiKeyGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const authHeader: string | undefined = request.headers.authorization;
 
-    if (!authHeader?.startsWith('Bearer ')) {
+    if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException('Missing or invalid authorization header');
     }
 
@@ -40,7 +42,8 @@ export class JwtOrApiKeyGuard implements CanActivate {
         request.user = {
           userId: apiKeyUser.id,
           email: apiKeyUser.email,
-        };
+          apiKeyOrgId: request.apiKeyOrgId,
+        } satisfies AuthUser;
       }
 
       return true;

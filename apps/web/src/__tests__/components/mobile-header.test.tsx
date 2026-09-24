@@ -35,7 +35,7 @@ describe("MobileHeader", () => {
   beforeEach(() => {
     testState.mockPush.mockReset();
     testState.mockRefresh.mockReset();
-    testState.mockSignOut.mockReset();
+    testState.mockSignOut.mockReset().mockResolvedValue({ error: null });
     testState.mockResetPostHog.mockReset();
 
     Object.defineProperty(window, "localStorage", {

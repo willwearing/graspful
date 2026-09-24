@@ -1,6 +1,28 @@
-import { describe, expect, test, beforeAll } from 'bun:test';
+import '../../../client/test-support/preload';
+import { describe, expect, test, beforeEach, afterEach } from 'bun:test';
 import { TOOLS, handleToolCall, mcpDistinctId } from '../index';
 import * as yaml from 'js-yaml';
+import { saveApiKeyCredentials } from '@graspful/client';
+
+import * as os from 'node:os';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+let home: string;
+let oldFetch: typeof fetch;
+let oldConfigDir: string | undefined;
+beforeEach(() => {
+  oldFetch = globalThis.fetch;
+  globalThis.fetch = (async () => { throw new Error('Unexpected network request'); }) as typeof fetch;
+  home = mkdtempSync(join(os.tmpdir(), 'graspful-mcp-index-'));
+  oldConfigDir = process.env.GRASPFUL_CONFIG_DIR;
+  process.env.GRASPFUL_CONFIG_DIR = home;
+});
+afterEach(() => {
+  globalThis.fetch = oldFetch;
+  if (oldConfigDir === undefined) delete process.env.GRASPFUL_CONFIG_DIR;
+  else process.env.GRASPFUL_CONFIG_DIR = oldConfigDir;
+  rmSync(home, { recursive: true, force: true });
+});
 
 // Helper: scaffold a course and return the YAML string
 async function scaffoldCourse(topic = 'Test'): Promise<string> {
@@ -187,4 +209,44 @@ describe('auth-required tools', () => {
       }
     }
   });
+});
+
+
+test('a running MCP server reads credentials saved or rotated by the CLI', async () => {
+  const oldKey = process.env.GRASPFUL_API_KEY;
+  const oldUrl = process.env.GRASPFUL_API_URL;
+  const oldUserId = process.env.GRASPFUL_USER_ID;
+  delete process.env.GRASPFUL_API_KEY;
+  delete process.env.GRASPFUL_API_URL;
+  delete process.env.GRASPFUL_USER_ID;
+  try {
+    expect((await handleToolCall('graspful_list_courses', { org: 'example' })).isError).toBe(true);
+    const headers: string[] = [];
+    globalThis.fetch = (async (url, init) => {
+      expect(String(url)).toBe('https://saved.test/api/v1/orgs/example/courses');
+      headers.push((init?.headers as Record<string, string>).Authorization);
+      return Response.json([]);
+    }) as typeof fetch;
+    saveApiKeyCredentials('gsk_first', 'https://saved.test', 'saved-user');
+    expect((await handleToolCall('graspful_list_courses', { org: 'example' })).isError).toBeUndefined();
+    expect(mcpDistinctId()).toBe('saved-user');
+    saveApiKeyCredentials('gsk_rotated', 'https://saved.test', 'saved-user');
+    expect((await handleToolCall('graspful_list_courses', { org: 'example' })).isError).toBeUndefined();
+    expect(headers).toEqual(['Bearer gsk_first', 'Bearer gsk_rotated']);
+  } finally {
+    if (oldKey === undefined) delete process.env.GRASPFUL_API_KEY; else process.env.GRASPFUL_API_KEY = oldKey;
+    if (oldUrl === undefined) delete process.env.GRASPFUL_API_URL; else process.env.GRASPFUL_API_URL = oldUrl;
+    if (oldUserId === undefined) delete process.env.GRASPFUL_USER_ID; else process.env.GRASPFUL_USER_ID = oldUserId;
+  }
+});
+
+test.each(TOOLS.map((tool) => [tool.name]))('%s validates required arguments without external requests', async (name) => {
+  const result = await handleToolCall(name, {});
+  expect(result.isError).toBe(true);
+  expect(result.content[0].text).toContain('Invalid arguments');
+});
+
+test('academy tool discovery describes string values in the course YAML map', () => {
+  const tool = TOOLS.find((value) => value.name === 'graspful_import_academy')!;
+  expect(tool.inputSchema.properties.courseYamls).toMatchObject({ type: 'object', additionalProperties: { type: 'string' } });
 });

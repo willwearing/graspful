@@ -6,10 +6,10 @@ describe('CourseManagementService', () => {
   let service: CourseManagementService;
   let mockPrisma: any;
   let mockImporter: any;
+  let mockAcademyImporter: any;
   let mockReviewService: any;
   let mockCourseYamlExport: any;
   let mockBrandsService: any;
-  let mockVercelDomainsService: any;
 
   beforeEach(() => {
     mockPrisma = {
@@ -27,8 +27,15 @@ describe('CourseManagementService', () => {
     };
 
     mockImporter = {
-      parseCourseYaml: jest.fn(),
+      parseCourseYaml: jest.fn().mockReturnValue({ course: { id: 'test-course', name: 'Test Course' } }),
       importFromYaml: jest.fn(),
+    };
+
+    mockAcademyImporter = {
+      parseManifest: jest.fn().mockReturnValue({
+        academy: { id: 'test-academy', name: 'Test Academy', description: 'Academy description' },
+      }),
+      importFromManifest: jest.fn(),
     };
 
     mockReviewService = {
@@ -40,12 +47,7 @@ describe('CourseManagementService', () => {
     };
 
     mockBrandsService = {
-      findBySlug: jest.fn(),
-      create: jest.fn(),
-    };
-
-    mockVercelDomainsService = {
-      addDomain: jest.fn(),
+      ensureDefaultForOrg: jest.fn().mockResolvedValue(undefined),
     };
 
     service = new CourseManagementService(
@@ -54,7 +56,7 @@ describe('CourseManagementService', () => {
       mockReviewService,
       mockCourseYamlExport,
       mockBrandsService,
-      mockVercelDomainsService,
+      mockAcademyImporter,
     );
   });
 
@@ -79,16 +81,8 @@ describe('CourseManagementService', () => {
       encompassingEdgeCount: 0,
       warnings: [],
     });
-    mockPrisma.organization.findUnique
-      .mockResolvedValueOnce({ slug: 'org-slug' })
-      .mockResolvedValueOnce({ slug: 'org-slug' });
-    mockPrisma.brand.findFirst.mockResolvedValue(null);
-    mockBrandsService.findBySlug.mockResolvedValue(null);
-    mockBrandsService.create.mockResolvedValue({ id: 'brand-1' });
-    mockPrisma.brand.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ domain: 'test-course.graspful.ai' });
-    mockVercelDomainsService.addDomain.mockResolvedValue({});
+    mockPrisma.organization.findUnique.mockResolvedValue({ slug: 'org-slug' });
+    mockPrisma.brand.findFirst.mockResolvedValue({ domain: 'test-course.graspful.ai' });
 
     const result = await service.importCourse(
       { orgId: 'org-1', userId: 'user-1', email: 'user@example.com', role: 'admin' } as any,
@@ -97,7 +91,67 @@ describe('CourseManagementService', () => {
 
     expect(result.published).toBe(true);
     expect(result.url).toBe('https://test-course.graspful.ai/browse/course-1');
-    expect(mockBrandsService.create).toHaveBeenCalled();
+    expect(mockBrandsService.ensureDefaultForOrg).toHaveBeenCalledWith(
+      { orgId: 'org-1', userId: 'user-1', email: 'user@example.com', role: 'admin' },
+      { id: 'test-course', name: 'Test Course', description: 'Desc' },
+    );
+    expect(mockImporter.importFromYaml.mock.invocationCallOrder[0])
+      .toBeLessThan(mockBrandsService.ensureDefaultForOrg.mock.invocationCallOrder[0]);
+  });
+
+  describe('academy import website setup', () => {
+    const org = { orgId: 'org-1', userId: 'user-1', email: 'user@example.com', role: 'admin' } as any;
+    const body = {
+      manifestYaml: 'academy: {}',
+      courseYamls: { 'course.yaml': 'course: {}' },
+      replace: true,
+      archiveMissing: true,
+    };
+    const importResult = {
+      academyId: 'academy-1', academySlug: 'test-academy', courseCount: 1,
+      partCount: 0, courseResults: [{ courseId: 'course-1' }], warnings: [],
+    };
+
+    beforeEach(() => {
+      mockAcademyImporter.importFromManifest.mockResolvedValue(importResult);
+      mockPrisma.organization.findUnique.mockResolvedValue({ slug: 'org-slug' });
+      mockPrisma.brand.findFirst.mockResolvedValue(null);
+    });
+
+    it('creates one website from academy metadata after a fresh org imports successfully', async () => {
+      await expect(service.importAcademy(org, body)).resolves.toEqual(importResult);
+
+      expect(mockAcademyImporter.importFromManifest).toHaveBeenCalledWith(
+        body.manifestYaml, body.courseYamls, org.orgId,
+        { replace: true, archiveMissing: true },
+      );
+      expect(mockBrandsService.ensureDefaultForOrg).toHaveBeenCalledTimes(1);
+      expect(mockBrandsService.ensureDefaultForOrg).toHaveBeenCalledWith(org, {
+        id: 'test-academy', name: 'Test Academy', description: 'Academy description',
+      });
+      expect(mockAcademyImporter.importFromManifest.mock.invocationCallOrder[0])
+        .toBeLessThan(mockBrandsService.ensureDefaultForOrg.mock.invocationCallOrder[0]);
+    });
+
+    it('creates no website when academy validation or import fails', async () => {
+      mockAcademyImporter.importFromManifest.mockRejectedValue(new Error('Invalid academy graph'));
+
+      await expect(service.importAcademy(org, body)).rejects.toThrow('Invalid academy graph');
+
+      expect(mockPrisma.brand.findFirst).not.toHaveBeenCalled();
+      expect(mockBrandsService.ensureDefaultForOrg).not.toHaveBeenCalled();
+    });
+  });
+
+  it('does not provision a website when course import fails', async () => {
+    mockImporter.importFromYaml.mockRejectedValue(new Error('Invalid course graph'));
+
+    await expect(service.importCourse(
+      { orgId: 'org-1', userId: 'user-1', email: 'user@example.com', role: 'admin' },
+      { yaml: 'course: {}' },
+    )).rejects.toThrow('Invalid course graph');
+
+    expect(mockBrandsService.ensureDefaultForOrg).not.toHaveBeenCalled();
   });
 
   it('publishes a course from the exported yaml', async () => {

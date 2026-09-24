@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '@nes
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { StudentStateService } from '@/student-model/student-state.service';
+import { EnrollmentService } from '@/student-model/enrollment.service';
 import { evaluateAnswer } from '@/assessment/answer-evaluator';
 import { getLogger, SeverityNumber } from '@/telemetry/otel-logger';
 import { updateMasteryAfterCorrect, updateMasteryAfterIncorrect, applyTimeDiscount, BKT_DEFAULTS, classifyDiagnosticState } from '../bkt-engine';
@@ -55,17 +56,13 @@ function toPrismaJson(answer: unknown): Prisma.InputJsonValue | Prisma.JsonNullV
 export async function startDiagnosticSession(
   prisma: PrismaService,
   studentState: StudentStateService,
+  enrollmentService: EnrollmentService,
   orgId: string,
   userId: string,
   academyId: string,
   retryCount = 0,
 ): Promise<DiagnosticSessionQuestion> {
-  const enrollment = await prisma.academyEnrollment.findUnique({
-    where: { userId_academyId: { userId, academyId } },
-  });
-  if (!enrollment) {
-    throw new NotFoundException('Not enrolled in this academy');
-  }
+  const enrollment = await enrollmentService.requireAcademyEnrollment(userId, academyId);
   if (enrollment.diagnosticCompleted) {
     throw new BadRequestException('Diagnostic already completed');
   }
@@ -89,6 +86,13 @@ export async function startDiagnosticSession(
         (existing.currentProblem as DiagnosticProblemRecord | null) ?? null;
       if (!problem && existing.currentConceptId) {
         problem = await pickProblemForConcept(prisma, existing.currentConceptId);
+        if (!problem) {
+          throw new NotFoundException('Diagnostic content is no longer available');
+        }
+        await prisma.diagnosticSession.update({
+          where: { id: existing.id },
+          data: { currentProblemId: problem.id },
+        });
       }
 
       return {
@@ -165,7 +169,7 @@ export async function startDiagnosticSession(
       if (retryCount >= 3) {
         throw new BadRequestException('Failed to create diagnostic session after retries');
       }
-      return startDiagnosticSession(prisma, studentState, orgId, userId, academyId, retryCount + 1);
+      return startDiagnosticSession(prisma, studentState, enrollmentService, orgId, userId, academyId, retryCount + 1);
     }
     throw err;
   }
@@ -195,12 +199,13 @@ export async function startDiagnosticSession(
 export async function startDiagnosticForCourse(
   prisma: PrismaService,
   studentState: StudentStateService,
+  enrollmentService: EnrollmentService,
   orgId: string,
   userId: string,
   courseId: string,
 ): Promise<DiagnosticSessionQuestion> {
-  const academyId = await resolveAcademyIdForCourse(prisma, courseId);
-  return startDiagnosticSession(prisma, studentState, orgId, userId, academyId);
+  const academyId = await enrollmentService.getAcademyIdForCourse(courseId);
+  return startDiagnosticSession(prisma, studentState, enrollmentService, orgId, userId, academyId);
 }
 
 export async function submitDiagnosticAnswer(
@@ -209,6 +214,7 @@ export async function submitDiagnosticAnswer(
   sessionId: string,
   userId: string,
   input: DiagnosticAnswerInput,
+  expectedAcademyId?: string,
 ): Promise<DiagnosticSessionProgress | DiagnosticSessionCompletion> {
   const session = await loadDiagnosticSessionById(prisma, sessionId);
   if (!session) {
@@ -216,6 +222,9 @@ export async function submitDiagnosticAnswer(
   }
   if (session.userId !== userId) {
     throw new ForbiddenException('Not your session');
+  }
+  if (expectedAcademyId !== undefined && session.academyId !== expectedAcademyId) {
+    throw new NotFoundException('Diagnostic session not found');
   }
   if (session.status !== 'in_progress') {
     throw new BadRequestException('Session is not in progress');
@@ -304,9 +313,9 @@ export async function submitDiagnosticAnswer(
     difficultyTheta: conceptData?.difficultyTheta ?? 0,
   });
 
-  const snapshotUpserts = Array.from(masteries.entries()).map(([conceptId, pL]) => {
+  const snapshotUpdates = Array.from(masteries.entries()).map(([conceptId, pL]) => {
     const tested = testedConceptIds.has(conceptId);
-    return prisma.diagnosticMasterySnapshot.upsert({
+    return {
       where: {
         diagnosticSessionId_conceptId: {
           diagnosticSessionId: sessionId,
@@ -320,7 +329,7 @@ export async function submitDiagnosticAnswer(
         pL,
         tested,
       },
-    });
+    };
   });
 
   if (shouldStopDiagnostic(newQuestionCount, masteries)) {
@@ -332,7 +341,7 @@ export async function submitDiagnosticAnswer(
       responses,
       concepts,
       newQuestionCount,
-      snapshotUpserts,
+      snapshotUpdates,
       currentProblem,
       input,
       correct,
@@ -355,7 +364,7 @@ export async function submitDiagnosticAnswer(
       responses,
       concepts,
       newQuestionCount,
-      snapshotUpserts,
+      snapshotUpdates,
       currentProblem,
       input,
       correct,
@@ -372,34 +381,29 @@ export async function submitDiagnosticAnswer(
       responses,
       concepts,
       newQuestionCount,
-      snapshotUpserts,
+      snapshotUpdates,
       currentProblem,
       input,
       correct,
     );
   }
 
-  await prisma.$transaction([
-    ...snapshotUpserts,
-    prisma.diagnosticSession.update({
-      where: { id: sessionId },
-      data: {
+  await prisma.$transaction(async (tx) => {
+    await persistDiagnosticAnswer(
+      tx,
+      session,
+      snapshotUpdates,
+      {
         questionCount: newQuestionCount,
         currentProblemId: nextProblem.id,
         currentConceptId: nextConceptId,
         responses: responses as unknown as Prisma.InputJsonValue,
       },
-    }),
-    prisma.problemAttempt.create({
-      data: {
-        userId: session.userId,
-        problemId: currentProblem.id,
-        answer: toPrismaJson(input.answer),
-        correct,
-        responseTimeMs: input.responseTimeMs,
-      },
-    }),
-  ]);
+      currentProblem,
+      input,
+      correct,
+    );
+  });
 
   return {
     sessionId,
@@ -415,6 +419,7 @@ export async function getDiagnosticResult(
   prisma: PrismaService,
   sessionId: string,
   userId: string,
+  expectedAcademyId?: string,
 ) {
   const session = await loadDiagnosticSessionById(prisma, sessionId);
   if (!session) {
@@ -422,6 +427,9 @@ export async function getDiagnosticResult(
   }
   if (session.userId !== userId) {
     throw new ForbiddenException('Not your session');
+  }
+  if (expectedAcademyId !== undefined && session.academyId !== expectedAcademyId) {
+    throw new NotFoundException('Diagnostic session not found');
   }
 
   const activeSession: DiagnosticSessionRecord = session;
@@ -451,16 +459,17 @@ async function completeDiagnosticSession(
   responses: DiagnosticResponse[],
   concepts: DiagnosticConceptRecord[],
   questionCount: number,
-  snapshotUpserts: Array<Prisma.PrismaPromise<unknown>>,
+  snapshotUpdates: Prisma.DiagnosticMasterySnapshotUpsertArgs[],
   currentProblem: DiagnosticProblemRecord,
   input: DiagnosticAnswerInput,
   correct: boolean,
 ): Promise<DiagnosticSessionCompletion> {
-  await prisma.$transaction([
-    ...snapshotUpserts,
-    prisma.diagnosticSession.update({
-      where: { id: session.id },
-      data: {
+  await prisma.$transaction(async (tx) => {
+    await persistDiagnosticAnswer(
+      tx,
+      session,
+      snapshotUpdates,
+      {
         status: 'completed',
         completedAt: new Date(),
         questionCount,
@@ -468,37 +477,33 @@ async function completeDiagnosticSession(
         currentConceptId: null,
         responses: responses as unknown as Prisma.InputJsonValue,
       },
-    }),
-    prisma.problemAttempt.create({
-      data: {
-        userId: session.userId,
-        problemId: currentProblem.id,
-        answer: toPrismaJson(input.answer),
-        correct,
-        responseTimeMs: input.responseTimeMs,
-      },
-    }),
-  ]);
-
-  for (const [conceptId, pL] of masteries) {
-    const state = classifyDiagnosticState(pL);
-    await studentState.updateConceptDiagnosticState(
-      session.userId,
-      conceptId,
-      state,
-      pL,
+      currentProblem,
+      input,
+      correct,
     );
-  }
 
-  const speedResult = bootstrapSpeedParameters(responses, concepts);
-  await studentState.updateSpeedParameters(
-    session.userId,
-    speedResult.abilityTheta,
-    speedResult.speedRD,
-    speedResult.conceptSpeeds,
-  );
+    for (const [conceptId, pL] of masteries) {
+      const state = classifyDiagnosticState(pL);
+      await studentState.updateConceptDiagnosticState(
+        session.userId,
+        conceptId,
+        state,
+        pL,
+        tx,
+      );
+    }
 
-  await studentState.markDiagnosticComplete(session.userId, session.academyId);
+    const speedResult = bootstrapSpeedParameters(responses, concepts);
+    await studentState.updateSpeedParameters(
+      session.userId,
+      speedResult.abilityTheta,
+      speedResult.speedRD,
+      speedResult.conceptSpeeds,
+      tx,
+    );
+
+    await studentState.markDiagnosticComplete(session.userId, session.academyId, tx);
+  });
 
   logger.emit({
     severityNumber: SeverityNumber.INFO,
@@ -531,6 +536,31 @@ async function completeDiagnosticSession(
   };
 }
 
+async function persistDiagnosticAnswer(
+  tx: Prisma.TransactionClient,
+  session: DiagnosticSessionRecord,
+  snapshotUpdates: Prisma.DiagnosticMasterySnapshotUpsertArgs[],
+  sessionData: Prisma.DiagnosticSessionUpdateArgs['data'],
+  currentProblem: DiagnosticProblemRecord,
+  input: DiagnosticAnswerInput,
+  correct: boolean,
+): Promise<void> {
+  await Promise.all(snapshotUpdates.map((data) => tx.diagnosticMasterySnapshot.upsert(data)));
+  await tx.diagnosticSession.update({
+    where: { id: session.id },
+    data: sessionData,
+  });
+  await tx.problemAttempt.create({
+    data: {
+      userId: session.userId,
+      problemId: currentProblem.id,
+      answer: toPrismaJson(input.answer),
+      correct,
+      responseTimeMs: input.responseTimeMs,
+    },
+  });
+}
+
 async function pickProblemForConcept(
   prisma: PrismaService,
   conceptId: string,
@@ -541,20 +571,4 @@ async function pickProblemForConcept(
   }
 
   return problems[Math.floor(Math.random() * problems.length)];
-}
-
-async function resolveAcademyIdForCourse(
-  prisma: PrismaService,
-  courseId: string,
-): Promise<string> {
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-    select: { academyId: true },
-  });
-
-  if (!course?.academyId) {
-    throw new NotFoundException('Course academy not found');
-  }
-
-  return course.academyId;
 }

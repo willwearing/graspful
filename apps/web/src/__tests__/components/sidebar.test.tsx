@@ -39,7 +39,7 @@ describe("Sidebar", () => {
     testState.mockPathname = "/dashboard";
     testState.mockPush.mockReset();
     testState.mockRefresh.mockReset();
-    testState.mockSignOut.mockReset();
+    testState.mockSignOut.mockReset().mockResolvedValue({ error: null });
     testState.mockResetPostHog.mockReset();
     Object.defineProperty(window, "localStorage", {
       value: {

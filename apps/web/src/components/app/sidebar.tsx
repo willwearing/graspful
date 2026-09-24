@@ -2,12 +2,11 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Home, BookOpen, Settings, LayoutDashboard, FolderCog, KeyRound, LogOut } from "lucide-react";
 import { useBrand } from "@/lib/brand/context";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useSignOut } from "@/lib/hooks/use-sign-out";
 import { extractOrgSlugFromLearnPath, getLearnOrgHref } from "@/lib/learn-routes";
-import { resetPostHog } from "@/lib/posthog/events";
 
 const learnerNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -47,7 +46,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const brand = useBrand();
   const pathname = usePathname();
-  const router = useRouter();
+  const { signOut, error } = useSignOut();
   const [pendingPath, setPendingPath] = useState<string | null>(null);
 
   const navItems = useMemo(
@@ -71,13 +70,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const activePath = pendingPath ?? pathname;
 
-  async function handleSignOut() {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
-    resetPostHog();
-    router.push("/");
-    router.refresh();
-  }
 
   return (
     <>
@@ -134,9 +126,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         <div className="border-t border-border p-2.5">
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <button
             type="button"
-            onClick={handleSignOut}
+            onClick={signOut}
             className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:bg-accent hover:text-accent-foreground"
             aria-label="Log out"
           >

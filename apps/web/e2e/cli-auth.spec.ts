@@ -1,6 +1,21 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
 
 const BACKEND_URL = "http://localhost:3000/api/v1";
+
+/** The page must not issue a key until the user approves; then it does. */
+async function approveTerminal(page: Page, request: APIRequestContext, token: string) {
+  const approve = page.getByRole("button", { name: "Approve terminal" });
+  await expect(approve).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/^[0-9A-Z]{4}-[0-9A-Z]{4}$/)).toBeVisible();
+
+  const beforeApproval = await request.post(`${BACKEND_URL}/auth/cli/sessions/exchange`, {
+    data: { token },
+    headers: { "Content-Type": "application/json" },
+  });
+  expect((await beforeApproval.json()).status).toBe("pending");
+
+  await approve.click();
+}
 
 test.describe("CLI browser auth", () => {
   test("preserves sign-up recovery copy when the CLI token is missing", async ({ page }) => {
@@ -53,6 +68,8 @@ test.describe("CLI browser auth", () => {
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Sign In" }).click();
 
+    await approveTerminal(page, request, startBody.token);
+
     await expect(
       page.getByRole("heading", { name: "CLI authentication complete" })
     ).toBeVisible({ timeout: 15_000 });
@@ -69,6 +86,7 @@ test.describe("CLI browser auth", () => {
     expect(exchangeBody.status).toBe("complete");
     expect(exchangeBody.apiKey).toMatch(/^gsk_/);
     expect(exchangeBody.orgSlug).toBeTruthy();
+    expect(exchangeBody).not.toHaveProperty("brandDomain");
   });
 
   test("sign-in handoff authorizes an existing CLI session and exchanges an API key", async ({
@@ -110,6 +128,8 @@ test.describe("CLI browser auth", () => {
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Sign In" }).click();
 
+    await approveTerminal(page, request, startBody.token);
+
     await expect(
       page.getByRole("heading", { name: "CLI authentication complete" })
     ).toBeVisible({ timeout: 15_000 });
@@ -125,5 +145,6 @@ test.describe("CLI browser auth", () => {
     expect(exchangeBody.status).toBe("complete");
     expect(exchangeBody.apiKey).toMatch(/^gsk_/);
     expect(exchangeBody.orgSlug).toBeTruthy();
+    expect(exchangeBody).not.toHaveProperty("brandDomain");
   });
 });

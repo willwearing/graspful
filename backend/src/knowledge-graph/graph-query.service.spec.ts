@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { GraphQueryService } from './graph-query.service';
 
 describe('GraphQueryService', () => {
@@ -49,7 +50,7 @@ describe('GraphQueryService', () => {
         { source: 'A', target: 'B' },
         { source: 'B', target: 'A' },
       ];
-      expect(() => service.topologicalSort(concepts, edges)).toThrow('cycle');
+      expect(() => service.topologicalSort(concepts, edges)).toThrow(BadRequestException);
     });
   });
 

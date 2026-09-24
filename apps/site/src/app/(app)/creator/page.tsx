@@ -1,19 +1,10 @@
-import { redirect } from "next/navigation";
+import { requireAppSession } from "@/lib/app-session";
+import { resolveCreatorOrgSlug } from "@/lib/creator-org";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createApiFetcher } from "@/lib/api";
 import { StatCard } from "@/components/creator/stat-card";
 import { CourseList } from "@/components/creator/course-list";
 import { Button } from "@/components/ui/button";
-
-interface OrgMembership {
-  orgId: string;
-  slug: string;
-  name: string;
-  role: string;
-  isActive: boolean;
-}
 
 interface CreatorStats {
   students: number;
@@ -44,32 +35,8 @@ function formatCurrency(amount: number): string {
 }
 
 export default async function CreatorDashboardPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/sign-in");
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const serverApiFetch = createApiFetcher(session?.access_token);
-
-  // Resolve the user's own org (owner/admin), falling back to "graspful".
-  let orgSlug = "graspful";
-  try {
-    const orgs = await serverApiFetch<OrgMembership[]>("/users/me/orgs");
-    const ownedOrgs = orgs.filter((o) => o.role === "owner" || o.role === "admin");
-    const ownOrg = ownedOrgs.find((o) => o.slug !== "graspful");
-    if (ownOrg) {
-      orgSlug = ownOrg.slug;
-    } else if (ownedOrgs.length > 0) {
-      orgSlug = ownedOrgs[0].slug;
-    }
-  } catch {
-    // Fall back to default org
-  }
+  const { token, fetcher: serverApiFetch } = await requireAppSession();
+  const orgSlug = await resolveCreatorOrgSlug(token, "graspful");
 
   // Fetch creator stats and courses in parallel
   let stats: CreatorStats = { students: 0, avgCompletion: 0, totalRevenue: 0 };
@@ -133,7 +100,7 @@ export default async function CreatorDashboardPage() {
         <CourseList
           courses={courses}
           orgSlug={orgSlug}
-          token={session?.access_token ?? ""}
+          token={token}
         />
       )}
     </div>

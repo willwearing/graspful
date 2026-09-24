@@ -5,6 +5,12 @@ interface CourseJsonLdProps {
   description: string;
   provider: string;
   url: string;
+  /**
+   * ISO 8601 duration for the real course workload, e.g. "PT10H".
+   * Omitted when the caller has no measured duration, because a guessed
+   * workload misrepresents the course in search results.
+   */
+  workload?: string;
 }
 
 export function CourseJsonLd({
@@ -12,6 +18,7 @@ export function CourseJsonLd({
   description,
   provider,
   url,
+  workload,
 }: CourseJsonLdProps) {
   const jsonLd = {
     "@context": "https://schema.org",
@@ -26,7 +33,7 @@ export function CourseJsonLd({
     hasCourseInstance: {
       "@type": "CourseInstance",
       courseMode: "online",
-      courseWorkload: "PT30M",
+      ...(workload ? { courseWorkload: workload } : {}),
     },
   };
 

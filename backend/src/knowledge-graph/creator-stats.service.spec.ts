@@ -4,14 +4,12 @@ describe('CreatorStatsService', () => {
   let service: CreatorStatsService;
   let mockPrisma: any;
   let mockStudentState: any;
+  let mockConnect: any;
 
   beforeEach(() => {
     mockPrisma = {
       courseEnrollment: {
         findMany: jest.fn(),
-      },
-      revenueEvent: {
-        aggregate: jest.fn(),
       },
     };
 
@@ -19,7 +17,8 @@ describe('CreatorStatsService', () => {
       getConceptStatesForOrg: jest.fn(),
     };
 
-    service = new CreatorStatsService(mockPrisma, mockStudentState);
+    mockConnect = { getRevenue: jest.fn() };
+    service = new CreatorStatsService(mockPrisma, mockStudentState, mockConnect);
   });
 
   describe('getStats', () => {
@@ -34,9 +33,7 @@ describe('CreatorStatsService', () => {
         { userId: 'u2', masteryState: 'mastered', concept: { courseId: 'c1' } },
         { userId: 'u2', masteryState: 'mastered', concept: { courseId: 'c1' } },
       ]);
-      mockPrisma.revenueEvent.aggregate.mockResolvedValue({
-        _sum: { creatorPayout: 15000 },
-      });
+      mockConnect.getRevenue.mockResolvedValue({ creatorEarnings: 15000 });
 
       const stats = await service.getStats('org-1');
 
@@ -44,14 +41,13 @@ describe('CreatorStatsService', () => {
       // u1: 1/2 = 0.5, u2: 2/2 = 1.0, avg = 0.75
       expect(stats.avgCompletion).toBe(0.75);
       expect(stats.totalRevenue).toBe(15000);
+      expect(mockConnect.getRevenue).toHaveBeenCalledWith('org-1', { includeRecentEvents: false });
     });
 
     it('returns zeros when no data exists', async () => {
       mockPrisma.courseEnrollment.findMany.mockResolvedValue([]);
       mockStudentState.getConceptStatesForOrg.mockResolvedValue([]);
-      mockPrisma.revenueEvent.aggregate.mockResolvedValue({
-        _sum: { creatorPayout: null },
-      });
+      mockConnect.getRevenue.mockResolvedValue({ creatorEarnings: 0 });
 
       const stats = await service.getStats('org-empty');
 
@@ -72,9 +68,7 @@ describe('CreatorStatsService', () => {
         { userId: 'u1', masteryState: 'unstarted', concept: { courseId: 'c2' } },
         { userId: 'u1', masteryState: 'unstarted', concept: { courseId: 'c2' } },
       ]);
-      mockPrisma.revenueEvent.aggregate.mockResolvedValue({
-        _sum: { creatorPayout: 0 },
-      });
+      mockConnect.getRevenue.mockResolvedValue({ creatorEarnings: 0 });
 
       const stats = await service.getStats('org-1');
 

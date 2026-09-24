@@ -1,12 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { LogOut, Menu } from "lucide-react";
 import { useBrand } from "@/lib/brand/context";
 import { Button } from "@/components/ui/button";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useSignOut } from "@/lib/hooks/use-sign-out";
 import { ThemeToggle } from "@/components/app/theme-toggle";
-import { resetPostHog } from "@/lib/posthog/events";
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -14,15 +12,8 @@ interface MobileHeaderProps {
 
 export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
   const brand = useBrand();
-  const router = useRouter();
+  const { signOut, error } = useSignOut();
 
-  async function handleSignOut() {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
-    resetPostHog();
-    router.push("/");
-    router.refresh();
-  }
 
   return (
     <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md md:px-6">
@@ -43,10 +34,11 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
 
       <div className="ml-auto flex items-center gap-2">
         <ThemeToggle />
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <Button
           variant="ghost"
           className="gap-2 px-3 text-sm text-muted-foreground hover:text-foreground"
-          onClick={handleSignOut}
+          onClick={signOut}
           aria-label="Log out"
         >
           <LogOut className="h-4 w-4" />

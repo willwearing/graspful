@@ -8,7 +8,6 @@ import {
   Body,
   BadRequestException,
   NotFoundException,
-  Logger,
   UseGuards,
 } from '@nestjs/common';
 import { SupabaseAuthGuard, JwtOrApiKeyGuard, CurrentUser } from '@/auth';
@@ -22,8 +21,6 @@ import { BrandSettingsSchema } from '@graspful/shared';
 
 @Controller('brands')
 export class BrandsController {
-  private readonly logger = new Logger(BrandsController.name);
-
   constructor(
     private readonly brandsService: BrandsService,
     private readonly brandAccess: BrandAccessService,
@@ -59,49 +56,12 @@ export class BrandsController {
   @UseGuards(JwtOrApiKeyGuard)
   async create(@Body() dto: CreateBrandDto, @CurrentUser() user: AuthUser) {
     // The caller must own the org they are claiming, and may not take over a
-    // slug that already belongs to a different org.
-    await this.brandAccess.assertCanManageOrg(user.userId, dto.orgSlug);
+    // slug or domain that already belongs to a different org.
+    await this.brandAccess.assertCanManageOrg(user, dto.orgSlug);
     await this.brandAccess.assertSlugAvailableToOrg(dto.slug, dto.orgSlug);
+    const domain = await this.brandAccess.assertDomainAvailableToOrg(dto.domain, dto.orgSlug);
 
-    const brand = await this.brandsService.upsert(dto);
-
-    // Provision the normalized domain on Vercel (brand.domain has the
-    // canonical suffix applied by BrandsService, so always use that).
-    const normalizedDomain = brand.domain;
-    try {
-      const vercelResult = await this.vercelDomainsService.addDomain(
-        normalizedDomain,
-      );
-      const dnsInstructions =
-        await this.vercelDomainsService.getDnsInstructions(normalizedDomain);
-      return {
-        brand,
-        domain: {
-          verified: vercelResult.verified,
-          verification: vercelResult.verification,
-          dnsInstructions,
-        },
-      };
-    } catch (error) {
-      this.logger.warn(
-        `Domain provisioning failed for ${normalizedDomain}: ${error}`,
-      );
-      let dnsInstructions: { type: string; name: string; value: string } | null = null;
-      try {
-        dnsInstructions =
-          await this.vercelDomainsService.getDnsInstructions(normalizedDomain);
-      } catch {
-        // DNS lookup also failed — return empty instructions
-      }
-      return {
-        brand,
-        domain: {
-          verified: false,
-          error: 'Domain provisioning failed. Configure DNS manually.',
-          dnsInstructions,
-        },
-      };
-    }
+    return this.brandsService.createWithDomain({ ...dto, domain });
   }
 
   @Patch(':slug')
@@ -111,7 +71,7 @@ export class BrandsController {
     @Body() dto: UpdateBrandDto,
     @CurrentUser() user: AuthUser,
   ) {
-    await this.brandAccess.assertCanManageBrand(user.userId, slug);
+    await this.brandAccess.assertCanManageBrand(user, slug);
     const validation = BrandSettingsSchema.safeParse(dto);
     if (!validation.success) {
       throw new BadRequestException(validation.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; '));
@@ -122,7 +82,7 @@ export class BrandsController {
   @Delete(':slug')
   @UseGuards(SupabaseAuthGuard)
   async delete(@Param('slug') slug: string, @CurrentUser() user: AuthUser) {
-    await this.brandAccess.assertCanManageBrand(user.userId, slug);
+    await this.brandAccess.assertCanManageBrand(user, slug);
     return this.brandsService.delete(slug);
   }
 

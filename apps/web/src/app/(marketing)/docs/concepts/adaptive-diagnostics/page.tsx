@@ -1,3 +1,6 @@
+import { Callout } from "@/components/docs/callout";
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock } from "@/components/docs/code-block";
@@ -23,22 +26,13 @@ export const metadata: Metadata = {
 
 export default function AdaptiveDiagnosticsPage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        Adaptive Diagnostics
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        When a student starts a course, Graspful doesn&apos;t make them begin at
-        the beginning. The adaptive diagnostic efficiently maps what they
-        already know — typically in 20 to 60 questions — so they can skip ahead
-        to where they actually need to learn.
-      </p>
+    <DocPage
+      title="Adaptive Diagnostics"
+      description="When a student starts a course, Graspful doesn&apos;t make them begin at the beginning. The adaptive diagnostic efficiently maps what they already know — typically in 20 to 60 questions — so they can skip ahead to where they actually need to learn."
+    >
 
       {/* Purpose */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="purpose">
-          Why run a diagnostic?
-        </h2>
+      <DocSection title="Why run a diagnostic?" headingId="purpose">
         <p className="mt-2 text-muted-foreground">
           A 40-hour course might have 80+ concepts. A student who already knows
           half the material shouldn&apos;t have to prove it by grinding through
@@ -58,13 +52,10 @@ export default function AdaptiveDiagnosticsPage() {
           reflects what they actually know, not an assumption that they know
           nothing.
         </p>
-      </section>
+      </DocSection>
 
       {/* BKT Engine */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="bkt-engine">
-          The BKT engine
-        </h2>
+      <DocSection title="The BKT engine" headingId="bkt-engine">
         <p className="mt-2 text-muted-foreground">
           The diagnostic uses the same{" "}
           <Link
@@ -108,13 +99,10 @@ export default function AdaptiveDiagnosticsPage() {
             question selection
           </li>
         </ul>
-      </section>
+      </DocSection>
 
       {/* MEPE Selector */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="mepe">
-          MEPE: Maximum Expected Posterior Entropy reduction
-        </h2>
+      <DocSection title="MEPE: Maximum Expected Posterior Entropy reduction" headingId="mepe">
         <p className="mt-2 text-muted-foreground">
           The MEPE selector picks the next question by asking: &quot;Which
           question would reduce my overall uncertainty about this student the
@@ -178,13 +166,10 @@ diagnostic_session:
 # 3. circuit-analysis depends on it
 #    (the answer will shift circuit-analysis too)`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Evidence Propagation */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="evidence-propagation">
-          Evidence propagation
-        </h2>
+      <DocSection title="Evidence propagation" headingId="evidence-propagation">
         <p className="mt-2 text-muted-foreground">
           When a student answers a question, the information doesn&apos;t just
           update one concept — it ripples through the knowledge graph. This is
@@ -240,13 +225,10 @@ diagnostic_session:
             evidence, not proof
           </li>
         </ul>
-      </section>
+      </DocSection>
 
       {/* Stopping Criteria */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="stopping-criteria">
-          Stopping criteria
-        </h2>
+      <DocSection title="Stopping criteria" headingId="stopping-criteria">
         <p className="mt-2 text-muted-foreground">
           The diagnostic doesn&apos;t always ask the same number of questions.
           It stops when one of these conditions is met:
@@ -277,13 +259,10 @@ diagnostic_session:
           Students with patchy knowledge take the longest because the graph
           boundaries are harder to map.
         </p>
-      </section>
+      </DocSection>
 
       {/* Speed Bootstrapping */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="speed-bootstrapping">
-          Speed bootstrapping with IRT
-        </h2>
+      <DocSection title="Speed bootstrapping with IRT" headingId="speed-bootstrapping">
         <p className="mt-2 text-muted-foreground">
           The diagnostic also estimates how fast each student learns, not just
           what they already know. It uses Item Response Theory (IRT) parameters
@@ -337,13 +316,10 @@ diagnostic_result:
   # voltage and current are already mastered
   # circuit-analysis and kirchhoffs-laws are blocked by ohms-law`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Diagnostic in course YAML */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="diagnostic-config">
-          Diagnostic configuration
-        </h2>
+      <DocSection title="Diagnostic configuration" headingId="diagnostic-config">
         <p className="mt-2 text-muted-foreground">
           Diagnostics are enabled by default for all courses. You can customize
           the behavior in the course YAML:
@@ -370,11 +346,10 @@ diagnostic_result:
           to skip the diagnostic entirely and start everyone at the root
           concepts.
         </p>
-      </section>
+      </DocSection>
 
       {/* Next steps */}
-      <section className="mt-16 rounded-xl border border-border/50 bg-card p-8">
-        <h2 className="text-xl font-bold text-foreground mb-4">Next steps</h2>
+      <Callout as="section" className="mt-16 p-8" title="Next steps">
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href="/docs/concepts/mastery-learning"
@@ -398,7 +373,7 @@ diagnostic_result:
             <span>Spaced Repetition and the FIRe algorithm</span>
           </Link>
         </div>
-      </section>
-    </div>
+      </Callout>
+    </DocPage>
   );
 }

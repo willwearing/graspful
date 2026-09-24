@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { fetchCourseProfiles } from "@/lib/course-profiles";
-import { createApiFetcher } from "@/lib/api";
+import { ApiError } from "@/lib/api";
 import { requireLearnAccess, resolveAcademyBySlug } from "@/lib/learn-server";
 import {
   getLearnAcademyDiagnosticHref,
@@ -27,18 +26,10 @@ export default async function LearnAcademyPage({
   const { orgSlug, academySlug } = await params;
   const { serverApiFetch } = await requireLearnAccess(orgSlug);
 
-  const academyRecord = await resolveAcademyBySlug(orgSlug, academySlug, serverApiFetch).catch(
-    () => null,
-  );
+  const academyRecord = await resolveAcademyBySlug(orgSlug, academySlug, serverApiFetch);
   if (!academyRecord) notFound();
 
   const academyId = academyRecord.id;
-
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const profileFetch = createApiFetcher(session?.access_token);
 
   let academy: AcademyDetail | null = null;
   let courses: AcademyCourse[] = [];
@@ -46,8 +37,9 @@ export default async function LearnAcademyPage({
 
   try {
     academy = await serverApiFetch<AcademyDetail>(`/orgs/${orgSlug}/academies/${academyId}`);
-  } catch {
-    // Not found handled below.
+  } catch (error) {
+    if (error instanceof ApiError && error.statusCode === 404) notFound();
+    throw error;
   }
 
   if (academy) {
@@ -62,7 +54,7 @@ export default async function LearnAcademyPage({
 
   if (!academy) notFound();
 
-  const profiles = await fetchCourseProfiles(orgSlug, courses, profileFetch);
+  const profiles = await fetchCourseProfiles(orgSlug, courses, serverApiFetch);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 md:px-8">

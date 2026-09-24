@@ -1,31 +1,15 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import '../../../../client/test-support/preload';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'bun:test';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as yaml from 'js-yaml';
+import { buildCliOnce, CLI_BUILD_TIMEOUT_MS } from '../../../test-support/build-cli';
 
 const CLI_CWD = path.resolve(__dirname, '..', '..', '..');
 const CLI_BIN = `node dist/index.js`;
-let cliBuilt = false;
-
-function buildCliOnce() {
-  if (cliBuilt) return;
-  execSync('bun run build', {
-    cwd: path.resolve(CLI_CWD, '..', 'shared'),
-    encoding: 'utf-8',
-    env: { ...process.env, NODE_ENV: 'test' },
-  });
-  execSync('bun run build', {
-    cwd: CLI_CWD,
-    encoding: 'utf-8',
-    env: { ...process.env, NODE_ENV: 'test' },
-  });
-  cliBuilt = true;
-}
-
 function run(args: string, opts?: { cwd?: string }): string {
-  buildCliOnce();
   try {
     return execSync(`${CLI_BIN} ${args}`, {
       cwd: opts?.cwd ?? CLI_CWD,
@@ -40,6 +24,8 @@ function run(args: string, opts?: { cwd?: string }): string {
 
 describe('offline CLI commands', () => {
   let tmpdir: string;
+
+  beforeAll(buildCliOnce, CLI_BUILD_TIMEOUT_MS);
 
   beforeEach(() => {
     tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), 'graspful-test-'));
@@ -214,7 +200,7 @@ describe('offline CLI commands', () => {
       try {
         output = run(`review ${courseFile}`);
       } catch (e: any) {
-        // review exits non-zero on failure — grab stdout from the error
+        // review exits non-zero on failure, read stdout from the error
         output = e.message;
       }
       expect(output).toContain('Score:');

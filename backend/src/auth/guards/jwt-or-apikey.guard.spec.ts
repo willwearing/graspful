@@ -1,13 +1,13 @@
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { JwtOrApiKeyGuard } from './jwt-or-apikey.guard';
 
-function mockExecutionContext(authHeader?: string): ExecutionContext {
+function mockExecutionContext(authHeader?: unknown): ExecutionContext {
   const request: any = {
     headers: authHeader ? { authorization: authHeader } : {},
     user: undefined,
     apiKeyOrg: undefined,
     apiKeyUser: undefined,
-    orgId: undefined,
+    apiKeyOrgId: undefined,
   };
 
   return {
@@ -52,12 +52,18 @@ describe('JwtOrApiKeyGuard', () => {
     await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
   });
 
+  it.each([[['Bearer gsk_key']], [7]])('rejects malformed authorization headers: %p', async (header) => {
+    await expect(guard.canActivate(mockExecutionContext(header))).rejects.toThrow(UnauthorizedException);
+    expect(mockApiKeyGuard.canActivate).not.toHaveBeenCalled();
+    expect(mockSupabaseGuard.canActivate).not.toHaveBeenCalled();
+  });
+
   it('delegates to ApiKeyGuard when token starts with gsk_', async () => {
     mockApiKeyGuard.canActivate.mockImplementation((ctx: ExecutionContext) => {
       const req = ctx.switchToHttp().getRequest();
       req.apiKeyUser = { id: 'user-1', email: 'test@example.com' };
       req.apiKeyOrg = { id: 'org-1' };
-      req.orgId = 'org-1';
+      req.apiKeyOrgId = 'org-1';
       return true;
     });
 
@@ -70,7 +76,7 @@ describe('JwtOrApiKeyGuard', () => {
 
     // Verify request.user was set from apiKeyUser
     const req = ctx.switchToHttp().getRequest();
-    expect(req.user).toEqual({ userId: 'user-1', email: 'test@example.com' });
+    expect(req.user).toEqual({ userId: 'user-1', email: 'test@example.com', apiKeyOrgId: 'org-1' });
   });
 
   it('delegates to SupabaseAuthGuard for regular JWT tokens', async () => {

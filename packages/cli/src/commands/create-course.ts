@@ -1,6 +1,7 @@
 import { Command } from 'commander';
+import { positiveInteger } from '../lib/numbers';
 import * as fs from 'fs';
-import * as yaml from 'js-yaml';
+import { dumpYaml } from '@graspful/client';
 import { scaffoldCourseObject } from '@graspful/shared';
 import { output } from '../lib/output';
 import { cliCapture } from '../lib/analytics';
@@ -14,18 +15,17 @@ export function registerCreateCourseCommand(program: Command) {
     .command('course')
     .description('Generate a course YAML scaffold')
     .requiredOption('--topic <topic>', 'Course topic name')
-    .option('--hours <hours>', 'Estimated course hours', '10')
+    .option('--hours <hours>', 'Estimated course hours', positiveInteger, 10)
     .option('--source <source>', 'Source document reference')
     .option('-o, --output <file>', 'Output file path (defaults to stdout)')
-    .option('--scaffold-only', 'Generate scaffold without AI enrichment', true)
-    .action(async (opts: { topic: string; hours: string; source?: string; output?: string; scaffoldOnly: boolean }) => {
+    .action(async (opts: { topic: string; hours: number; source?: string; output?: string }) => {
       const obj = scaffoldCourseObject(opts.topic, {
-        hours: parseInt(opts.hours, 10),
+        hours: opts.hours,
         source: opts.source,
       });
-      const yamlContent = yaml.dump(obj, { lineWidth: 120, noRefs: true });
+      const yamlContent = dumpYaml(obj);
 
-      cliCapture('course scaffolded', { topic: opts.topic, estimated_hours: parseInt(opts.hours, 10) });
+      cliCapture('course scaffolded', { topic: opts.topic, estimated_hours: opts.hours });
 
       if (opts.output) {
         fs.writeFileSync(opts.output, yamlContent);

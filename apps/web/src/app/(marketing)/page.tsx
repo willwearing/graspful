@@ -1,3 +1,4 @@
+import { isPlatformBrand } from "@/lib/brand/config";
 import type { Metadata } from "next";
 import { resolvePageBrand } from "@/lib/brand/resolve";
 import { LandingHeroExperiment } from "@/components/marketing/landing-hero-experiment";
@@ -55,7 +56,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LandingPage() {
   const brand = await resolvePageBrand();
   const url = `https://${brand.domain}`;
-  const isGraspful = brand.id === "graspful";
+  const isGraspful = isPlatformBrand(brand);
 
   return (
     <div className="bg-background text-foreground">

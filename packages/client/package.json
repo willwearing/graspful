@@ -1,0 +1,22 @@
+{
+  "name": "@graspful/client",
+  "version": "0.1.0",
+  "description": "Shared Graspful API client for CLI and MCP integrations",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/willwearing/graspful.git",
+    "directory": "packages/client"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "bun x tsc",
+    "test": "bun test src",
+    "lint": "eslint --config ../../eslint.config.mjs src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": { "@graspful/shared": "workspace:*", "js-yaml": "^4.1.0" },
+  "devDependencies": { "@types/js-yaml": "^4.0.9", "@types/node": "^22.0.0", "typescript": "^5.7.0" },
+  "publishConfig": { "access": "public" }
+}

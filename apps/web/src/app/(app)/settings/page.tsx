@@ -1,19 +1,13 @@
-import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolvePageBrand } from "@/lib/brand/resolve";
+import { resolveCreatorOrgSlug } from "@/lib/creator-org";
+import { requireAppSession } from "@/lib/app-session";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BillingSettings } from "@/components/app/billing-settings";
 import { ApiKeysSettings } from "@/components/app/api-keys-settings";
 
 export default async function SettingsPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, token, brand } = await requireAppSession();
 
-  if (!user) redirect("/sign-in");
-
-  const brand = await resolvePageBrand();
+  const orgSlug = await resolveCreatorOrgSlug(token, brand.orgSlug);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 md:px-8">
@@ -35,9 +29,9 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
 
-        <BillingSettings orgId={brand.orgSlug} />
+        <BillingSettings orgId={orgSlug} />
 
-        <ApiKeysSettings orgId={brand.orgSlug} />
+        <ApiKeysSettings orgId={orgSlug} />
 
         <Card>
           <CardHeader>

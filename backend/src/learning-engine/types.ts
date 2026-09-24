@@ -1,9 +1,5 @@
-export type TaskType =
-  | 'lesson'
-  | 'review'
-  | 'quiz'
-  | 'remediation'
-  | 'section_exam';
+import type { TaskType } from '@graspful/shared';
+export type { TaskType } from '@graspful/shared';
 
 export interface TaskRecommendation {
   academyId?: string;

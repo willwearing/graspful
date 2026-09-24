@@ -10,25 +10,29 @@ export function registerLoginCommand(program: Command) {
     .description('Authenticate with a Graspful instance')
     .option('--api-url <url>', 'API base URL')
     .option('--token <token>', 'API key or JWT token (skip interactive prompt)')
+    .option('--token-stdin', 'Read an API key or JWT from stdin')
     .option('--email <email>', 'Email address (use with --password for non-interactive login)')
     .option('--password <password>', 'Password (use with --email for non-interactive login)')
     .option('--no-browser', 'Print the sign-in URL instead of opening it automatically')
-    .action(async (opts: { apiUrl?: string; token?: string; email?: string; password?: string; browser?: boolean }) => {
+    .action(async (opts: { apiUrl?: string; token?: string; tokenStdin?: boolean; email?: string; password?: string; browser?: boolean }) => {
       const baseUrl = (opts.apiUrl || getBaseUrl()).replace(/\/$/, '');
 
-      let token = opts.token;
-      if (!token) {
-        if (!process.stdin.isTTY) {
-          // Read from piped stdin
-          const chunks: Buffer[] = [];
-          for await (const chunk of process.stdin) {
-            chunks.push(chunk as Buffer);
-          }
-          token = Buffer.concat(chunks).toString('utf-8').trim();
-        }
-      }
-
       try {
+        let token = opts.token;
+        if (opts.tokenStdin) {
+          if (opts.token || opts.email || opts.password) {
+            throw new Error('--token-stdin cannot be combined with --token, --email, or --password.');
+          }
+          const chunks: Buffer[] = [];
+          for await (const chunk of process.stdin) chunks.push(Buffer.from(chunk));
+          token = Buffer.concat(chunks).toString('utf-8').trim();
+          if (!token) throw new Error('No token received on stdin.');
+        }
+        if (opts.password && !opts.email) throw new Error('--password requires --email.');
+        if (!token && !process.stdin.isTTY && !(opts.email && opts.password) && opts.browser !== false) {
+          throw new Error('Non-interactive login requires --token, --token-stdin, --email with --password, or --no-browser.');
+        }
+
         // Email + password login: call the backend auth/login endpoint
         if (!token && opts.email && opts.password) {
           const res = await fetch(`${baseUrl}/api/v1/auth/login`, {
@@ -43,7 +47,9 @@ export function registerLoginCommand(program: Command) {
             try {
               const parsed = JSON.parse(body);
               if (parsed.message) message = parsed.message;
-            } catch {}
+            } catch {
+              // Keep the status message when the server response is not JSON.
+            }
             throw new Error(message);
           }
 

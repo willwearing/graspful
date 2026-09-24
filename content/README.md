@@ -106,7 +106,7 @@ After a course has active learners, course updates must preserve slug identity:
 - Keep `course.id`, section `id`, concept `id`, and KP `id` stable across revisions.
 - Safe changes: refine instruction, add worked examples, revise problems, add content blocks, add new concepts, add new sections, adjust edges.
 - Unsafe changes: renaming existing slugs in-place. Removing slugs is only safe when you intentionally archive them during import instead of deleting them.
-- Use the progress-safe import scripts (`scripts/load-course.ts` or `scripts/import-course-quick.ts`) instead of deleting and recreating the course.
+- Use the progress-safe import scripts (`backend/scripts/load-course.ts` or `backend/scripts/import-course-quick.ts`) instead of deleting and recreating the course.
 - When retiring content, re-run the importer with `--archiveMissing true`. That hides removed sections, concepts, and KPs from active delivery while preserving historical student state on the archived rows.
 
 Practical rule:
@@ -126,7 +126,7 @@ A concept = one teachable idea that can be tested independently. Too broad = stu
 ### Prerequisites
 
 - Max 3-4 direct prerequisites per concept (working memory limit)
-- Only list DIRECT prerequisites — transitive ones are inferred
+- Only list DIRECT prerequisites, transitive ones are inferred
 - If A→B→C, don't add A→C explicitly
 
 ### Encompassing Weights
@@ -213,7 +213,7 @@ The backend importer validates:
 - Every concept has at least 1 KP (when fully authored)
 - Every KP has at least 2 problems (when fully authored)
 
-Concepts with `# KPs to be authored` placeholders are imported as graph structure only — they won't appear in student-facing content until KPs are added.
+Concepts with `# KPs to be authored` placeholders are imported as graph structure only, they won't appear in student-facing content until KPs are added.
 
 ## Sample Courses
 

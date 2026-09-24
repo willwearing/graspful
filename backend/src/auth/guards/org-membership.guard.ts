@@ -7,19 +7,8 @@ import {
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OrgRole } from '@prisma/client';
-
-export interface OrgContext {
-  userId: string;
-  email: string;
-  orgId: string;
-  role: OrgRole;
-}
-
-const ROLE_HIERARCHY: Record<OrgRole, number> = {
-  owner: 3,
-  admin: 2,
-  member: 1,
-};
+import type { OrgContext } from '@/auth/org-context';
+import { hasMinRole } from '../roles';
 
 export const MIN_ROLE_KEY = 'minRole';
 
@@ -39,7 +28,7 @@ export class OrgMembershipGuard implements CanActivate {
       throw new ForbiddenException('Missing user or org context');
     }
 
-    // Support slug-based orgId — resolve to UUID if not a valid UUID
+    // Resolve org slugs to the canonical ID before checking access.
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!UUID_RE.test(orgId)) {
       const org = await this.prisma.organization.findUnique({
@@ -52,6 +41,10 @@ export class OrgMembershipGuard implements CanActivate {
       orgId = org.id;
     }
 
+    if (user.apiKeyOrgId && user.apiKeyOrgId !== orgId) {
+      throw new ForbiddenException('API key is not valid for this organization');
+    }
+
     const membership = await this.prisma.orgMembership.findUnique({
       where: { orgId_userId: { orgId, userId: user.userId } },
     });
@@ -60,9 +53,9 @@ export class OrgMembershipGuard implements CanActivate {
       throw new ForbiddenException('Not a member of this organization');
     }
 
-    const minRole = this.reflector.get<OrgRole>(MIN_ROLE_KEY, context.getHandler()) ?? 'member';
+    const minRole = this.reflector.getAllAndOverride<OrgRole>(MIN_ROLE_KEY, [context.getHandler(), context.getClass()]) ?? 'member';
 
-    if (ROLE_HIERARCHY[membership.role] < ROLE_HIERARCHY[minRole]) {
+    if (!hasMinRole(membership.role, minRole)) {
       throw new ForbiddenException('Insufficient role');
     }
 

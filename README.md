@@ -36,7 +36,7 @@ Register before using import or publish commands:
 bunx @graspful/cli register --email you@example.com
 ```
 
-Registration opens browser authentication and saves an API key locally. If your MCP client does not reuse the saved CLI credentials, restart its Graspful server with `GRASPFUL_API_KEY` set.
+Registration opens browser authentication, creates a private organization workspace, and saves an API key locally. MCP reads those saved credentials for authenticated tools. `GRASPFUL_API_KEY` overrides the saved key. A course or brand import creates the public website. See [auth and access](docs/auth-and-access.md).
 
 ## CLI commands
 
@@ -94,9 +94,12 @@ The repository contains proposed pricing and revenue-share settings. Treat those
 
 ```text
 graspful/
-├── apps/web/          # Next.js frontend
+├── apps/web/          # Public site, academy pages, and learner app (port 3001)
+├── apps/site/         # Separate creator dashboard app (port 3002)
 ├── backend/          # NestJS API
 ├── packages/
+│   ├── creator-ui/   # Components and API contracts shared by both apps
+│   ├── client/       # CLI and MCP HTTP client
 │   ├── shared/       # Schemas, types, quality checks
 │   ├── cli/          # CLI
 │   └── mcp/          # MCP server
@@ -113,10 +116,17 @@ graspful/
 bun install
 bun run dev
 bun run build
+bun run lint
+bun run typecheck
 bun run test
+bun run test:scripts
 ```
 
-Run the frontend browser tests from `apps/web` with `bun run test:e2e`. See [AGENTS.md](AGENTS.md) for service setup and test requirements.
+Copy the relevant [environment examples](.env.example) into each workspace before starting services. `apps/site` provides a dedicated creator deployment and login surface; `apps/web` serves the platform and branded learner sites. Shared creator code lives in `packages/creator-ui`.
+
+Run browser tests in both apps with `bun run test:e2e`. Follow [local E2E setup](docs/local-e2e.md) to use an isolated database and auth service. [CLAUDE.md](CLAUDE.md) lists the test requirements.
+
+Maintenance scripts live in `backend/scripts`. Run the demo seed from `backend` with `bun run seed:demo electrical` or `bun run seed:demo javascript`. The reference book is available as [The Math Academy Way PDF](https://www.justinmath.com/files/the-math-academy-way.pdf); local downloads are ignored.
 
 ## Documentation
 

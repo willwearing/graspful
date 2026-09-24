@@ -1,130 +1,50 @@
-# Multi-Brand Architecture
+# Multi-brand architecture
 
-How the white-label system works in development and production.
+`apps/web` serves the platform website and branded learner academies. `apps/site` provides a separate creator dashboard and login surface. Both use the same NestJS API and Supabase authentication. Shared creator components and API helpers live in `packages/creator-ui`.
 
-## Core Concept
+## Production brand resolution
 
-One Next.js app serves all brands. One NestJS backend serves all orgs. No separate deployments per brand.
+The web app reads the request hostname and resolves an active brand from the backend. The brand supplies its theme, landing-page copy, SEO settings, organization slug, and course scope. Static defaults remain available for platform and development fallback behavior.
 
-## Production
+Custom academy domains point to the web app's Vercel project. Creating a brand record does not by itself establish DNS ownership. Configure the domain and DNS with the hosting provider. With Vercel credentials configured, the backend can request domain provisioning.
 
-```
-firefighterprep.audio ─┐
-electricianprep.audio ──┼── Same Vercel deployment ── Same Next.js app
-jsprep.audio ───────────┘
-```
+The backend scopes requests to organizations and checks the requested resource. Hostnames, brand cookies, and visible navigation do not grant API authorization.
 
-1. Custom domains all point to the same Vercel project
-2. Next.js middleware reads the `Host` header on every request
-3. `resolveBrand(hostname)` maps domain to brand config
-4. Brand config drives: theme (CSS variables), landing page copy, SEO metadata, org ID for API calls
-5. The backend is org-scoped — `brand.orgId` maps to the right data
+## Create or update an academy site
 
-### Adding a new production brand
+1. Authenticate with `graspful register` to create a private organization workspace and save CLI credentials.
+2. Author, validate, and review the course and academy YAML files.
+3. Import the files through the CLI or MCP. A course import can create a default public brand even when the course is a draft.
+4. Author and import brand YAML to set the landing-page promise, theme, domain, and course scope.
+5. Publish reviewed courses and verify the public catalog and learner flow.
+6. For a custom domain, finish DNS and hosting configuration.
 
-1. Add brand config to `apps/web/src/lib/brand/defaults.ts`
-2. Register domain in `apps/web/src/lib/brand/resolve.ts`
-3. Create course YAML in `content/courses/`
-4. Run seed script to create org + import course
-5. Add custom domain in Vercel dashboard (Settings > Domains)
-6. Push to main — Vercel builds once, all brands update
-
-No new deployments, no new infrastructure.
+Brand configuration is stored in the database. See [the course authoring runbook](adding-a-course.md) and [auth and access](auth-and-access.md).
 
 ## Development
 
-In dev, `localhost` doesn't have different hostnames, so brands are selected differently.
+Run `apps/web` on port 3001 and `apps/site` on port 3002. On loopback hosts, the web app uses the `dev-brand-override` cookie, then `DEV_BRAND_ID`, then the `graspful` default. The development brand switcher updates the cookie and reloads the page. It is hidden in production.
 
-### Dev Brand Switcher (recommended)
+Brand preview affects presentation. A signed-in learner still needs a permitted membership and entitlement to load protected course content.
 
-A floating widget in the bottom-right corner lets you switch brands without restarting the server. It:
+Supabase cookies are scoped to the host that issued them. Independent custom domains require separate sign-in. The apps authenticate against the same Supabase project, and the backend checks the bearer token on each protected request.
 
-1. Sets a `dev-brand-override` cookie
-2. Reloads the page
-3. Middleware and layout read the cookie and resolve to that brand
+## Membership and creator access
 
-Just run `bun dev` and click the brand pill to switch. The switcher only renders when `NODE_ENV !== "production"`.
+Browser sign-up and sign-in call `POST /api/v1/auth/provision`. The API creates a private owner workspace if needed. A `brandOrgSlug` adds a learner membership only to an active organization with an active public brand. The direct join endpoint accepts only the platform organization, `graspful`.
 
-To reset to the default: click "Reset to DEV_BRAND_ID default" in the switcher menu.
+Members can use permitted learner operations. Owners and admins can use creator operations. API keys are restricted to their issuing organization. See [auth and access](auth-and-access.md) for the full flow and current product decisions.
 
-### DEV_BRAND_ID env var (fallback)
-
-If no cookie override is set, the brand resolves from the `DEV_BRAND_ID` environment variable:
-
-```bash
-DEV_BRAND_ID=javascript bun dev    # defaults to JSPrep
-DEV_BRAND_ID=firefighter bun dev   # defaults to FirefighterPrep
-```
-
-If neither cookie nor env var is set, defaults to `firefighter`.
-
-### Priority order in dev
-
-1. `dev-brand-override` cookie (set by switcher widget)
-2. `DEV_BRAND_ID` env var
-3. `firefighter` (hardcoded default)
-
-## How Brand Resolution Works
-
-```
-Request
-  │
-  ├── Middleware (middleware.ts)
-  │     reads Host header + cookie
-  │     calls resolveBrand(hostname, cookieHeader)
-  │     sets x-brand-id header + brand-id cookie on response
-  │
-  ├── Root Layout (app/layout.tsx)
-  │     reads Host header + cookie
-  │     calls resolveBrand(hostname, cookieHeader)
-  │     passes brand to BrandThemeStyle (CSS vars in <head>)
-  │     wraps app in BrandProvider (React Context)
-  │
-  └── Any Component
-        calls useBrand() hook
-        gets current brand config (theme, copy, orgId, etc.)
-```
-
-## Security: Org Membership & Tenant Isolation
-
-Each brand maps to a backend org. Users can only access content for orgs they're a member of.
-
-### How enrollment works
-
-1. User signs up or signs in on a brand's domain (e.g., `jsprep.audio`)
-2. The auth flow calls `POST /orgs/{brand.orgId}/join` to auto-enroll the user as a `member`
-3. Backend `OrgMembershipGuard` checks membership on every API call — returns 403 if not a member
-4. The join endpoint is idempotent — safe to call on every login
-
-### Production isolation
-
-In production, Supabase session cookies are domain-scoped. A session on `firefighterprep.audio` does NOT carry to `jsprep.audio`. Users must sign in separately on each brand, which triggers auto-enrollment for that brand's org.
-
-This means: even though it's one Supabase project and one backend, users only see content for brands they've explicitly signed into.
-
-### Dev behavior
-
-In dev, all brands share `localhost`, so session cookies carry across brand switches. The dev brand switcher auto-calls the join endpoint when switching brands, so you have access to test all brands without re-signing in.
-
-### Defense in depth
-
-- **Backend**: `OrgMembershipGuard` rejects all API calls for non-members (403)
-- **Frontend**: API errors surface as empty states or error messages (not leaked data)
-- **Auth flow**: Auto-join on sign-up and sign-in ensures the normal path always works
-
-## Key Files
+## Key files
 
 | File | Purpose |
 |------|---------|
-| `apps/web/src/lib/brand/config.ts` | BrandConfig TypeScript interface |
-| `apps/web/src/lib/brand/defaults.ts` | All brand definitions (theme, copy, SEO, pricing) |
-| `apps/web/src/lib/brand/resolve.ts` | Hostname/cookie → brand resolution |
-| `apps/web/src/lib/brand/context.tsx` | React Context + `useBrand()` hook |
-| `apps/web/src/lib/brand/theme-style.tsx` | Injects CSS variables from brand theme |
-| `apps/web/src/middleware.ts` | Sets brand headers/cookies per request |
-| `apps/web/src/app/layout.tsx` | Server-side brand resolution + provider setup |
-| `apps/web/src/components/dev/brand-switcher.tsx` | Dev-only floating brand switcher |
-| `apps/web/src/components/auth/auth-form.tsx` | Sign-up/sign-in with auto-join |
-| `apps/web/src/app/auth/callback/route.ts` | OAuth callback with auto-join |
-| `backend/src/auth/org-join.controller.ts` | `POST /orgs/:orgSlug/join` endpoint |
-| `backend/src/auth/guards/org-membership.guard.ts` | Enforces org membership on all API calls |
+| `apps/web/src/lib/brand/config.ts` | Brand configuration type |
+| `apps/web/src/lib/brand/defaults.ts` | Platform and development defaults |
+| `apps/web/src/lib/brand/resolve.ts` | Host and development override resolution |
+| `apps/web/src/lib/brand/resolve-db.ts` | Backend brand lookup |
+| `apps/web/src/lib/brand/context.tsx` | Brand React context |
+| `apps/web/src/proxy.ts` | Request auth and host routing |
+| `apps/web/src/lib/hosts.ts` | Platform, creator, and academy route policy |
+| `backend/src/brands/brands.service.ts` | Persistent brands and public catalog |
+| `backend/src/auth/provision.service.ts` | Private workspaces and learner memberships |

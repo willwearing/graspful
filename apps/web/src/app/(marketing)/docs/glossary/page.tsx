@@ -1,3 +1,5 @@
+import { Callout } from "@/components/docs/callout";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
@@ -155,15 +157,10 @@ const terms = [
 
 export default function GlossaryPage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        Glossary
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Every term in the Graspful platform, defined once. This page is
-        designed for both human readers and AI agents — if you need to look up
-        what a concept means, start here.
-      </p>
+    <DocPage
+      title="Glossary"
+      description="Every term in the Graspful platform, defined once. This page is designed for both human readers and AI agents — if you need to look up what a concept means, start here."
+    >
 
       <section className="mt-12 space-y-0 divide-y divide-border/50 rounded-xl border border-border/50 overflow-hidden">
         {terms.map((t) => (
@@ -179,8 +176,7 @@ export default function GlossaryPage() {
       </section>
 
       {/* Next steps */}
-      <section className="mt-16 rounded-xl border border-border/50 bg-card p-8">
-        <h2 className="text-xl font-bold text-foreground mb-4">Next steps</h2>
+      <Callout as="section" className="mt-16 p-8" title="Next steps">
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href="/docs/how-it-works"
@@ -211,7 +207,7 @@ export default function GlossaryPage() {
             <span>Quickstart: author, review, and publish a course</span>
           </Link>
         </div>
-      </section>
-    </div>
+      </Callout>
+    </DocPage>
   );
 }

@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { maskApiKey } from '@graspful/client';
 import { getBaseUrl } from '../lib/auth';
 import { runBrowserAuthFlow } from '../lib/browser-auth';
 import { output, outputError } from '../lib/output';
@@ -28,19 +29,18 @@ export function registerRegisterCommand(program: Command) {
         });
 
         cliCapture('cli registered', { method: 'browser-auth' });
-        const brandDomain = result.brandDomain ?? `${result.orgSlug}.graspful.ai`;
         output(
           {
             userId: result.userId,
             orgSlug: result.orgSlug,
-            apiKey: result.apiKey,
-            brandDomain,
+            apiKey: maskApiKey(result.apiKey),
+            ...(result.brandDomain ? { brandDomain: result.brandDomain } : {}),
             baseUrl,
           },
           [
             `Created org: ${result.orgSlug}`,
-            `Brand: ${brandDomain}`,
-            `API key: ${result.apiKey} (saved to ~/.graspful/credentials.json)`,
+            ...(result.brandDomain ? [`Brand: ${result.brandDomain}`] : []),
+            `API key: ${maskApiKey(result.apiKey)} (saved to ~/.graspful/credentials.json)`,
             '',
             `You're ready. Run: graspful import course.yaml --org ${result.orgSlug}`,
           ].join('\n'),

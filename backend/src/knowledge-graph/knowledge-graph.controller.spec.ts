@@ -1,3 +1,4 @@
+import { CourseScopeGuard } from '@/auth';
 import { Test, TestingModule } from '@nestjs/testing';
 import { KnowledgeGraphController } from './knowledge-graph.controller';
 import { CourseReadService } from './course-read.service';
@@ -50,6 +51,8 @@ describe('KnowledgeGraphController', () => {
       .useValue(mockGuard)
       .overrideGuard(JwtOrApiKeyGuard)
       .useValue(mockGuard)
+      .overrideGuard(CourseScopeGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     controller = module.get(KnowledgeGraphController);

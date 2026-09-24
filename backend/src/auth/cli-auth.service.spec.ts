@@ -151,6 +151,30 @@ describe('CliAuthService', () => {
     await expect(service.exchange('pending-token')).resolves.toEqual({ status: 'pending' });
   });
 
+  it('exchanges credentials without a site URL when the org has no brand', async () => {
+    mockPrisma.brand.findFirst.mockResolvedValue(null);
+    mockPrisma.organization.findUnique.mockResolvedValue({ slug: 'alpha-org' });
+    mockPrisma.cliAuthSession.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.cliAuthSession.findUnique.mockResolvedValue({
+      id: 'session-1',
+      tokenHash: 'hash',
+      mode: 'sign-up',
+      userId: 'user-1',
+      orgId: 'org-1',
+      encryptedApiKey: service['encrypt']('gsk_cli_key'),
+      authorizedAt: new Date(),
+      consumedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+
+    await expect(service.exchange('new-account-token')).resolves.toEqual({
+      status: 'complete',
+      apiKey: 'gsk_cli_key',
+      orgSlug: 'alpha-org',
+      userId: 'user-1',
+    });
+  });
+
   it('returns expired for missing or expired sessions', async () => {
     mockPrisma.cliAuthSession.findUnique.mockResolvedValue(null);
     await expect(service.exchange('missing-token')).resolves.toEqual({ status: 'expired' });

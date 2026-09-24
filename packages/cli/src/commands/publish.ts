@@ -3,7 +3,7 @@ import { requireAuth } from '../lib/auth';
 import { ApiClient } from '../lib/api-client';
 import { output, outputError } from '../lib/output';
 import { cliCapture } from '../lib/analytics';
-import { publicationFailures, type CoursePublicationResponse } from '@graspful/shared';
+import { publicationFailures } from '@graspful/shared';
 
 export function registerPublishCommand(program: Command) {
   program
@@ -15,10 +15,7 @@ export function registerPublishCommand(program: Command) {
       const api = new ApiClient(creds);
 
       try {
-        const result = await api.post<CoursePublicationResponse>(
-          `/api/v1/orgs/${opts.org}/courses/${courseId}/publish`,
-          {},
-        );
+        const result = await api.publish(opts.org, courseId);
 
         if (result.published !== true) {
           const failures = publicationFailures(result);

@@ -1,3 +1,6 @@
+import { Callout } from "@/components/docs/callout";
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock } from "@/components/docs/code-block";
@@ -31,21 +34,13 @@ const xpTable = [
 
 export default function GamificationPage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        Gamification
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Graspful uses XP, streaks, and leaderboards to drive consistent daily
-        practice. The system is calibrated so that gaming it is harder than
-        actually learning.
-      </p>
+    <DocPage
+      title="Gamification"
+      description="Graspful uses XP, streaks, and leaderboards to drive consistent daily practice. The system is calibrated so that gaming it is harder than actually learning."
+    >
 
       {/* Design philosophy */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="design-philosophy">
-          Design philosophy
-        </h2>
+      <DocSection title="Design philosophy" headingId="design-philosophy">
         <p className="mt-2 text-muted-foreground">
           Gamification serves learning, not the other way around. Every mechanic
           exists to reinforce a specific study behavior:
@@ -75,13 +70,10 @@ export default function GamificationPage() {
           payout. A daily cap of 500 XP and a 2-second minimum response time
           gate prevent gaming.
         </p>
-      </section>
+      </DocSection>
 
       {/* XP system */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="xp-system">
-          XP by activity
-        </h2>
+      <DocSection title="XP by activity" headingId="xp-system">
         <p className="mt-2 text-muted-foreground">
           Different activities award different XP amounts. Harder concepts and
           lower memory strength increase the payout.
@@ -121,13 +113,10 @@ export default function GamificationPage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </DocSection>
 
       {/* Difficulty scaling */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="difficulty-scaling">
-          Difficulty scaling
-        </h2>
+      <DocSection title="Difficulty scaling" headingId="difficulty-scaling">
         <p className="mt-2 text-muted-foreground">
           XP scales with concept difficulty to reward students who tackle harder
           material. A difficulty-8 concept awards roughly 2x the XP of a
@@ -157,13 +146,10 @@ concept: shared-responsibility
 memory_strength: 0.45
 review_xp: 3     # still fresh-ish, lower XP`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Anti-gaming */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="anti-gaming">
-          Anti-gaming measures
-        </h2>
+      <DocSection title="Anti-gaming measures" headingId="anti-gaming">
         <p className="mt-2 text-muted-foreground">
           The system includes several guards to ensure XP reflects actual
           learning, not button-mashing.
@@ -206,13 +192,10 @@ review_xp: 3     # still fresh-ish, lower XP`}
             </p>
           </div>
         </div>
-      </section>
+      </DocSection>
 
       {/* Streaks */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="streaks">
-          Streaks
-        </h2>
+      <DocSection title="Streaks" headingId="streaks">
         <p className="mt-2 text-muted-foreground">
           A streak counts consecutive calendar days where the student earned at
           least 1 XP. It&apos;s the simplest and most effective engagement
@@ -248,13 +231,10 @@ review_xp: 3     # still fresh-ish, lower XP`}
             length and longest-ever streak are shown on the student dashboard
           </li>
         </ul>
-      </section>
+      </DocSection>
 
       {/* Leaderboards */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="leaderboards">
-          Leaderboards
-        </h2>
+      <DocSection title="Leaderboards" headingId="leaderboards">
         <p className="mt-2 text-muted-foreground">
           Weekly XP leaderboards rank students within their academy or
           organization. Leaderboards reset every Monday at midnight (organization
@@ -270,13 +250,10 @@ review_xp: 3     # still fresh-ish, lower XP`}
           disable leaderboards. When disabled, students still earn XP and streaks
           but don&apos;t see rankings.
         </p>
-      </section>
+      </DocSection>
 
       {/* Completion estimates */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="completion-estimates">
-          Completion estimates
-        </h2>
+      <DocSection title="Completion estimates" headingId="completion-estimates">
         <p className="mt-2 text-muted-foreground">
           Graspful projects a completion date for each course based on the
           student&apos;s daily XP target and remaining content. This makes the
@@ -305,13 +282,10 @@ projected_completion: "2026-05-10"
           Students who slow down see it push back. This feedback loop
           encourages steady effort.
         </p>
-      </section>
+      </DocSection>
 
       {/* Configuration */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="configuration">
-          Configuration
-        </h2>
+      <DocSection title="Configuration" headingId="configuration">
         <p className="mt-2 text-muted-foreground">
           Gamification settings are configured per-organization. Academies can
           tune the system to match their learner population and culture.
@@ -338,11 +312,10 @@ gamification:
     enabled: true
     defaultDailyXpTarget: 30   # used until student sets their own`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Next steps */}
-      <section className="mt-16 rounded-xl border border-border/50 bg-card p-8">
-        <h2 className="text-xl font-bold text-foreground mb-4">Next steps</h2>
+      <Callout as="section" className="mt-16 p-8" title="Next steps">
         <div className="space-y-3">
           <Link
             href="/docs/concepts/task-selection"
@@ -366,7 +339,7 @@ gamification:
             Spaced Repetition — the FIRe algorithm that schedules reviews
           </Link>
         </div>
-      </section>
-    </div>
+      </Callout>
+    </DocPage>
   );
 }

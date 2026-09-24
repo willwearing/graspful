@@ -6,6 +6,7 @@ import {
   IsString,
   IsUUID,
   Min,
+  Max,
 } from 'class-validator';
 
 export class SubmitAnswerDto {
@@ -23,6 +24,7 @@ export class SubmitAnswerDto {
 
   @IsInt()
   @Min(1)
+  @Max(2_147_483_647)
   responseTimeMs!: number;
 
   /**

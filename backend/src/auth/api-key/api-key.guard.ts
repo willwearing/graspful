@@ -14,7 +14,7 @@ export class ApiKeyGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers['authorization'];
 
-    if (!authHeader?.startsWith('Bearer gsk_')) {
+    if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer gsk_')) {
       throw new UnauthorizedException('Missing or invalid API key');
     }
 
@@ -27,7 +27,7 @@ export class ApiKeyGuard implements CanActivate {
 
     request.apiKeyOrg = apiKey.org;
     request.apiKeyUser = apiKey.user;
-    request.orgId = apiKey.orgId;
+    request.apiKeyOrgId = apiKey.orgId;
 
     return true;
   }

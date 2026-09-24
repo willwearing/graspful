@@ -69,6 +69,7 @@ test.describe("Learner happy path", () => {
     await page.getByRole("button", { name: "Take Diagnostic" }).click();
 
     await expect(page).toHaveURL(new RegExp(`/academy/${academyId}/diagnostic$`), { timeout: 10_000 });
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
     await expect(page.getByRole("heading", { name: "Diagnostic Assessment" })).toBeVisible();
     await expect(page.getByText(/^Question 1 of/)).toBeVisible();
     await expect(page.getByRole("radiogroup")).toBeVisible();
@@ -84,6 +85,7 @@ test.describe("Learner happy path", () => {
     await expect(page).toHaveURL(new RegExp(`/study/${courseId}/lesson/[^/?]+`), {
       timeout: 15_000,
     });
+    await page.getByRole("button", { name: "Start Lesson" }).click();
     await expect(page.getByText(/^Knowledge Point 1 of/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeVisible();
     await expect(page.getByRole("complementary").getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();

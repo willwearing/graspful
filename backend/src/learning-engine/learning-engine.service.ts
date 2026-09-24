@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '@/prisma/prisma.service';
+import { Injectable } from '@nestjs/common';
+import { EnrollmentService } from '@/student-model/enrollment.service';
 import { StudentStateService } from '@/student-model/student-state.service';
 import { GraphQueryService } from '@/knowledge-graph/graph-query.service';
 import { CourseReadService } from '@/knowledge-graph/course-read.service';
@@ -24,7 +24,7 @@ const logger = getLogger('learning-engine');
 @Injectable()
 export class LearningEngineService {
   constructor(
-    private prisma: PrismaService,
+    private enrollmentService: EnrollmentService,
     private studentState: StudentStateService,
     private graphQuery: GraphQueryService,
     private courseRead: CourseReadService,
@@ -38,14 +38,7 @@ export class LearningEngineService {
     userId: string,
     academyId: string,
   ): Promise<TaskRecommendation> {
-    const enrollment = await this.prisma.academyEnrollment.findUnique({
-      where: { userId_academyId: { userId, academyId } },
-      select: { id: true },
-    });
-
-    if (!enrollment) {
-      throw new NotFoundException('Not enrolled in this academy');
-    }
+    await this.enrollmentService.requireAcademyEnrollment(userId, academyId);
 
     await this.memoryDecay.decayAllMemory(userId, academyId);
 
@@ -93,7 +86,7 @@ export class LearningEngineService {
     userId: string,
     courseId: string,
   ): Promise<TaskRecommendation> {
-    const academyId = await this.studentState.getAcademyIdForCourse(courseId);
+    const academyId = await this.enrollmentService.getAcademyIdForCourse(courseId);
     return this.getNextTask(userId, academyId);
   }
 
@@ -101,14 +94,7 @@ export class LearningEngineService {
     userId: string,
     academyId: string,
   ): Promise<StudySession> {
-    const enrollment = await this.prisma.academyEnrollment.findUnique({
-      where: { userId_academyId: { userId, academyId } },
-      select: { dailyXPTarget: true },
-    });
-
-    if (!enrollment) {
-      throw new NotFoundException('Not enrolled in this academy');
-    }
+    const enrollment = await this.enrollmentService.requireAcademyEnrollment(userId, academyId);
 
     await this.memoryDecay.decayAllMemory(userId, academyId);
 
@@ -142,7 +128,7 @@ export class LearningEngineService {
     userId: string,
     courseId: string,
   ): Promise<StudySession> {
-    const academyId = await this.studentState.getAcademyIdForCourse(courseId);
+    const academyId = await this.enrollmentService.getAcademyIdForCourse(courseId);
     return this.getStudySession(userId, academyId);
   }
 

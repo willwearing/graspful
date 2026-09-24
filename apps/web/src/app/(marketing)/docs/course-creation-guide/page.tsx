@@ -1,3 +1,6 @@
+import { Callout } from "@/components/docs/callout";
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock, InlineCode } from "@/components/docs/code-block";
@@ -22,17 +25,10 @@ export const metadata: Metadata = {
 
 export default function CourseCreationGuidePage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        How to Create a Course
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        A complete guide to building an adaptive learning course on Graspful.
-        Every section explains the concept first, then shows a worked example
-        using a JavaScript Fundamentals course as illustration. The principles
-        apply to any subject — firefighting, real estate, AWS, or anything
-        else that can be broken into learnable concepts.
-      </p>
+    <DocPage
+      title="How to Create a Course"
+      description="A complete guide to building an adaptive learning course on Graspful. Every section explains the concept first, then shows a worked example using a JavaScript Fundamentals course as illustration. The principles apply to any subject — firefighting, real estate, AWS, or anything else that can be broken into learnable concepts."
+    >
 
       {/* Table of contents */}
       <nav className="mt-8 rounded-xl border border-border/50 bg-muted/30 p-6">
@@ -86,13 +82,7 @@ export default function CourseCreationGuidePage() {
       {/* ================================================================ */}
       {/* 1. Choose Your Subject */}
       {/* ================================================================ */}
-      <section className="mt-16">
-        <h2
-          className="text-2xl font-bold text-foreground"
-          id="choose-your-subject"
-        >
-          1. Choose Your Subject
-        </h2>
+      <DocSection title="1. Choose Your Subject" headingId="choose-your-subject" className="mt-16">
         <p className="mt-2 text-muted-foreground">
           Graspful works best for skill-based subjects that can be broken into
           discrete, testable concepts. Good candidates have a natural
@@ -137,18 +127,12 @@ export default function CourseCreationGuidePage() {
           and React courses). Academies let prerequisites span course
           boundaries.
         </p>
-      </section>
+      </DocSection>
 
       {/* ================================================================ */}
       {/* 2. Design the Knowledge Graph */}
       {/* ================================================================ */}
-      <section className="mt-16">
-        <h2
-          className="text-2xl font-bold text-foreground"
-          id="design-the-knowledge-graph"
-        >
-          2. Design the Knowledge Graph
-        </h2>
+      <DocSection title="2. Design the Knowledge Graph" headingId="design-the-knowledge-graph" className="mt-16">
         <p className="mt-2 text-muted-foreground">
           The knowledge graph is the skeleton of your course. Get this right and
           everything else follows. Get it wrong and no amount of great content
@@ -330,18 +314,12 @@ concepts:
         weight: 0.3
     knowledgePoints: []`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* ================================================================ */}
       {/* 3. Author Knowledge Points */}
       {/* ================================================================ */}
-      <section className="mt-16">
-        <h2
-          className="text-2xl font-bold text-foreground"
-          id="author-knowledge-points"
-        >
-          3. Author Knowledge Points
-        </h2>
+      <DocSection title="3. Author Knowledge Points" headingId="author-knowledge-points" className="mt-16">
         <p className="mt-2 text-muted-foreground">
           Knowledge points (KPs) are the progressive steps within each concept.
           They form the{" "}
@@ -487,18 +465,12 @@ concepts:
           closes over its own copy.
         problems: []`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* ================================================================ */}
       {/* 4. Write Problems */}
       {/* ================================================================ */}
-      <section className="mt-16">
-        <h2
-          className="text-2xl font-bold text-foreground"
-          id="write-problems"
-        >
-          4. Write Problems
-        </h2>
+      <DocSection title="4. Write Problems" headingId="write-problems" className="mt-16">
         <p className="mt-2 text-muted-foreground">
           Problems are how the engine tests and tracks mastery. The quality of
           your problems directly determines the quality of the adaptive
@@ -673,18 +645,12 @@ concepts:
               reference, not by value.
             difficulty: 4`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* ================================================================ */}
       {/* 5. Add Section Exams */}
       {/* ================================================================ */}
-      <section className="mt-16">
-        <h2
-          className="text-2xl font-bold text-foreground"
-          id="add-section-exams"
-        >
-          5. Add Section Exams
-        </h2>
+      <DocSection title="5. Add Section Exams" headingId="add-section-exams" className="mt-16">
         <p className="mt-2 text-muted-foreground">
           Section exams are optional cumulative assessments at the end of a
           section. They gate progression: a student must pass the exam before
@@ -751,18 +717,12 @@ concepts:
         You have 20 minutes to complete 12 questions. No notes
         or references are allowed. You need 75% to pass.`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* ================================================================ */}
       {/* 6. Set Difficulty and Metadata */}
       {/* ================================================================ */}
-      <section className="mt-16">
-        <h2
-          className="text-2xl font-bold text-foreground"
-          id="set-difficulty-and-metadata"
-        >
-          6. Set Difficulty and Metadata
-        </h2>
+      <DocSection title="6. Set Difficulty and Metadata" headingId="set-difficulty-and-metadata" className="mt-16">
         <p className="mt-2 text-muted-foreground">
           Each concept has metadata that calibrates the adaptive engine and
           helps with course organization.
@@ -852,18 +812,12 @@ concepts:
           the exam guide section. For academic courses, the textbook chapter.
           Source references help with auditing and content updates.
         </p>
-      </section>
+      </DocSection>
 
       {/* ================================================================ */}
       {/* 7. Validate and Import */}
       {/* ================================================================ */}
-      <section className="mt-16">
-        <h2
-          className="text-2xl font-bold text-foreground"
-          id="validate-and-import"
-        >
-          7. Validate and Import
-        </h2>
+      <DocSection title="7. Validate and Import" headingId="validate-and-import" className="mt-16">
         <p className="mt-2 text-muted-foreground">
           Before publishing, your course must pass schema validation and the
           10-check review gate.
@@ -927,18 +881,12 @@ graspful import js-fundamentals.yaml --org my-org
 # Import and publish in one step
 graspful import js-fundamentals.yaml --org my-org --publish`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* ================================================================ */}
       {/* 8. Create Your Brand */}
       {/* ================================================================ */}
-      <section className="mt-16">
-        <h2
-          className="text-2xl font-bold text-foreground"
-          id="create-your-brand"
-        >
-          8. Create Your Brand
-        </h2>
+      <DocSection title="8. Create Your Brand" headingId="create-your-brand" className="mt-16">
         <p className="mt-2 text-muted-foreground">
           A brand YAML configures the white-label product that students see:
           theme, landing page, pricing, SEO, and domain. Students never see
@@ -1070,14 +1018,12 @@ contentScope:
           {`# Import the brand
 graspful import js-mastery-brand.yaml
 
-# Check domain verification separately from course publication.
-graspful domain-status js-mastery`}
+# Read the domain verification status and DNS instructions in the import output.`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Next steps */}
-      <section className="mt-16 rounded-xl border border-border/50 bg-card p-8">
-        <h2 className="text-xl font-bold text-foreground mb-4">Next steps</h2>
+      <Callout as="section" className="mt-16 p-8" title="Next steps">
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href="/docs/course-schema"
@@ -1122,7 +1068,7 @@ graspful domain-status js-mastery`}
             <span>Glossary — every term defined</span>
           </Link>
         </div>
-      </section>
-    </div>
+      </Callout>
+    </DocPage>
   );
 }

@@ -1,7 +1,9 @@
+import "server-only";
+import { cache } from "react";
 import type { BrandConfig } from "./config";
 import { defaultBrand, firefighterBrand, electricianBrand, javascriptBrand, posthogBrand, graspfulBrand } from "./defaults";
 import { fetchBrandByDomain, fetchBrandBySlug } from "./resolve-db";
-import { getRequestHost } from "@/lib/hosts";
+import { getRequestHost, normalizeHost } from "@/lib/hosts";
 
 /** In-memory brand registry. Phase 7 uses hardcoded brands; future phases fetch from DB. */
 const brandsByDomain = new Map<string, BrandConfig>([
@@ -34,7 +36,7 @@ export async function resolveBrand(
   hostname: string,
   cookieHeader?: string | null,
 ): Promise<BrandConfig> {
-  const host = hostname.split(":")[0];
+  const host = normalizeHost(hostname);
 
   // Development: check cookie override, then env var
   if (host === "localhost" || host === "127.0.0.1") {
@@ -68,10 +70,10 @@ export async function resolveBrand(
  * Server Component helper — reads hostname and cookies from Next.js headers automatically.
  * Use this in page components instead of manually plumbing headers.
  */
-export async function resolvePageBrand(): Promise<BrandConfig> {
+export const resolvePageBrand = cache(async (): Promise<BrandConfig> => {
   const { headers } = await import("next/headers");
   const headersList = await headers();
   const hostname = getRequestHost(headersList);
   const cookieHeader = headersList.get("cookie");
   return resolveBrand(hostname, cookieHeader);
-}
+});

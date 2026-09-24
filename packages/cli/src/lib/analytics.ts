@@ -1,20 +1,13 @@
 import { PostHog } from 'posthog-node';
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
+import { hashCredential, telemetryConfig } from '@graspful/client';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import type { Credentials } from './auth';
 import { resolveCredentials } from './auth';
 
-const DEFAULT_POSTHOG_KEY = 'phc_ahQLCJsOBzeuro1yDeurs1a3xx07pIreJWeXG9T4d4';
-const telemetryDisabled =
-  process.env.GRASPFUL_TELEMETRY_DISABLED === '1' ||
-  process.env.NODE_ENV === 'test';
-const posthogKey = telemetryDisabled
-  ? null
-  : process.env.POSTHOG_API_KEY ||
-    process.env.NEXT_PUBLIC_POSTHOG_KEY ||
-    DEFAULT_POSTHOG_KEY;
+const { key: posthogKey, host: posthogHost } = telemetryConfig();
 
 let client: PostHog | null = null;
 let anonymousDistinctId: string | null = null;
@@ -24,17 +17,12 @@ function getClient(): PostHog | null {
   if (!posthogKey) return null;
   if (!client) {
     client = new PostHog(posthogKey, {
-      host: process.env.POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+      host: posthogHost,
       flushAt: 1,
       flushInterval: 0,
     });
   }
   return client;
-}
-
-function hashCredential(credential: string): string {
-  const digest = createHash('sha256').update(credential).digest('hex');
-  return `credential:${digest}`;
 }
 
 function getOrCreateAnonymousDistinctId(): string {

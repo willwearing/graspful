@@ -1,8 +1,19 @@
+import { seedStudentStateForNewConcepts } from './application/content-state-seeder';
+import {
+  applySectionExamResult,
+  lockSectionForExam,
+  recordSectionExamAttempt,
+  syncSectionStates,
+  type SectionExamResult,
+} from './application/section-exam-state';
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { EnrollmentService } from './enrollment.service';
+import { startOfDayUtc } from '@/shared/utils/utc-date';
 import { PrismaService } from '@/prisma/prisma.service';
+import { activeConceptWhere, activeSectionWhere } from '@/knowledge-graph/active-course-content';
 import { DiagnosticState, MasteryState, Prisma } from '@prisma/client';
 import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
-import { ensureConceptStatesForAcademy, getAcademyIdForCourse } from './application/student-state.lifecycle';
+import { ensureConceptStatesForAcademy } from './application/student-state.lifecycle';
 import {
   loadAcademyAccess,
   loadAssessmentAccess,
@@ -31,7 +42,7 @@ const logger = getLogger('student-model');
 
 @Injectable()
 export class StudentStateService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private enrollmentService: EnrollmentService) {}
 
   async assertAcademyAccess(
     userId: string,
@@ -66,7 +77,7 @@ export class StudentStateService {
   }
 
   async getConceptStatesForCourse(userId: string, courseId: string) {
-    const academyId = await getAcademyIdForCourse(this.prisma, courseId);
+    const academyId = await this.enrollmentService.getAcademyIdForCourse(courseId);
     await ensureConceptStatesForAcademy(this.prisma, userId, academyId);
     return loadConceptStatesForCourse(this.prisma, userId, courseId);
   }
@@ -103,7 +114,7 @@ export class StudentStateService {
    * Uses BKT prior (0.5) for unstarted concepts.
    */
   async getMasteryMap(userId: string, courseId: string): Promise<Map<string, number>> {
-    const academyId = await getAcademyIdForCourse(this.prisma, courseId);
+    const academyId = await this.enrollmentService.getAcademyIdForCourse(courseId);
     await ensureConceptStatesForAcademy(this.prisma, userId, academyId);
     return loadMasteryMapForCourse(this.prisma, userId, courseId);
   }
@@ -121,6 +132,7 @@ export class StudentStateService {
     conceptId: string,
     diagnosticState: DiagnosticState,
     pL: number,
+    tx: Prisma.TransactionClient = this.prisma,
   ) {
     const masteryState = this.diagnosticToMasteryState(diagnosticState);
 
@@ -131,7 +143,7 @@ export class StudentStateService {
       attributes: { 'user.id': userId, 'concept.id': conceptId, 'mastery.state': masteryState, 'mastery.pL': pL },
     });
 
-    return this.prisma.studentConceptState.update({
+    return tx.studentConceptState.update({
       where: { userId_conceptId: { userId, conceptId } },
       data: {
         diagnosticState,
@@ -156,10 +168,11 @@ export class StudentStateService {
     abilityTheta: number,
     speedRD: number,
     conceptSpeeds: Map<string, number>,
+    tx: Prisma.TransactionClient = this.prisma,
   ) {
     const promises = Array.from(conceptSpeeds.entries()).map(
       ([conceptId, speed]) =>
-        this.prisma.studentConceptState.update({
+        tx.studentConceptState.update({
           where: { userId_conceptId: { userId, conceptId } },
           data: { speed, abilityTheta, speedRD },
         }),
@@ -168,7 +181,7 @@ export class StudentStateService {
   }
 
   async getProfileSummary(userId: string, courseId: string) {
-    const academyId = await getAcademyIdForCourse(this.prisma, courseId);
+    const academyId = await this.enrollmentService.getAcademyIdForCourse(courseId);
     const [states, diagnosticCompleted] = await Promise.all([
       this.getConceptStates(userId, courseId),
       this.isDiagnosticCompleted(userId, academyId),
@@ -193,19 +206,20 @@ export class StudentStateService {
   }
 
   async isDiagnosticCompleted(userId: string, academyId: string): Promise<boolean> {
-    const enrollment = await this.prisma.academyEnrollment.findUnique({
-      where: { userId_academyId: { userId, academyId } },
-      select: { diagnosticCompleted: true },
-    });
+    const enrollment = await this.enrollmentService.findAcademyEnrollment(userId, academyId);
     return enrollment?.diagnosticCompleted ?? false;
   }
 
   async getAcademyIdForCourse(courseId: string): Promise<string> {
-    return getAcademyIdForCourse(this.prisma, courseId);
+    return this.enrollmentService.getAcademyIdForCourse(courseId);
   }
 
-  async markDiagnosticComplete(userId: string, academyId: string) {
-    return this.prisma.academyEnrollment.update({
+  async markDiagnosticComplete(
+    userId: string,
+    academyId: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    return tx.academyEnrollment.update({
       where: { userId_academyId: { userId, academyId } },
       data: {
         diagnosticCompleted: true,
@@ -248,6 +262,48 @@ export class StudentStateService {
     filter: { courseId?: string; academyId?: string },
   ): Promise<number> {
     return countMasteredConceptsQuery(this.prisma, userId, filter);
+  }
+
+  async applySectionExamResult(tx: Prisma.TransactionClient, result: SectionExamResult) {
+    return applySectionExamResult(tx, result);
+  }
+
+  async lockSectionForExam(tx: Prisma.TransactionClient, userId: string, sectionId: string) {
+    return lockSectionForExam(tx, userId, sectionId);
+  }
+
+  async recordSectionExamAttempt(tx: Prisma.TransactionClient, userId: string, sectionId: string) {
+    return recordSectionExamAttempt(tx, userId, sectionId);
+  }
+
+  async syncSectionStates(userId: string, courseId: string) {
+    return syncSectionStates(this.prisma, userId, courseId);
+  }
+
+  async getSectionExamState(userId: string, sectionId: string) {
+    return this.prisma.studentSectionState.findUnique({
+      where: { userId_sectionId: { userId, sectionId } },
+    });
+  }
+
+  async getSectionExamProgress(userId: string, courseId: string) {
+    return this.prisma.studentSectionState.findMany({
+      where: { userId, courseId, section: activeSectionWhere() },
+      include: {
+        section: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            description: true,
+            sortOrder: true,
+            sectionExamConfig: true,
+            concepts: { where: activeConceptWhere(), select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { section: { sortOrder: 'asc' } },
+    });
   }
 
   async getSectionState(userId: string, sectionId: string, tx: Prisma.TransactionClient = this.prisma) {
@@ -345,6 +401,9 @@ export class StudentStateService {
     },
     tx: Prisma.TransactionClient = this.prisma,
   ) {
+    if (data.lastPracticedAt && data.sessionFailedKPAttempts === undefined) {
+      await this.resetPreviousSessionFailures(userId, conceptId, data.lastPracticedAt, tx);
+    }
     return tx.studentConceptState.update({
       where: { userId_conceptId: { userId, conceptId } },
       data,
@@ -379,9 +438,37 @@ export class StudentStateService {
     },
     tx: Prisma.TransactionClient = this.prisma,
   ) {
+    if (data.lastPracticedAt) {
+      await this.resetPreviousSessionFailures(userId, conceptId, data.lastPracticedAt, tx);
+    }
     return tx.studentConceptState.update({
       where: { userId_conceptId: { userId, conceptId } },
       data,
+    });
+  }
+
+  private async resetPreviousSessionFailures(
+    userId: string,
+    conceptId: string,
+    practicedAt: Date,
+    tx: Prisma.TransactionClient,
+  ) {
+    const dayStart = startOfDayUtc(practicedAt);
+    const sessionId = dayStart.toISOString().slice(0, 10);
+    // Guard the reset in SQL so another answer in this session keeps its count.
+    await tx.studentConceptState.updateMany({
+      where: {
+        userId,
+        conceptId,
+        OR: [
+          {
+            lastPracticedAt: null,
+            OR: [{ pausedAtSessionId: null }, { pausedAtSessionId: { not: sessionId } }],
+          },
+          { lastPracticedAt: { lt: dayStart } },
+        ],
+      },
+      data: { sessionFailedKPAttempts: 0 },
     });
   }
 
@@ -402,6 +489,15 @@ export class StudentStateService {
         }),
       ),
     );
+  }
+
+  async seedStudentStateForNewConcepts(
+    tx: Prisma.TransactionClient,
+    courseId: string,
+    conceptIds: string[],
+    sectionIds: string[],
+  ): Promise<void> {
+    return seedStudentStateForNewConcepts(tx, courseId, conceptIds, sectionIds);
   }
 
   private diagnosticToMasteryState(ds: DiagnosticState): MasteryState {

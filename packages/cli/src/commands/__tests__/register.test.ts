@@ -1,28 +1,30 @@
+import '../../../../client/test-support/preload';
 import { describe, it, expect, beforeEach, afterEach, mock, spyOn } from 'bun:test';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { setOutputFormat, type OutputFormat } from '../../lib/output';
 
 // We test the register command by invoking the action logic directly,
-// mocking fetch and filesystem writes.
+// using mocked HTTP and an isolated credential directory.
 
-const CREDENTIALS_PATH = path.join(os.homedir(), '.graspful', 'credentials.json');
 
 describe('graspful register', () => {
   let originalFetch: typeof globalThis.fetch;
-  let writeFileSyncSpy: ReturnType<typeof spyOn>;
-  let mkdirSyncSpy: ReturnType<typeof spyOn>;
-  let existsSyncSpy: ReturnType<typeof spyOn>;
+  let directory: string;
+  let previousConfigDir: string | undefined;
   let exitSpy: ReturnType<typeof spyOn>;
   let consoleLogSpy: ReturnType<typeof spyOn>;
   let originalConsoleError: typeof console.error;
   const errorCalls: unknown[][] = [];
 
   beforeEach(() => {
+    setOutputFormat('human');
     originalFetch = globalThis.fetch;
-    writeFileSyncSpy = spyOn(fs, 'writeFileSync').mockImplementation(() => {});
-    mkdirSyncSpy = spyOn(fs, 'mkdirSync').mockImplementation(() => '' as any);
-    existsSyncSpy = spyOn(fs, 'existsSync').mockReturnValue(false);
+    globalThis.fetch = (async () => { throw new Error('Unexpected network request'); }) as typeof fetch;
+    directory = fs.mkdtempSync(path.join(os.tmpdir(), 'graspful-auth-test-'));
+    previousConfigDir = process.env.GRASPFUL_CONFIG_DIR;
+    process.env.GRASPFUL_CONFIG_DIR = directory;
     exitSpy = spyOn(process, 'exit').mockImplementation(() => { throw new Error('process.exit'); });
     consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {});
     originalConsoleError = console.error;
@@ -31,16 +33,18 @@ describe('graspful register', () => {
   });
 
   afterEach(() => {
+    setOutputFormat('human');
     globalThis.fetch = originalFetch;
-    writeFileSyncSpy.mockRestore();
-    mkdirSyncSpy.mockRestore();
-    existsSyncSpy.mockRestore();
+    if (previousConfigDir === undefined) delete process.env.GRASPFUL_CONFIG_DIR;
+    else process.env.GRASPFUL_CONFIG_DIR = previousConfigDir;
+    fs.rmSync(directory, { recursive: true, force: true });
     exitSpy.mockRestore();
     consoleLogSpy.mockRestore();
     console.error = originalConsoleError;
   });
 
-  it('saves API key credentials after browser sign-up completes', async () => {
+  it.each(['human', 'json'])('saves credentials and masks key in %s output', async (format) => {
+    setOutputFormat(format as OutputFormat);
     globalThis.fetch = mock((url: string) => {
       if (url.endsWith('/api/v1/auth/cli/sessions')) {
         return Promise.resolve(new Response(JSON.stringify({
@@ -82,13 +86,15 @@ describe('graspful register', () => {
     const fetchBody = JSON.parse(fetchCall[1].body);
     expect(fetchBody.mode).toBe('sign-up');
 
-    expect(writeFileSyncSpy).toHaveBeenCalledTimes(1);
-    const savedContent = JSON.parse(writeFileSyncSpy.mock.calls[0][1] as string);
+    const savedContent = JSON.parse(fs.readFileSync(path.join(directory, 'credentials.json'), 'utf-8'));
     expect(savedContent.apiKey).toBe('gsk_test_key_abc123');
+    const printed = consoleLogSpy.mock.calls.map((call) => call.join(' ')).join('\n');
+    expect(printed).not.toContain('gsk_test_key_abc123');
+    expect(printed).toContain('gsk_...c123');
     expect(savedContent.baseUrl).toBe('http://localhost:3000');
   });
 
-  it('prints success message with org slug', async () => {
+  it.each([undefined, 'academy.example.com'])('only prints an existing brand domain (%s)', async (brandDomain) => {
     globalThis.fetch = mock((url: string) => {
       if (url.endsWith('/api/v1/auth/cli/sessions')) {
         return Promise.resolve(new Response(JSON.stringify({
@@ -104,6 +110,7 @@ describe('graspful register', () => {
           userId: 'user-456',
           orgSlug: 'my-org',
           apiKey: 'gsk_another_key',
+          ...(brandDomain ? { brandDomain } : {}),
         }), { status: 200 }));
       }
 
@@ -126,7 +133,14 @@ describe('graspful register', () => {
 
     const logOutput = consoleLogSpy.mock.calls.map((c: any[]) => c[0]).join('\n');
     expect(logOutput).toContain('my-org');
-    expect(logOutput).toContain('gsk_another_key');
+    expect(logOutput).not.toContain('gsk_another_key');
+    expect(logOutput).toContain('gsk_..._key');
+    expect(logOutput).not.toContain('my-org.graspful.ai');
+    if (brandDomain) {
+      expect(logOutput).toContain(`Brand: ${brandDomain}`);
+    } else {
+      expect(logOutput).not.toContain('Brand:');
+    }
   });
 
   it('exits with error when starting browser auth fails', async () => {

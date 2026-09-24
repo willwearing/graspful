@@ -35,7 +35,7 @@ Run the CLI to complete browser auth and mint an API key:
 bunx @graspful/cli register
 ```
 
-Add the returned key as `GRASPFUL_API_KEY` in your editor's Graspful server configuration, then restart the MCP server. After review passes, import the academy and request publication:
+The MCP server reads the saved CLI credentials on each authenticated call. After registration, import the academy without restarting MCP. An explicit `GRASPFUL_API_KEY` overrides the saved key.
 
 ```
 graspful_import_academy(manifestYaml: "...", courseYamls: { "courses/course.yaml": "..." }, org: "your-org", publish: true)
@@ -94,7 +94,7 @@ Add knowledge points (KPs) and problem stubs to a specific concept in a course Y
 |-----------|------|:---:|-------------|
 | `yaml` | string | Yes | Full course YAML string |
 | `conceptId` | string | Yes | ID of the concept to fill |
-| `kps` | number | No | Number of KP stubs (default: 2) |
+| `kps` | number | No | Number of KP stubs (default: 3) |
 | `problemsPerKp` | number | No | Problems per KP (default: 3) |
 
 ### `graspful_validate`
@@ -154,6 +154,8 @@ Import course YAML into a Graspful organization. Creates as draft by default. If
 | `yaml` | string | Yes | Full course YAML string |
 | `org` | string | Yes | Organization slug |
 | `publish` | boolean | No | Publish immediately (default: false) |
+| `replace` | boolean | No | Replace existing content. Default: false |
+| `archiveMissing` | boolean | No | Archive removed content. Default: false |
 
 **Returns:** `{ courseId, url, published, review?, reviewFailures? }`
 
@@ -203,7 +205,7 @@ Import brand YAML into Graspful. Creates the white-label site configuration.
 | `yaml` | string | Yes | Full brand YAML string |
 | `orgSlug` | string | Yes | Organization slug |
 
-**Returns:** `{ slug, domain, verificationStatus }`
+**Returns:** `{ brand: { slug, domain }, domain: { verified, error?, dnsInstructions? } }`
 
 ### `graspful_list_courses`
 
@@ -238,7 +240,7 @@ List all courses in a Graspful organization.
 7. Import         graspful_import_academy(manifestYaml, courseYamls, org: "acme", publish: true)
 ```
 
-Offline tools (scaffold, fill, validate, review, describe, create_brand) need no API key. Only import, publish, import_brand, and list_courses require `GRASPFUL_API_KEY`.
+Offline tools (scaffold, fill, validate, review, describe, create_brand) need no API key. Import, publish, import_brand, and list_courses use `GRASPFUL_API_KEY` or saved CLI credentials.
 
 ## Editor Configuration
 
@@ -301,7 +303,8 @@ The Graspful server uses stdio. Other MCP clients need their own configuration f
 
 | Variable | Required | Description |
 |----------|:---:|-------------|
-| `GRASPFUL_API_KEY` | For import/publish/list | API key for authenticated operations |
+| `GRASPFUL_API_KEY` | Optional | Overrides saved CLI credentials for authenticated operations |
+| `GRASPFUL_CONFIG_DIR` | Optional | Credential directory, defaults to `~/.graspful` |
 | `GRASPFUL_API_URL` | No | API base URL (default: `https://api.graspful.ai`) |
 | `GRASPFUL_USER_ID` | No | Graspful user ID for analytics identity continuity |
 | `GRASPFUL_TELEMETRY_DISABLED` | No | Set to `1` to disable anonymous product analytics |

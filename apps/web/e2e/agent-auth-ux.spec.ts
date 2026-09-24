@@ -142,20 +142,27 @@ test.describe("Agent Auth UX — MCP Tool Descriptions", () => {
     expect(mcpSource).not.toContain("name: 'graspful_register'");
   });
 
-  test("AGENTS.md documents auth-first workflow", async () => {
+  test("AGENTS.md links to canonical instructions with an auth-first workflow", async () => {
     const agentsMd = require("fs").readFileSync(
       path.resolve(__dirname, "../../../AGENTS.md"),
       "utf-8"
     );
 
-    // Auth section should appear before Step 1
-    const authIdx = agentsMd.indexOf("Authentication");
-    const step1Idx = agentsMd.indexOf("## Step 1");
+    expect(agentsMd).toContain("[CLAUDE.md](CLAUDE.md)");
+    const instructions = require("fs").readFileSync(
+      path.resolve(__dirname, "../../../CLAUDE.md"),
+      "utf-8"
+    );
+
+    // The canonical auth section must appear before the first setup step.
+    const authIdx = instructions.search(/^### Authentication/m);
+    const step1Idx = instructions.search(/^### Step 1:/m);
     expect(authIdx).toBeGreaterThan(-1);
+    expect(step1Idx).toBeGreaterThan(-1);
     expect(authIdx).toBeLessThan(step1Idx);
 
-    expect(agentsMd).toContain("graspful register");
-    expect(agentsMd).toContain("GRASPFUL_API_KEY");
+    expect(instructions).toContain("graspful register");
+    expect(instructions).toContain("GRASPFUL_API_KEY");
   });
 });
 

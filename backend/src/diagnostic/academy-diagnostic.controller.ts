@@ -6,14 +6,15 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
-import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, AcademyScopeGuard, RequireEnrollment } from '@/auth';
+import type { OrgContext } from '@/auth/org-context';
 import { PostHogService } from '@/shared/application/posthog.service';
 import { DiagnosticSessionService } from './diagnostic-session.service';
 import { SubmitDiagnosticAnswerDto } from './dto/submit-diagnostic-answer.dto';
 
 @Controller('orgs/:orgId/academies/:academyId/diagnostic')
-@UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
+@UseGuards(SupabaseAuthGuard, OrgMembershipGuard, AcademyScopeGuard)
+@RequireEnrollment()
 export class AcademyDiagnosticController {
   constructor(
     private diagnosticSession: DiagnosticSessionService,
@@ -40,21 +41,23 @@ export class AcademyDiagnosticController {
 
   @Post('answer')
   async submitAnswer(
+    @Param('academyId') academyId: string,
     @Body() body: SubmitDiagnosticAnswerDto,
     @CurrentOrg() org: OrgContext,
   ) {
     return this.diagnosticSession.submitAnswer(body.sessionId, org.userId, {
       answer: body.answer,
       responseTimeMs: body.responseTimeMs,
-    });
+    }, academyId);
   }
 
   @Get('result/:sessionId')
   async getResult(
+    @Param('academyId') academyId: string,
     @Param('sessionId') sessionId: string,
     @CurrentOrg() org: OrgContext,
   ) {
-    const result = await this.diagnosticSession.getResult(sessionId, org.userId);
+    const result = await this.diagnosticSession.getResult(sessionId, org.userId, academyId);
     this.posthog.capture({ distinctId: org.userId }, 'diagnostic completed', {
       session_id: sessionId,
       org_id: org.orgId,

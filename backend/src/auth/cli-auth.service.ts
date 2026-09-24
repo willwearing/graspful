@@ -132,7 +132,7 @@ export class CliAuthService {
       apiKey: this.decrypt(session.encryptedApiKey),
       orgSlug: org.slug,
       userId: session.userId,
-      brandDomain: brand?.domain ?? `${org.slug}.graspful.ai`,
+      ...(brand?.domain ? { brandDomain: brand.domain } : {}),
     };
   }
 

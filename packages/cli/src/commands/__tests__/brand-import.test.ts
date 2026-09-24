@@ -1,3 +1,4 @@
+import '../../../../client/test-support/preload';
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
 import { Command } from 'commander';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -5,6 +6,7 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 import { registerImportCommand } from '../import';
+import { BrandYamlSchema } from '@graspful/shared';
 
 describe('CLI brand import fields', () => {
   let directory: string;
@@ -97,10 +99,10 @@ describe('CLI brand import fields', () => {
       faviconUrl: '/field-favicon.ico',
       ogImageUrl: 'https://field.example.com/preview.png',
       orgSlug: source.brand.orgSlug,
-      theme: source.theme,
-      landing: source.landing,
-      seo: source.seo,
-      pricing: source.pricing,
+      theme: BrandYamlSchema.parse(source).theme,
+      landing: BrandYamlSchema.parse(source).landing,
+      seo: BrandYamlSchema.parse(source).seo,
+      pricing: BrandYamlSchema.parse(source).pricing,
       contentScope: { courseIds: ['antler-identification', 'track-identification'] },
     });
   });
@@ -118,6 +120,6 @@ describe('CLI brand import fields', () => {
 
     expect(sentBody!.faviconUrl).toBe('');
     expect(sentBody!.ogImageUrl).toBe('');
-    expect(sentBody!.contentScope).toEqual({});
+    expect(sentBody!.contentScope).toEqual({ courseIds: [] });
   });
 });

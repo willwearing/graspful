@@ -7,6 +7,8 @@ import { createSupabaseBrowserClient, hasSupabaseBrowserEnv } from "@/lib/supaba
 import { apiClientFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { safeRedirectPath } from "@graspful/shared";
+import { useHydrated } from "@graspful/creator-ui/use-hydrated";
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up";
@@ -18,16 +20,13 @@ export function AuthForm({ mode }: AuthFormProps) {
   const searchParams = useSearchParams();
   const reason = searchParams.get("reason");
   const presetEmail = searchParams.get("email") || "";
-  const rawRedirect = searchParams.get("redirect") || "/creator";
-  const redirectTo =
-    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
-      ? rawRedirect
-      : "/creator";
+  const redirectTo = safeRedirectPath(searchParams.get("redirect"), "/creator");
   const [email, setEmail] = useState(presetEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const hydrated = useHydrated();
 
   useEffect(() => {
     setEmail(presetEmail);
@@ -147,6 +146,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     Email
                   </label>
                   <input
+                    disabled={!hydrated}
                     id="email"
                     type="email"
                     value={email}
@@ -164,6 +164,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     Password
                   </label>
                   <input
+                    disabled={!hydrated}
                     id="password"
                     type="password"
                     value={password}
@@ -190,7 +191,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                   <p className="text-sm text-destructive">{error}</p>
                 )}
 
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full" disabled={loading || !hydrated}>
                   {loading ? "Loading..." : submitText}
                 </Button>
               </form>

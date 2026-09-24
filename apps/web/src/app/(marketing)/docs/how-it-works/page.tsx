@@ -1,3 +1,6 @@
+import { Callout } from "@/components/docs/callout";
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock } from "@/components/docs/code-block";
@@ -20,16 +23,10 @@ export const metadata: Metadata = {
 
 export default function HowItWorksPage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        How Graspful Works
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Graspful is an adaptive learning engine. You define content as YAML. The
-        engine handles diagnostics, mastery tracking, spaced repetition, task
-        selection, and gamification. This page is the one-page overview of the
-        entire system.
-      </p>
+    <DocPage
+      title="How Graspful Works"
+      description="Graspful is an adaptive learning engine. You define content as YAML. The engine handles diagnostics, mastery tracking, spaced repetition, task selection, and gamification. This page is the one-page overview of the entire system."
+    >
       <div className="mt-6 max-w-2xl rounded-lg border border-border/50 bg-muted/30 px-5 py-4">
         <p className="text-sm text-muted-foreground">
           Graspful&apos;s approach to adaptive learning is heavily inspired by{" "}
@@ -69,10 +66,7 @@ export default function HowItWorksPage() {
       </div>
 
       {/* 1. Knowledge Graph */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="knowledge-graph">
-          1. Knowledge Graph
-        </h2>
+      <DocSection title="1. Knowledge Graph" headingId="knowledge-graph">
         <p className="mt-2 text-muted-foreground">
           Every course is a directed acyclic graph (DAG) of concepts. Each
           concept represents one teachable idea that can be tested
@@ -101,16 +95,10 @@ export default function HowItWorksPage() {
             Course Schema: concepts
           </Link>
         </p>
-      </section>
+      </DocSection>
 
       {/* 2. Adaptive Diagnostics */}
-      <section className="mt-12">
-        <h2
-          className="text-2xl font-bold text-foreground"
-          id="adaptive-diagnostics"
-        >
-          2. Adaptive Diagnostics
-        </h2>
+      <DocSection title="2. Adaptive Diagnostics" headingId="adaptive-diagnostics">
         <p className="mt-2 text-muted-foreground">
           When a student starts a course, a diagnostic session maps what they
           already know in 20-60 questions. The engine uses{" "}
@@ -153,16 +141,10 @@ export default function HowItWorksPage() {
             Glossary: MEPE
           </Link>
         </p>
-      </section>
+      </DocSection>
 
       {/* 3. Mastery-Based Progression */}
-      <section className="mt-12">
-        <h2
-          className="text-2xl font-bold text-foreground"
-          id="mastery-based-progression"
-        >
-          3. Mastery-Based Progression
-        </h2>
+      <DocSection title="3. Mastery-Based Progression" headingId="mastery-based-progression">
         <p className="mt-2 text-muted-foreground">
           The learning engine selects new concepts whose prerequisites meet
           the configured mastery threshold. The set of concepts a student can work on
@@ -199,16 +181,10 @@ export default function HowItWorksPage() {
             Glossary: Remediation
           </Link>
         </p>
-      </section>
+      </DocSection>
 
       {/* 4. The Learning Staircase */}
-      <section className="mt-12">
-        <h2
-          className="text-2xl font-bold text-foreground"
-          id="learning-staircase"
-        >
-          4. The Learning Staircase
-        </h2>
+      <DocSection title="4. The Learning Staircase" headingId="learning-staircase">
         <p className="mt-2 text-muted-foreground">
           Each concept is broken into 2-4{" "}
           <strong className="text-foreground">knowledge points (KPs)</strong>{" "}
@@ -239,16 +215,10 @@ export default function HowItWorksPage() {
             Course Schema: knowledgePoints
           </Link>
         </p>
-      </section>
+      </DocSection>
 
       {/* 5. Spaced Repetition */}
-      <section className="mt-12">
-        <h2
-          className="text-2xl font-bold text-foreground"
-          id="spaced-repetition"
-        >
-          5. Spaced Repetition
-        </h2>
+      <DocSection title="5. Spaced Repetition" headingId="spaced-repetition">
         <p className="mt-2 text-muted-foreground">
           Once a concept is mastered, the engine schedules reviews using the{" "}
           <strong className="text-foreground">FIRe algorithm</strong>{" "}
@@ -287,16 +257,10 @@ export default function HowItWorksPage() {
             Glossary: Memory
           </Link>
         </p>
-      </section>
+      </DocSection>
 
       {/* 6. Intelligent Task Selection */}
-      <section className="mt-12">
-        <h2
-          className="text-2xl font-bold text-foreground"
-          id="task-selection"
-        >
-          6. Intelligent Task Selection
-        </h2>
+      <DocSection title="6. Intelligent Task Selection" headingId="task-selection">
         <p className="mt-2 text-muted-foreground">
           Every time a student opens a session, the engine decides what to do
           next. It uses a priority-based system: (1) remediation tasks for
@@ -322,13 +286,10 @@ export default function HowItWorksPage() {
             Glossary: Student Concept State
           </Link>
         </p>
-      </section>
+      </DocSection>
 
       {/* 7. Gamification */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="gamification">
-          7. Gamification
-        </h2>
+      <DocSection title="7. Gamification" headingId="gamification">
         <p className="mt-2 text-muted-foreground">
           Consistent engagement is what separates students who finish from those
           who drop off. Graspful drives engagement with three mechanics:{" "}
@@ -350,16 +311,10 @@ export default function HowItWorksPage() {
             Glossary: XP
           </Link>
         </p>
-      </section>
+      </DocSection>
 
       {/* The Two-YAML Workflow */}
-      <section className="mt-12">
-        <h2
-          className="text-2xl font-bold text-foreground"
-          id="two-yaml-workflow"
-        >
-          The Two-YAML Workflow
-        </h2>
+      <DocSection title="The Two-YAML Workflow" headingId="two-yaml-workflow">
         <p className="mt-2 text-muted-foreground">
           Course content and brand settings use separate YAML files. An academy
           manifest can group several courses. A{" "}
@@ -401,13 +356,10 @@ graspful import js-brand.yaml`}
             Brand Schema
           </Link>
         </p>
-      </section>
+      </DocSection>
 
       {/* Architecture */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="architecture">
-          Architecture
-        </h2>
+      <DocSection title="Architecture" headingId="architecture">
         <p className="mt-2 text-muted-foreground">
           The backend is built with NestJS and follows Domain-Driven Design with
           seven bounded contexts: Knowledge Graph, Student Model, Diagnostic,
@@ -431,11 +383,10 @@ graspful import js-brand.yaml`}
             .
           </p>
         </div>
-      </section>
+      </DocSection>
 
       {/* Next steps */}
-      <section className="mt-16 rounded-xl border border-border/50 bg-card p-8">
-        <h2 className="text-xl font-bold text-foreground mb-4">Next steps</h2>
+      <Callout as="section" className="mt-16 p-8" title="Next steps">
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href="/docs/quickstart"
@@ -494,7 +445,7 @@ graspful import js-brand.yaml`}
             <span>MCP Server — AI agent integration</span>
           </Link>
         </div>
-      </section>
-    </div>
+      </Callout>
+    </DocPage>
   );
 }

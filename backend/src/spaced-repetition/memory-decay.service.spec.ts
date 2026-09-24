@@ -1,3 +1,4 @@
+import { EnrollmentService } from '@/student-model/enrollment.service';
 import { MemoryDecayService } from './memory-decay.service';
 
 describe('MemoryDecayService', () => {
@@ -15,7 +16,7 @@ describe('MemoryDecayService', () => {
       getConceptStatesForDecay: jest.fn().mockResolvedValue([]),
       batchDecayMemory: jest.fn().mockResolvedValue(undefined),
     };
-    service = new MemoryDecayService(mockPrisma, mockStudentState);
+    service = new MemoryDecayService(new EnrollmentService(mockPrisma), mockStudentState);
   });
 
   it('should decay memory for all concepts based on elapsed time', async () => {

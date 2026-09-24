@@ -1,6 +1,7 @@
-import { notFound, redirect } from "next/navigation";
-import { apiFetch, createApiFetcher, ApiError, type ApiFetcher } from "@/lib/api";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import "server-only";
+import { notFound } from "next/navigation";
+import { apiFetch, ApiError, type ApiFetcher } from "@/lib/api";
+import { requireAppSession } from "@/lib/app-session";
 
 interface AuthSessionResult {
   token: string;
@@ -32,27 +33,13 @@ export interface LearnCourseRecord {
 }
 
 export async function requireLearnSession(): Promise<AuthSessionResult> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/sign-in");
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const token = session?.access_token;
-  if (!token) redirect("/sign-in");
-
-  return {
-    token,
-    serverApiFetch: createApiFetcher(token),
-  };
+  const { token, fetcher } = await requireAppSession();
+  return { token, serverApiFetch: fetcher };
 }
 
 export async function requireLearnAccess(orgSlug: string): Promise<AuthSessionResult> {
   const auth = await requireLearnSession();
-  const orgs = await auth.serverApiFetch<OrgMembership[]>("/users/me/orgs").catch(() => []);
+  const orgs = await auth.serverApiFetch<OrgMembership[]>("/users/me/orgs");
   const membership = orgs.find((org) => org.slug === orgSlug && org.isActive);
 
   if (!membership) {
@@ -69,7 +56,7 @@ export async function resolveAcademyBySlug(
 ): Promise<LearnAcademyRecord> {
   try {
     return await fetcher<LearnAcademyRecord>(
-      `/orgs/${orgSlug}/academies/slug/${academySlug}`,
+      `/orgs/${encodeURIComponent(orgSlug)}/academies/slug/${encodeURIComponent(academySlug)}`,
     );
   } catch (error) {
     if (error instanceof ApiError && error.statusCode === 404) notFound();
@@ -83,7 +70,7 @@ export async function resolveCourseBySlug(
   fetcher: ApiFetcher = apiFetch,
 ): Promise<LearnCourseRecord> {
   try {
-    return await fetcher<LearnCourseRecord>(`/orgs/${orgSlug}/courses/slug/${courseSlug}`);
+    return await fetcher<LearnCourseRecord>(`/orgs/${encodeURIComponent(orgSlug)}/courses/slug/${encodeURIComponent(courseSlug)}`);
   } catch (error) {
     if (error instanceof ApiError && error.statusCode === 404) notFound();
     throw error;

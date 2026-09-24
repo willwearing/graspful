@@ -3,22 +3,6 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { activeConceptWhere } from '@/knowledge-graph/active-course-content';
 import { Prisma } from '@prisma/client';
 
-export async function getAcademyIdForCourse(
-  prisma: PrismaService,
-  courseId: string,
-): Promise<string> {
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-    select: { academyId: true },
-  });
-
-  if (!course?.academyId) {
-    throw new NotFoundException('Course academy not found');
-  }
-
-  return course.academyId;
-}
-
 export async function ensureConceptStatesForAcademy(
   prisma: PrismaService,
   userId: string,

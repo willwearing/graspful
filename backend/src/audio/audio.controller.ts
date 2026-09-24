@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
-import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import type { OrgContext } from '@/auth/org-context';
 import { AudioService } from './audio.service';
 
 @Controller('orgs/:orgId/audio')

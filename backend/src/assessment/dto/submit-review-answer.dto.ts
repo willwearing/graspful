@@ -1,18 +1,8 @@
-import { IsString, IsNotEmpty, IsInt, Min } from 'class-validator';
+import { IsString, IsNotEmpty } from 'class-validator';
+import { SubmitAnswerDto } from './submit-answer.dto';
 
-export class SubmitReviewAnswerDto {
+export class SubmitReviewAnswerDto extends SubmitAnswerDto {
   @IsString()
   @IsNotEmpty()
   sessionId!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  problemId!: string;
-
-  @IsNotEmpty()
-  answer!: unknown;
-
-  @IsInt()
-  @Min(1)
-  responseTimeMs!: number;
 }

@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
-import * as yaml from 'js-yaml';
+import { dumpYaml } from '@graspful/client';
 import { scaffoldBrandObject } from '@graspful/shared';
 import { output } from '../lib/output';
 import { cliCapture } from '../lib/analytics';
@@ -22,7 +22,7 @@ export function registerCreateBrandCommand(createCmd: Command) {
         domain: opts.domain,
         orgSlug: opts.org,
       });
-      const yamlContent = yaml.dump(obj, { lineWidth: 120, noRefs: true });
+      const yamlContent = dumpYaml(obj);
 
       cliCapture('brand scaffolded', { niche: opts.niche });
       if (opts.output) {

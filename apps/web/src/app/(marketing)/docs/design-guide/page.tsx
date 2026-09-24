@@ -1,3 +1,6 @@
+import { Callout } from "@/components/docs/callout";
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock } from "@/components/docs/code-block";
@@ -47,41 +50,33 @@ const brandPresets = [
 
 export default function DesignGuidePage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        Design Guide
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Colors, typography, spacing, and component patterns for Graspful.
-        Every brand gets its own theme — this documents the Graspful defaults
-        and the system that drives all brands.
-      </p>
+    <DocPage
+      title="Design Guide"
+      description="Colors, typography, spacing, and component patterns for Graspful. Every brand gets its own theme — this documents the Graspful defaults and the system that drives all brands."
+    >
 
       {/* Logo & Favicon */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="logo">
-          Logo and Favicon
-        </h2>
+      <DocSection title="Logo and Favicon" headingId="logo">
         <p className="mt-2 text-muted-foreground">
           The Graspful favicon is a white &ldquo;G&rdquo; on a sky-blue rounded
           square. It ships as three formats for maximum compatibility.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-border/50 bg-card p-6">
+          <Callout>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">SVG</p>
             <code className="text-sm font-mono text-foreground">src/app/icon.svg</code>
             <p className="mt-1 text-xs text-muted-foreground">Modern browsers. Auto-served by Next.js.</p>
-          </div>
-          <div className="rounded-xl border border-border/50 bg-card p-6">
+          </Callout>
+          <Callout>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">ICO</p>
             <code className="text-sm font-mono text-foreground">src/app/favicon.ico</code>
             <p className="mt-1 text-xs text-muted-foreground">Legacy browsers. 16px, 32px, 48px.</p>
-          </div>
-          <div className="rounded-xl border border-border/50 bg-card p-6">
+          </Callout>
+          <Callout>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">PNG</p>
             <code className="text-sm font-mono text-foreground">src/app/apple-icon.png</code>
             <p className="mt-1 text-xs text-muted-foreground">iOS home screen. 180x180.</p>
-          </div>
+          </Callout>
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
           Each brand sets{" "}
@@ -94,13 +89,10 @@ export default function DesignGuidePage() {
           <code className="rounded-md bg-muted px-1.5 py-0.5 text-sm font-mono">apple-icon.png</code>{" "}
           from the app directory.
         </p>
-      </section>
+      </DocSection>
 
       {/* Colors */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="colors">
-          Colors
-        </h2>
+      <DocSection title="Colors" headingId="colors">
         <p className="mt-2 text-muted-foreground">
           The Graspful brand uses a sky-blue primary with teal accents.
           All colors are defined as HSL values in the brand config and injected
@@ -161,13 +153,10 @@ export default function DesignGuidePage() {
   --gradient-accent: #2DD4BF;
 }`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Typography */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="typography">
-          Typography
-        </h2>
+      <DocSection title="Typography" headingId="typography">
         <p className="mt-2 text-muted-foreground">
           Inter is the only typeface. Loaded via{" "}
           <code className="rounded-md bg-muted px-1.5 py-0.5 text-sm font-mono">next/font/google</code>{" "}
@@ -176,7 +165,7 @@ export default function DesignGuidePage() {
         </p>
 
         <div className="mt-4 space-y-4">
-          <div className="rounded-xl border border-border/50 bg-card p-6">
+          <Callout>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Heading scale</p>
             <div className="space-y-3">
               <div>
@@ -196,9 +185,9 @@ export default function DesignGuidePage() {
                 <code className="text-xs font-mono text-muted-foreground">text-base font-semibold</code>
               </div>
             </div>
-          </div>
+          </Callout>
 
-          <div className="rounded-xl border border-border/50 bg-card p-6">
+          <Callout>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Body text</p>
             <div className="space-y-3">
               <div>
@@ -214,20 +203,17 @@ export default function DesignGuidePage() {
                 <code className="text-xs font-mono text-muted-foreground">text-xs text-muted-foreground</code>
               </div>
             </div>
-          </div>
+          </Callout>
         </div>
-      </section>
+      </DocSection>
 
       {/* Spacing */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="spacing">
-          Spacing and Layout
-        </h2>
+      <DocSection title="Spacing and Layout" headingId="spacing">
         <p className="mt-2 text-muted-foreground">
           Consistent spacing creates visual rhythm. These are the patterns used
           across all doc and marketing pages.
         </p>
-        <div className="mt-4 rounded-xl border border-border/50 bg-card p-6">
+        <Callout className="mt-4">
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-4">
               <code className="w-32 font-mono text-muted-foreground">mt-12</code>
@@ -274,14 +260,11 @@ export default function DesignGuidePage() {
               <span className="text-foreground">Buttons, inputs, smaller elements</span>
             </div>
           </div>
-        </div>
-      </section>
+        </Callout>
+      </DocSection>
 
       {/* Component Patterns */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="components">
-          Component Patterns
-        </h2>
+      <DocSection title="Component Patterns" headingId="components">
         <p className="mt-2 text-muted-foreground">
           Reusable patterns across docs and marketing pages.
         </p>
@@ -347,13 +330,10 @@ export default function DesignGuidePage() {
   </div>
 </section>`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Multi-Brand Theme System */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="themes">
-          Multi-Brand Theme System
-        </h2>
+      <DocSection title="Multi-Brand Theme System" headingId="themes">
         <p className="mt-2 text-muted-foreground">
           Graspful is white-label. Each brand defines its own colors, gradients,
           and radius in the brand config. The{" "}
@@ -401,13 +381,10 @@ export default function DesignGuidePage() {
 // All Tailwind classes (bg-primary, text-foreground, etc.)
 // automatically pick up the brand's colors.`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* Dark Mode */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="dark-mode">
-          Dark Mode
-        </h2>
+      <DocSection title="Dark Mode" headingId="dark-mode">
         <p className="mt-2 text-muted-foreground">
           Dark mode is supported via the{" "}
           <code className="rounded-md bg-muted px-1.5 py-0.5 text-sm font-mono">.dark</code>{" "}
@@ -423,11 +400,10 @@ export default function DesignGuidePage() {
           color sets. The app layout (student dashboard, study flow) respects the user&apos;s
           preference. Marketing pages always render in light mode.
         </p>
-      </section>
+      </DocSection>
 
       {/* Next steps */}
-      <section className="mt-16 rounded-xl border border-border/50 bg-card p-8">
-        <h2 className="text-xl font-bold text-foreground mb-4">Next steps</h2>
+      <Callout as="section" className="mt-16 p-8" title="Next steps">
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href="/docs/brand-schema"
@@ -451,7 +427,7 @@ export default function DesignGuidePage() {
             <span>Course Creation Guide</span>
           </Link>
         </div>
-      </section>
-    </div>
+      </Callout>
+    </DocPage>
   );
 }

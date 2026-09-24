@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@/prisma/prisma.service';
+import { EnrollmentService } from '@/student-model/enrollment.service';
 import { StudentStateService } from '@/student-model/student-state.service';
 import { decayMemory } from './fire-equations';
 
@@ -8,7 +8,7 @@ const DECAY_EPSILON = 0.001; // skip updates smaller than this
 @Injectable()
 export class MemoryDecayService {
   constructor(
-    private prisma: PrismaService,
+    private enrollmentService: EnrollmentService,
     private studentState: StudentStateService,
   ) {}
 
@@ -54,15 +54,7 @@ export class MemoryDecayService {
     courseId: string,
     now: Date = new Date(),
   ): Promise<void> {
-    const course = await this.prisma.course.findUnique({
-      where: { id: courseId },
-      select: { academyId: true },
-    });
-
-    if (!course?.academyId) {
-      throw new Error(`Course ${courseId} is missing academyId`);
-    }
-
-    await this.decayAllMemory(userId, course.academyId, now);
+    const academyId = await this.enrollmentService.getAcademyIdForCourse(courseId);
+    await this.decayAllMemory(userId, academyId, now);
   }
 }

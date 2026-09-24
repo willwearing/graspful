@@ -1,9 +1,6 @@
-import { redirect } from "next/navigation";
+import { requireAppSession } from "@/lib/app-session";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createApiFetcher } from "@/lib/api";
-import { resolvePageBrand } from "@/lib/brand/resolve";
 import { resolveCreatorOrgSlug } from "@/lib/creator-org";
 import { StatCard } from "@/components/creator/stat-card";
 import { CourseList } from "@/components/creator/course-list";
@@ -38,20 +35,8 @@ function formatCurrency(amount: number): string {
 }
 
 export default async function CreatorDashboardPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/sign-in");
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const serverApiFetch = createApiFetcher(session?.access_token);
-
-  const brand = await resolvePageBrand();
-  const orgSlug = await resolveCreatorOrgSlug(session?.access_token, brand.orgSlug);
+  const { fetcher: serverApiFetch, token, brand } = await requireAppSession();
+  const orgSlug = await resolveCreatorOrgSlug(token, brand.orgSlug);
 
   // Fetch creator stats and courses in parallel
   let stats: CreatorStats = { students: 0, avgCompletion: 0, totalRevenue: 0 };
@@ -115,7 +100,7 @@ export default async function CreatorDashboardPage() {
         <CourseList
           courses={courses}
           orgSlug={orgSlug}
-          token={session?.access_token ?? ""}
+          token={token ?? ""}
         />
       )}
     </div>

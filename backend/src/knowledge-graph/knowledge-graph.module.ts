@@ -1,3 +1,4 @@
+import { BillingModule } from '@/billing/billing.module';
 import { Module } from '@nestjs/common';
 import { StudentModelModule } from '@/student-model/student-model.module';
 import { BrandsModule } from '@/brands/brands.module';
@@ -6,9 +7,7 @@ import { SharedApplicationModule } from '@/shared/application/shared-application
 import { KnowledgeGraphController } from './knowledge-graph.controller';
 import { AcademyGraphController } from './academy-graph.controller';
 import { CreatorController } from './creator.controller';
-import { CourseImporterService } from './course-importer.service';
-import { AcademyImporterService } from './academy-importer.service';
-import { GraphValidationService } from './graph-validation.service';
+import { KnowledgeGraphImportModule } from './knowledge-graph-import.module';
 import { GraphQueryService } from './graph-query.service';
 import { CourseReadService } from './course-read.service';
 import { ReviewService } from './review.service';
@@ -17,12 +16,9 @@ import { CourseYamlExportService } from './course-yaml-export.service';
 import { CourseManagementService } from './application/course-management.service';
 
 @Module({
-  imports: [StudentModelModule, BrandsModule, AuthModule, SharedApplicationModule],
+  imports: [KnowledgeGraphImportModule, BillingModule, StudentModelModule, BrandsModule, AuthModule, SharedApplicationModule],
   controllers: [KnowledgeGraphController, AcademyGraphController, CreatorController],
   providers: [
-    CourseImporterService,
-    AcademyImporterService,
-    GraphValidationService,
     GraphQueryService,
     CourseReadService,
     ReviewService,
@@ -32,7 +28,7 @@ import { CourseManagementService } from './application/course-management.service
   ],
   exports: [
     GraphQueryService,
-    GraphValidationService,
+    KnowledgeGraphImportModule,
     CourseReadService,
     ReviewService,
     CourseYamlExportService,

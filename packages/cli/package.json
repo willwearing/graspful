@@ -1,8 +1,26 @@
 {
   "name": "@graspful/cli",
-  "version": "0.2.8",
+  "version": "0.3.0",
   "description": "Create adaptive learning courses from YAML. CLI and MCP server for AI agents.",
-  "keywords": ["course", "learning", "adaptive", "mcp", "mcp-server", "ai", "ai-agent", "agent", "cli", "education", "edtech", "knowledge-graph", "spaced-repetition", "course-creation", "yaml", "adaptive-learning", "lms"],
+  "keywords": [
+    "course",
+    "learning",
+    "adaptive",
+    "mcp",
+    "mcp-server",
+    "ai",
+    "ai-agent",
+    "agent",
+    "cli",
+    "education",
+    "edtech",
+    "knowledge-graph",
+    "spaced-repetition",
+    "course-creation",
+    "yaml",
+    "adaptive-learning",
+    "lms"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/willwearing/graspful.git",
@@ -14,25 +32,29 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "bun x tsc",
     "dev": "bun x tsc --watch",
     "test": "bun test src",
-    "lint": "echo 'no lint configured yet'"
+    "lint": "eslint --config ../../eslint.config.mjs src",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@graspful/shared": "workspace:*",
     "chalk": "^5.4.0",
     "commander": "^13.0.0",
-    "js-yaml": "^4.1.0",
     "posthog-node": "^5.28.8",
-    "zod": "^3.24.0"
+    "zod": "^3.24.0",
+    "@graspful/client": "workspace:*"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "js-yaml": "^4.1.0"
   },
   "publishConfig": {
     "access": "public"

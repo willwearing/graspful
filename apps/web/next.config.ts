@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
+import { join } from "node:path";
 import { withPostHogConfig } from "@posthog/nextjs-config";
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: join(__dirname, "../.."),
+  outputFileTracingIncludes: { "/agents.md": ["../../CLAUDE.md"] },
   transpilePackages: ["@graspful/shared", "@graspful/creator-ui"],
   async rewrites() {
     return [

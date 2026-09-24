@@ -1,3 +1,4 @@
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -218,15 +219,10 @@ const sectionGroups = [
 
 export default function DocsIndexPage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        Documentation
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Define course content as YAML, review it, and import it with the CLI or
-        MCP tools. Published courses use a prerequisite graph, practice problems,
-        mastery estimates, and scheduled review. Billing requires separate setup.
-      </p>
+    <DocPage
+      title="Documentation"
+      description="Define course content as YAML, review it, and import it with the CLI or MCP tools. Published courses use a prerequisite graph, practice problems, mastery estimates, and scheduled review. Billing requires separate setup."
+    >
 
       <div className="mt-4 flex items-center gap-4">
         <code className="rounded-lg border border-border/50 bg-card px-4 py-2 font-mono text-sm text-foreground">
@@ -313,6 +309,6 @@ export default function DocsIndexPage() {
           </div>
         </div>
       </div>
-    </div>
+    </DocPage>
   );
 }

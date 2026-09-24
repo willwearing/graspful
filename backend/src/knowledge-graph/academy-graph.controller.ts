@@ -11,18 +11,19 @@ import {
   OrgMembershipGuard,
   CurrentOrg,
   MinRole,
+  AcademyScopeGuard,
 } from '@/auth';
-import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import type { OrgContext } from '@/auth/org-context';
 import { CourseReadService } from './course-read.service';
-import { AcademyImporterService } from './academy-importer.service';
+import { CourseManagementService } from './application/course-management.service';
 import { ImportAcademyDto } from './dto/import-academy.dto';
 
 @Controller('orgs/:orgId/academies')
-@UseGuards(JwtOrApiKeyGuard, OrgMembershipGuard)
+@UseGuards(JwtOrApiKeyGuard, OrgMembershipGuard, AcademyScopeGuard)
 export class AcademyGraphController {
   constructor(
     private courseReads: CourseReadService,
-    private academyImporter: AcademyImporterService,
+    private courseManagement: CourseManagementService,
   ) {}
 
   @Post('import')
@@ -31,15 +32,7 @@ export class AcademyGraphController {
     @Body() body: ImportAcademyDto,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.academyImporter.importFromManifest(
-      body.manifestYaml,
-      body.courseYamls,
-      org.orgId,
-      {
-        replace: body.replace,
-        archiveMissing: body.archiveMissing,
-      },
-    );
+    return this.courseManagement.importAcademy(org, body);
   }
 
   @Get()

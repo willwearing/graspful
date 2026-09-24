@@ -5,6 +5,9 @@
     "": {
       "name": "niche-audio-prep",
       "devDependencies": {
+        "@eslint/js": "^9",
+        "@typescript-eslint/parser": "^8.46.1",
+        "eslint": "^9",
         "turbo": "^2.4.0",
         "typescript": "^5.7.0",
       },
@@ -15,6 +18,7 @@
       "dependencies": {
         "@base-ui/react": "^1.3.0",
         "@graspful/creator-ui": "workspace:*",
+        "@graspful/shared": "workspace:*",
         "@monaco-editor/react": "^4.7.0",
         "@supabase/ssr": "^0.9.0",
         "@supabase/supabase-js": "^2.100.1",
@@ -22,6 +26,7 @@
         "clsx": "^2.1.1",
         "lucide-react": "^1.7.0",
         "next": "16.1.6",
+        "posthog-js": "^1.396.2",
         "react": "19.2.3",
         "react-dom": "19.2.3",
         "tailwind-merge": "^3.5.0",
@@ -145,17 +150,31 @@
     },
     "packages/cli": {
       "name": "@graspful/cli",
-      "version": "0.2.8",
+      "version": "0.3.0",
       "bin": {
         "graspful": "dist/index.js",
       },
       "dependencies": {
+        "@graspful/client": "workspace:*",
         "@graspful/shared": "workspace:*",
         "chalk": "^5.4.0",
         "commander": "^13.0.0",
-        "js-yaml": "^4.1.0",
         "posthog-node": "^5.28.8",
         "zod": "^3.24.0",
+      },
+      "devDependencies": {
+        "@types/js-yaml": "^4.0.9",
+        "@types/node": "^22.0.0",
+        "js-yaml": "^4.1.0",
+        "typescript": "^5.7.0",
+      },
+    },
+    "packages/client": {
+      "name": "@graspful/client",
+      "version": "0.1.0",
+      "dependencies": {
+        "@graspful/shared": "workspace:*",
+        "js-yaml": "^4.1.0",
       },
       "devDependencies": {
         "@types/js-yaml": "^4.0.9",
@@ -167,8 +186,16 @@
       "name": "@graspful/creator-ui",
       "version": "0.1.0",
       "dependencies": {
+        "@base-ui/react": "^1.3.0",
         "@graspful/shared": "workspace:*",
         "@monaco-editor/react": "^4.7.0",
+        "@supabase/ssr": "^0.9.0",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "lucide-react": "^0.577.0",
+        "posthog-js": "^1.396.2",
+        "server-only": "0.0.1",
+        "tailwind-merge": "^3.5.0",
         "yaml": "^2.8.2",
       },
       "devDependencies": {
@@ -182,26 +209,28 @@
     },
     "packages/mcp": {
       "name": "@graspful/mcp",
-      "version": "0.2.6",
+      "version": "0.3.0",
       "bin": {
         "graspful-mcp": "dist/index.js",
       },
       "dependencies": {
+        "@graspful/client": "workspace:*",
         "@graspful/shared": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.27.1",
-        "js-yaml": "^4.1.0",
         "posthog-node": "^5.28.8",
-        "zod": "^3.24.0",
+        "zod": "^3.25.0",
+        "zod-to-json-schema": "^3.24.0",
       },
       "devDependencies": {
         "@types/js-yaml": "^4.0.9",
         "@types/node": "^25.5.0",
+        "js-yaml": "^4.1.0",
         "typescript": "^5.7.0",
       },
     },
     "packages/shared": {
       "name": "@graspful/shared",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "dependencies": {
         "zod": "^3.24.0",
       },
@@ -395,6 +424,8 @@
     "@graspful/backend": ["@graspful/backend@workspace:backend"],
 
     "@graspful/cli": ["@graspful/cli@workspace:packages/cli"],
+
+    "@graspful/client": ["@graspful/client@workspace:packages/client"],
 
     "@graspful/creator-ui": ["@graspful/creator-ui@workspace:packages/creator-ui"],
 
@@ -1954,7 +1985,7 @@
 
     "lru-cache": ["lru-cache@11.2.7", "", {}, "sha512-aY/R+aEsRelme17KGQa/1ZSIpLpNYYrhcrepKTZgE+W3WM16YMCaPwOHLHsmopZHELU0Ojin1lPVxKR0MihncA=="],
 
-    "lucide-react": ["lucide-react@1.7.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-yI7BeItCLZJTXikmK4KNUGCKoGzSvbKlfCvw44bU4fXAL6v3gYS4uHD1jzsLkfwODYwI6Drw5Tu9Z5ulDe0TSg=="],
+    "lucide-react": ["lucide-react@0.577.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-4LjoFv2eEPwYDPg/CUdBJQSDfPyzXCRrVW1X7jrx/trgxnxkHFjnVZINbzvzxjN70dxychOfg+FTYwBiS3pQ5A=="],
 
     "lz-string": ["lz-string@1.5.0", "", { "bin": { "lz-string": "bin/bin.js" } }, "sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ=="],
 
@@ -2376,6 +2407,8 @@
 
     "serve-static": ["serve-static@1.16.3", "", { "dependencies": { "encodeurl": "~2.0.0", "escape-html": "~1.0.3", "parseurl": "~1.3.3", "send": "~0.19.1" } }, "sha512-x0RTqQel6g5SY7Lg6ZreMmsOzncHFU7nhnRWkKgWuMTu5NN0DR5oruckMqRvacAN9d5w6ARnRBXl9xhDCgfMeA=="],
 
+    "server-only": ["server-only@0.0.1", "", {}, "sha512-qepMx2JxAa5jjfzxG79yPPq+8BuFToHd1hm7kI+Z4zAq1ftQiP7HcxMhDDItrbtwVeLg/cY2JnKnrcFkmiswNA=="],
+
     "set-function-length": ["set-function-length@1.2.2", "", { "dependencies": { "define-data-property": "^1.1.4", "es-errors": "^1.3.0", "function-bind": "^1.1.2", "get-intrinsic": "^1.2.4", "gopd": "^1.0.1", "has-property-descriptors": "^1.0.2" } }, "sha512-pgRc4hJ4/sNjWCSS9AmnS40x3bNMDTknHgL5UaMBTMyJnU90EgWh1Rz+MC9eFu4BuN/UwZjKQuY/1v3rM7HMfg=="],
 
     "set-function-name": ["set-function-name@2.0.2", "", { "dependencies": { "define-data-property": "^1.1.4", "es-errors": "^1.3.0", "functions-have-names": "^1.2.3", "has-property-descriptors": "^1.0.2" } }, "sha512-7PGFlmtwsEADb0WYyvCMa1t+yke6daIG4Wirafur5kcf+MhUnPms1UeR0CKQdTZD81yESwMHbtn+TR+dMviakQ=="],
@@ -2788,6 +2821,8 @@
 
     "@graspful/site/@types/node": ["@types/node@20.19.37", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-8kzdPJ3FsNsVIurqBs7oodNnCEVbni9yUEkaHbgptDACOPW04jimGagZ51E6+lXUwJjgnBw+hyko/lkFWCldqw=="],
 
+    "@graspful/site/lucide-react": ["lucide-react@1.7.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-yI7BeItCLZJTXikmK4KNUGCKoGzSvbKlfCvw44bU4fXAL6v3gYS4uHD1jzsLkfwODYwI6Drw5Tu9Z5ulDe0TSg=="],
+
     "@graspful/web/@opentelemetry/api-logs": ["@opentelemetry/api-logs@0.214.0", "", { "dependencies": { "@opentelemetry/api": "^1.3.0" } }, "sha512-40lSJeqYO8Uz2Yj7u94/SJWE/wONa7rmMKjI1ZcIjgf3MHNHv1OZUCrCETGuaRF62d5pQD1wKIW+L4lmSMTzZA=="],
 
     "@graspful/web/@opentelemetry/exporter-logs-otlp-http": ["@opentelemetry/exporter-logs-otlp-http@0.214.0", "", { "dependencies": { "@opentelemetry/api-logs": "0.214.0", "@opentelemetry/core": "2.6.1", "@opentelemetry/otlp-exporter-base": "0.214.0", "@opentelemetry/otlp-transformer": "0.214.0", "@opentelemetry/sdk-logs": "0.214.0" }, "peerDependencies": { "@opentelemetry/api": "^1.3.0" } }, "sha512-9qv2Tl/Hq6qc5pJCbzFJnzA0uvlb9DgM70yGJPYf3bA5LlLkRCpcn81i4JbcIH4grlQIWY6A+W7YG0LLvS1BAw=="],
@@ -2795,8 +2830,6 @@
     "@graspful/web/@opentelemetry/sdk-logs": ["@opentelemetry/sdk-logs@0.214.0", "", { "dependencies": { "@opentelemetry/api-logs": "0.214.0", "@opentelemetry/core": "2.6.1", "@opentelemetry/resources": "2.6.1", "@opentelemetry/semantic-conventions": "^1.29.0" }, "peerDependencies": { "@opentelemetry/api": ">=1.4.0 <1.10.0" } }, "sha512-zf6acnScjhsaBUU22zXZ/sLWim1dfhUAbGXdMmHmNG3LfBnQ3DKsOCITb2IZwoUsNNMTogqFKBnlIPPftUgGwA=="],
 
     "@graspful/web/@types/node": ["@types/node@20.19.37", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-8kzdPJ3FsNsVIurqBs7oodNnCEVbni9yUEkaHbgptDACOPW04jimGagZ51E6+lXUwJjgnBw+hyko/lkFWCldqw=="],
-
-    "@graspful/web/lucide-react": ["lucide-react@0.577.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-4LjoFv2eEPwYDPg/CUdBJQSDfPyzXCRrVW1X7jrx/trgxnxkHFjnVZINbzvzxjN70dxychOfg+FTYwBiS3pQ5A=="],
 
     "@inquirer/core/cli-width": ["cli-width@4.1.0", "", {}, "sha512-ouuZd4/dm2Sw5Gmqy6bGyNNNe1qt9RpmxveLSO7KcgsTnU7RXfsw+/bukWGo1abgBiMAic068rclZsO4IWmmxQ=="],
 

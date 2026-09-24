@@ -5,19 +5,17 @@ import { getServerPostHog } from "@/lib/posthog/server";
 import { emitServerLog, flushServerLogsAfterResponse } from "@/lib/posthog/server-logs";
 import { getDefaultAuthRedirectPath, getHostSurface, getRequestHost } from "@/lib/hosts";
 import { resolveBrand } from "@/lib/brand/resolve";
+import { safeRedirectPath } from "@graspful/shared";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
   const hostname = getRequestHost(request.headers);
   const surface = getHostSurface(hostname);
-  const rawRedirect =
-    searchParams.get("redirect") || getDefaultAuthRedirectPath(surface);
-  // Prevent open redirect: must be a relative path, not protocol-relative
-  const redirect =
-    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
-      ? rawRedirect
-      : "/dashboard";
+  const redirect = safeRedirectPath(
+    searchParams.get("redirect"),
+    getDefaultAuthRedirectPath(surface)
+  );
 
   if (code) {
     const cookieStore = await cookies();

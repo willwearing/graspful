@@ -1,3 +1,6 @@
+import { Callout } from "@/components/docs/callout";
+import { DocSection } from "@/components/docs/doc-section";
+import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock, InlineCode } from "@/components/docs/code-block";
@@ -70,21 +73,13 @@ const priorities = [
 
 export default function TaskSelectionPage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold tracking-[-0.04em] text-foreground">
-        Task Selection
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-        Graspful doesn&apos;t show problems randomly or in a fixed sequence. It
-        maintains a priority queue for every student, re-evaluated on each
-        interaction, to surface the single highest-value task at any moment.
-      </p>
+    <DocPage
+      title="Task Selection"
+      description="Graspful doesn&apos;t show problems randomly or in a fixed sequence. It maintains a priority queue for every student, re-evaluated on each interaction, to surface the single highest-value task at any moment."
+    >
 
       {/* Why order matters */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="why-order-matters">
-          Why order matters
-        </h2>
+      <DocSection title="Why order matters" headingId="why-order-matters">
         <p className="mt-2 text-muted-foreground">
           Two students with identical knowledge can have wildly different
           optimal next steps. One might be forgetting a critical prerequisite.
@@ -97,13 +92,10 @@ export default function TaskSelectionPage() {
           tasks are ordered by urgency (e.g., lowest memory strength first for
           reviews, highest graph value first for new lessons).
         </p>
-      </section>
+      </DocSection>
 
       {/* Priority system */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="priority-system">
-          The priority system
-        </h2>
+      <DocSection title="The priority system" headingId="priority-system">
         <p className="mt-2 text-muted-foreground">
           Every task falls into exactly one priority tier. P1 always beats P2,
           P2 always beats P3, and so on. The system never skips a higher
@@ -138,13 +130,10 @@ export default function TaskSelectionPage() {
             </div>
           ))}
         </div>
-      </section>
+      </DocSection>
 
       {/* Plateau detection */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="plateau-detection">
-          Plateau detection and remediation
-        </h2>
+      <DocSection title="Plateau detection and remediation" headingId="plateau-detection">
         <p className="mt-2 text-muted-foreground">
           When a student fails the same concept twice (<InlineCode>failCount
           &gt;= 2</InlineCode>), the system declares a plateau. Instead of
@@ -187,13 +176,10 @@ export default function TaskSelectionPage() {
           supposed to already know. Remediation targets the root cause, not the
           symptom.
         </p>
-      </section>
+      </DocSection>
 
       {/* Interleaving */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="interleaving">
-          Interleaving
-        </h2>
+      <DocSection title="Interleaving" headingId="interleaving">
         <p className="mt-2 text-muted-foreground">
           Research shows that mixing different concept types within a study
           session (interleaving) produces stronger long-term retention than
@@ -208,13 +194,10 @@ export default function TaskSelectionPage() {
           of the learning lifecycle. The result is a varied, engaging session
           that also happens to optimize retention.
         </p>
-      </section>
+      </DocSection>
 
       {/* Example session */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="example-session">
-          Example session
-        </h2>
+      <DocSection title="Example session" headingId="example-session">
         <p className="mt-2 text-muted-foreground">
           Here&apos;s what a typical 15-minute session might look like. The task
           selector re-evaluates after every answer.
@@ -253,13 +236,10 @@ export default function TaskSelectionPage() {
   reason: "subnet-design failCount=2, BFS found cidr-notation at 0.38 mastery"
   action: targeted practice on CIDR notation`}
         </CodeBlock>
-      </section>
+      </DocSection>
 
       {/* How it connects */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-bold text-foreground" id="how-it-connects">
-          How task selection connects to other systems
-        </h2>
+      <DocSection title="How task selection connects to other systems" headingId="how-it-connects">
         <p className="mt-2 text-muted-foreground">
           Task selection sits at the center of the adaptive engine. It reads
           from the student model, knowledge graph, and spaced repetition
@@ -286,11 +266,10 @@ export default function TaskSelectionPage() {
             based on the task type completed, with harder tasks earning more.
           </li>
         </ul>
-      </section>
+      </DocSection>
 
       {/* Next steps */}
-      <section className="mt-16 rounded-xl border border-border/50 bg-card p-8">
-        <h2 className="text-xl font-bold text-foreground mb-4">Next steps</h2>
+      <Callout as="section" className="mt-16 p-8" title="Next steps">
         <div className="space-y-3">
           <Link
             href="/docs/concepts/mastery-learning"
@@ -315,7 +294,7 @@ export default function TaskSelectionPage() {
             Adaptive Diagnostics — how placement tests map prior knowledge
           </Link>
         </div>
-      </section>
-    </div>
+      </Callout>
+    </DocPage>
   );
 }

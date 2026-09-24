@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { test, expect, type Page } from "@playwright/test";
-import { getE2eEnvironment } from "../../../scripts/e2e-env";
+import { getE2eEnvironment } from "../../../backend/scripts/e2e-env";
 import {
   getBrowserAccessToken,
   getSupabaseUserIdByEmail,
@@ -137,6 +137,8 @@ test.describe("Academy features", () => {
     await expect(page.getByRole("heading", { name: "Diagnostic Assessment" })).toBeVisible({
       timeout: 15_000,
     });
+    await expect(page.getByText("Question 1 of ~1", { exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Start Diagnostic Assessment", exact: true }).click();
     await expect(page.getByText("Question 1 of ~1", { exact: true })).toBeVisible();
     await expect(page.getByText("What is 2 + 2?", { exact: true })).toBeVisible();
     await expect(page.getByRole("radiogroup")).toBeVisible();
@@ -168,6 +170,7 @@ test.describe("Academy features", () => {
     await expect(page).toHaveURL(`/study/${courseId}/lesson/${conceptId}`, {
       timeout: 15_000,
     });
+    await page.getByRole("button", { name: "Start Lesson" }).click();
     await expect(page.getByText("Knowledge Point 1 of 1", { exact: true })).toBeVisible();
     await expect(page.getByText(instruction, { exact: true })).toBeVisible();
     await expect(page.getByRole("complementary").getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();

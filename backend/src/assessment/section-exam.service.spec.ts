@@ -1,5 +1,7 @@
+import { EnrollmentService } from '@/student-model/enrollment.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ExamSessionStatus, SectionMasteryState } from '@prisma/client';
+import { StudentStateService } from '@/student-model/student-state.service';
 import { SectionExamService } from './section-exam.service';
 
 describe('SectionExamService', () => {
@@ -61,11 +63,13 @@ describe('SectionExamService', () => {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       courseSection: { findFirst: jest.fn().mockResolvedValue(null) },
+      studentConceptState: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
       $transaction: jest.fn(),
     };
     prisma.$transaction.mockImplementation((callback) => callback(prisma));
     const scope = { assertSection: jest.fn().mockResolvedValue({ academyId: 'academy-1' }) };
-    const studentState = { markConceptsNeedsReview: jest.fn().mockResolvedValue(undefined) };
+    const studentState = new StudentStateService(prisma as any, new EnrollmentService(prisma as any));
+    jest.spyOn(studentState, 'applySectionExamResult');
     const xp = { recordXPEvent: jest.fn().mockResolvedValue({ amount: 23 }) };
     const service = new SectionExamService(prisma as any, xp as any, studentState as any, scope as any);
     jest.spyOn(service, 'syncSectionStates').mockResolvedValue([] as any);
@@ -80,7 +84,7 @@ describe('SectionExamService', () => {
     await expect(complete()).rejects.toThrow('Answer every assigned question');
     expect(prisma.sectionExamSession.update).not.toHaveBeenCalled();
     expect(prisma.studentSectionState.update).not.toHaveBeenCalled();
-    expect(studentState.markConceptsNeedsReview).not.toHaveBeenCalled();
+    expect(studentState.applySectionExamResult).not.toHaveBeenCalled();
     expect(xp.recordXPEvent).not.toHaveBeenCalled();
   });
 
@@ -93,7 +97,14 @@ describe('SectionExamService', () => {
     expect(prisma.studentSectionState.update).toHaveBeenCalledWith(expect.objectContaining({
       data: { status: SectionMasteryState.needs_review },
     }));
-    expect(studentState.markConceptsNeedsReview).toHaveBeenCalledWith('user-1', ['concept-1'], prisma);
+    expect(studentState.applySectionExamResult).toHaveBeenCalledWith(prisma, {
+      userId: 'user-1', courseId: 'course-1', sectionId: 'section-1', sectionSortOrder: 1,
+      passed: false, failedConcepts: ['concept-1'],
+    });
+    expect(prisma.studentConceptState.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', conceptId: { in: ['concept-1'] } },
+      data: { masteryState: 'needs_review' },
+    });
   });
 
   it('completes a full exam and replays its persisted result using a stable XP key', async () => {
@@ -161,9 +172,8 @@ describe('SectionExamService', () => {
     expect(prisma.problemAttempt.create).not.toHaveBeenCalled();
   });
 
-  it('rejects expired, completed and null submissions without recording attempts', async () => {
+  it('rejects expired and completed submissions without recording attempts', async () => {
     const { answer, session, prisma } = createHarness();
-    await expect(answer('problem-2', null)).rejects.toBeInstanceOf(BadRequestException);
     session.startedAt = new Date(Date.now() - 61_000);
     await expect(answer()).rejects.toThrow('time has expired');
     session.status = ExamSessionStatus.completed;
@@ -295,10 +305,7 @@ describe('SectionExamService', () => {
       recordXPEvent: jest.fn(),
     };
 
-    const mockStudentState = {
-      getConceptMasteryForIds: jest.fn().mockResolvedValue(new Map()),
-      markConceptsNeedsReview: jest.fn().mockResolvedValue(undefined),
-    };
+    const mockStudentState = new StudentStateService(prisma as any, new EnrollmentService(prisma as any));
     const scope = { assertSection: jest.fn().mockResolvedValue({ academyId: 'academy-1' }) };
     const service = new SectionExamService(prisma as any, xpService as any, mockStudentState as any, scope as any);
     jest.spyOn(service, 'syncSectionStates').mockResolvedValue([] as any);

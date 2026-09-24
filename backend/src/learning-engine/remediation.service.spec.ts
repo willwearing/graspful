@@ -1,3 +1,4 @@
+import { EnrollmentService } from '@/student-model/enrollment.service';
 import { RemediationService } from './remediation.service';
 
 describe('RemediationService', () => {
@@ -23,7 +24,7 @@ describe('RemediationService', () => {
       },
     };
 
-    service = new RemediationService(mockPrisma);
+    service = new RemediationService(mockPrisma, new EnrollmentService(mockPrisma));
   });
 
   describe('getActiveRemediations', () => {

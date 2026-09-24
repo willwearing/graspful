@@ -11,7 +11,7 @@ export default defineConfig([
     ],
   },
   {
-    files: ["src/**/*.ts", "prisma/**/*.ts"],
+    files: ["src/**/*.ts", "prisma/**/*.ts", "scripts/**/*.ts"],
     languageOptions: {
       parser: tsParser,
       parserOptions: {

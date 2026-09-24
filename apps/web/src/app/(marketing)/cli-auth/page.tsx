@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { cliAuthConfirmationCode } from "@graspful/shared";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { apiClientFetch } from "@/lib/api-client";
 import { resetPostHog } from "@/lib/posthog/events";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 
-type CliAuthState = "checking" | "redirecting" | "authorizing" | "done" | "error";
+type CliAuthState = "checking" | "redirecting" | "confirm" | "authorizing" | "done" | "error";
 const CLI_SIGN_UP_COMPLETE_PARAM = "cli-sign-up-complete";
 
 function getHashToken(): string | null {
@@ -32,6 +34,7 @@ export default function CliAuthPage() {
   const [state, setState] = useState<CliAuthState>("checking");
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
+  const [pending, setPending] = useState<{ token: string; accessToken: string; code: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,25 +84,12 @@ export default function CliAuthPage() {
         return;
       }
 
-      try {
-        if (cancelled) return;
-        setState("authorizing");
-        await apiClientFetch<{ authorized: true; orgSlug: string }>(
-          "/auth/cli/sessions/authorize",
-          accessToken,
-          {
-            method: "POST",
-            body: JSON.stringify({ token }),
-          }
-        );
-        if (!cancelled) {
-          setState("done");
-        }
-      } catch (err) {
-        if (cancelled) return;
-        setState("error");
-        setError(err instanceof Error ? err.message : "Could not complete CLI authentication.");
-      }
+      // Never authorize on page load: a link from someone else would hand
+      // them an API key for this account. The user must approve explicitly.
+      const code = await cliAuthConfirmationCode(token);
+      if (cancelled) return;
+      setPending({ token, accessToken, code });
+      setState("confirm");
     }
 
     completeCliAuth();
@@ -108,6 +98,25 @@ export default function CliAuthPage() {
       cancelled = true;
     };
   }, [router]);
+
+  const approve = useCallback(async () => {
+    if (!pending) return;
+    setState("authorizing");
+    try {
+      await apiClientFetch<{ authorized: true; orgSlug: string }>(
+        "/auth/cli/sessions/authorize",
+        pending.accessToken,
+        {
+          method: "POST",
+          body: JSON.stringify({ token: pending.token }),
+        }
+      );
+      setState("done");
+    } catch (err) {
+      setState("error");
+      setError(err instanceof Error ? err.message : "Could not complete CLI authentication.");
+    }
+  }, [pending]);
 
   const title = state === "done"
     ? "CLI authentication complete"
@@ -121,6 +130,8 @@ export default function CliAuthPage() {
         return "Checking your browser session.";
       case "redirecting":
         return "Redirecting you to the right auth screen.";
+      case "confirm":
+        return "Approve this terminal to issue it an API key for your account.";
       case "authorizing":
         return "Issuing your CLI API key.";
       case "done":
@@ -143,6 +154,25 @@ export default function CliAuthPage() {
             challenge happen. The terminal only receives an API key after this
             session is fully authenticated.
           </p>
+
+          {state === "confirm" && pending ? (
+            <div className="space-y-3 rounded-lg border border-border px-4 py-3">
+              <p>
+                Only approve if you just ran{" "}
+                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                  graspful {mode === "sign-up" ? "register" : "login"}
+                </code>{" "}
+                yourself and your terminal shows this code:
+              </p>
+              <p className="text-center font-mono text-2xl tracking-widest text-foreground">
+                {pending.code}
+              </p>
+              <p>If you did not start this, close the tab. Nothing is issued until you approve.</p>
+              <Button className="w-full" onClick={approve}>
+                Approve terminal
+              </Button>
+            </div>
+          ) : null}
 
           {state === "done" ? (
             <p className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-foreground">

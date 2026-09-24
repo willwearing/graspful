@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { StrictMode } from "react";
+import { renderToString } from "react-dom/server";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { AuthForm } from "@/components/auth/auth-form";
 import { BrandProvider } from "@/lib/brand/context";
@@ -46,6 +47,15 @@ describe("AuthForm", () => {
     mockRefresh.mockReset();
     mockApiClientFetch.mockReset();
     mockTrackAuthFormEvent.mockReset();
+  });
+
+  it("keeps server-rendered form controls disabled until hydration attaches handlers", () => {
+    const markup = renderToString(<BrandProvider brand={defaultBrand}><AuthForm mode="sign-in" /></BrandProvider>);
+    const container = document.createElement("div");
+    container.innerHTML = markup;
+    expect(container.querySelector<HTMLInputElement>("#email")?.disabled).toBe(true);
+    expect(container.querySelector<HTMLInputElement>("#password")?.disabled).toBe(true);
+    expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
   });
 
   it("uses free-account copy and tracks the first signup interaction once", () => {

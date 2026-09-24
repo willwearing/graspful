@@ -1,15 +1,14 @@
+import '../../../../client/test-support/preload';
 import { describe, it, expect, beforeEach, afterEach, spyOn, mock } from 'bun:test';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-const CREDENTIALS_PATH = path.join(os.homedir(), '.graspful', 'credentials.json');
 
 describe('graspful login', () => {
   let originalFetch: typeof globalThis.fetch;
-  let writeFileSyncSpy: ReturnType<typeof spyOn>;
-  let mkdirSyncSpy: ReturnType<typeof spyOn>;
-  let existsSyncSpy: ReturnType<typeof spyOn>;
+  let directory: string;
+  let previousConfigDir: string | undefined;
   let exitSpy: ReturnType<typeof spyOn>;
   let consoleLogSpy: ReturnType<typeof spyOn>;
   let originalConsoleError: typeof console.error;
@@ -17,9 +16,10 @@ describe('graspful login', () => {
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
-    writeFileSyncSpy = spyOn(fs, 'writeFileSync').mockImplementation(() => {});
-    mkdirSyncSpy = spyOn(fs, 'mkdirSync').mockImplementation(() => '' as any);
-    existsSyncSpy = spyOn(fs, 'existsSync').mockReturnValue(false);
+    globalThis.fetch = (async () => { throw new Error('Unexpected network request'); }) as typeof fetch;
+    directory = fs.mkdtempSync(path.join(os.tmpdir(), 'graspful-auth-test-'));
+    previousConfigDir = process.env.GRASPFUL_CONFIG_DIR;
+    process.env.GRASPFUL_CONFIG_DIR = directory;
     exitSpy = spyOn(process, 'exit').mockImplementation(() => { throw new Error('process.exit'); });
     consoleLogSpy = spyOn(console, 'log').mockImplementation(() => {});
     originalConsoleError = console.error;
@@ -29,9 +29,9 @@ describe('graspful login', () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
-    writeFileSyncSpy.mockRestore();
-    mkdirSyncSpy.mockRestore();
-    existsSyncSpy.mockRestore();
+    if (previousConfigDir === undefined) delete process.env.GRASPFUL_CONFIG_DIR;
+    else process.env.GRASPFUL_CONFIG_DIR = previousConfigDir;
+    fs.rmSync(directory, { recursive: true, force: true });
     exitSpy.mockRestore();
     consoleLogSpy.mockRestore();
     console.error = originalConsoleError;
@@ -51,8 +51,7 @@ describe('graspful login', () => {
       '--api-url', 'http://localhost:3000',
     ]);
 
-    expect(writeFileSyncSpy).toHaveBeenCalledTimes(1);
-    const savedContent = JSON.parse(writeFileSyncSpy.mock.calls[0][1] as string);
+    const savedContent = JSON.parse(fs.readFileSync(path.join(directory, 'credentials.json'), 'utf-8'));
     expect(savedContent.apiKey).toBe('gsk_my_api_key');
     expect(savedContent.baseUrl).toBe('http://localhost:3000');
   });
@@ -71,8 +70,7 @@ describe('graspful login', () => {
       '--api-url', 'http://localhost:3000',
     ]);
 
-    expect(writeFileSyncSpy).toHaveBeenCalledTimes(1);
-    const savedContent = JSON.parse(writeFileSyncSpy.mock.calls[0][1] as string);
+    const savedContent = JSON.parse(fs.readFileSync(path.join(directory, 'credentials.json'), 'utf-8'));
     expect(savedContent.jwt).toBe('eyJhbGciOiJIUzI1NiJ9.test');
     expect(savedContent.baseUrl).toBe('http://localhost:3000');
   });
@@ -113,8 +111,7 @@ describe('graspful login', () => {
       '--api-url', 'http://localhost:3000',
     ]);
 
-    expect(writeFileSyncSpy).toHaveBeenCalledTimes(1);
-    const savedContent = JSON.parse(writeFileSyncSpy.mock.calls[0][1] as string);
+    const savedContent = JSON.parse(fs.readFileSync(path.join(directory, 'credentials.json'), 'utf-8'));
     expect(savedContent.apiKey).toBe('gsk_browser_flow_key');
     expect(savedContent.userId).toBe('user-123');
     expect(savedContent.baseUrl).toBe('http://localhost:3000');

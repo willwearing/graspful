@@ -1,22 +1,21 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { useAnswerSubmission } from "@/lib/hooks/use-answer-submission";
+import { usePracticeLoop } from "@/lib/hooks/use-practice-loop";
+import { useLatestRef } from "@/lib/hooks/use-latest-ref";
+import { useMountEffect } from "@/lib/hooks/use-mount-effect";
 import { apiClientFetch } from "@/lib/api-client";
 import { ProblemRenderer, type ProblemFeedback } from "@/components/app/problems/problem-renderer";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import type { Problem, ProblemAnswer } from "@/lib/types";
+import type { ProblemAnswer } from "@/lib/types";
+import type { DiagnosticStart } from "@graspful/shared";
 import { trackDiagnosticComplete, trackDiagnosticStarted, trackDiagnosticQuestionAnswered, trackDiagnosticAbandoned } from "@/lib/posthog/events";
 
-interface DiagnosticState {
-  sessionId: string;
-  questionNumber: number;
-  totalEstimated: number;
-  isComplete: boolean;
-  question: Problem | null;
-}
+type DiagnosticState = Omit<DiagnosticStart, "courseId">;
 
 interface DiagnosticResult {
   totalConcepts: number;
@@ -51,113 +50,63 @@ export function DiagnosticFlow({
 }: DiagnosticFlowProps) {
   const router = useRouter();
   const [state, setState] = useState<DiagnosticState>(initialData);
-  const [feedback, setFeedback] = useState<ProblemFeedback | null>(null);
   const [result, setResult] = useState<DiagnosticResult | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const startTimeRef = useRef(Date.now());
-  const fetchingRef = useRef(false);
-  const stateRef = useRef(state);
-  const resultRef = useRef(result);
-
+  const startTimeRef = useRef(0);
+  const stateRef = useLatestRef(state);
+  const resultRef = useLatestRef(result);
+  const { feedback, present } = usePracticeLoop<ProblemFeedback>();
   const diagnosticBasePath = academyId
     ? `/orgs/${orgSlug}/academies/${academyId}/diagnostic`
     : `/orgs/${orgSlug}/courses/${courseId}/diagnostic`;
 
-  // Fetch result when complete
-  const fetchResult = useCallback(async (sessionId: string) => {
-    const res = await apiClientFetch<DiagnosticResult>(
-      `${diagnosticBasePath}/result/${sessionId}`,
-      token
-    );
-    setResult(res);
-    trackDiagnosticComplete(
-      courseId,
-      res.breakdown.mastered + res.breakdown.conditionally_mastered,
-      res.totalConcepts,
-    );
-  }, [diagnosticBasePath, token, courseId]);
+  const completion = useAnswerSubmission<string, DiagnosticResult>({
+    send: (sessionId) => apiClientFetch(`${diagnosticBasePath}/result/${sessionId}`, token),
+    onSuccess: (response) => {
+      setResult(response);
+      trackDiagnosticComplete(courseId, response.breakdown.mastered + response.breakdown.conditionally_mastered, response.totalConcepts);
+    },
+    errorMessage: "Could not load your diagnostic result. Try again.",
+  });
+  const { submit: fetchResult } = completion;
 
-  useEffect(() => { stateRef.current = state; }, [state]);
-  useEffect(() => { resultRef.current = result; }, [result]);
-
-  // Track abandonment on unmount if not complete
-  useEffect(() => {
+  useMountEffect(() => {
+    startTimeRef.current = Date.now();
+    trackDiagnosticStarted(courseId, initialData.totalEstimated);
     return () => {
       if (!stateRef.current.isComplete && !resultRef.current) {
         trackDiagnosticAbandoned(courseId, stateRef.current.questionNumber, stateRef.current.totalEstimated);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  });
 
-  // Track diagnostic start
   useEffect(() => {
-    trackDiagnosticStarted(courseId, initialData.totalEstimated);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // If initially complete, fetch result
-  useEffect(() => {
-    if (state.isComplete && !result && !fetchingRef.current) {
-      fetchingRef.current = true;
-      fetchResult(state.sessionId).finally(() => {
-        fetchingRef.current = false;
-      });
-    }
+    if (state.isComplete && !result) void fetchResult(state.sessionId);
   }, [state.isComplete, state.sessionId, result, fetchResult]);
 
-  async function handleSubmit(answer: ProblemAnswer) {
-    if (submitting) return;
-    setSubmitting(true);
-    setError(null);
+  const submission = useAnswerSubmission<{
+    body: string; questionNumber: number; responseTimeMs: number; skipped: boolean;
+  }, Omit<DiagnosticState, "totalEstimated"> & { wasCorrect: boolean }>({
+    send: (request) => apiClientFetch(`${diagnosticBasePath}/answer`, token, { method: "POST", body: request.body }),
+    onSuccess: (response, request) => {
+      trackDiagnosticQuestionAnswered(courseId, request.questionNumber, response.wasCorrect, request.skipped, request.responseTimeMs);
+      return present({ wasCorrect: response.wasCorrect, skipped: request.skipped }, () => {
+        setState((previous) => ({ ...previous, sessionId: response.sessionId ?? previous.sessionId,
+          questionNumber: response.questionNumber ?? previous.questionNumber,
+          isComplete: response.isComplete, question: response.question ?? null }));
+        startTimeRef.current = Date.now();
+      });
+    },
+    errorMessage: "Something went wrong. Please try again.",
+  });
+  const { submitting, error } = submission;
 
-    try {
-      const response = await apiClientFetch<any>(
-        `${diagnosticBasePath}/answer`,
-        token,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            sessionId: state.sessionId,
-            answer,
-            responseTimeMs: Date.now() - startTimeRef.current,
-          }),
-        }
-      );
-
-      const skipped = answer === "__I_DONT_KNOW__";
-      trackDiagnosticQuestionAnswered(
-        courseId,
-        state.questionNumber,
-        response.wasCorrect,
-        skipped,
-        Date.now() - startTimeRef.current,
-      );
-      setFeedback({ wasCorrect: response.wasCorrect, skipped });
-
-      // After brief delay, show next question or complete
-      setTimeout(() => {
-        setFeedback(null);
-        if (response.isComplete) {
-          setState((prev) => ({ ...prev, isComplete: true }));
-          fetchResult(state.sessionId);
-        } else {
-          setState({
-            sessionId: response.sessionId,
-            questionNumber: response.questionNumber,
-            totalEstimated: state.totalEstimated,
-            isComplete: false,
-            question: response.question,
-          });
-          startTimeRef.current = Date.now();
-        }
-        setSubmitting(false);
-      }, 1500);
-    } catch {
-      setError("Something went wrong. Please try again.");
-      setSubmitting(false);
-    }
+  function handleSubmit(answer: ProblemAnswer) {
+    if (submitting || feedback || state.isComplete) return;
+    const responseTimeMs = Date.now() - startTimeRef.current;
+    return submission.submit({
+      body: JSON.stringify({ sessionId: state.sessionId, answer, responseTimeMs }),
+      questionNumber: state.questionNumber, responseTimeMs, skipped: answer === "__I_DONT_KNOW__",
+    });
   }
 
   // Completion screen
@@ -199,7 +148,12 @@ export function DiagnosticFlow({
             </Button>
           </>
         ) : (
-          <p className="text-muted-foreground">Loading results...</p>
+          completion.error ? (
+            <div role="alert" className="text-destructive">
+              <p>{completion.error}</p>
+              <Button onClick={() => void completion.retry()} disabled={completion.submitting}>Retry result</Button>
+            </div>
+          ) : <p className="text-muted-foreground">Loading results...</p>
         )}
       </div>
     );
@@ -225,7 +179,7 @@ export function DiagnosticFlow({
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
           {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
+          <button onClick={submission.clearError} className="ml-2 underline">Dismiss</button>
         </div>
       )}
 

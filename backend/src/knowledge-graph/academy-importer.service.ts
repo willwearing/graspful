@@ -144,7 +144,7 @@ export class AcademyImporterService {
     };
   }
 
-  private parseManifest(manifestYaml: string): AcademyManifest {
+  parseManifest(manifestYaml: string): AcademyManifest {
     const raw = yaml.load(manifestYaml);
     const parseResult = AcademyManifestSchema.safeParse(raw);
 

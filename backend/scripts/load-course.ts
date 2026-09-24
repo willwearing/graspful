@@ -4,13 +4,11 @@ import * as fs from "fs";
 import * as path from "path";
 import { Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
-import { PrismaModule } from "../src/prisma/prisma.module";
+import { KnowledgeGraphImportModule } from "../src/knowledge-graph/knowledge-graph-import.module";
 import { CourseImporterService } from "../src/knowledge-graph/course-importer.service";
-import { GraphValidationService } from "../src/knowledge-graph/graph-validation.service";
 
 @Module({
-  imports: [PrismaModule],
-  providers: [CourseImporterService, GraphValidationService],
+  imports: [KnowledgeGraphImportModule],
 })
 class CourseImportCliModule {}
 

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ConnectService } from './connect.service';
@@ -14,14 +15,15 @@ jest.mock('stripe', () => ({
 describe('ConnectService setup safety', () => {
   let service: ConnectService;
   let config: Record<string, string | undefined>;
-  let prisma: { organization: Record<string, jest.Mock>; revenueEvent: Record<string, jest.Mock> };
+  let prisma: { $transaction: jest.Mock; organization: Record<string, jest.Mock>; revenueEvent: Record<string, jest.Mock> };
 
   beforeEach(() => {
     jest.clearAllMocks();
     config = { APP_URL: 'https://app.graspful.test/', STRIPE_SECRET_KEY: 'sk_test_fixture', STRIPE_WEBHOOK_SECRET: 'whsec_fixture' };
     prisma = {
+      $transaction: jest.fn(async (callback) => callback(prisma)),
       organization: { findUniqueOrThrow: jest.fn(), update: jest.fn() },
-      revenueEvent: { upsert: jest.fn() },
+      revenueEvent: { upsert: jest.fn(), aggregate: jest.fn(), findMany: jest.fn() },
     };
     service = new ConnectService(prisma as unknown as PrismaService, { get: (key: string) => config[key] } as ConfigService);
   });
@@ -69,6 +71,52 @@ describe('ConnectService setup safety', () => {
     prisma.organization.findUniqueOrThrow.mockResolvedValue({ stripeConnectAccountId: 'acct_test', connectOnboardingComplete: true });
     expect(await service.getConnectStatus('org-1')).toEqual({
       setupAvailable: false, hasConnectAccount: true, onboardingComplete: true,
+    });
+  });
+
+  it('returns organization totals while limiting recent event reads', async () => {
+    prisma.revenueEvent.aggregate.mockResolvedValue({
+      _sum: { grossAmount: 10000, platformFee: 3000, creatorPayout: 7000 },
+      _count: { _all: 50 },
+    });
+    prisma.revenueEvent.findMany.mockResolvedValue([{ id: 'latest' }]);
+    await expect(service.getRevenue('org-1')).resolves.toEqual({
+      grossRevenue: 10000, platformFees: 3000, creatorEarnings: 7000,
+      currency: 'usd', eventCount: 50, recentEvents: [{ id: 'latest' }],
+    });
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+    });
+    expect(prisma.revenueEvent.aggregate).toHaveBeenCalledWith({
+      where: { orgId: 'org-1' },
+      _sum: { grossAmount: true, platformFee: true, creatorPayout: true },
+      _count: { _all: true },
+    });
+    expect(prisma.revenueEvent.findMany).toHaveBeenCalledWith({
+      where: { orgId: 'org-1' }, orderBy: { createdAt: 'desc' }, take: 20,
+    });
+  });
+
+  it('omits event reads for creator statistics that only need revenue totals', async () => {
+    prisma.revenueEvent.aggregate.mockResolvedValue({
+      _sum: { grossAmount: 1000, platformFee: 300, creatorPayout: 700 },
+      _count: { _all: 1 },
+    });
+    await expect(service.getRevenue('org-1', { includeRecentEvents: false })).resolves.toMatchObject({
+      creatorEarnings: 700, eventCount: 1, recentEvents: [],
+    });
+    expect(prisma.revenueEvent.findMany).not.toHaveBeenCalled();
+  });
+
+  it('returns zero revenue when the organization has no invoices', async () => {
+    prisma.revenueEvent.aggregate.mockResolvedValue({
+      _sum: { grossAmount: null, platformFee: null, creatorPayout: null },
+      _count: { _all: 0 },
+    });
+    prisma.revenueEvent.findMany.mockResolvedValue([]);
+    await expect(service.getRevenue('org-empty')).resolves.toEqual({
+      grossRevenue: 0, platformFees: 0, creatorEarnings: 0,
+      currency: 'usd', eventCount: 0, recentEvents: [],
     });
   });
 

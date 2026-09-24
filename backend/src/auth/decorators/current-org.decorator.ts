@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import type { OrgContext } from '../guards/org-membership.guard';
+import type { OrgContext } from '@/auth/org-context';
 
 export const CurrentOrg = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): OrgContext => {

@@ -1,8 +1,12 @@
 import { Test } from '@nestjs/testing';
-import { StreakService, StreakStatus } from './streak.service';
+import { StreakService } from './streak.service';
 import { PrismaService } from '@/prisma/prisma.service';
+import { EnrollmentService } from '@/student-model/enrollment.service';
 
 const mockPrisma = {
+  course: {
+    findUnique: jest.fn(),
+  },
   userStreak: {
     findMany: jest.fn(),
     findUnique: jest.fn(),
@@ -21,11 +25,13 @@ describe('StreakService', () => {
   let service: StreakService;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+    mockPrisma.course.findUnique.mockResolvedValue({ academyId: 'academy-1' });
     const module = await Test.createTestingModule({
       providers: [
         StreakService,
         { provide: PrismaService, useValue: mockPrisma },
+        EnrollmentService,
       ],
     }).compile();
     service = module.get(StreakService);
@@ -33,10 +39,10 @@ describe('StreakService', () => {
 
   describe('getStreakStatus', () => {
     it('should return 0-day streak when no history', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         dailyXPTarget: 40,
         streakFreezeTokens: 1,
-        course: { orgId: 'org-1' },
+        academy: { orgId: 'org-1' },
       });
       mockPrisma.userStreak.findMany.mockResolvedValue([]);
 
@@ -47,18 +53,18 @@ describe('StreakService', () => {
     });
 
     it('should count consecutive days meeting XP target', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         dailyXPTarget: 40,
         streakFreezeTokens: 1,
-        course: { orgId: 'org-1' },
+        academy: { orgId: 'org-1' },
       });
 
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      today.setUTCHours(0, 0, 0, 0);
       const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
+      yesterday.setUTCDate(today.getUTCDate() - 1);
       const twoDaysAgo = new Date(today);
-      twoDaysAgo.setDate(today.getDate() - 2);
+      twoDaysAgo.setUTCDate(today.getUTCDate() - 2);
 
       mockPrisma.userStreak.findMany.mockResolvedValue([
         { date: today, xpEarned: 45 },
@@ -73,17 +79,17 @@ describe('StreakService', () => {
     });
 
     it('should break streak on missed day without freeze token', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         dailyXPTarget: 40,
         streakFreezeTokens: 0,
-        course: { orgId: 'org-1' },
+        academy: { orgId: 'org-1' },
       });
 
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      today.setUTCHours(0, 0, 0, 0);
       // Skip yesterday, have two days ago
       const twoDaysAgo = new Date(today);
-      twoDaysAgo.setDate(today.getDate() - 2);
+      twoDaysAgo.setUTCDate(today.getUTCDate() - 2);
 
       mockPrisma.userStreak.findMany.mockResolvedValue([
         { date: today, xpEarned: 50 },
@@ -96,18 +102,18 @@ describe('StreakService', () => {
     });
 
     it('should use freeze token to preserve streak through missed day', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         dailyXPTarget: 40,
         streakFreezeTokens: 1,
-        course: { orgId: 'org-1' },
+        academy: { orgId: 'org-1' },
       });
 
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      today.setUTCHours(0, 0, 0, 0);
       const twoDaysAgo = new Date(today);
-      twoDaysAgo.setDate(today.getDate() - 2);
+      twoDaysAgo.setUTCDate(today.getUTCDate() - 2);
       const threeDaysAgo = new Date(today);
-      threeDaysAgo.setDate(today.getDate() - 3);
+      threeDaysAgo.setUTCDate(today.getUTCDate() - 3);
 
       mockPrisma.userStreak.findMany.mockResolvedValue([
         { date: today, xpEarned: 50 },
@@ -125,13 +131,11 @@ describe('StreakService', () => {
   });
 
   describe('getAcademyStreakStatus', () => {
-    it('should return 0-day streak when no enrollment', async () => {
+    it('should reject requests without academy enrollment', async () => {
       mockPrisma.academyEnrollment.findUnique.mockResolvedValue(null);
 
-      const status = await service.getAcademyStreakStatus('user-1', 'academy-1');
-
-      expect(status.currentStreak).toBe(0);
-      expect(status.todayComplete).toBe(false);
+      await expect(service.getAcademyStreakStatus('user-1', 'academy-1')).rejects.toThrow();
+      expect(mockPrisma.userStreak.findMany).not.toHaveBeenCalled();
     });
 
     it('should count consecutive days using academy enrollment', async () => {
@@ -147,9 +151,9 @@ describe('StreakService', () => {
         });
 
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      today.setUTCHours(0, 0, 0, 0);
       const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
+      yesterday.setUTCDate(today.getUTCDate() - 1);
 
       mockPrisma.userStreak.findMany.mockResolvedValue([
         { date: today, xpEarned: 50 },
@@ -165,10 +169,10 @@ describe('StreakService', () => {
 
   describe('getLongestStreak', () => {
     it('should calculate longest streak from history', async () => {
-      mockPrisma.courseEnrollment.findUnique.mockResolvedValue({
+      mockPrisma.academyEnrollment.findUnique.mockResolvedValue({
         dailyXPTarget: 40,
         streakFreezeTokens: 0,
-        course: { orgId: 'org-1' },
+        academy: { orgId: 'org-1' },
       });
 
       // 5-day streak, then gap, then 2-day streak
@@ -176,13 +180,13 @@ describe('StreakService', () => {
       const base = new Date('2026-03-01');
       for (let i = 0; i < 5; i++) {
         const d = new Date(base);
-        d.setDate(base.getDate() + i);
+        d.setUTCDate(base.getUTCDate() + i);
         dates.push({ date: d, xpEarned: 40 + i });
       }
       // Gap on day 5
       for (let i = 7; i < 9; i++) {
         const d = new Date(base);
-        d.setDate(base.getDate() + i);
+        d.setUTCDate(base.getUTCDate() + i);
         dates.push({ date: d, xpEarned: 40 });
       }
 

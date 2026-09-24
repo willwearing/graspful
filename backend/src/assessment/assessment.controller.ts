@@ -6,8 +6,8 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg } from '@/auth';
-import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, CourseScopeGuard, RequireEnrollment } from '@/auth';
+import type { OrgContext } from '@/auth/org-context';
 import { PostHogService } from '@/shared/application/posthog.service';
 import { ProblemSubmissionService } from './problem-submission.service';
 import { ReviewService } from './review.service';
@@ -18,7 +18,8 @@ import { SubmitReviewAnswerDto } from './dto/submit-review-answer.dto';
 import { CompleteReviewDto } from './dto/complete-review.dto';
 
 @Controller('orgs/:orgId/courses/:courseId')
-@UseGuards(SupabaseAuthGuard, OrgMembershipGuard)
+@UseGuards(SupabaseAuthGuard, OrgMembershipGuard, CourseScopeGuard)
+@RequireEnrollment()
 export class AssessmentController {
   constructor(
     private problemSubmission: ProblemSubmissionService,

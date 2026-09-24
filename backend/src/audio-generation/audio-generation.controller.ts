@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Logger, Post, UseGuards } from '@nestjs/common';
 import { SupabaseAuthGuard, OrgMembershipGuard, CurrentOrg, MinRole } from '@/auth';
-import type { OrgContext } from '@/auth/guards/org-membership.guard';
+import type { OrgContext } from '@/auth/org-context';
 import { AudioGenerationService } from './audio-generation.service';
 import { GenerateAudioDto } from './dto/generate-audio.dto';
 

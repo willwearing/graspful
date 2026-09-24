@@ -98,12 +98,14 @@ test.describe("Diagnostic flow", () => {
 
   test("diagnostic loads and shows question 1", async ({ page }) => {
     await page.goto(diagnosticHref);
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
     await expectQuestion(page, 1);
     await expect(page.getByRole("button", { name: "I don't know this yet" })).toBeVisible();
   });
 
   test("answering a question advances to the next", async ({ page }) => {
     await page.goto(diagnosticHref);
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
     await expectQuestion(page, 1);
     await answerCurrentQuestion(page);
     await expectQuestion(page, 2);
@@ -111,12 +113,14 @@ test.describe("Diagnostic flow", () => {
 
   test("session resumes after page reload", async ({ page }) => {
     await page.goto(diagnosticHref);
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
     await expectQuestion(page, 1);
     await answerCurrentQuestion(page);
     await expectQuestion(page, 2);
 
     const question = await page.getByText(/^What is /).textContent();
     await page.reload();
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
 
     await expectQuestion(page, 2);
     await expect(page.getByText(/^What is /)).toHaveText(question!);
@@ -125,6 +129,7 @@ test.describe("Diagnostic flow", () => {
 
   test("'I don't know' advances to next question", async ({ page }) => {
     await page.goto(diagnosticHref);
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
     await expectQuestion(page, 1);
     await page.getByRole("button", { name: "I don't know this yet" }).click();
     await expectQuestion(page, 2);
@@ -132,6 +137,7 @@ test.describe("Diagnostic flow", () => {
 
   test("completing the diagnostic shows the recorded results", async ({ page }) => {
     await page.goto(diagnosticHref);
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
     for (let number = 1; number <= 3; number += 1) {
       await expectQuestion(page, number);
       await page.getByRole("button", { name: "I don't know this yet" }).click();
