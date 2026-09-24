@@ -40,6 +40,26 @@ describe('OrgMembershipGuard', () => {
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
   });
 
+  it('rejects an API key used against a different org', async () => {
+    const prisma = createMockPrisma({ role: 'owner' });
+    const guard = new OrgMembershipGuard(prisma, new Reflector());
+    const ctx = createMockContext(
+      { userId: 'user-1', email: 'a@b.com', apiKeyOrgId: '00000000-0000-0000-0000-000000000002' },
+      '00000000-0000-0000-0000-000000000001',
+    );
+    await expect(guard.canActivate(ctx)).rejects.toThrow('API key is not valid for this organization');
+    expect(prisma.orgMembership.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('allows an API key on the org it was minted for', async () => {
+    const guard = new OrgMembershipGuard(createMockPrisma({ role: 'admin' }), new Reflector());
+    const ctx = createMockContext(
+      { userId: 'user-1', email: 'a@b.com', apiKeyOrgId: '00000000-0000-0000-0000-000000000001' },
+      '00000000-0000-0000-0000-000000000001',
+    );
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
+  });
+
   it('should allow member when no minRole is set', async () => {
     const guard = new OrgMembershipGuard(createMockPrisma({ role: 'member' }), new Reflector());
     const ctx = createMockContext({ userId: 'user-1', email: 'a@b.com' }, '00000000-0000-0000-0000-000000000001');

@@ -7,7 +7,7 @@ function mockExecutionContext(authHeader?: string): ExecutionContext {
     user: undefined,
     apiKeyOrg: undefined,
     apiKeyUser: undefined,
-    orgId: undefined,
+    apiKeyOrgId: undefined,
   };
 
   return {
@@ -57,7 +57,7 @@ describe('JwtOrApiKeyGuard', () => {
       const req = ctx.switchToHttp().getRequest();
       req.apiKeyUser = { id: 'user-1', email: 'test@example.com' };
       req.apiKeyOrg = { id: 'org-1' };
-      req.orgId = 'org-1';
+      req.apiKeyOrgId = 'org-1';
       return true;
     });
 
@@ -70,7 +70,7 @@ describe('JwtOrApiKeyGuard', () => {
 
     // Verify request.user was set from apiKeyUser
     const req = ctx.switchToHttp().getRequest();
-    expect(req.user).toEqual({ userId: 'user-1', email: 'test@example.com' });
+    expect(req.user).toEqual({ userId: 'user-1', email: 'test@example.com', apiKeyOrgId: 'org-1' });
   });
 
   it('delegates to SupabaseAuthGuard for regular JWT tokens', async () => {

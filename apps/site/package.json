@@ -23,7 +23,8 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.5.0",
-    "@graspful/creator-ui": "workspace:*"
+    "@graspful/creator-ui": "workspace:*",
+    "@graspful/shared": "workspace:*"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

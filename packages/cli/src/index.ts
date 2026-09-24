@@ -20,7 +20,7 @@ const program = new Command();
 program
   .name('graspful')
   .description('Create adaptive learning courses from YAML')
-  .version('0.2.8')
+  .version('0.2.9')
   .option('--format <format>', 'Output format: human or json', 'human')
   .hook('preAction', (thisCommand) => {
     const opts = thisCommand.opts();

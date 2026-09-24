@@ -1,16 +1,9 @@
 import { describe, it, expect } from "vitest";
+import { safeRedirectPath } from "@graspful/shared";
 
-/**
- * Tests for the redirect validation logic used in the auth callback route.
- * Extracted from apps/web/src/app/auth/callback/route.ts to test in isolation.
- */
-
+/** The auth callback, confirm route and auth form all use this helper. */
 function validateRedirect(rawRedirect: string | null): string {
-  const fallback = "/dashboard";
-  const redirect = rawRedirect || fallback;
-  return redirect.startsWith("/") && !redirect.startsWith("//")
-    ? redirect
-    : fallback;
+  return safeRedirectPath(rawRedirect, "/dashboard");
 }
 
 describe("auth callback redirect validation", () => {
@@ -40,6 +33,11 @@ describe("auth callback redirect validation", () => {
 
   it("rejects protocol-relative URL (//evil.com)", () => {
     expect(validateRedirect("//evil.com")).toBe("/dashboard");
+  });
+
+  it("rejects backslash tricks that browsers treat as //", () => {
+    expect(validateRedirect("/\\evil.com")).toBe("/dashboard");
+    expect(validateRedirect("/\t/evil.com")).toBe("/dashboard");
   });
 
   it("rejects bare domain string", () => {

@@ -35,31 +35,31 @@ describe('OrgMembershipService', () => {
       isActive: true,
     });
     mockPrisma.orgMembership.upsert.mockResolvedValue({
-      role: 'owner',
+      role: 'member',
     });
 
     await expect(
       service.joinOrganizationBySlug(PLATFORM_ORG_SLUG, 'user-1'),
     ).resolves.toEqual({
       orgId: 'org-graspful',
-      role: 'owner',
+      role: 'member',
     });
   });
 
-  it('assigns owner role when joining the graspful platform org', async () => {
+  it('assigns member role when joining the graspful platform org', async () => {
     mockPrisma.organization.findUnique.mockResolvedValue({
       id: 'org-graspful',
       isActive: true,
     });
     mockPrisma.orgMembership.upsert.mockResolvedValue({
-      role: 'owner',
+      role: 'member',
     });
 
     await expect(
       service.joinOrganizationBySlug(PLATFORM_ORG_SLUG, 'user-1'),
     ).resolves.toEqual({
       orgId: 'org-graspful',
-      role: 'owner',
+      role: 'member',
     });
 
     expect(mockPrisma.orgMembership.upsert).toHaveBeenCalledWith({
@@ -68,7 +68,7 @@ describe('OrgMembershipService', () => {
       create: {
         orgId: 'org-graspful',
         userId: 'user-1',
-        role: 'owner',
+        role: 'member',
       },
     });
   });

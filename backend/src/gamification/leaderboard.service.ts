@@ -25,6 +25,7 @@ export class LeaderboardService {
       by: ['userId'],
       where: {
         academyId,
+        academy: { orgId },
         createdAt: { gte: weekStart },
       },
       _sum: { amount: true },
@@ -80,6 +81,7 @@ export class LeaderboardService {
       by: ['userId'],
       where: {
         courseId,
+        course: { orgId },
         createdAt: { gte: weekStart },
       },
       _sum: { amount: true },

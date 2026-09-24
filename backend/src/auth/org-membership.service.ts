@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 
-/** The platform org slug — creators signing up here own their account */
+/** The platform org slug. Users who join it are learners, never owners. */
 export const PLATFORM_ORG_SLUG = 'graspful';
 
 @Injectable()
@@ -53,7 +53,7 @@ export class OrgMembershipService {
       create: {
         orgId: org.id,
         userId,
-        role: 'owner',
+        role: 'member',
       },
     });
 
