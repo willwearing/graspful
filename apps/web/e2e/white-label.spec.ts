@@ -1,12 +1,14 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("White-label theming", () => {
-  test("brand cookie is set on page load", async ({ page }) => {
+  test("selected brand renders without the obsolete brand-id cookie", async ({ page }) => {
+    await page.context().addCookies([
+      { name: "dev-brand-override", value: "firefighter", url: "http://localhost:3001" },
+    ]);
     await page.goto("/");
+    await expect(page.getByRole("navigation").getByRole("link").first()).toContainText("FirefighterPrep");
     const cookies = await page.context().cookies();
-    const brandCookie = cookies.find((c) => c.name === "brand-id");
-    expect(brandCookie).toBeDefined();
-    expect(brandCookie!.value).toBeTruthy();
+    expect(cookies.find((cookie) => cookie.name === "brand-id")).toBeUndefined();
   });
 
   test("CSS custom properties are injected for theming", async ({ page }) => {
@@ -37,10 +39,11 @@ test.describe("White-label theming", () => {
     await expect(homeLink).toHaveAttribute("href", "/");
   });
 
-  test("x-brand-id header is set in responses", async ({ page }) => {
+  test("branded pages omit the obsolete x-brand-id response header", async ({ page }) => {
     const response = await page.goto("/");
-    const brandHeader = response?.headers()["x-brand-id"];
-    expect(brandHeader).toBeTruthy();
+    expect(response?.status()).toBe(200);
+    expect(response?.headers()["x-brand-id"]).toBeUndefined();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   });
 
   test("sign-in page shows brand name in subtitle", async ({ page }) => {
