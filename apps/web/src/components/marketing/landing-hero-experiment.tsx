@@ -17,7 +17,8 @@ function GraspfulHeroExperiment(
   props: Omit<LandingHeroExperimentProps, "isGraspful">,
 ) {
   const variant = useFeatureFlagVariant(HOMEPAGE_PRODUCT_PROOF_FLAG, {
-    fallbackAfterMs: 500,
+    // Visitors who fall back see control without an exposure, so the deadline must cover a first-visit flag request.
+    fallbackAfterMs: 2000,
     fallbackVariant: "control",
   });
 

@@ -30,6 +30,8 @@ Traffic is mainly direct. Organic search produced six visitors and ten pageviews
 
 Use PostHog's standard experiment exposure event. Evaluate `homepage-product-proof-v1` only on the Graspful homepage. Other hosted brands must stay outside the experiment.
 
+The homepage hides the hero for up to 2 seconds while flags load. After that, it shows the control hero without an exposure event. A visitor who falls back is outside the analysis, even when the flag later assigns `product-proof`. Keep the deadline long enough to cover a first-visit flag request. Monitor the share of assigned homepage visitors without an exposure event.
+
 ### Primary metric
 
 `landing_cta_clicked`, filtered to `page = /` and measured as a user-level funnel after exposure.
@@ -38,7 +40,9 @@ This event includes the CTA location, destination, page, and brand ID. The page 
 
 ### Secondary metric
 
-`sign_up`, measured as a user-level funnel after exposure.
+`account_created`, measured as a user-level funnel after exposure.
+
+The backend sends `account_created` once for each account, after the first org commits. The browser identifies the same user at sign-in, so the event joins the anonymous exposure. Do not use `sign_up`. It fires only when the email-confirmation callback succeeds in the same browser, so it misses most production accounts.
 
 Use this as a guardrail for the first experiment. The challenger sends people to the quickstart first, so it may increase qualified interest while reducing immediate signup clicks.
 
@@ -67,7 +71,7 @@ Status: Draft in PostHog.
 - Allocation: 50% control, 50% challenger
 - Rollout: 100% of eligible homepage visitors
 - Primary metric: Homepage CTA conversion
-- Secondary metric: Signup completion
+- Secondary metric: Account creation (`account_created`)
 - Internal and test users: Excluded
 
 Hypothesis:
@@ -81,7 +85,7 @@ Showing a concrete source-to-course workflow and sending visitors to a runnable 
 3. Use PostHog's local flag override to inspect both variants on desktop and mobile.
 4. Confirm one exposure event per visitor and the correct variant property.
 5. Click each CTA and confirm `location`, `destination`, and `brand_id`.
-6. Complete a signup and confirm identity continuity from anonymous activity to `sign_up`.
+6. Complete a signup and confirm identity continuity from anonymous activity to `account_created`.
 7. Check that non-Graspful brands never evaluate the flag.
 8. Launch only after these checks pass.
 
@@ -92,11 +96,11 @@ Run for at least two full weeks to cover weekday and weekend behavior. Because c
 Ship the challenger when all of these conditions are true:
 
 - PostHog gives it at least a 95% chance of improving the primary metric.
-- Signup completion has no clear harmful change.
+- Account creation has no clear harmful change.
 - Recordings show that visitors understand the workflow and reach the quickstart intentionally.
 - The result is stable for seven days.
 
-Keep the control when the challenger clearly harms CTA conversion or signup completion. Mark the result inconclusive when volume stays too low or the credible interval remains wide.
+Keep the control when the challenger clearly harms CTA conversion or account creation. Mark the result inconclusive when volume stays too low or the credible interval remains wide.
 
 ## Next experiments
 
@@ -109,7 +113,7 @@ Question: Does a low-commitment quickstart CTA outperform an account CTA?
 - Control: Winning hero with its current primary CTA
 - Challenger: Same hero, primary CTA changed between `/sign-up` and `/docs/quickstart`
 - Primary: `landing_cta_clicked`
-- Secondary: `sign_up`, `docs_code_copied`
+- Secondary: `account_created`, `docs_code_copied`
 
 ### Experiment 3: Product artifact
 
@@ -118,7 +122,7 @@ Question: Does showing a real course output improve comprehension?
 - Control: Winning hero
 - Challenger: Same copy and CTA with an interactive course outline, knowledge graph, or learner path preview
 - Primary: `landing_cta_clicked`
-- Secondary: `docs_code_copied`, `sign_up`
+- Secondary: `docs_code_copied`, `account_created`
 
 ### Experiment 4: Audience framing
 
@@ -127,7 +131,7 @@ Question: Which audience statement attracts qualified creators?
 - Control: Broad AI course-builder framing
 - Challenger: AI-agent and developer-tool framing
 - Primary: `landing_cta_clicked`
-- Secondary: `docs_code_copied`, `sign_up`
+- Secondary: `docs_code_copied`, `account_created`
 - Breakdown: Source, campaign, device, and new versus returning visitor
 
 ### Experiment 5: Trust and evidence
@@ -137,7 +141,7 @@ Question: Does concrete proof reduce uncertainty?
 - Control: Winning page
 - Challenger: Adds one verified case study, real review-gate output, and a live academy example near the first CTA
 - Primary: `landing_cta_clicked`
-- Secondary: `sign_up`, course import after identity tracking is fixed
+- Secondary: `account_created`, course import after identity tracking is fixed
 
 ## Weekly review
 
