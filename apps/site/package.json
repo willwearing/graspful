@@ -25,7 +25,8 @@
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.5.0",
     "@graspful/creator-ui": "workspace:*",
-    "@graspful/shared": "workspace:*"
+    "@graspful/shared": "workspace:*",
+    "posthog-js": "^1.396.2"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

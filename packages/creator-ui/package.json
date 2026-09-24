@@ -10,7 +10,12 @@
     "./course-card": "./src/course-card.tsx",
     "./course-list": "./src/course-list.tsx",
     "./stat-card": "./src/stat-card.tsx",
-    "./utils": "./src/utils.ts"
+    "./utils": "./src/utils.ts",
+    "./api-core": "./src/api-core.ts",
+    "./api-client": "./src/api-client.ts",
+    "./api-server": "./src/api-server.ts",
+    "./supabase-client": "./src/supabase-client.ts",
+    "./supabase-server": "./src/supabase-server.ts"
   },
   "dependencies": {
     "@graspful/shared": "workspace:*",
@@ -20,7 +25,10 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.5.0",
-    "lucide-react": "^0.577.0"
+    "lucide-react": "^0.577.0",
+    "@supabase/ssr": "^0.9.0",
+    "posthog-js": "^1.396.2",
+    "server-only": "0.0.1"
   },
   "peerDependencies": {
     "next": "16.1.6",
