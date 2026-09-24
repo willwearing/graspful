@@ -16,6 +16,15 @@ concepts:
     knowledgePoints:
       - id: basic-select
         instruction: 'SELECT retrieves data from one or more tables. `SELECT *` returns all columns; `SELECT col1, col2` returns specific columns. Use `DISTINCT` to remove duplicates. Use `AS` to alias column names in results. Execution order: FROM -> WHERE -> SELECT -> ORDER BY -> LIMIT.'
+        workedExample: >-
+          A users table holds id, name, city, and signup_date, and you want a
+          unique list of cities under a friendlier column header. Name the source
+          first: FROM users. Choose the column: SELECT city. Remove repeats:
+          SELECT DISTINCT city. Rename the output column: SELECT DISTINCT city AS
+          location. The finished query is SELECT DISTINCT city AS location FROM
+          users. If three users live in Berlin, Berlin appears once in the result.
+          The alias changes the result header only. The stored table still has a
+          column named city.
         problems:
           - id: sql-sel-p1
             type: multiple_choice
@@ -27,16 +36,19 @@ concepts:
               - LIMIT
             correct: 1
             explanation: SELECT determines which columns appear in the result. WHERE filters rows, FROM specifies the table, and LIMIT restricts the number of rows returned.
+            difficulty: 1
           - id: sql-sel-p2
             type: true_false
             question: '`SELECT DISTINCT city FROM users` can return duplicate city values.'
             correct: 'false'
             explanation: DISTINCT eliminates duplicate rows from the result set. If multiple users share the same city, that city appears only once in the output.
+            difficulty: 2
           - id: sql-sel-p3
             type: fill_blank
             question: 'To rename a column in the output, use the ___ keyword: `SELECT name AS full_name`.'
             correct: AS
             explanation: AS creates a column alias. `SELECT name AS full_name` returns the name column with the header 'full_name'. The alias only affects the result set, not the underlying table.
+            difficulty: 2
   - id: filtering-and-sorting
     name: Filtering and Sorting
     difficulty: 2
@@ -49,6 +61,23 @@ concepts:
     knowledgePoints:
       - id: where-clause
         instruction: 'WHERE filters rows before they''re returned. Supports comparison operators (=, <>, <, >, <=, >=), logical operators (AND, OR, NOT), pattern matching (LIKE with % and _ wildcards), range checks (BETWEEN), set membership (IN), and NULL checks (IS NULL, IS NOT NULL). Note: you cannot use = to check for NULL -- only IS NULL works.'
+        instructionContent:
+          - type: callout
+            title: NULL is unknown, not a value
+            body: >-
+              Every comparison against NULL evaluates to unknown rather than true
+              or false, so WHERE discards the row. That applies to = and to <>,
+              which is why a query filtering on phone <> 'none' silently drops
+              every row where phone is NULL. Use IS NULL and IS NOT NULL for
+              missing values.
+        workedExample: >-
+          Find active users in Berlin or Munich who have not recorded a phone
+          number. Filter on status first: WHERE status = 'active'. Add the two
+          cities with set membership: AND city IN ('Berlin', 'Munich'). Add the
+          missing-value test: AND phone IS NULL. The finished clause is WHERE
+          status = 'active' AND city IN ('Berlin', 'Munich') AND phone IS NULL.
+          Writing the last condition as phone = NULL instead returns no rows at
+          all, because comparing a value to NULL yields unknown rather than true.
         problems:
           - id: sql-filt-p1
             type: multiple_choice
@@ -60,20 +89,58 @@ concepts:
               - EQUALS NULL
             correct: 2
             explanation: NULL represents an unknown value, so equality comparisons don't work with it. `WHERE col = NULL` always evaluates to unknown (not true). You must use `IS NULL` or `IS NOT NULL`.
+            difficulty: 2
           - id: sql-filt-p2
             type: true_false
             question: '`WHERE name LIKE ''A%''` matches any name that contains the letter A.'
             correct: 'false'
             explanation: The pattern 'A%' matches names that START with A. The % wildcard matches zero or more characters. To match names containing A anywhere, use '%A%'.
+            difficulty: 2
+          - id: sql-filt-p4
+            type: multiple_choice
+            question: Which rows does `WHERE score BETWEEN 10 AND 20` return?
+            options:
+              - Rows where score is above 10 and under 20, excluding both endpoints
+              - Rows where score is 10 through 20, including both endpoints
+              - Rows where score is 10 or above and under 20, excluding the upper endpoint
+              - Only rows where score is exactly 10 or exactly 20
+            correct: 1
+            explanation: BETWEEN is inclusive at both ends. `score BETWEEN 10 AND 20` is equivalent to `score >= 10 AND score <= 20`. Neither form returns rows where score is NULL, because a comparison against NULL is unknown rather than true.
+            difficulty: 3
         keyPrerequisite: select-queries
       - id: order-by-limit
         instruction: 'ORDER BY sorts results. Default is ASC (ascending); add DESC for descending. You can sort by multiple columns: `ORDER BY country ASC, name DESC`. LIMIT restricts the number of rows returned. OFFSET skips rows before returning results. Combined: `ORDER BY created_at DESC LIMIT 10 OFFSET 20` gets the third page of 10 results.'
+        workedExample: >-
+          Show the second page of ten orders, newest first. Sort the rows: ORDER
+          BY created_at DESC. Take one page: LIMIT 10. Skip the page before it:
+          OFFSET 10. The finished query is SELECT * FROM orders ORDER BY
+          created_at DESC LIMIT 10 OFFSET 10. The ORDER BY is what makes paging
+          safe. Without it the database may return rows in any order, so the same
+          row can appear on two pages while another row is never shown at all.
         problems:
           - id: sql-filt-p3
             type: fill_blank
             question: 'To get the 5 most recent orders: `SELECT * FROM orders ORDER BY created_at ___ LIMIT 5`.'
             correct: DESC
             explanation: DESC sorts in descending order (newest first). Without DESC, ORDER BY defaults to ASC (oldest first), which would give you the 5 oldest orders instead.
+            difficulty: 2
+          - id: sql-filt-p5
+            type: multiple_choice
+            question: In `ORDER BY country ASC, name DESC`, how are the rows sorted?
+            options:
+              - By name descending, with country ascending used to break ties
+              - By country ascending, and rows sharing a country by name descending
+              - By country and name, both ascending, because ASC applies to the whole clause
+              - By whichever of the two columns has fewer distinct values
+            correct: 1
+            explanation: ORDER BY applies its columns left to right. Rows sort by country ascending first, and the second column only breaks ties among rows that share a country. Each column carries its own ASC or DESC, so DESC here applies to name alone.
+            difficulty: 3
+          - id: sql-filt-p6
+            type: fill_blank
+            question: 'To skip the first 20 rows and return the next 10: `SELECT * FROM orders ORDER BY created_at DESC LIMIT 10 ___ 20`.'
+            correct: OFFSET
+            explanation: OFFSET skips rows after sorting and before LIMIT is applied, so `LIMIT 10 OFFSET 20` returns rows 21 through 30 of the sorted result. Large offsets make the database sort and discard every skipped row, which is why deep paging gets slower.
+            difficulty: 4
         keyPrerequisite: select-queries
   - id: joins
     name: Joins
@@ -87,6 +154,15 @@ concepts:
     knowledgePoints:
       - id: inner-and-outer-joins
         instruction: Joins combine rows from two or more tables based on a related column. INNER JOIN returns only rows with matches in both tables. LEFT JOIN returns all rows from the left table plus matching rows from the right (NULLs where no match). RIGHT JOIN is the opposite. FULL OUTER JOIN returns all rows from both tables. The join condition is specified with ON.
+        workedExample: >-
+          List every user together with their orders, including users who have
+          never ordered. Name the left table first: FROM users. An INNER JOIN
+          would drop the users with no orders, so use LEFT JOIN orders ON
+          users.id = orders.user_id. Now every user appears at least once. A user
+          with three orders produces three rows, one per match. A user with no
+          orders produces a single row in which every orders column is NULL. That
+          NULL is the signal that no match existed, and it is why a LEFT JOIN
+          never returns fewer rows than the left table holds.
         problems:
           - id: sql-join-p1
             type: multiple_choice
@@ -98,16 +174,19 @@ concepts:
               - SELF JOIN
             correct: 1
             explanation: LEFT JOIN (or LEFT OUTER JOIN) returns every row from the left table. If a left row has no matching right row, the right columns are filled with NULL. INNER JOIN would exclude those unmatched rows entirely.
+            difficulty: 2
           - id: sql-join-p2
             type: true_false
             question: An INNER JOIN can return more rows than either input table if there are multiple matches.
             correct: 'true'
             explanation: If a row in table A matches multiple rows in table B, the join produces one output row per match. A one-to-many relationship can produce more rows than either original table contains.
+            difficulty: 4
           - id: sql-join-p3
             type: fill_blank
             question: SELECT * FROM users ___ orders ON users.id = orders.user_id
             correct: JOIN
             explanation: JOIN (or INNER JOIN) combines rows where the condition matches. Here it links each user to their orders via the user_id foreign key. JOIN and INNER JOIN are synonymous.
+            difficulty: 3
         keyPrerequisite: filtering-and-sorting
   - id: aggregations
     name: Aggregations
@@ -121,6 +200,24 @@ concepts:
     knowledgePoints:
       - id: aggregate-functions
         instruction: 'Aggregate functions compute a single value from a set of rows: COUNT(), SUM(), AVG(), MIN(), MAX(). COUNT(*) counts all rows; COUNT(col) counts non-NULL values. GROUP BY splits rows into groups, and the aggregate function runs per group. HAVING filters groups after aggregation (WHERE filters rows before aggregation).'
+        instructionContent:
+          - type: callout
+            title: WHERE and HAVING run at different times
+            body: >-
+              WHERE runs before GROUP BY, so it can filter on stored columns but
+              cannot see an aggregate result. HAVING runs after GROUP BY, so it
+              can filter on COUNT or AVG but no longer sees individual rows.
+              Choosing the wrong one changes the answer rather than raising an
+              error you would notice.
+        workedExample: >-
+          Find customers whose completed orders average more than 100. Filter the
+          rows before grouping: WHERE status = 'completed'. Group what is left:
+          GROUP BY customer_id. Compute one value per group: SELECT customer_id,
+          AVG(total). Filter the groups: HAVING AVG(total) > 100. The finished
+          query is SELECT customer_id, AVG(total) FROM orders WHERE status =
+          'completed' GROUP BY customer_id HAVING AVG(total) > 100. Swapping the
+          two filters changes the result, because WHERE cannot read AVG(total)
+          and HAVING would leave cancelled orders inside the average.
         problems:
           - id: sql-agg-p1
             type: multiple_choice
@@ -132,14 +229,17 @@ concepts:
               - WHERE works with JOINs; HAVING does not
             correct: 1
             explanation: 'WHERE runs before GROUP BY and filters individual rows. HAVING runs after GROUP BY and filters aggregated groups. For example: WHERE status = ''active'' filters rows first, then HAVING COUNT(*) > 5 filters groups with more than 5 rows.'
+            difficulty: 3
           - id: sql-agg-p2
             type: true_false
             question: '`COUNT(column_name)` includes NULL values in its count.'
             correct: 'false'
             explanation: COUNT(column_name) counts only non-NULL values in that column. To count all rows including NULLs, use COUNT(*). This distinction matters when columns have missing data.
+            difficulty: 3
           - id: sql-agg-p3
             type: fill_blank
             question: 'To find the average order total per customer: `SELECT customer_id, AVG(total) FROM orders ___ customer_id`.'
             correct: GROUP BY
             explanation: GROUP BY partitions rows into groups by the specified column(s). The AVG() function then computes the average within each group. Every non-aggregated column in SELECT must appear in GROUP BY.
+            difficulty: 2
         keyPrerequisite: filtering-and-sorting

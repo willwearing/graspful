@@ -14,7 +14,7 @@ import {
 } from '@/auth';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import { CourseReadService } from './course-read.service';
-import { AcademyImporterService } from './academy-importer.service';
+import { CourseManagementService } from './application/course-management.service';
 import { ImportAcademyDto } from './dto/import-academy.dto';
 
 @Controller('orgs/:orgId/academies')
@@ -22,7 +22,7 @@ import { ImportAcademyDto } from './dto/import-academy.dto';
 export class AcademyGraphController {
   constructor(
     private courseReads: CourseReadService,
-    private academyImporter: AcademyImporterService,
+    private courseManagement: CourseManagementService,
   ) {}
 
   @Post('import')
@@ -31,15 +31,7 @@ export class AcademyGraphController {
     @Body() body: ImportAcademyDto,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.academyImporter.importFromManifest(
-      body.manifestYaml,
-      body.courseYamls,
-      org.orgId,
-      {
-        replace: body.replace,
-        archiveMissing: body.archiveMissing,
-      },
-    );
+    return this.courseManagement.importAcademy(org, body);
   }
 
   @Get()

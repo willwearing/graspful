@@ -1,11 +1,10 @@
 import { ProvisionService } from './provision.service';
 
-describe('ProvisionService first-account event', () => {
+describe('ProvisionService', () => {
   const account = { userId: 'user-1', email: 'learner@example.com' };
 
   function setup(existing = false) {
     const posthog = { recordAccountCreated: jest.fn() };
-    const domains = { addDomain: jest.fn().mockResolvedValue({}) };
     const tx = {
       organization: { create: jest.fn().mockResolvedValue({ id: 'org-1', slug: 'learner-example' }) },
       orgMembership: { create: jest.fn().mockResolvedValue({}) },
@@ -17,28 +16,34 @@ describe('ProvisionService first-account event', () => {
       organization: { findUnique: jest.fn().mockResolvedValue(null) },
       $transaction: jest.fn(async (fn: (client: typeof tx) => unknown) => fn(tx)),
     };
-    const service = new ProvisionService(prisma as any, domains as any, posthog as any);
+    const service = new ProvisionService(prisma as any, posthog as any);
     return { service, prisma, tx, posthog };
   }
 
-  it('emits only after the first organization transaction succeeds', async () => {
-    const { service, prisma, posthog } = setup();
+  it('creates a private workspace without a public brand and then emits the account event', async () => {
+    const { service, prisma, tx, posthog } = setup();
     await expect(service.ensureUserOrg(account.userId, account.email)).resolves.toMatchObject({ created: true });
     expect(posthog.recordAccountCreated).toHaveBeenCalledWith({
       ...account, orgId: 'org-1', orgSlug: 'learner-example', source: 'provision',
     });
     expect(prisma.$transaction.mock.invocationCallOrder[0]).toBeLessThan(posthog.recordAccountCreated.mock.invocationCallOrder[0]);
+    expect(tx.orgMembership.create).toHaveBeenCalledWith({
+      data: { orgId: 'org-1', userId: account.userId, role: 'owner' },
+    });
+    expect(tx.brand.upsert).not.toHaveBeenCalled();
   });
 
   it('does not emit again on later provisioning or sign-in', async () => {
-    const { service, posthog } = setup(true);
+    const { service, prisma, tx, posthog } = setup(true);
     await expect(service.ensureUserOrg(account.userId, account.email)).resolves.toMatchObject({ created: false });
     expect(posthog.recordAccountCreated).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(tx.brand.upsert).not.toHaveBeenCalled();
   });
 
   it('does not emit for a failed account transaction', async () => {
     const { service, tx, posthog } = setup();
-    tx.brand.upsert.mockRejectedValueOnce(new Error('Database unavailable'));
+    tx.orgMembership.create.mockRejectedValueOnce(new Error('Database unavailable'));
     await expect(service.ensureUserOrg(account.userId, account.email)).rejects.toThrow('Database unavailable');
     expect(posthog.recordAccountCreated).not.toHaveBeenCalled();
   });
@@ -51,7 +56,7 @@ describe('ProvisionService learner membership', () => {
       brand: { findFirst: jest.fn().mockResolvedValue(brand) },
       orgMembership: { upsert: jest.fn().mockResolvedValue({}) },
     };
-    const service = new ProvisionService(prisma as any, {} as any, {} as any);
+    const service = new ProvisionService(prisma as any, {} as any);
     return { service, prisma };
   }
 

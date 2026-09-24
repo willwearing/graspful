@@ -45,7 +45,7 @@ test.describe("Creator Manage — New course", () => {
     ).toBeVisible();
   });
 
-  test("switching tabs changes editor content", async ({ page }) => {
+  test("brand settings remain empty until the creator imports a website", async ({ page }) => {
     // Wait for Monaco to load
     await expect(
       page.locator(".monaco-editor").first()
@@ -61,9 +61,13 @@ test.describe("Creator Manage — New course", () => {
 
     // Switch back to Brand settings
     await page.getByRole("tab", { name: "Brand settings" }).click();
-    await expect(
-      page.locator(".monaco-editor").first()
-    ).toBeVisible();
+    await expect(page.getByLabel("Brand to edit")).toBeDisabled();
+    await expect(page.getByText("Create a brand with the Graspful CLI, then reload this editor.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save brand settings" })).toBeDisabled();
+    await expect(page.locator(".monaco-editor")).toHaveCount(0);
+
+    await page.getByRole("tab", { name: "Course content" }).click();
+    await expect(page.locator(".monaco-editor").first()).toBeVisible();
   });
 
   test("Import draft button exists", async ({ page }) => {

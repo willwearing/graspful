@@ -28,6 +28,40 @@ describe("CourseJsonLd", () => {
     expect(data.name).toBe("NEC Electrical Exam Prep");
     expect(data["@context"]).toBe("https://schema.org");
   });
+
+  it("omits courseWorkload when the caller has no measured duration", () => {
+    const { container } = render(
+      <CourseJsonLd
+        name="NEC Electrical Exam Prep"
+        description="Audio-first adaptive learning for the NEC"
+        provider="ElectricianPrep"
+        url="https://electricianprep.vercel.app"
+      />,
+    );
+    const data = JSON.parse(
+      container.querySelector('script[type="application/ld+json"]')!
+        .textContent!,
+    );
+    expect(data.hasCourseInstance.courseMode).toBe("online");
+    expect(data.hasCourseInstance).not.toHaveProperty("courseWorkload");
+  });
+
+  it("reports the workload the caller supplies", () => {
+    const { container } = render(
+      <CourseJsonLd
+        name="SQL Fundamentals"
+        description="Core SQL concepts for querying relational databases"
+        provider="Graspful"
+        url="https://graspful.ai"
+        workload="PT10H"
+      />,
+    );
+    const data = JSON.parse(
+      container.querySelector('script[type="application/ld+json"]')!
+        .textContent!,
+    );
+    expect(data.hasCourseInstance.courseWorkload).toBe("PT10H");
+  });
 });
 
 describe("OrganizationJsonLd", () => {

@@ -2,7 +2,6 @@ import { Injectable, BadRequestException, ConflictException, InternalServerError
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PrismaService } from '@/prisma/prisma.service';
-import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
 import { PostHogService } from '@/shared/application/posthog.service';
 import { ApiKeyService } from './api-key/api-key.service';
 import * as crypto from 'crypto';
@@ -24,7 +23,6 @@ export class RegistrationService {
     private prisma: PrismaService,
     private apiKeyService: ApiKeyService,
     private config: ConfigService,
-    private vercelDomains: VercelDomainsService,
     private posthog: PostHogService,
   ) {
     this.supabase = createClient(
@@ -33,7 +31,7 @@ export class RegistrationService {
     );
   }
 
-  async register(email: string, password: string): Promise<{ userId: string; orgSlug: string; apiKey: string; brandDomain: string }> {
+  async register(email: string, password: string): Promise<{ userId: string; orgSlug: string; apiKey: string }> {
     // 1. Create Supabase user
     const { data: authData, error: authError } =
       await this.supabase.auth.admin.createUser({
@@ -87,31 +85,6 @@ export class RegistrationService {
         const org = await tx.organization.create({ data: { slug: orgSlug, name: orgName, niche: 'general' } });
         await tx.orgMembership.create({ data: { orgId: org.id, userId: user.id, role: 'owner' } });
 
-        // Create a default brand so the org is accessible via the web UI.
-        // This is a placeholder — it gets replaced when the user imports a brand YAML.
-        // Uses upsert for idempotency in case a brand with this slug already exists.
-        const domain = `${orgSlug}.graspful.ai`;
-        const brandData = {
-          name: orgName,
-          domain,
-          tagline: `Adaptive learning by ${orgName}`,
-          logoUrl: '/icon.svg',
-          orgSlug,
-          theme: { preset: 'indigo', radius: '0.5rem' },
-          landing: {
-            hero: { headline: `Welcome to ${orgName}`, subheadline: 'Adaptive learning that meets you where you are', ctaText: 'Start Learning' },
-            features: { heading: 'Features', items: [] },
-            howItWorks: { heading: 'How it works', items: [] },
-            faq: [],
-          },
-          seo: { title: orgName, description: `Adaptive learning by ${orgName}`, keywords: [] },
-        };
-        await tx.brand.upsert({
-          where: { slug: orgSlug },
-          update: brandData,
-          create: { slug: orgSlug, ...brandData },
-        });
-
         // Create API key inside the transaction so it can see the uncommitted org
         const rawApiKey = `gsk_${crypto.randomBytes(32).toString('hex')}`;
         const keyHash = crypto.createHash('sha256').update(rawApiKey).digest('hex');
@@ -120,7 +93,7 @@ export class RegistrationService {
           data: { orgId: org.id, userId: user.id, name: 'default', keyHash, keyPrefix },
         });
 
-        return { userId: user.id, orgId: org.id, orgSlug: org.slug, apiKey: rawApiKey, domain };
+        return { userId: user.id, orgId: org.id, orgSlug: org.slug, apiKey: rawApiKey };
       });
 
       this.posthog.recordAccountCreated({
@@ -131,14 +104,7 @@ export class RegistrationService {
         source: 'registration',
       });
 
-      // Provision the subdomain on Vercel (non-blocking — registration shouldn't fail if Vercel is down)
-      try {
-        await this.vercelDomains.addDomain(txResult.domain);
-      } catch (err) {
-        this.logger.warn(`Failed to provision domain ${txResult.domain} on Vercel: ${err}`);
-      }
-
-      return { userId: txResult.userId, orgSlug: txResult.orgSlug, apiKey: txResult.apiKey, brandDomain: txResult.domain };
+      return { userId: txResult.userId, orgSlug: txResult.orgSlug, apiKey: txResult.apiKey };
     } catch (error) {
       this.logger.error('Prisma transaction failed during registration', {
         message: (error as Error).message,

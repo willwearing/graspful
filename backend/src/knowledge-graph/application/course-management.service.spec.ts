@@ -6,6 +6,7 @@ describe('CourseManagementService', () => {
   let service: CourseManagementService;
   let mockPrisma: any;
   let mockImporter: any;
+  let mockAcademyImporter: any;
   let mockReviewService: any;
   let mockCourseYamlExport: any;
   let mockBrandsService: any;
@@ -27,8 +28,15 @@ describe('CourseManagementService', () => {
     };
 
     mockImporter = {
-      parseCourseYaml: jest.fn(),
+      parseCourseYaml: jest.fn().mockReturnValue({ course: { id: 'test-course', name: 'Test Course' } }),
       importFromYaml: jest.fn(),
+    };
+
+    mockAcademyImporter = {
+      parseManifest: jest.fn().mockReturnValue({
+        academy: { id: 'test-academy', name: 'Test Academy', description: 'Academy description' },
+      }),
+      importFromManifest: jest.fn(),
     };
 
     mockReviewService = {
@@ -55,6 +63,7 @@ describe('CourseManagementService', () => {
       mockCourseYamlExport,
       mockBrandsService,
       mockVercelDomainsService,
+      mockAcademyImporter,
     );
   });
 
@@ -98,6 +107,68 @@ describe('CourseManagementService', () => {
     expect(result.published).toBe(true);
     expect(result.url).toBe('https://test-course.graspful.ai/browse/course-1');
     expect(mockBrandsService.create).toHaveBeenCalled();
+  });
+
+  describe('academy import website setup', () => {
+    const org = { orgId: 'org-1', userId: 'user-1', email: 'user@example.com', role: 'admin' } as any;
+    const body = {
+      manifestYaml: 'academy: {}',
+      courseYamls: { 'course.yaml': 'course: {}' },
+      replace: true,
+      archiveMissing: true,
+    };
+    const importResult = {
+      academyId: 'academy-1', academySlug: 'test-academy', courseCount: 1,
+      partCount: 0, courseResults: [{ courseId: 'course-1' }], warnings: [],
+    };
+
+    beforeEach(() => {
+      mockAcademyImporter.importFromManifest.mockResolvedValue(importResult);
+      mockPrisma.organization.findUnique.mockResolvedValue({ slug: 'org-slug' });
+      mockPrisma.brand.findFirst.mockResolvedValue(null);
+      mockBrandsService.findBySlug.mockResolvedValue(null);
+      mockBrandsService.create.mockResolvedValue({ id: 'brand-1' });
+      mockVercelDomainsService.addDomain.mockResolvedValue({});
+    });
+
+    it('creates one website from academy metadata after a fresh org imports successfully', async () => {
+      await expect(service.importAcademy(org, body)).resolves.toEqual(importResult);
+
+      expect(mockAcademyImporter.importFromManifest).toHaveBeenCalledWith(
+        body.manifestYaml, body.courseYamls, org.orgId,
+        { replace: true, archiveMissing: true },
+      );
+      expect(mockBrandsService.create).toHaveBeenCalledTimes(1);
+      expect(mockBrandsService.create).toHaveBeenCalledWith(expect.objectContaining({
+        slug: 'user-test-academy',
+        domain: 'user-test-academy.graspful.ai',
+        name: 'Test Academy',
+        tagline: 'Academy description',
+        orgSlug: 'org-slug',
+      }));
+      expect(mockVercelDomainsService.addDomain).toHaveBeenCalledWith('user-test-academy.graspful.ai');
+      expect(mockAcademyImporter.importFromManifest.mock.invocationCallOrder[0])
+        .toBeLessThan(mockBrandsService.create.mock.invocationCallOrder[0]);
+    });
+
+    it('preserves an existing custom brand when importing an academy', async () => {
+      mockPrisma.brand.findFirst.mockResolvedValue({ domain: 'learn.example.com' });
+
+      await expect(service.importAcademy(org, body)).resolves.toEqual(importResult);
+
+      expect(mockBrandsService.create).not.toHaveBeenCalled();
+      expect(mockVercelDomainsService.addDomain).not.toHaveBeenCalled();
+    });
+
+    it('creates no website when academy validation or import fails', async () => {
+      mockAcademyImporter.importFromManifest.mockRejectedValue(new Error('Invalid academy graph'));
+
+      await expect(service.importAcademy(org, body)).rejects.toThrow('Invalid academy graph');
+
+      expect(mockPrisma.brand.findFirst).not.toHaveBeenCalled();
+      expect(mockBrandsService.create).not.toHaveBeenCalled();
+      expect(mockVercelDomainsService.addDomain).not.toHaveBeenCalled();
+    });
   });
 
   it('publishes a course from the exported yaml', async () => {

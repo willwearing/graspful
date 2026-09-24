@@ -43,6 +43,16 @@ describe("sitemap", () => {
   it("omits sitemap entries entirely for the app host", () => {
     expect(buildSitemapEntries("https://app.graspful.ai", "app")).toEqual([]);
   });
+
+  it("omits lastModified rather than reporting request time as a change date", () => {
+    for (const surface of ["platform", "academy"] as const) {
+      const entries = buildSitemapEntries("https://graspful.ai", surface);
+      expect(entries.length).toBeGreaterThan(0);
+      for (const entry of entries) {
+        expect(entry.lastModified).toBeUndefined();
+      }
+    }
+  });
 });
 
 describe("robots", () => {

@@ -88,7 +88,7 @@ describe('graspful register', () => {
     expect(savedContent.baseUrl).toBe('http://localhost:3000');
   });
 
-  it('prints success message with org slug', async () => {
+  it.each([undefined, 'academy.example.com'])('only prints an existing brand domain (%s)', async (brandDomain) => {
     globalThis.fetch = mock((url: string) => {
       if (url.endsWith('/api/v1/auth/cli/sessions')) {
         return Promise.resolve(new Response(JSON.stringify({
@@ -104,6 +104,7 @@ describe('graspful register', () => {
           userId: 'user-456',
           orgSlug: 'my-org',
           apiKey: 'gsk_another_key',
+          ...(brandDomain ? { brandDomain } : {}),
         }), { status: 200 }));
       }
 
@@ -127,6 +128,12 @@ describe('graspful register', () => {
     const logOutput = consoleLogSpy.mock.calls.map((c: any[]) => c[0]).join('\n');
     expect(logOutput).toContain('my-org');
     expect(logOutput).toContain('gsk_another_key');
+    expect(logOutput).not.toContain('my-org.graspful.ai');
+    if (brandDomain) {
+      expect(logOutput).toContain(`Brand: ${brandDomain}`);
+    } else {
+      expect(logOutput).not.toContain('Brand:');
+    }
   });
 
   it('exits with error when starting browser auth fails', async () => {
