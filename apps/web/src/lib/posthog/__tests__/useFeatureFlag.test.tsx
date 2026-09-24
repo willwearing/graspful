@@ -20,6 +20,12 @@ vi.mock("../client", () => ({
   },
 }));
 
+type FlagsCallback = (
+  flags: string[],
+  variants: Record<string, string | boolean>,
+  context: { errorsLoading?: boolean },
+) => void;
+
 describe("useFeatureFlagVariant", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -87,11 +93,6 @@ describe("useFeatureFlagVariant", () => {
   });
 
   it("uses the fallback at once when the flag request fails", () => {
-    type FlagsCallback = (
-      flags: string[],
-      variants: Record<string, string | boolean>,
-      context: { errorsLoading?: boolean },
-    ) => void;
     let notifyFlagsLoaded: FlagsCallback | undefined;
     mocks.onFeatureFlags.mockImplementation((callback: FlagsCallback) => {
       notifyFlagsLoaded = callback;
@@ -112,11 +113,6 @@ describe("useFeatureFlagVariant", () => {
   });
 
   it("keeps a cached variant when a flag refresh fails", () => {
-    type FlagsCallback = (
-      flags: string[],
-      variants: Record<string, string | boolean>,
-      context: { errorsLoading?: boolean },
-    ) => void;
     let notifyFlagsLoaded: FlagsCallback | undefined;
     mocks.onFeatureFlags.mockImplementation((callback: FlagsCallback) => {
       notifyFlagsLoaded = callback;
