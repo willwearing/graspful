@@ -11,7 +11,6 @@ describe('RegistrationService', () => {
   let mockPrisma: any;
   let mockApiKeyService: any;
   let mockConfig: any;
-  let mockVercelDomains: any;
   let mockSupabaseAdmin: any;
   let mockTx: any;
 
@@ -59,15 +58,10 @@ describe('RegistrationService', () => {
       }),
     };
 
-    mockVercelDomains = {
-      addDomain: jest.fn().mockResolvedValue({ name: 'test.graspful.ai', verified: false }),
-    };
-
     service = new RegistrationService(
       mockPrisma,
       mockApiKeyService,
       mockConfig,
-      mockVercelDomains,
       { recordAccountCreated: jest.fn() } as any,
     );
 
@@ -77,7 +71,7 @@ describe('RegistrationService', () => {
     };
   });
 
-  it('registers a new user and returns userId, orgSlug, apiKey', async () => {
+  it('registers a user with a private workspace and API key without creating a website', async () => {
     mockSupabaseAdmin.createUser.mockResolvedValue({
       data: { user: { id: 'sup-user-1' } },
       error: null,
@@ -132,15 +126,9 @@ describe('RegistrationService', () => {
       },
     });
 
-    expect(mockTx.brand.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { slug: 'will-example' },
-        create: expect.objectContaining({
-          slug: 'will-example',
-          orgSlug: 'will-example',
-        }),
-      }),
-    );
+    expect(mockTx.brand.upsert).not.toHaveBeenCalled();
+    expect(mockTx.brand.create).not.toHaveBeenCalled();
+    expect(result).not.toHaveProperty('brandDomain');
 
     expect(mockTx.apiKey.create).toHaveBeenCalledWith({
       data: expect.objectContaining({

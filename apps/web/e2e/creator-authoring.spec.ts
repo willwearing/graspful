@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { parse, stringify } from "yaml";
 import { CourseYamlSchema } from "@graspful/shared";
 import {
+  apiPost,
   signUpAndGetApiContext,
   type ApiTestContext,
 } from "./helpers/api-auth";
@@ -94,6 +95,17 @@ test.describe("Creator authoring flow", () => {
 
   test("brand edits save independently and persist after reload", async ({ page, request }) => {
     const ctx = await signUpAndGetApiContext(page, request, "graspful");
+    const brand = await apiPost(ctx, "/brands", {
+      slug: ctx.orgId,
+      orgSlug: ctx.orgId,
+      name: "Creator brand",
+      domain: `${ctx.orgId}.graspful.ai`,
+      tagline: "Created explicitly for editing",
+      theme: {},
+      landing: {},
+      seo: {},
+    });
+    expect(brand.status).toBe(201);
     await page.goto("/creator/manage");
     await page.getByRole("tab", { name: "Brand settings" }).click();
     await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 20_000 });

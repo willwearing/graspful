@@ -86,6 +86,7 @@ test.describe("CLI browser auth", () => {
     expect(exchangeBody.status).toBe("complete");
     expect(exchangeBody.apiKey).toMatch(/^gsk_/);
     expect(exchangeBody.orgSlug).toBeTruthy();
+    expect(exchangeBody).not.toHaveProperty("brandDomain");
   });
 
   test("sign-in handoff authorizes an existing CLI session and exchanges an API key", async ({
@@ -144,5 +145,6 @@ test.describe("CLI browser auth", () => {
     expect(exchangeBody.status).toBe("complete");
     expect(exchangeBody.apiKey).toMatch(/^gsk_/);
     expect(exchangeBody.orgSlug).toBeTruthy();
+    expect(exchangeBody).not.toHaveProperty("brandDomain");
   });
 });

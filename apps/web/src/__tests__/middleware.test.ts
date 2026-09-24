@@ -178,4 +178,21 @@ describe("routing decisions", () => {
       to: "https://graspful.ai/pricing",
     });
   });
+
+  // /agents renders SoftwareApplication JSON-LD naming Graspful at
+  // https://graspful.ai. That identity is only true on the platform host, so
+  // the route must never render under an academy domain.
+  it("sends /agents back to the platform host from an academy domain", () => {
+    expect(
+      decideRoute("/agents", false, {
+        surface: "academy",
+        currentUrl: new URL("https://firefighterprep.vercel.app/agents"),
+      }),
+    ).toEqual({
+      action: "redirect",
+      to: "https://graspful.ai/agents",
+    });
+
+    expect(isPublicRoute("/agents", "academy")).toBe(false);
+  });
 });

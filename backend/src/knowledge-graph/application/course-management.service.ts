@@ -4,11 +4,13 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { BrandsService } from '@/brands/brands.service';
 import { VercelDomainsService } from '@/shared/application/vercel-domains.service';
 import { CourseImporterService } from '../course-importer.service';
+import { AcademyImporterService } from '../academy-importer.service';
 import { CourseYamlExportService } from '../course-yaml-export.service';
 import { ReviewService } from '../review.service';
 import type { ReviewResult } from '../review.service';
 import type { OrgContext } from '@/auth/guards/org-membership.guard';
 import type { ImportCourseDto } from '../dto/import-course.dto';
+import type { ImportAcademyDto } from '../dto/import-academy.dto';
 import type { ImportResult } from '../course-importer.service';
 
 @Injectable()
@@ -22,6 +24,7 @@ export class CourseManagementService {
     private readonly courseYamlExport: CourseYamlExportService,
     private readonly brandsService: BrandsService,
     private readonly vercelDomainsService: VercelDomainsService,
+    private readonly academyImporter: AcademyImporterService,
   ) {}
 
   async archiveCourse(orgId: string, courseId: string) {
@@ -74,12 +77,25 @@ export class CourseManagementService {
       });
     }
 
-    await this.ensureBrandForOrg(org, body.yaml);
+    await this.ensureBrandForOrg(org, this.importer.parseCourseYaml(body.yaml).course);
 
     const url = await this.buildCourseUrl(org.orgId, result.courseId);
     const reviewFailures = review && !review.passed ? review.failures : undefined;
 
     return { ...result, url, review, reviewFailures };
+  }
+
+  async importAcademy(org: OrgContext, body: ImportAcademyDto) {
+    const result = await this.academyImporter.importFromManifest(
+      body.manifestYaml,
+      body.courseYamls,
+      org.orgId,
+      { replace: body.replace, archiveMissing: body.archiveMissing },
+    );
+
+    const manifest = this.academyImporter.parseManifest(body.manifestYaml);
+    await this.ensureBrandForOrg(org, manifest.academy);
+    return result;
   }
 
   async publishCourse(
@@ -115,7 +131,10 @@ export class CourseManagementService {
     return { courseId, published: review.passed, url, review };
   }
 
-  private async ensureBrandForOrg(org: OrgContext, yamlContent: string) {
+  private async ensureBrandForOrg(
+    org: OrgContext,
+    metadata: { id: string; name: string; description?: string },
+  ) {
     try {
       const orgRecord = await this.prisma.organization.findUnique({
         where: { id: org.orgId },
@@ -128,14 +147,12 @@ export class CourseManagementService {
       });
       if (existingBrands) return;
 
-      const parsed = this.importer.parseCourseYaml(yamlContent);
-      const courseSlug = parsed.course.id;
       const username = org.email
         .split('@')[0]
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '');
 
-      const slug = `${username}-${courseSlug}`
+      const slug = `${username}-${metadata.id}`
         .toLowerCase()
         .replace(/[^a-z0-9-]/g, '-')
         .replace(/-+/g, '-');
@@ -150,20 +167,20 @@ export class CourseManagementService {
       const domain = `${finalSlug}.graspful.ai`;
 
       try {
-        const courseName = parsed.course.name;
-        const courseDesc = parsed.course.description ?? courseName;
+        const name = metadata.name;
+        const description = metadata.description ?? name;
         await this.brandsService.create({
           slug: finalSlug,
-          name: courseName,
+          name,
           domain,
-          tagline: courseDesc,
+          tagline: description,
           logoUrl: '/icon.svg',
           orgSlug: orgRecord.slug,
           theme: {},
           landing: {
             hero: {
-              headline: `Learn ${courseName}`,
-              subheadline: courseDesc,
+              headline: `Learn ${name}`,
+              subheadline: description,
               ctaText: 'Start Learning',
             },
             features: {
@@ -196,13 +213,13 @@ export class CourseManagementService {
             },
             faq: [],
             bottomCta: {
-              headline: `Ready to learn ${courseName}?`,
+              headline: `Ready to learn ${name}?`,
               subheadline: 'Start your adaptive learning journey today.',
             },
           },
           seo: {
-            title: `${courseName} — Adaptive Learning`,
-            description: courseDesc,
+            title: `${name}: Adaptive Learning`,
+            description,
             keywords: [],
           },
           pricing: {},
