@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { EnrollmentService } from './enrollment.service';
+import { startOfDayUtc } from '@/shared/utils/utc-date';
 import { PrismaService } from '@/prisma/prisma.service';
 import { DiagnosticState, MasteryState, Prisma } from '@prisma/client';
 import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
@@ -349,6 +350,9 @@ export class StudentStateService {
     },
     tx: Prisma.TransactionClient = this.prisma,
   ) {
+    if (data.lastPracticedAt && data.sessionFailedKPAttempts === undefined) {
+      await this.resetPreviousSessionFailures(userId, conceptId, data.lastPracticedAt, tx);
+    }
     return tx.studentConceptState.update({
       where: { userId_conceptId: { userId, conceptId } },
       data,
@@ -383,9 +387,37 @@ export class StudentStateService {
     },
     tx: Prisma.TransactionClient = this.prisma,
   ) {
+    if (data.lastPracticedAt) {
+      await this.resetPreviousSessionFailures(userId, conceptId, data.lastPracticedAt, tx);
+    }
     return tx.studentConceptState.update({
       where: { userId_conceptId: { userId, conceptId } },
       data,
+    });
+  }
+
+  private async resetPreviousSessionFailures(
+    userId: string,
+    conceptId: string,
+    practicedAt: Date,
+    tx: Prisma.TransactionClient,
+  ) {
+    const dayStart = startOfDayUtc(practicedAt);
+    const sessionId = dayStart.toISOString().slice(0, 10);
+    // Guard the reset in SQL so another answer in this session keeps its count.
+    await tx.studentConceptState.updateMany({
+      where: {
+        userId,
+        conceptId,
+        OR: [
+          {
+            lastPracticedAt: null,
+            OR: [{ pausedAtSessionId: null }, { pausedAtSessionId: { not: sessionId } }],
+          },
+          { lastPracticedAt: { lt: dayStart } },
+        ],
+      },
+      data: { sessionFailedKPAttempts: 0 },
     });
   }
 
