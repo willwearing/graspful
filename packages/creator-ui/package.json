@@ -18,7 +18,10 @@
     "./supabase-server": "./src/supabase-server.ts",
     "./creator-org-context": "./src/creator-org-context.tsx",
     "./posthog-client": "./src/posthog-client.ts",
-    "./use-hydrated": "./src/use-hydrated.ts"
+    "./use-hydrated": "./src/use-hydrated.ts",
+    "./app-session": "./src/app-session.ts",
+    "./creator-org-shared": "./src/creator-org-shared.ts",
+    "./creator-org-server": "./src/creator-org-server.ts"
   },
   "dependencies": {
     "@graspful/shared": "workspace:*",

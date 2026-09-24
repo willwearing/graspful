@@ -1,19 +1,12 @@
 import "server-only";
-import { cache } from "react";
-import { redirect } from "next/navigation";
+import { createRequiredSession } from "@graspful/creator-ui/app-session";
 import { createApiFetcher } from "@/lib/api";
-import { resolvePageBrand } from "@/lib/brand/resolve";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { cache } from "react";
+import { resolvePageBrand } from "@/lib/brand/resolve";
 
-/** Verify once per server render and share the session with its data loaders. */
-export const requireAppSession = cache(async () => {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/sign-in");
-
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-  if (!token) redirect("/sign-in");
-
-  return { user, token, fetcher: createApiFetcher(token), brand: await resolvePageBrand() };
-});
+const requireSession = createRequiredSession(createSupabaseServerClient, createApiFetcher);
+export const requireAppSession = cache(async () => ({
+  ...await requireSession(),
+  brand: await resolvePageBrand(),
+}));
