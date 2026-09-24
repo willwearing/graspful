@@ -202,9 +202,6 @@ export class ReviewService {
       if (expectedProblem?.id !== problemId) {
         throw new BadRequestException('Answer the current review problem first');
       }
-      if (answer === null || answer === undefined || !Number.isSafeInteger(responseTimeMs) || responseTimeMs <= 0) {
-        throw new BadRequestException('An answer and positive response time are required');
-      }
       const problem = session.gradingProblems.get(problemId)!;
       const evaluation = evaluateAnswer(problem.type, answer, problem.correctAnswer,
         problem.explanation ?? undefined, problem.options as unknown[] | null);

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface SimpleEdge {
   source: string;
@@ -41,7 +41,7 @@ export class GraphQueryService {
     }
 
     if (sorted.length !== conceptIds.length) {
-      throw new Error('Graph contains a cycle — topological sort impossible');
+      throw new BadRequestException('Graph contains a cycle; topological sort is impossible');
     }
 
     return sorted;

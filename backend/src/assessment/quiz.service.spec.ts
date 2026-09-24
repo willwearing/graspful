@@ -260,12 +260,6 @@ describe('QuizService', () => {
       await expect(submit(quiz.quizId, 'p1')).rejects.toThrow('Quiz is already complete');
     });
 
-    it.each([-1, NaN, Infinity, 1.5])('rejects invalid response time %s', async (responseTimeMs) => {
-      const quiz = await generate();
-      await expect(service.submitQuizAnswer('org-1', 'user-1', 'course-1', quiz.quizId, 'p1', '0', responseTimeMs))
-        .rejects.toThrow(BadRequestException);
-      expect(prisma.problemAttempt.upsert).not.toHaveBeenCalled();
-    });
   });
 
   describe('completeQuiz', () => {

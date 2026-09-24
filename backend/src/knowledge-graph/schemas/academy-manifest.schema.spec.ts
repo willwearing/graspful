@@ -1,6 +1,11 @@
+import { AcademyManifestSchema as SharedAcademyManifestSchema } from '@graspful/shared';
 import { AcademyManifestSchema } from './academy-manifest.schema';
 
 describe('AcademyManifestSchema', () => {
+  it('uses the same schema as CLI and MCP imports', () => {
+    expect(AcademyManifestSchema).toBe(SharedAcademyManifestSchema);
+  });
+
   it('accepts a valid academy manifest', () => {
     const result = AcademyManifestSchema.safeParse({
       academy: {

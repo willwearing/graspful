@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import { ConnectService } from '@/billing/connect.service';
 import { StudentStateService } from '@/student-model/student-state.service';
 
 export interface CreatorStats {
@@ -13,6 +14,7 @@ export class CreatorStatsService {
   constructor(
     private prisma: PrismaService,
     private studentState: StudentStateService,
+    private connectService: ConnectService,
   ) {}
 
   async getStats(orgId: string): Promise<CreatorStats> {
@@ -74,10 +76,7 @@ export class CreatorStatsService {
    * SUM(creatorPayout) FROM RevenueEvent WHERE orgId = orgId
    */
   private async calcTotalRevenue(orgId: string): Promise<number> {
-    const result = await this.prisma.revenueEvent.aggregate({
-      where: { orgId },
-      _sum: { creatorPayout: true },
-    });
-    return result._sum.creatorPayout ?? 0;
+    const revenue = await this.connectService.getRevenue(orgId, { includeRecentEvents: false });
+    return revenue.creatorEarnings;
   }
 }

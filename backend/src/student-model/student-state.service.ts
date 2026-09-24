@@ -1,7 +1,16 @@
+import { seedStudentStateForNewConcepts } from './application/content-state-seeder';
+import {
+  applySectionExamResult,
+  lockSectionForExam,
+  recordSectionExamAttempt,
+  syncSectionStates,
+  type SectionExamResult,
+} from './application/section-exam-state';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { EnrollmentService } from './enrollment.service';
 import { startOfDayUtc } from '@/shared/utils/utc-date';
 import { PrismaService } from '@/prisma/prisma.service';
+import { activeConceptWhere, activeSectionWhere } from '@/knowledge-graph/active-course-content';
 import { DiagnosticState, MasteryState, Prisma } from '@prisma/client';
 import { getLogger, SeverityNumber } from '../telemetry/otel-logger';
 import { ensureConceptStatesForAcademy } from './application/student-state.lifecycle';
@@ -255,6 +264,48 @@ export class StudentStateService {
     return countMasteredConceptsQuery(this.prisma, userId, filter);
   }
 
+  async applySectionExamResult(tx: Prisma.TransactionClient, result: SectionExamResult) {
+    return applySectionExamResult(tx, result);
+  }
+
+  async lockSectionForExam(tx: Prisma.TransactionClient, userId: string, sectionId: string) {
+    return lockSectionForExam(tx, userId, sectionId);
+  }
+
+  async recordSectionExamAttempt(tx: Prisma.TransactionClient, userId: string, sectionId: string) {
+    return recordSectionExamAttempt(tx, userId, sectionId);
+  }
+
+  async syncSectionStates(userId: string, courseId: string) {
+    return syncSectionStates(this.prisma, userId, courseId);
+  }
+
+  async getSectionExamState(userId: string, sectionId: string) {
+    return this.prisma.studentSectionState.findUnique({
+      where: { userId_sectionId: { userId, sectionId } },
+    });
+  }
+
+  async getSectionExamProgress(userId: string, courseId: string) {
+    return this.prisma.studentSectionState.findMany({
+      where: { userId, courseId, section: activeSectionWhere() },
+      include: {
+        section: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            description: true,
+            sortOrder: true,
+            sectionExamConfig: true,
+            concepts: { where: activeConceptWhere(), select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { section: { sortOrder: 'asc' } },
+    });
+  }
+
   async getSectionState(userId: string, sectionId: string, tx: Prisma.TransactionClient = this.prisma) {
     return loadSectionState(tx, userId, sectionId);
   }
@@ -438,6 +489,15 @@ export class StudentStateService {
         }),
       ),
     );
+  }
+
+  async seedStudentStateForNewConcepts(
+    tx: Prisma.TransactionClient,
+    courseId: string,
+    conceptIds: string[],
+    sectionIds: string[],
+  ): Promise<void> {
+    return seedStudentStateForNewConcepts(tx, courseId, conceptIds, sectionIds);
   }
 
   private diagnosticToMasteryState(ds: DiagnosticState): MasteryState {

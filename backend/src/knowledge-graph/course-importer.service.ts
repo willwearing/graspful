@@ -1,7 +1,9 @@
 import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import * as yaml from 'js-yaml';
-import { Prisma, ProblemType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
+import { StudentStateService } from '@/student-model/student-state.service';
+import { syncSections, syncConcepts, syncKnowledgePoints } from './course-content-sync';
 import { GraphValidationService } from './graph-validation.service';
 import { buildQualifiedConceptRef, parseConceptRef } from './concept-ref';
 import { CourseYamlSchema, reviewCourseYaml, type CourseYaml } from '@graspful/shared';
@@ -72,6 +74,7 @@ export class CourseImporterService {
   constructor(
     private prisma: PrismaService,
     private graphValidation: GraphValidationService,
+    private studentState: StudentStateService,
   ) {}
 
   parseCourseYaml(yamlContent: string, scope?: CourseImportScope): CourseYaml {
@@ -191,15 +194,12 @@ export class CourseImporterService {
   }
 
   async syncCourseStructure(
-    tx: any,
+    tx: Prisma.TransactionClient,
     data: CourseYaml,
     orgId: string,
     options: ImportOptions = {},
     scope?: CourseImportScope,
   ): Promise<CourseStructureSyncResult> {
-    let knowledgePointCount = 0;
-    let problemCount = 0;
-
     const existingCourse = await tx.course.findUnique({
       where: { orgId_slug: { orgId, slug: data.course.id } },
     });
@@ -306,7 +306,7 @@ export class CourseImporterService {
           },
         });
 
-    const [existingSections, existingConcepts, existingKnowledgePoints, enrollments]: [
+    const [existingSections, existingConcepts, existingKnowledgePoints]: [
       Array<{ id: string; slug: string }>,
       Array<{ id: string; slug: string }>,
       Array<{
@@ -315,7 +315,6 @@ export class CourseImporterService {
         conceptId: string;
         problems: Array<{ id: string; authoredId: string }>;
       }>,
-      Array<{ userId: string }>,
     ] =
       existingCourse && options.replace
         ? await Promise.all([
@@ -341,12 +340,8 @@ export class CourseImporterService {
                 },
               },
             }),
-            tx.courseEnrollment.findMany({
-              where: { courseId: course.id },
-              select: { userId: true },
-            }),
           ])
-        : [[], [], [], []];
+        : [[], [], []];
 
     const existingSectionBySlug = new Map<string, { id: string; slug: string }>(
       existingSections.map((section) => [section.slug, section]),
@@ -396,162 +391,15 @@ export class CourseImporterService {
       this.assertNoDestructiveRemovals(removedContent);
     }
 
-    const sectionSlugToId = new Map<string, string>();
-    const newSectionIds: string[] = [];
-
-    for (let i = 0; i < data.sections.length; i++) {
-      const sectionYaml = data.sections[i];
-      const existingSection = existingSectionBySlug.get(sectionYaml.id);
-      const section = existingSection
-        ? await tx.courseSection.update({
-            where: { id: existingSection.id },
-            data: {
-              name: sectionYaml.name,
-              description: sectionYaml.description,
-              sectionExamConfig: sectionYaml.sectionExam ?? undefined,
-              sortOrder: i,
-              isArchived: false,
-            },
-          })
-        : await tx.courseSection.create({
-            data: {
-              courseId: course.id,
-              slug: sectionYaml.id,
-              name: sectionYaml.name,
-              description: sectionYaml.description,
-              sectionExamConfig: sectionYaml.sectionExam ?? undefined,
-              sortOrder: i,
-              isArchived: false,
-            },
-          });
-
-      if (!existingSection) {
-        newSectionIds.push(section.id);
-      }
-
-      sectionSlugToId.set(sectionYaml.id, section.id);
-    }
-
-    const conceptSlugToId = new Map<string, string>();
-    const newConceptIds: string[] = [];
-
-    for (let i = 0; i < data.concepts.length; i++) {
-      const conceptYaml = data.concepts[i];
-      const sectionId = conceptYaml.section
-        ? sectionSlugToId.get(conceptYaml.section) ?? null
-        : null;
-
-      const existingConcept = existingConceptBySlug.get(conceptYaml.id);
-      const concept = existingConcept
-        ? await tx.concept.update({
-            where: { id: existingConcept.id },
-            data: {
-              sectionId,
-              name: conceptYaml.name,
-              difficulty: conceptYaml.difficulty,
-              estimatedMinutes: conceptYaml.estimatedMinutes,
-              tags: conceptYaml.tags,
-              sourceReference: conceptYaml.sourceRef,
-              sortOrder: i,
-              isArchived: false,
-            },
-          })
-        : await tx.concept.create({
-            data: {
-              courseId: course.id,
-              orgId,
-              sectionId,
-              slug: conceptYaml.id,
-              name: conceptYaml.name,
-              difficulty: conceptYaml.difficulty,
-              estimatedMinutes: conceptYaml.estimatedMinutes,
-              tags: conceptYaml.tags,
-              sourceReference: conceptYaml.sourceRef,
-              sortOrder: i,
-              isArchived: false,
-            },
-          });
-
-      if (!existingConcept) {
-        newConceptIds.push(concept.id);
-      }
-
-      conceptSlugToId.set(conceptYaml.id, concept.id);
-
-      for (let kpIdx = 0; kpIdx < conceptYaml.knowledgePoints.length; kpIdx++) {
-        const kpYaml = conceptYaml.knowledgePoints[kpIdx];
-        const existingKnowledgePoint = existingKnowledgePointByKey.get(
-          `${conceptYaml.id}:${kpYaml.id}`,
-        );
-        const kp = existingKnowledgePoint
-          ? await tx.knowledgePoint.update({
-              where: { id: existingKnowledgePoint.id },
-              data: {
-                sortOrder: kpIdx,
-                instructionText: kpYaml.instruction,
-                instructionContent: kpYaml.instructionContent,
-                workedExampleText: kpYaml.workedExample,
-                workedExampleContent: kpYaml.workedExampleContent,
-                isArchived: false,
-              },
-            })
-          : await tx.knowledgePoint.create({
-              data: {
-                conceptId: concept.id,
-                slug: kpYaml.id,
-                sortOrder: kpIdx,
-                instructionText: kpYaml.instruction,
-                instructionContent: kpYaml.instructionContent,
-                workedExampleText: kpYaml.workedExample,
-                workedExampleContent: kpYaml.workedExampleContent,
-                isArchived: false,
-            },
-          });
-
-        knowledgePointCount++;
-
-        const existingProblemsByAuthoredId = new Map(
-          (existingKnowledgePoint?.problems ?? []).map((problem) => [
-            problem.authoredId,
-            problem,
-          ]),
-        );
-
-        for (const probYaml of kpYaml.problems) {
-          const existingProblem = existingProblemsByAuthoredId.get(probYaml.id);
-          if (existingProblem) {
-            await tx.problem.update({
-              where: { id: existingProblem.id },
-              data: {
-                type: probYaml.type as ProblemType,
-                questionText: probYaml.question,
-                options: probYaml.options ?? undefined,
-                correctAnswer: probYaml.correct as any,
-                explanation: probYaml.explanation,
-                difficulty: probYaml.difficulty ?? 3,
-                authoredId: probYaml.id,
-                isArchived: false,
-              },
-            });
-          } else {
-            await tx.problem.create({
-              data: {
-                knowledgePointId: kp.id,
-                authoredId: probYaml.id,
-                type: probYaml.type as ProblemType,
-                questionText: probYaml.question,
-                options: probYaml.options ?? undefined,
-                correctAnswer: probYaml.correct as any,
-                explanation: probYaml.explanation,
-                difficulty: probYaml.difficulty ?? 3,
-                isArchived: false,
-              },
-            });
-          }
-          problemCount++;
-        }
-      }
-    }
+    const { sectionSlugToId, newSectionIds } = await syncSections(
+      tx, course.id, data.sections, existingSectionBySlug,
+    );
+    const { conceptSlugToId, newConceptIds } = await syncConcepts(
+      tx, course.id, orgId, data.concepts, sectionSlugToId, existingConceptBySlug,
+    );
+    const { knowledgePointCount, problemCount } = await syncKnowledgePoints(
+      tx, data.concepts, conceptSlugToId, existingKnowledgePointByKey,
+    );
 
     const currentCourseConceptIds = Array.from(conceptSlugToId.values());
     const edgeOwnerConceptIds = existingCourse
@@ -563,31 +411,9 @@ export class CourseImporterService {
         )
       : currentCourseConceptIds;
 
-    if (newConceptIds.length > 0 && enrollments.length > 0) {
-      await tx.studentConceptState.createMany({
-        data: enrollments.flatMap((enrollment: { userId: string }) =>
-          newConceptIds.map((conceptId) => ({
-            userId: enrollment.userId,
-            conceptId,
-          })),
-        ),
-        skipDuplicates: true,
-      });
-    }
-
-    if (newSectionIds.length > 0 && enrollments.length > 0) {
-      await tx.studentSectionState.createMany({
-        data: enrollments.flatMap((enrollment: { userId: string }) =>
-          newSectionIds.map((sectionId) => ({
-            userId: enrollment.userId,
-            courseId: course.id,
-            sectionId,
-            status: 'locked',
-          })),
-        ),
-        skipDuplicates: true,
-      });
-    }
+    await this.studentState.seedStudentStateForNewConcepts(
+      tx, course.id, newConceptIds, newSectionIds,
+    );
 
     if (existingCourse && options.replace && options.archiveMissing) {
       await this.archiveRemovedContent(tx, removedContent);
@@ -608,7 +434,7 @@ export class CourseImporterService {
   }
 
   async syncCourseEdges(
-    tx: any,
+    tx: Prisma.TransactionClient,
     data: CourseYaml,
     structure: CourseStructureSyncResult,
     conceptResolver: Map<string, string>,

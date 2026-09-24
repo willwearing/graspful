@@ -9,6 +9,7 @@ describe('ProblemSubmissionService', () => {
   let mockSectionExamService: any;
   let mockStudentState: any;
   let mockScope: any;
+  let mockRemediationService: any;
   let savedAttempts: Map<string, any>;
 
   const mockProblem = {
@@ -144,14 +145,15 @@ describe('ProblemSubmissionService', () => {
       getConceptState: jest.fn().mockImplementation((_userId: string, cId: string) =>
         mockPrisma.studentConceptState.findUnique({ where: { userId_conceptId: { userId: _userId, conceptId: cId } } }),
       ),
+      getSectionState: jest.fn().mockResolvedValue({ status: 'in_progress' }),
       getConceptMemory: jest.fn().mockResolvedValue(1),
       updateConceptAfterPractice: jest.fn().mockResolvedValue({ masteryState: 'in_progress' }),
       getKPStatesForIds: jest.fn().mockImplementation((_userId: string, kpIds: string[]) =>
-        mockPrisma.studentKPState.findMany({ where: { userId: _userId, knowledgePointId: { in: kpIds } } }),
+        mockPrisma.studentKPState.findMany({ where: { userId: _userId, knowledgePointId: { in: kpIds } }, select: { knowledgePointId: true, passed: true, consecutiveCorrect: true, attempts: true } }),
       ),
     };
 
-    const mockRemediationService = {
+    mockRemediationService = {
       createRemediation: jest.fn().mockResolvedValue({}),
       getActiveRemediations: jest.fn().mockResolvedValue([]),
       getBlockedConceptIds: jest.fn().mockResolvedValue(new Set()),
@@ -457,34 +459,6 @@ describe('ProblemSubmissionService', () => {
     expect(mockPrisma.courseEnrollment.update).not.toHaveBeenCalled();
   });
 
-  it('should throw BadRequestException for non-positive responseTimeMs', async () => {
-    await expect(
-      service.submitAnswer({
-      orgId: 'org-1',
-      courseId: 'course-1',
-      conceptId: 'concept-1',
-        userId: 'user-1',
-        problemId: 'prob-1',
-        answer: 'opt-b',
-        responseTimeMs: 0,
-        activityType: 'lesson',
-      }),
-    ).rejects.toThrow('Response time must be positive');
-
-    await expect(
-      service.submitAnswer({
-      orgId: 'org-1',
-      courseId: 'course-1',
-      conceptId: 'concept-1',
-        userId: 'user-1',
-        problemId: 'prob-1',
-        answer: 'opt-b',
-        responseTimeMs: -100,
-        activityType: 'lesson',
-      }),
-    ).rejects.toThrow('Response time must be positive');
-  });
-
   it('should reset consecutiveCorrect after failure then require 2 new consecutive correct', async () => {
     // First: 1 correct (consecutiveCorrect = 1)
     mockPrisma.studentKPState.findUnique.mockResolvedValue({
@@ -493,7 +467,7 @@ describe('ProblemSubmissionService', () => {
       passed: false,
     });
 
-    // Submit incorrect — should reset to 0
+    // Submit incorrect : should reset to 0
     await service.submitAnswer({
       orgId: 'org-1',
       courseId: 'course-1',
@@ -515,7 +489,7 @@ describe('ProblemSubmissionService', () => {
     );
   });
 
-  describe('nextProblemHint (Slice 1 — KP-level more practice)', () => {
+  describe('nextProblemHint (Slice 1 : KP-level more practice)', () => {
     it('should return a hint targeting the same KP after a wrong answer', async () => {
       const result = await service.submitAnswer({
       orgId: 'org-1',
@@ -745,6 +719,166 @@ describe('ProblemSubmissionService', () => {
       expect(result.correct).toBe(true);
       expect(savedAttempts.size).toBe(1);
       expect(mockPrisma.$transaction).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('submission boundaries', () => {
+    const input = {
+      requestId: '06f232e6-dac9-4915-a372-c9d91651c795',
+      orgId: 'org-1', userId: 'user-1', courseId: 'course-1', conceptId: 'concept-1',
+      problemId: 'prob-1', answer: 'opt-b', responseTimeMs: 5000, activityType: 'lesson' as const,
+    };
+
+    it.each(['problem', 'knowledgePoint', 'concept', 'section'])(
+      'rejects archived %s content before scoring', async (archivedLevel) => {
+        const problem: any = structuredClone(mockProblem);
+        const kp = problem.knowledgePoint;
+        const target = archivedLevel === 'problem' ? problem
+          : archivedLevel === 'knowledgePoint' ? kp
+          : archivedLevel === 'concept' ? kp.concept
+          : (kp.concept.section = {});
+        target.isArchived = true;
+        mockPrisma.problem.findUnique.mockResolvedValue(problem);
+
+        await expect(service.submitAnswer(input)).rejects.toThrow(NotFoundException);
+        expect(mockPrisma.problemAttempt.create).not.toHaveBeenCalled();
+        expect(mockStudentState.upsertKPState).not.toHaveBeenCalled();
+        expect(mockXPService.recordXPEvent).not.toHaveBeenCalled();
+      },
+    );
+
+    it('rejects lessons in a locked section before scoring', async () => {
+      mockPrisma.problem.findUnique.mockResolvedValue({
+        ...mockProblem,
+        knowledgePoint: {
+          ...mockProblem.knowledgePoint,
+          concept: { ...mockProblem.knowledgePoint.concept, sectionId: 'section-1' },
+        },
+      });
+      mockStudentState.getSectionState.mockResolvedValue({ status: 'locked' });
+
+      await expect(service.submitAnswer(input)).rejects.toThrow('Complete the previous section exam first');
+      expect(mockStudentState.getSectionState).toHaveBeenCalledWith('user-1', 'section-1', mockPrisma);
+      expect(mockPrisma.problemAttempt.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects lessons blocked by prerequisite remediation before scoring', async () => {
+      mockRemediationService.getBlockedConceptIdsForCourse.mockResolvedValue(new Set(['concept-1']));
+
+      await expect(service.submitAnswer(input)).rejects.toThrow('Complete prerequisite reviews first');
+      expect(mockPrisma.problemAttempt.create).not.toHaveBeenCalled();
+    });
+
+    it('allows prerequisite review attempts while lessons are blocked', async () => {
+      mockRemediationService.getBlockedConceptIdsForCourse.mockResolvedValue(new Set(['concept-1']));
+
+      const result = await service.submitAnswer({ ...input, activityType: 'review' });
+      expect(result.correct).toBe(true);
+      expect(result.nextProblemHint).toBeNull();
+      expect(mockRemediationService.getBlockedConceptIdsForCourse).not.toHaveBeenCalled();
+    });
+
+    it('stores and replays the actual XP amount after the daily cap', async () => {
+      mockXPService.recordXPEvent.mockResolvedValue({ amount: 2 });
+      const first = await service.submitAnswer(input);
+      const replayed = await service.submitAnswer(input);
+
+      expect(first.xpAwarded).toBe(2);
+      expect(replayed.xpAwarded).toBe(2);
+      expect([...savedAttempts.values()][0].xpAwarded).toBe(2);
+      expect(mockXPService.recordXPEvent).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not mark an empty concept mastered or return a lesson hint', async () => {
+      mockPrisma.knowledgePoint.findMany.mockResolvedValue([]);
+      const result = await service.submitAnswer(input);
+
+      expect(result.updatedMasteryState).toBe('in_progress');
+      expect(result.nextProblemHint).toBeNull();
+      expect(mockStudentState.getKPStatesForIds).not.toHaveBeenCalled();
+    });
+
+    it('creates prerequisite remediation using the updated KP state and scoring transaction', async () => {
+      mockPrisma.problem.findUnique.mockResolvedValue({
+        ...mockProblem,
+        knowledgePoint: { ...mockProblem.knowledgePoint, keyPrerequisiteConceptId: 'prerequisite-1' },
+      });
+      mockStudentState.getKPState
+        .mockResolvedValueOnce({ attempts: 3, consecutiveCorrect: 0, passed: false })
+        .mockResolvedValueOnce({ attempts: 3, consecutiveCorrect: 0, passed: false })
+        .mockResolvedValueOnce({
+          attempts: 4, passed: false,
+          firstFailedSessionId: '2026-09-23', lastFailedSessionId: '2026-09-24',
+        });
+
+      await service.submitAnswer({ ...input, answer: 'opt-a' });
+      expect(mockRemediationService.createRemediation).toHaveBeenCalledWith(
+        'user-1', 'academy-1', 'concept-1', 'prerequisite-1', 'course-1', mockPrisma,
+      );
+      expect(mockStudentState.getKPState).toHaveBeenLastCalledWith('user-1', 'kp-1', mockPrisma);
+    });
+
+    it('does not create remediation for failures confined to one session', async () => {
+      mockPrisma.problem.findUnique.mockResolvedValue({
+        ...mockProblem,
+        knowledgePoint: { ...mockProblem.knowledgePoint, keyPrerequisiteConceptId: 'prerequisite-1' },
+      });
+      mockStudentState.getKPState.mockResolvedValue({
+        attempts: 8, consecutiveCorrect: 0, passed: false,
+        firstFailedSessionId: '2026-09-24', lastFailedSessionId: '2026-09-24',
+      });
+
+      await service.submitAnswer({ ...input, answer: 'opt-a' });
+      expect(mockRemediationService.createRemediation).not.toHaveBeenCalled();
+    });
+
+    it('replays equivalent matching answers regardless of object key order', async () => {
+      mockPrisma.problem.findUnique.mockResolvedValue({
+        ...mockProblem, type: 'matching', correctAnswer: { a: 'one', b: 'two' },
+      });
+      const first = await service.submitAnswer({ ...input, answer: { a: 'one', b: 'two' } });
+      const replayed = await service.submitAnswer({
+        ...input, answer: { b: 'two', a: 'one' },
+        seenProblemIds: [], workedExampleReopenedKPIds: [],
+      });
+
+      expect(first.correct).toBe(true);
+      expect(replayed).toEqual(first);
+      expect(mockPrisma.problemAttempt.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects a reused request ID when lesson continuation inputs change', async () => {
+      await service.submitAnswer(input);
+      await expect(service.submitAnswer({ ...input, seenProblemIds: ['prob-1'] })).rejects.toThrow(ConflictException);
+      await expect(service.submitAnswer({ ...input, workedExampleReopenedKPIds: ['kp-1'] })).rejects.toThrow(ConflictException);
+      expect(mockPrisma.problemAttempt.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects a legacy attempt without a compatible receipt', async () => {
+      await service.submitAnswer(input);
+      const saved = [...savedAttempts.values()][0];
+      savedAttempts.set(saved.id, { ...saved, submissionReceipt: null });
+
+      await expect(service.submitAnswer(input)).rejects.toThrow(ConflictException);
+      expect(mockPrisma.problemAttempt.create).toHaveBeenCalledTimes(1);
+    });
+
+    it.each(['P2034', 'P2002'])('bounds retries for repeated %s conflicts', async (code) => {
+      const failure = Object.assign(new Error('write conflict'), { code });
+      mockPrisma.$transaction.mockRejectedValue(failure);
+
+      await expect(service.submitAnswer(input)).rejects.toBe(failure);
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(3);
+      expect(mockSectionExamService.syncSectionStates).not.toHaveBeenCalled();
+    });
+
+    it('does not retry an unrelated transaction failure', async () => {
+      const failure = Object.assign(new Error('database unavailable'), { code: 'P1001' });
+      mockPrisma.$transaction.mockRejectedValue(failure);
+
+      await expect(service.submitAnswer(input)).rejects.toBe(failure);
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(mockSectionExamService.syncSectionStates).not.toHaveBeenCalled();
     });
   });
 

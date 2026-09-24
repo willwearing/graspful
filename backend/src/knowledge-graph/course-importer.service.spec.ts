@@ -1,3 +1,4 @@
+import { StudentStateService } from '@/student-model/student-state.service';
 import { dump as dumpYaml } from 'js-yaml';
 import { Prisma } from '@prisma/client';
 import { CourseImporterService } from './course-importer.service';
@@ -363,10 +364,28 @@ function createMockPrisma() {
 }
 
 describe('CourseImporterService', () => {
+  it('fails the import when transactional student state seeding fails', async () => {
+    const prisma = createMockPrisma();
+    const failure = new Error('Student state write failed');
+    const studentState = {
+      seedStudentStateForNewConcepts: jest.fn().mockRejectedValue(failure),
+    } as unknown as StudentStateService;
+    const service = new CourseImporterService(prisma as any, new GraphValidationService(), studentState);
+
+    await expect(service.importFromYaml(dumpYaml(publicationReadyCourse()), 'org-1')).rejects.toBe(failure);
+    expect(studentState.seedStudentStateForNewConcepts).toHaveBeenCalledWith(
+      expect.objectContaining({ studentConceptState: expect.any(Object) }),
+      'course-uuid-1', ['concept-uuid-1'], [],
+    );
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      maxWait: 30000, timeout: 60000, isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    });
+  });
+
   it('should import a minimal course with one concept', async () => {
     const mockPrisma = createMockPrisma();
     const validationService = new GraphValidationService();
-    const service = new CourseImporterService(mockPrisma as any, validationService);
+    const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
     const yaml = `
 course:
@@ -393,7 +412,7 @@ concepts:
   it('should create prerequisite edges', async () => {
     const mockPrisma = createMockPrisma();
     const validationService = new GraphValidationService();
-    const service = new CourseImporterService(mockPrisma as any, validationService);
+    const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
     const yaml = `
 course:
@@ -430,7 +449,7 @@ concepts:
   it('should create encompassing edges with weights', async () => {
     const mockPrisma = createMockPrisma();
     const validationService = new GraphValidationService();
-    const service = new CourseImporterService(mockPrisma as any, validationService);
+    const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
     const yaml = `
 course:
@@ -465,7 +484,7 @@ concepts:
   it('should create knowledge points and problems', async () => {
     const mockPrisma = createMockPrisma();
     const validationService = new GraphValidationService();
-    const service = new CourseImporterService(mockPrisma as any, validationService);
+    const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
     const yaml = `
 course:
@@ -517,7 +536,7 @@ concepts:
   it('should persist section exam config on sections', async () => {
     const mockPrisma = createMockPrisma();
     const validationService = new GraphValidationService();
-    const service = new CourseImporterService(mockPrisma as any, validationService);
+    const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
     const yaml = `
 course:
@@ -584,7 +603,7 @@ concepts:
   it('should reject invalid YAML structure', async () => {
     const mockPrisma = createMockPrisma();
     const validationService = new GraphValidationService();
-    const service = new CourseImporterService(mockPrisma as any, validationService);
+    const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
     const yaml = `
 course:
@@ -600,7 +619,7 @@ concepts: []
   it('should parse a transport-encoded YAML string payload', () => {
     const mockPrisma = createMockPrisma();
     const validationService = new GraphValidationService();
-    const service = new CourseImporterService(mockPrisma as any, validationService);
+    const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
     const yaml = `
 course:
@@ -620,7 +639,7 @@ concepts: []
   it('should reject a course with cycles', async () => {
     const mockPrisma = createMockPrisma();
     const validationService = new GraphValidationService();
-    const service = new CourseImporterService(mockPrisma as any, validationService);
+    const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
     const yaml = `
 course:
@@ -652,7 +671,7 @@ concepts:
   it('rejects qualified cross-course refs on standalone course imports', async () => {
     const mockPrisma = createMockPrisma();
     const validationService = new GraphValidationService();
-    const service = new CourseImporterService(mockPrisma as any, validationService);
+    const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
     const yaml = `
 course:
@@ -686,7 +705,7 @@ concepts:
     it('should update an existing course in place when reimporting same slug', async () => {
       const mockPrisma = createMockPrisma();
       const validationService = new GraphValidationService();
-      const service = new CourseImporterService(mockPrisma as any, validationService);
+      const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
       const yaml = `
 course:
@@ -729,7 +748,7 @@ concepts:
     it('should reconcile problems by authored id and preserve matched problem rows on replace', async () => {
       const mockPrisma = createMockPrisma();
       const validationService = new GraphValidationService();
-      const service = new CourseImporterService(mockPrisma as any, validationService);
+      const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
       const baseYaml = `
 course:
@@ -803,7 +822,7 @@ concepts:
     it('should not delete existing course when replace is false', async () => {
       const mockPrisma = createMockPrisma();
       const validationService = new GraphValidationService();
-      const service = new CourseImporterService(mockPrisma as any, validationService);
+      const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
       const yaml = `
 course:
@@ -825,7 +844,7 @@ concepts:
     it('should seed new concept states for existing enrollments when a new leaf is added', async () => {
       const mockPrisma = createMockPrisma();
       const validationService = new GraphValidationService();
-      const service = new CourseImporterService(mockPrisma as any, validationService);
+      const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
       mockPrisma._created.enrollments.push({
         userId: 'user-1',
@@ -893,7 +912,7 @@ concepts:
     it('blocks replace imports that remove an existing concept slug', async () => {
       const mockPrisma = createMockPrisma();
       const validationService = new GraphValidationService();
-      const service = new CourseImporterService(mockPrisma as any, validationService);
+      const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
       const baseYaml = `
 course:
@@ -973,7 +992,7 @@ concepts:
     it('blocks replace imports that remove an existing knowledge point slug', async () => {
       const mockPrisma = createMockPrisma();
       const validationService = new GraphValidationService();
-      const service = new CourseImporterService(mockPrisma as any, validationService);
+      const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
       const baseYaml = `
 course:
@@ -1036,7 +1055,7 @@ concepts:
     it('archives missing sections, concepts, and knowledge points when archiveMissing is enabled', async () => {
       const mockPrisma = createMockPrisma();
       const validationService = new GraphValidationService();
-      const service = new CourseImporterService(mockPrisma as any, validationService);
+      const service = new CourseImporterService(mockPrisma as any, validationService, new StudentStateService(mockPrisma as any));
 
       const baseYaml = `
 course:
@@ -1170,7 +1189,7 @@ describe('Publication integrity during replacement', () => {
     prisma.$transaction.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError('Transaction conflict', {
       code: 'P2034', clientVersion: 'test',
     }));
-    const service = new CourseImporterService(prisma as any, new GraphValidationService());
+    const service = new CourseImporterService(prisma as any, new GraphValidationService(), new StudentStateService(prisma as any));
 
     await expect(service.importFromYaml(dumpYaml(publicationReadyCourse()), 'org-1')).rejects.toThrow('course changed during import');
     expect(prisma._created.createdCourses).toHaveLength(0);
@@ -1178,7 +1197,7 @@ describe('Publication integrity during replacement', () => {
 
   it.each([undefined, false, true])('rejects unfinished replacement of a live course before writing, isPublished=%s', async (isPublished) => {
     const prisma = createMockPrisma();
-    const service = new CourseImporterService(prisma as any, new GraphValidationService());
+    const service = new CourseImporterService(prisma as any, new GraphValidationService(), new StudentStateService(prisma as any));
     const original = publicationReadyCourse();
     const first = await service.importFromYaml(dumpYaml(original), 'org-1', { isPublished: true });
     expect(first.published).toBe(true);
@@ -1196,7 +1215,7 @@ describe('Publication integrity during replacement', () => {
 
   it('rejects an empty archived replacement of a live course without removing its lessons', async () => {
     const prisma = createMockPrisma();
-    const service = new CourseImporterService(prisma as any, new GraphValidationService());
+    const service = new CourseImporterService(prisma as any, new GraphValidationService(), new StudentStateService(prisma as any));
     await service.importFromYaml(dumpYaml(publicationReadyCourse()), 'org-1', { isPublished: true });
     const before = JSON.stringify(prisma._created);
 
@@ -1209,7 +1228,7 @@ describe('Publication integrity during replacement', () => {
 
   it('preserves publication and existing IDs when a complete replacement passes review', async () => {
     const prisma = createMockPrisma();
-    const service = new CourseImporterService(prisma as any, new GraphValidationService());
+    const service = new CourseImporterService(prisma as any, new GraphValidationService(), new StudentStateService(prisma as any));
     const first = await service.importFromYaml(dumpYaml(publicationReadyCourse()), 'org-1', { isPublished: true });
     const conceptId = prisma._created.createdConcepts[0].id;
     const replacement = publicationReadyCourse();
@@ -1227,7 +1246,7 @@ describe('Publication integrity during replacement', () => {
 
   it('keeps unfinished drafts editable and blocks direct import publication without review', async () => {
     const prisma = createMockPrisma();
-    const service = new CourseImporterService(prisma as any, new GraphValidationService());
+    const service = new CourseImporterService(prisma as any, new GraphValidationService(), new StudentStateService(prisma as any));
     const draft = publicationReadyCourse();
     draft.concepts[0].knowledgePoints[0].instruction = 'TODO: Write this lesson';
     const imported = await service.importFromYaml(dumpYaml(draft), 'org-1');
@@ -1240,7 +1259,7 @@ describe('Publication integrity during replacement', () => {
 
   it('reviews published academy replacements after their full graph was validated', async () => {
     const prisma = createMockPrisma();
-    const service = new CourseImporterService(prisma as any, new GraphValidationService());
+    const service = new CourseImporterService(prisma as any, new GraphValidationService(), new StudentStateService(prisma as any));
     await service.importFromYaml(dumpYaml(publicationReadyCourse()), 'org-1', { isPublished: true });
     const incoming = publicationReadyCourse();
     Object.assign(incoming.concepts[0], { prerequisites: ['earlier-course:foundation'] });
@@ -1256,7 +1275,7 @@ describe('Publication integrity during replacement', () => {
 
   it.each(['expectedCourseName', 'expectedCourseDescription'])('reviews the persisted academy override: %s', async (field) => {
     const prisma = createMockPrisma();
-    const service = new CourseImporterService(prisma as any, new GraphValidationService());
+    const service = new CourseImporterService(prisma as any, new GraphValidationService(), new StudentStateService(prisma as any));
     await service.importFromYaml(dumpYaml(publicationReadyCourse()), 'org-1', { isPublished: true });
     const before = JSON.stringify(prisma._created);
 

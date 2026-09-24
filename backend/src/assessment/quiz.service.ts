@@ -203,9 +203,6 @@ export class QuizService {
       if (!problem) {
         throw new NotFoundException(`Problem ${problemId} not in this quiz`);
       }
-      if (!Number.isSafeInteger(responseTimeMs) || responseTimeMs < 0) {
-        throw new BadRequestException('Response time must be a non-negative integer');
-      }
 
       const evaluation = evaluateAnswer(
         problem.type,
