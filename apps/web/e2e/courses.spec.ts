@@ -175,6 +175,7 @@ test.describe("Study and diagnostic routes (authenticated)", () => {
 
     await page.goto(`/study/${courseId}`);
     await expect(page).toHaveURL(new RegExp(`/study/${courseId}/lesson/[^/?]+`));
+    await page.getByRole("button", { name: "Start Lesson", exact: true }).click();
     await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeVisible();
     await expect(page.getByRole("main").getByRole("heading", { level: 2 })).toBeVisible();
   });
@@ -189,6 +190,8 @@ test.describe("Study and diagnostic routes (authenticated)", () => {
 
     await page.goto(`/diagnostic/${courseId}`);
     await expect(page.getByRole("heading", { name: "Diagnostic Assessment" })).toBeVisible();
+    await expect(page.getByText(/^Question 1 of/)).toHaveCount(0);
+    await page.getByRole("button", { name: "Start Diagnostic Assessment", exact: true }).click();
     await expect(page.getByText(/^Question 1 of/)).toBeVisible();
     await expect(page.getByRole("button", { name: "I don't know this yet", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Submit Answer", exact: true })).toBeVisible();

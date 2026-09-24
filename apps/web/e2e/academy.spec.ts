@@ -137,6 +137,8 @@ test.describe("Academy features", () => {
     await expect(page.getByRole("heading", { name: "Diagnostic Assessment" })).toBeVisible({
       timeout: 15_000,
     });
+    await expect(page.getByText("Question 1 of ~1", { exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Start Diagnostic Assessment", exact: true }).click();
     await expect(page.getByText("Question 1 of ~1", { exact: true })).toBeVisible();
     await expect(page.getByText("What is 2 + 2?", { exact: true })).toBeVisible();
     await expect(page.getByRole("radiogroup")).toBeVisible();
