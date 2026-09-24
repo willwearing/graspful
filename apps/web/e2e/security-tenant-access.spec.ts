@@ -274,8 +274,10 @@ for (const scope of ["academy", "course"] as const) {
 
 test.describe("Security: API key tenant boundary", () => {
   test("an org A key can manage A, while its owner JWT can manage both orgs", async ({ request }) => {
-    const ownOrg = await request.get(`${api}/orgs/${orgA.slug}/api-keys`, { headers: headers(orgAKey) });
-    expect(ownOrg.status()).toBe(200);
+    for (const route of ["api-keys", "courses", "academies"]) {
+      const ownOrg = await request.get(`${api}/orgs/${orgA.slug}/${route}`, { headers: headers(orgAKey) });
+      expect(ownOrg.status(), route).toBe(200);
+    }
     for (const org of [orgA, orgB]) {
       expect((await request.get(`${api}/orgs/${org.slug}/api-keys`, { headers: headers(owner.token) })).status()).toBe(200);
     }
@@ -285,7 +287,10 @@ test.describe("Security: API key tenant boundary", () => {
     const count = await prisma.apiKey.count({ where: { orgId: orgB.id } });
     for (const orgReference of [orgB.slug, orgB.id]) {
       const url = `${api}/orgs/${orgReference}/api-keys`;
-      expect((await request.get(url, { headers: headers(orgAKey) })).status()).toBe(403);
+      for (const route of ["api-keys", "courses", "academies"]) {
+        const response = await request.get(`${api}/orgs/${orgReference}/${route}`, { headers: headers(orgAKey) });
+        expect(response.status(), route).toBe(403);
+      }
       expect((await request.post(url, { headers: headers(orgAKey), data: { name: "Forbidden key" } })).status()).toBe(403);
     }
     expect(await prisma.apiKey.count({ where: { orgId: orgB.id } })).toBe(count);
