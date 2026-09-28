@@ -1,7 +1,9 @@
 "use client";
 
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useBrand } from "@/lib/brand/context";
+import { useHostSurface } from "@/lib/host-context";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { initPostHog, posthog } from "./client";
 import { buildPostHogPageviewUrl } from "./pageview-url";
@@ -56,9 +58,16 @@ function PostHogIdentitySync() {
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
+  const brandId = useBrand().id;
+  const hostSurface = useHostSurface();
+
+  // A layout effect runs before the child effects that capture the first
+  // pageview, so no event keeps a value persisted by another subdomain.
+  useLayoutEffect(() => {
     initPostHog();
-  }, []);
+    if (!posthog.__loaded) return;
+    posthog.register({ host_surface: hostSurface, brand_id: brandId });
+  }, [brandId, hostSurface]);
 
   return (
     <>

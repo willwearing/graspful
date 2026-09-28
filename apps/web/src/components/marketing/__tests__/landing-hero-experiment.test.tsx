@@ -2,12 +2,15 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { BrandProvider } from "@/lib/brand/context";
 import { defaultBrand } from "@/lib/brand/defaults";
+import { HostSurfaceProvider } from "@/lib/host-context";
+import type { HostSurface } from "@/lib/hosts";
 import { LandingHeroExperiment } from "../landing-hero-experiment";
 
 let variant: string | boolean | undefined = "control";
+const useFeatureFlagVariant = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/posthog/useFeatureFlag", () => ({
-  useFeatureFlagVariant: () => variant,
+  useFeatureFlagVariant,
 }));
 
 const props = {
@@ -17,15 +20,29 @@ const props = {
   ctaText: "Start Building Free",
 };
 
-function renderExperiment() {
+function renderExperiment(surface: HostSurface = "platform") {
+  useFeatureFlagVariant.mockReset().mockImplementation(() => variant);
   return render(
-    <BrandProvider brand={defaultBrand}>
-      <LandingHeroExperiment {...props} />
-    </BrandProvider>,
+    <HostSurfaceProvider surface={surface}>
+      <BrandProvider brand={defaultBrand}>
+        <LandingHeroExperiment {...props} />
+      </BrandProvider>
+    </HostSurfaceProvider>,
   );
 }
 
 describe("LandingHeroExperiment", () => {
+  it.each<HostSurface>(["academy", "app", "local"])(
+    "keeps %s hosts out of the experiment even with the Graspful brand",
+    (surface) => {
+      variant = "product-proof";
+      renderExperiment(surface);
+
+      expect(useFeatureFlagVariant).not.toHaveBeenCalled();
+      expect(screen.getByText("Current homepage copy.")).toBeInTheDocument();
+    },
+  );
+
   it("keeps the existing hero for the control variant", () => {
     variant = "control";
     renderExperiment();

@@ -2,6 +2,7 @@
 
 import { Hero } from "@/components/marketing/hero";
 import { ProductProofHero } from "@/components/marketing/product-proof-hero";
+import { useHostSurface } from "@/lib/host-context";
 import { useFeatureFlagVariant } from "@/lib/posthog/useFeatureFlag";
 
 export const HOMEPAGE_PRODUCT_PROOF_FLAG = "homepage-product-proof-v1";
@@ -44,7 +45,11 @@ export function LandingHeroExperiment({
   isGraspful,
   ...heroProps
 }: LandingHeroExperimentProps) {
-  if (!isGraspful) {
+  const hostSurface = useHostSurface();
+
+  // Subdomains without a brand record fall back to the Graspful brand, so the
+  // brand alone does not keep tenant and test hosts out of the experiment.
+  if (!isGraspful || hostSurface !== "platform") {
     return <Hero {...heroProps} />;
   }
 
