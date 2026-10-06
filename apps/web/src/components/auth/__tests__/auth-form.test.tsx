@@ -8,6 +8,7 @@ import { defaultBrand } from "@/lib/brand/defaults";
 
 const mockSignUp = vi.fn();
 const mockSignIn = vi.fn();
+const mockResend = vi.fn();
 const mockPush = vi.fn();
 const mockRefresh = vi.fn();
 const mockApiClientFetch = vi.fn();
@@ -23,6 +24,7 @@ vi.mock("@/lib/supabase/client", () => ({
   createSupabaseBrowserClient: () => ({
     auth: {
       signUp: (...args: unknown[]) => mockSignUp(...args),
+      resend: (...args: unknown[]) => mockResend(...args),
       signInWithPassword: (...args: unknown[]) => mockSignIn(...args),
     },
   }),
@@ -43,6 +45,7 @@ describe("AuthForm", () => {
     mockSearchParams = "";
     mockSignUp.mockReset();
     mockSignIn.mockReset();
+    mockResend.mockReset();
     mockPush.mockReset();
     mockRefresh.mockReset();
     mockApiClientFetch.mockReset();
@@ -82,9 +85,9 @@ describe("AuthForm", () => {
     expect(mockTrackAuthFormEvent).toHaveBeenCalledWith("sign-up", "started", "graspful");
   });
 
-  it("replaces the sign-up form with a confirmation state when email verification is required", async () => {
+  it.each([undefined, { id: "obfuscated-existing-user", identities: [] }])("shows neutral confirmation and recovery options for new and existing accounts (%j)", async (user) => {
     mockSignUp.mockResolvedValue({
-      data: { session: null },
+      data: { session: null, user },
       error: null,
     });
 
@@ -106,10 +109,10 @@ describe("AuthForm", () => {
       expect(screen.getByText("Check your email")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Check your email for a confirmation link.")).toBeInTheDocument();
+    expect(screen.getByText("Check your email or sign in to your existing account.")).toBeInTheDocument();
     expect(
       screen.getByText((content, node) =>
-        node?.textContent === "We sent a confirmation link to willwearing+test123@gmail.com."
+        node?.textContent === "If your account needs confirmation, check willwearing+test123@gmail.com for a link. Check your spam folder too."
       )
     ).toBeInTheDocument();
     expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
@@ -119,6 +122,22 @@ describe("AuthForm", () => {
       "href",
       "/sign-in?redirect=%2Fdashboard&email=willwearing%2Btest123%40gmail.com",
     );
+    expect(screen.queryByText(/We sent a confirmation link/)).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Reset password" })).toHaveAttribute("href", "/forgot-password?email=willwearing%2Btest123%40gmail.com");
+    mockResend.mockResolvedValueOnce({ error: new Error("Email rate limit exceeded") });
+    fireEvent.click(screen.getByRole("button", { name: "Resend confirmation link" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Email rate limit exceeded");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Resend confirmation link" })).toBeEnabled();
+    mockResend.mockResolvedValueOnce({ error: null });
+    fireEvent.click(screen.getByRole("button", { name: "Resend confirmation link" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("a new link has been requested");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Wait 60 seconds/ })).toBeDisabled();
+    expect(mockResend).toHaveBeenLastCalledWith({
+      type: "signup", email: "willwearing+test123@gmail.com",
+      options: { emailRedirectTo: "http://localhost:3000/auth/callback?redirect=%2Fdashboard" },
+    });
     expect(mockPush).not.toHaveBeenCalled();
     expect(mockRefresh).not.toHaveBeenCalled();
     expect(mockSignUp).toHaveBeenCalledWith({
@@ -243,4 +262,15 @@ describe("AuthForm", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(mockTrackAuthFormEvent.mock.calls.filter((call) => call[1] === "submitted")).toHaveLength(2);
   });
+});
+
+
+it.each(['forgot', 'reset'])('keeps %s password controls disabled until hydration', async (mode) => {
+  const { default: Page } = mode === 'forgot'
+    ? await import('@/app/(marketing)/forgot-password/page')
+    : await import('@/app/(marketing)/reset-password/page');
+  const container = document.createElement('div');
+  container.innerHTML = renderToString(<BrandProvider brand={defaultBrand}><Page /></BrandProvider>);
+  for (const input of container.querySelectorAll<HTMLInputElement>('input')) expect(input.disabled).toBe(true);
+  expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
 });

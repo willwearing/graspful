@@ -9,6 +9,10 @@ This describes the current implementation after PR #139 and the architecture cle
 3. On a branded academy site, the request can include `brandOrgSlug`. Provisioning adds a `member` membership only when the organization and its public brand are active. Existing roles stay unchanged.
 4. The app routes the user to an allowed local destination. Redirect parameters are validated before use.
 
+Supabase returns a successful, obfuscated response when an existing confirmed account submits signup again. This sends no confirmation email and leaves the original password unchanged. The shared confirmation screen gives conditional email guidance, a resend button, sign-in, and password reset options. It makes no claim that an email was delivered. Resend errors stay visible, and a successful request disables further requests for 60 seconds.
+
+Confirmation and recovery templates live in `supabase/templates`. They pass a token hash to the current site's server route so resends and links opened in another browser can create a session. `/auth/callback` accepts signup tokens and provisions the current academy. `/auth/confirm` handles password recovery. Both routes also support existing PKCE code links. The auth allowlist in `supabase/config.toml` includes the 4 course Vercel domains and Graspful subdomains. Hosted Supabase email templates and redirects must match this configuration when these changes are deployed.
+
 Provisioning creates no public brand or domain. Learners still receive a private owner workspace under the current product behavior. This gives them a creator workspace as well as any academy memberships.
 
 `POST /api/v1/orgs/:orgSlug/join` allows direct self-enrollment only into the `graspful` platform organization. Branded academy membership uses the provision flow above.

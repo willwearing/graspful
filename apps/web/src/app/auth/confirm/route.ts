@@ -8,6 +8,7 @@ import { safeRedirectPath } from "@graspful/shared";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const tokenHash = searchParams.get("token_hash");
+  const code = searchParams.get("code");
   const type = searchParams.get("type") as EmailOtpType | null;
   const surface = getHostSurface(getRequestHost(request.headers));
   const fallbackPath = getDefaultAuthRedirectPath(surface);
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
     options?: Parameters<NextResponse["cookies"]["set"]>[2];
   }> = [];
 
-  if (tokenHash && type) {
+  if (code || (tokenHash && type)) {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -33,10 +34,9 @@ export async function GET(request: NextRequest) {
         },
       },
     );
-    const { error } = await supabase.auth.verifyOtp({
-      type,
-      token_hash: tokenHash,
-    });
+    const { error } = code
+      ? await supabase.auth.exchangeCodeForSession(code)
+      : await supabase.auth.verifyOtp({ type: type!, token_hash: tokenHash! });
 
     if (!error) {
       const response = NextResponse.redirect(new URL(next, origin));

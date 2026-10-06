@@ -25,7 +25,8 @@
     "./api-keys": "./src/api-keys/index.ts",
     "./use-browser-session": "./src/use-browser-session.ts",
     "./public-academies": "./src/public-academies.ts",
-    "./session-cookies": "./src/session-cookies.ts"
+    "./session-cookies": "./src/session-cookies.ts",
+    "./signup-confirmation": "./src/signup-confirmation.tsx"
   },
   "dependencies": {
     "@graspful/shared": "workspace:*",

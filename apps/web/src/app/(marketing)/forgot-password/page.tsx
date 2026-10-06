@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useHydrated } from "@graspful/creator-ui/use-hydrated";
+import { useSearchParams } from "next/navigation";
 import { AuthLink } from "@/components/navigation/auth-link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useBrand } from "@/lib/brand/context";
@@ -13,12 +15,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordForm() {
   const brand = useBrand();
-  const [email, setEmail] = useState("");
+  const searchParams = useSearchParams();
+  const [email, setEmail] = useState(searchParams.get("email") || "");
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const hydrated = useHydrated();
 
   const supabase = createSupabaseBrowserClient();
 
@@ -76,6 +80,7 @@ export default function ForgotPasswordPage() {
                     Email
                   </label>
                   <input
+                    disabled={!hydrated}
                     id="email"
                     type="email"
                     value={email}
@@ -90,7 +95,7 @@ export default function ForgotPasswordPage() {
                   <p className="text-sm text-destructive">{error}</p>
                 )}
 
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full" disabled={loading || !hydrated}>
                   {loading ? "Sending..." : "Send reset link"}
                 </Button>
               </form>
@@ -110,4 +115,8 @@ export default function ForgotPasswordPage() {
       </Card>
     </div>
   );
+}
+
+export default function ForgotPasswordPage() {
+  return <Suspense><ForgotPasswordForm /></Suspense>;
 }

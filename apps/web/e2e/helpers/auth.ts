@@ -194,8 +194,15 @@ export async function signUpAsCreator(page: Page): Promise<string> {
 }
 
 export async function getBrowserAccessToken(page: Page): Promise<string | null> {
-  const cookies = await page.context().cookies();
-  const authCookie = cookies.find((cookie) => cookie.name.includes("auth-token"));
+  const cookies = await page.context().cookies(page.url());
+  // Server-confirmed sessions can span cookies. Exclude the PKCE verifier,
+  // which also has "auth-token" in its name but contains no access token.
+  const authCookies = cookies.filter((cookie) => /-auth-token(?:\.\d+)?$/.test(cookie.name));
+  authCookies.sort((left, right) => {
+    const chunk = (name: string) => Number(name.match(/\.(\d+)$/)?.[1] || 0);
+    return chunk(left.name) - chunk(right.name);
+  });
+  const authCookie = { value: authCookies.map((cookie) => cookie.value).join("") };
 
   if (authCookie?.value?.startsWith("base64-")) {
     try {

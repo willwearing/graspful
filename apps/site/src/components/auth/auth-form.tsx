@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { safeRedirectPath } from "@graspful/shared";
 import { useHydrated } from "@graspful/creator-ui/use-hydrated";
+import { SignupConfirmation } from "@graspful/creator-ui/signup-confirmation";
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up";
@@ -46,7 +47,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
       if (mode === "sign-up") {
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
@@ -60,7 +61,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           router.push(redirectTo);
           router.refresh();
         } else {
-          setSubmittedEmail(email);
+          setSubmittedEmail(email.trim());
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -93,7 +94,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const description = isSignIn
     ? `Sign in to ${brand.name}`
     : isConfirmationPending
-      ? "Check your email for a confirmation link."
+      ? "Check your email or sign in to your existing account."
       : "Next step: run graspful register from your editor to connect the CLI.";
   const submitText = isSignIn ? "Sign In" : "Create Account";
   const switchText = isSignIn ? "Don't have an account?" : "Already have an account?";
@@ -109,17 +110,21 @@ export function AuthForm({ mode }: AuthFormProps) {
         </CardHeader>
         <CardContent>
           {isConfirmationPending ? (
-            <div className="space-y-4 text-center">
-              <p className="text-sm text-muted-foreground">
-                We sent a confirmation link to <strong>{submittedEmail}</strong>.
-              </p>
-              <Link
-                href="/sign-in"
-                className="inline-block text-sm font-medium text-primary hover:underline"
-              >
-                Back to sign in
-              </Link>
-            </div>
+            <SignupConfirmation
+              email={submittedEmail!}
+              signInHref={`/sign-in?${new URLSearchParams({ email: submittedEmail!, redirect: redirectTo })}`}
+              resetPasswordHref={`/forgot-password?email=${encodeURIComponent(submittedEmail!)}`}
+              onResend={async () => {
+                const { error } = await createSupabaseBrowserClient().auth.resend({
+                  type: "signup",
+                  email: submittedEmail!,
+                  options: {
+                    emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
+                  },
+                });
+                if (error) throw error;
+              }}
+            />
           ) : (
             <>
               {reason === "session_expired" && (

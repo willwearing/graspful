@@ -10,6 +10,7 @@ import {
   type ApiTestContext,
 } from "./helpers/api-auth";
 import { getE2eEnvironment } from "../../../backend/scripts/e2e-env";
+import { confirmSignupEmail } from "./helpers/mail";
 
 const BACKEND_URL = getE2eEnvironment(process.env).NEXT_PUBLIC_BACKEND_URL;
 const prisma = new PrismaClient();
@@ -93,15 +94,20 @@ test.describe("User provisioning (web UI sign-up flow)", () => {
     const signUpResponse = page.waitForResponse((res) =>
       res.url().includes("/auth/v1/signup") && res.request().method() === "POST",
     );
-    const provisionResponse = page.waitForResponse((res) =>
-      res.url().endsWith("/auth/provision") && res.request().method() === "POST",
-    );
     await page.getByRole("button", { name: "Create Account" }).click();
     expect((await signUpResponse).ok()).toBe(true);
-    const firstProvision = await provisionResponse;
+    await confirmSignupEmail(page, email);
+    // The callback provisions on the server. Check its result before a repeat request.
+    const owned = await prisma.orgMembership.findFirst({ where: { user: { email }, role: "owner" } });
+    expect(owned).toBeTruthy();
+    const token = await getBrowserAccessToken(page);
+    expect(token).toBeTruthy();
+    const firstProvision = await request.post(`${BACKEND_URL}/auth/provision`, {
+      headers: { Authorization: `Bearer ${token}` }, data: { brandOrgSlug: "graspful" },
+    });
     expect(firstProvision.status()).toBe(201);
     const provision = await firstProvision.json();
-    expect(provision).toMatchObject({ created: true });
+    expect(provision).toMatchObject({ created: false, orgId: owned!.orgId });
     expect(provision.orgId).toMatch(UUID_RE);
     expect(provision.orgSlug).toBeTruthy();
 
@@ -110,8 +116,6 @@ test.describe("User provisioning (web UI sign-up flow)", () => {
     const sidebar = page.getByRole("complementary");
     await expect(sidebar.getByRole("link", { name: "API Keys", exact: true })).toBeVisible();
     await expect(sidebar.getByRole("button", { name: "Log out", exact: true })).toBeVisible();
-    const token = await getBrowserAccessToken(page);
-    expect(token).toBeTruthy();
     const ctx: ApiTestContext = { token: token!, orgId: provision.orgSlug, request };
     const orgs = await apiGet(ctx, "/users/me/orgs");
     expect(orgs.status).toBe(200);

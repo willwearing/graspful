@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useHydrated } from "@graspful/creator-ui/use-hydrated";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient, hasSupabaseBrowserEnv } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState("");
+function ForgotPasswordForm() {
+  const searchParams = useSearchParams();
+  const [email, setEmail] = useState(searchParams.get("email") || "");
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const hydrated = useHydrated();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,6 +66,7 @@ export default function ForgotPasswordPage() {
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">Email</label>
                   <input
+                    disabled={!hydrated}
                     id="email"
                     type="email"
                     value={email}
@@ -72,7 +77,7 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
                 {error && <p className="text-sm text-destructive">{error}</p>}
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full" disabled={loading || !hydrated}>
                   {loading ? "Sending..." : "Send reset link"}
                 </Button>
               </form>
@@ -86,4 +91,8 @@ export default function ForgotPasswordPage() {
       </Card>
     </div>
   );
+}
+
+export default function ForgotPasswordPage() {
+  return <Suspense><ForgotPasswordForm /></Suspense>;
 }

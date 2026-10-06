@@ -4,6 +4,8 @@ Playwright creates users, imports courses, and deletes fixtures. Run it against 
 
 Use Supabase CLI 2.90.0 and Docker. The `Start isolated local Supabase` step in [the CI workflow](../.github/workflows/ci-deploy.yml) contains the complete setup. It creates a separate Supabase project, generates an ES256 signing key for the backend JWT verifier, and permits redirects to local ports 3001 and 3002. Keep the temporary project outside this repository so its keys and test auth settings cannot enter deployment config.
 
+Enable email and phone confirmations in this local project's config, as CI does. Copy `supabase/templates` into the temporary project's `supabase` directory and configure the confirmation and recovery templates from the CI step. Email tests must use the production templates and confirmation requirement. Mailpit captures messages on local port 54324. Set `E2E_MAILPIT_URL` to another loopback address if needed. The tests follow delivered links, check resends in a new browser, reject consumed tokens, and exercise recovery for an existing account on all 4 course brands and the creator site.
+
 After starting that project, export its credentials in the shell that will run migrations, seeds, builds, and tests. Replace the directory below with your temporary Supabase project directory. This reads keys directly into environment variables without printing them.
 
 ```sh

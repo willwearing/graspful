@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { getBrowserAccessToken } from "./helpers/auth";
+import { confirmSignupEmail } from "./helpers/mail";
 import { getE2eEnvironment } from "../../../backend/scripts/e2e-env";
 
 const BACKEND_URL = getE2eEnvironment(process.env).NEXT_PUBLIC_BACKEND_URL;
@@ -45,18 +46,24 @@ test.describe("Branded subdomain sign-up", () => {
     await page.goto("/sign-up");
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password").fill("TestPassword123!");
-    const provisionResponse = page.waitForResponse((res) =>
-      res.url().endsWith("/auth/provision") && res.request().method() === "POST",
-    );
     await page.getByRole("button", { name: "Create Account" }).click();
+    await confirmSignupEmail(page, email);
 
-    // The isolated local Supabase instance auto-confirms accounts. Assert that
-    // provisioning completed, so a redirect alone cannot hide an API failure.
-    const response = await provisionResponse;
+    // Provisioning runs in the server callback after the delivered email link.
+    const owned = await prisma.orgMembership.findFirst({ where: { user: { email }, role: "owner" } });
+    expect(owned).toBeTruthy();
+    const membership = await prisma.orgMembership.findMany({
+      where: { user: { email }, org: { slug: "electrician-prep" } },
+    });
+    expect(membership).toHaveLength(1);
+    const token = await getBrowserAccessToken(page);
+    expect(token).toBeTruthy();
+    const response = await request.post(`${BACKEND_URL}/auth/provision`, {
+      headers: { Authorization: `Bearer ${token}` }, data: { brandOrgSlug: "electrician-prep" },
+    });
     expect(response.status()).toBe(201);
-    expect(response.request().postDataJSON()).toEqual({ brandOrgSlug: "electrician-prep" });
     const provision = await response.json();
-    expect(provision.created).toBe(true);
+    expect(provision).toMatchObject({ created: false, orgId: owned!.orgId });
     await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15_000 });
     const sidebar = page.getByRole("complementary");
     await expect(sidebar.getByText("ElectricianPrep", { exact: true })).toBeVisible();
@@ -65,8 +72,6 @@ test.describe("Branded subdomain sign-up", () => {
     await expect(sidebar.getByRole("button", { name: "Log out", exact: true })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: "API Keys", exact: true })).toHaveCount(0);
 
-    const token = await getBrowserAccessToken(page);
-    expect(token).toBeTruthy();
     const headers = { Authorization: `Bearer ${token}` };
     const orgsResponse = await request.get(`${BACKEND_URL}/users/me/orgs`, { headers });
     expect(orgsResponse.status()).toBe(200);
@@ -75,10 +80,6 @@ test.describe("Branded subdomain sign-up", () => {
       expect.objectContaining({ slug: "electrician-prep", role: "member" }),
       expect.objectContaining({ orgId: provision.orgId, slug: provision.orgSlug, role: "owner" }),
     ]));
-    const membership = await prisma.orgMembership.findMany({
-      where: { user: { email }, org: { slug: "electrician-prep" } },
-    });
-    expect(membership).toHaveLength(1);
     expect(membership[0].role).toBe("member");
     const academies = await request.get(`${BACKEND_URL}/orgs/electrician-prep/academies`, { headers });
     expect(academies.status()).toBe(200);
