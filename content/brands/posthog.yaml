@@ -1,5 +1,5 @@
 brand:
-  id: posthog
+  id: posthog-tam
   name: PostHog TAM
   domain: posthog-tam.vercel.app
   tagline: Reason through PostHog data and identity
