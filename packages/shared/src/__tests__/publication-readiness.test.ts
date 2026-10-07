@@ -31,6 +31,22 @@ function courseWithProblem(problem: Record<string, unknown>) {
 const hasReadinessFailure = (raw: unknown) => runQualityGate(raw).failures.some(({ check }) => check === 'publication_readiness');
 
 describe('publication readiness', () => {
+  it('accepts an atomic capstone section while retaining exam-pool and empty-section guards', () => {
+    const raw = authoredCourse();
+    const kp = raw.concepts[0].knowledgePoints[0];
+    Object.assign(raw.concepts[0], { section: 'capstone' });
+    const examCase = { ...kp.problems[0], id: 'capstone-exam', purpose: 'exam', isTransfer: true };
+    Object.assign(kp, { problems: [...kp.problems, examCase] });
+    const withExam = { ...raw, sections: [{ id: 'capstone', name: 'Apply the rule', sectionExam: {
+      enabled: true, questionCount: 1, minTransferQuestions: 1,
+      blueprint: [{ conceptId: 'equal-denominators', minQuestions: 1 }],
+    } }] };
+    expect(CourseYamlSchema.safeParse(withExam).success).toBe(true);
+    examCase.isTransfer = false;
+    expect(CourseYamlSchema.safeParse(withExam).success).toBe(false);
+    expect(CourseYamlSchema.safeParse({ ...withExam, concepts: [] }).success).toBe(false);
+  });
+
   it('preserves authored problem roles and requires sufficient held-out exam coverage', () => {
     const raw = authoredCourse();
     const kp = raw.concepts[0].knowledgePoints[0];

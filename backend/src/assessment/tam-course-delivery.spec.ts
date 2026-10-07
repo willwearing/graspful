@@ -15,22 +15,28 @@ describe('TAM academy delivery contract', () => {
     ));
     const original = JSON.parse(fs.readFileSync(
       path.join(courseDirectory, '../original-identities.json'), 'utf8',
-    )) as { courses: { id: string; concepts: { id: string }[] }[] };
+    )) as { courses: { id: string; sections: string[]; concepts: { id: string }[] }[] };
     const qualified = (course: string, ref: string) => ref.includes(':') ? ref : `${course}:${ref}`;
     const mastered = new Set(original.courses.flatMap((course) =>
       course.concepts.map((concept) => qualified(course.id, concept.id)),
+    ));
+    const certifiedSections = new Set(original.courses.flatMap((course) =>
+      course.sections.map((section) => qualified(course.id, section)),
     ));
     const nodes = courses.flatMap((course) => course.concepts.map((concept) => ({
       ...concept, id: qualified(course.course.id, concept.id), courseSlug: course.course.id,
     })));
     const ids = new Set(nodes.map((node) => node.id));
     const prerequisites = nodes.flatMap((node) => node.prerequisites.map((ref) => ({
-      source: node.id, target: qualified(node.courseSlug, ref),
+      source: qualified(node.courseSlug, ref), target: node.id,
     })));
     const encompassing = nodes.flatMap((node) => node.encompassing.map((edge) => ({
       source: node.id, target: qualified(node.courseSlug, edge.concept), weight: edge.weight,
     })));
-    for (const edge of [...prerequisites, ...encompassing]) expect(ids.has(edge.target)).toBe(true);
+    for (const edge of [...prerequisites, ...encompassing]) {
+      expect(ids.has(edge.source)).toBe(true);
+      expect(ids.has(edge.target)).toBe(true);
+    }
     for (const node of nodes) for (const kp of node.knowledgePoints) {
       expect(ids.has(qualified(node.courseSlug, kp.keyPrerequisite ?? node.id))).toBe(true);
     }
@@ -41,6 +47,9 @@ describe('TAM academy delivery contract', () => {
     const added = nodes.filter((node) => !mastered.has(node.id));
     expect(added).toHaveLength(9);
     expect(added.every((node) => node.knowledgePoints.length === 1)).toBe(true);
+    expect(added.every((node) => node.section && !certifiedSections.has(
+      qualified(node.courseSlug, node.section),
+    ))).toBe(true);
     expect(added.filter((node) => node.prerequisites.every((ref) =>
       mastered.has(qualified(node.courseSlug, ref)),
     ))).toHaveLength(4);

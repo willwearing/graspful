@@ -41,9 +41,9 @@ sections:
   sectionExam:
     enabled: true
     passingScore: 0.8
-    questionCount: 11
-    minTransferQuestions: 11
-    timeLimitMinutes: 33
+    questionCount: 10
+    minTransferQuestions: 10
+    timeLimitMinutes: 30
     blueprint:
     - conceptId: anonymous-vs-identified
       minQuestions: 2
@@ -55,11 +55,23 @@ sections:
       minQuestions: 2
     - conceptId: identification-pitfalls
       minQuestions: 2
-    - conceptId: identity-trace-capstone
-      minQuestions: 1
     instructions: Work from the supplied evidence. Distinguish the nearest competing interpretation, preserve
       the declared population and identity, and select the best action under the stated constraints. These are
       separate assessment cases.
+- id: identity-investigation
+  name: Diagnose an identity lifecycle
+  description: Trace actor attribution across sources, logout, and the next accepted login.
+  sectionExam:
+    enabled: true
+    passingScore: 0.8
+    questionCount: 1
+    minTransferQuestions: 1
+    timeLimitMinutes: 10
+    blueprint:
+    - conceptId: identity-trace-capstone
+      minQuestions: 1
+    instructions: Work from the supplied trace. Select the bounded test or remediation that preserves legitimate
+      actor identity and separation. These are separate assessment cases.
 - id: group-analytics
   name: Group Analytics
   description: Modeling organizations and B2B analytics with PostHog groups.
@@ -5773,7 +5785,7 @@ concepts:
         keys before summing.
 - id: identity-trace-capstone
   name: Diagnose an identity lifecycle trace
-  section: identification
+  section: identity-investigation
   difficulty: 5
   estimatedMinutes: 15
   tags:

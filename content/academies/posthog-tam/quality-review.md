@@ -14,11 +14,11 @@ The revised academy is suitable as a data and identity foundation. It now makes 
 | PostHog Ingestion Pipeline | 6 | 10 | 30 | 20 |
 | Total | 46 | 88 | 264 | 176 |
 
-All four original course IDs, 10 original section IDs, 37 original concept IDs, 79 original step IDs, and 237 original question IDs remain. Three focused sections and nine atomic concepts were added. No original node was retired or renamed. The identity baseline is recorded in `original-identities.json`.
+All four original course IDs, 10 original section IDs, 37 original concept IDs, 79 original step IDs, and 237 original question IDs remain. Four focused sections and nine atomic concepts were added. No original node was retired or renamed. The identity baseline is recorded in `original-identities.json`.
 
 Each step has three practice questions. The first two scaffold the rule; the third requires an application and has `isTransfer: true`. Two different exam cases follow with `purpose: exam` and `isTransfer: true`. Canonical numerical and ordering items were checked and retained where appropriate. All existing question keys were rechecked after option revisions and position changes.
 
-All 13 sections have exams with an explicit full transfer quota. Every blueprint concept has enough exam questions for two complete sittings without repeating its first-sitting items. The parent engine changes enforce purpose separation and prioritize unseen questions. The final delivery regression passed 5/5 tests.
+All 14 sections have exams with an explicit full transfer quota. Every blueprint concept has enough exam questions for two complete sittings without repeating its first-sitting items. The parent engine changes enforce purpose separation and prioritize unseen questions. The final delivery regression passed 5/5 tests.
 
 ## Review findings addressed
 
@@ -39,7 +39,7 @@ The two separately authorized selling-course corrections are also included: `puc
 
 ## New graph and existing learners
 
-The new learning steps are separate concepts. They will not inherit an existing concept's mastered state merely because the original concept already had learners.
+The new learning steps are separate concepts in four new sections. The identity case is in `identity-investigation`, immediately after the original `identification` section. The original identification section retains its five-concept blueprint and 10-question exam. Each new section is free of inherited original certification, so its new skills can enter the lesson frontier. They will not inherit an existing concept's mastered state merely because the original concept already had learners.
 
 The SQL component graph is:
 
@@ -61,7 +61,7 @@ The six new SQL concept IDs are `hogql-event-selection`, `hogql-property-units`,
 
 The quota capstone uses the cross-course concept `data-pipelines:pipeline-tradeoffs`; the verifier rejects a KP ID used as a concept reference.
 
-The offline verifier assumes every original concept is mastered. All nine new identities remain absent from that old mastery map. Four new entry concepts are immediately eligible: event selection, identity trace, tracking payload review, and quota recovery. The remaining five SQL concepts require their new prerequisites. This source-graph simulation is backed by the parent's real local import: a learner with all 37 original concepts mastered received nine new unstarted concept states. All old state rows remained exactly unchanged, and all four course IDs were retained.
+The offline verifier assumes every original concept is mastered. All nine new identities remain absent from that old mastery map. Four new entry concepts are immediately eligible: event selection, identity trace, tracking payload review, and quota recovery. The remaining five SQL concepts require their new prerequisites. This source-graph simulation is backed by the parent's real local import: a learner with all 37 original concepts mastered received nine new unstarted concept states. All old state rows remained exactly unchanged, and all four course IDs were retained. The extended real database test also passed through section synchronization: all 10 original certified section rows and all 37 original mastered concept rows remained exactly unchanged; nine added concepts had unstarted states; all four new entry skills had lesson_in_progress sections. All four course IDs remained, and 14 sections were seeded.
 
 ## Representative applied cases
 
@@ -74,7 +74,7 @@ The offline verifier assumes every original concept is mastered. All nine new id
 
 ## Verification evidence
 
-Run `bun content/academies/posthog-tam/verify-content.ts` from the repository root. It checks source schema, all original identities, unique answer labels and question IDs, role/transfer contracts, blueprint and fresh-retake capacity, the composed graph, explicit concept-target resolution for every graph reference, the new frontier, merged prose tokens, and relational fixtures. Results are recorded in `quality-verification.json`.
+Run `bun content/academies/posthog-tam/verify-content.ts` from the repository root. It checks source schema, all original identities, unique answer labels and question IDs, role/transfer contracts, blueprint and fresh-retake capacity, the composed graph, new-section membership for every added concept, explicit concept-target resolution for every graph reference, the new frontier, merged prose tokens, and relational fixtures. Results are recorded in `quality-verification.json`.
 
 The composed academy's mechanical gate is 10/10 with no warnings. A standalone course CLI command cannot resolve references to another course without academy context; its unknown-reference result must not be used to remove legitimate prerequisite edges. The parent verified the real context-aware importer against a local database; it passed after the final edge correction.
 

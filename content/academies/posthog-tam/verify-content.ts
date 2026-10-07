@@ -85,6 +85,9 @@ for (const c of composed.concepts) {
 }
 const originalConcepts = new Set(original.courses.flatMap((d: any) => d.concepts.map((c: any) => scoped(d.id, c.id))));
 const newConcepts = composed.concepts.filter((c: any) => !originalConcepts.has(c.id));
+const originalSections = new Set(original.courses.flatMap((d: any) => d.sections.map((id: string) => scoped(d.id, id))));
+for (const c of newConcepts) invariant(!originalSections.has(c.section), `${c.id}: new skill must have a new section to avoid inherited certification:${c.section}`);
+invariant(composed.sections.length === 14, 'Expected 14 independently gated sections');
 invariant(newConcepts.length === 9, 'New skills must remain nine independent frontier nodes');
 const frontierAfterOriginalMastery = newConcepts.filter((c: any) => c.prerequisites.every((p: string) => originalConcepts.has(p))).map((c: any) => c.id);
 invariant(frontierAfterOriginalMastery.length === 4, 'Expected four new entry skills after original mastery');
@@ -108,7 +111,7 @@ const cues = (selected: any[]) => {
  const winners = (fn: typeof Math.max) => items.filter((p: any) => p.correct === p.options.map((x: string) => x.length).indexOf(fn(...p.options.map((x: string) => x.length)))).length;
  return { selectable: items.length, longestFirstTieCorrect: winners(Math.max), shortestFirstTieCorrect: winners(Math.min), positions: [0,1,2,3].map(i => items.filter(p => p.correct === i).length) };
 };
-const report = { date: '2026-10-07', stats, originalIdentitiesPreserved: original.problems.length, questionCount: inventory.length, checkedConceptReferences, newConceptIds: newConcepts.map((c: any) => c.id), newFrontierAfterOriginalMastery: frontierAfterOriginalMastery, newNodesHaveNoOriginalMasteryState: true, composedAcademyQualityGate: gate, cueBaselines: { practice: cues(inventory.filter(p => p.purpose === 'practice')), transferPractice: cues(inventory.filter(p => p.purpose === 'practice' && p.isTransfer)), exam: cues(inventory.filter(p => p.purpose === 'exam')) }, portableSqlFixtures: fixtureResults, zeroUsageRows: rows, limits: ['This offline fixture verifies relational results in SQLite; it does not prove every HogQL engine/type/identity behavior.', 'Mechanical 10/10 does not independently establish factual correctness or cognitive depth.', 'Parent separately verified the equal-price join in live HogQL and the actual passing-path selector.'] };
+const report = { date: '2026-10-07', stats, originalIdentitiesPreserved: original.problems.length, questionCount: inventory.length, checkedConceptReferences, newConceptIds: newConcepts.map((c: any) => c.id), newFrontierAfterOriginalMastery: frontierAfterOriginalMastery, newNodesHaveNoOriginalMasteryState: true, newNodesUseOnlyNewSections: true, sectionCount: composed.sections.length, composedAcademyQualityGate: gate, cueBaselines: { practice: cues(inventory.filter(p => p.purpose === 'practice')), transferPractice: cues(inventory.filter(p => p.purpose === 'practice' && p.isTransfer)), exam: cues(inventory.filter(p => p.purpose === 'exam')) }, portableSqlFixtures: fixtureResults, zeroUsageRows: rows, limits: ['This offline fixture verifies relational results in SQLite; it does not prove every HogQL engine/type/identity behavior.', 'Mechanical 10/10 does not independently establish factual correctness or cognitive depth.', 'Parent separately verified the equal-price join in live HogQL and the actual passing-path selector.'] };
 fs.writeFileSync(path.join(import.meta.dir, 'quality-verification.json'), JSON.stringify(report, null, 2)+'\n');
 fs.writeFileSync('/tmp/tam-revised-question-inventory.json', JSON.stringify(inventory, null, 2));
 console.log(JSON.stringify(report, null, 2));
