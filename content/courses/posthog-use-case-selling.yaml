@@ -280,7 +280,7 @@ concepts:
           - id: pucm-kp2-p2
             type: multiple_choice
             question: A customer on Error Tracking says "we catch the errors fine, but we can't tell what the user was doing when the error fired." Which step of the expansion pattern is the customer describing?
-            correct: 1
+            correct: 0
             options:
               - They are describing X (what they can see) and asking for Y (what they can't)
               - They are describing Y (what they can't see) — there is no X here
@@ -435,7 +435,7 @@ concepts:
               - PostHog connects replay to funnels, experiments, and surveys in one platform — no context-switching
               - Hotjar is going to shut down soon
               - PostHog has better heatmaps than Hotjar
-            explanation: The advantage over Hotjar is engineering-grade analytics alongside replay plus experiments and flags. PostHog actually doesn't have built-in heatmaps — don't claim features that don't exist.
+            explanation: "The relevant argument is connecting replay with the customer's required analytics and other workflows in one platform. PostHog also has built-in heatmaps documented in the toolbar and heatmap capture API. Compare the customer's actual requirements and current product support before making a competitive claim. Sources: https://posthog.com/docs/toolbar and https://posthog.com/docs/api/heatmap-capture (verified 2026-10-07)."
             difficulty: 4
         keyPrerequisite: product-intelligence
   - id: release-engineering

@@ -2,68 +2,73 @@ brand:
   id: posthog
   name: PostHog TAM
   domain: posthog-tam.vercel.app
-  tagline: Practice PostHog technical concepts
-  logoUrl: /images/logo-firefighter.svg
+  tagline: Reason through PostHog data and identity
   faviconUrl: /favicon.ico
-  ogImageUrl: /images/og-firefighter.png
   orgSlug: posthog-tam
 theme:
   preset: orange
   radius: 0.5rem
 landing:
   hero:
-    headline: Practice PostHog technical concepts
-    subheadline: Technical study material for PostHog TAMs, including data models, ingestion, and identification.
+    headline: Build evidence for technical customer answers
+    subheadline: 'For PostHog TAMs: inspect capture payloads, trace identities, validate account metrics, and
+      diagnose missing events with bounded evidence.'
     ctaText: Create an account
   features:
-    heading: What you can study
-    subheading: Read or listen to lessons, answer practice questions, and return for review.
+    heading: Capabilities you will practice
+    subheading: Four connected foundation courses with worked traces, required applied practice, and separate
+      exam cases.
     items:
-      - title: Data model foundations
-        description: Study entities, attributes, keys, and relationships before PostHog-specific topics.
-        icon: Database
-      - title: Ingestion pipeline
-        description: Trace events from SDKs through the ingestion pipeline.
-        icon: Workflow
-      - title: Identification
-        description: Work through anonymous events, identified events, person merging, and distinct IDs.
-        icon: UserCheck
-      - title: Practice and review
-        description: Answer questions and return to earlier topics when they are due for review.
-        icon: Brain
+    - title: Tracking contracts
+      description: Check occurrence time, actor identity, numeric units, and authoritative business success.
+      icon: Database
+    - title: Identity and account attribution
+      description: Trace anonymous-to-known transitions, logout boundaries, tenant IDs, and event group keys.
+      icon: UserCheck
+    - title: SQL metrics with evidence
+      description: Work through query fragments, join multiplicity, zero-usage accounts, and independent result
+        fixtures.
+      icon: Brain
+    - title: Bounded ingestion recovery
+      description: Inspect capture responses, quota evidence, source retention, and the checks needed before replay
+        or closure.
+      icon: Workflow
   howItWorks:
     heading: How it works
     items:
-      - title: Check your starting point
-        description: Answer diagnostic questions to estimate which concepts need practice.
-      - title: Work through the concepts
-        description: Study explanations and examples from data modeling to PostHog architecture.
-      - title: Apply the material
-        description: Use the examples to reason through technical customer questions.
+    - title: Find the next foundation
+      description: A diagnostic estimates your starting point across the connected concepts.
+    - title: Study one step at a time
+      description: Read or listen to a rule, follow a worked trace, then apply it to concrete evidence.
+    - title: Check transfer
+      description: Required applied practice and separate exam cases test whether you can use the rule with unfamiliar
+        evidence.
   faq:
-    - question: Who is this for?
-      answer: >-
-        PostHog Technical Account Managers who want to study the product data model, ingestion pipeline, and
-        identification system.
-    - question: What does it cover?
-      answer: The course outline includes data modeling, pipelines, identification, group analytics, CDP, and querying.
-    - question: How long does it take?
-      answer: >-
-        Study time depends on your prior knowledge and how much practice you need. You can return to the course at your
-        own pace.
+  - question: Who is this for?
+    answer: PostHog TAMs and technical colleagues who want a stronger data, identity, querying, and ingestion
+      foundation for customer investigations.
+  - question: What does it cover?
+    answer: Four foundation courses cover relational models, pipelines, PostHog events/persons/groups, identity,
+      CDP delivery, cohorts, SQL reasoning, and ingestion diagnosis. This is a data and identity foundation. Full
+      experimentation, replay, security, and solution-design curricula are outside this release.
+  - question: How long does it take?
+    answer: Study time depends on your prior knowledge and how much practice you need. You can return to the course
+      at your own pace.
   bottomCta:
-    headline: Explore the course
-    subheadline: Use explanations and practice questions to check your technical understanding.
+    headline: Practice the evidence behind your answer
+    subheadline: Start with a foundation, then test it against payloads, identity traces, query results, and delivery
+      signals.
 seo:
-  title: PostHog TAM technical study material
-  description: Study PostHog data models, ingestion, and identification through explanations, examples, and practice questions.
+  title: PostHog TAM data and identity foundation
+  description: Practice capture contracts, identity transitions, account attribution, SQL metric validation, and
+    bounded ingestion recovery in four connected PostHog TAM foundation courses.
   keywords:
-    - posthog
-    - technical account manager
-    - onboarding
-    - data model
-    - ingestion pipeline
-    - analytics
+  - posthog
+  - technical account manager
+  - onboarding
+  - data model
+  - ingestion pipeline
+  - analytics
 pricing:
   monthly: 0
   currency: usd

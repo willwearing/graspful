@@ -1,18 +1,51 @@
 course:
   id: data-pipelines
   name: Data Pipelines
-  description: 'Generic pipeline concepts: ingestion patterns, storage layers, transformation, orchestration, serving,
-    and operational tradeoffs.'
+  description: 'Generic pipeline concepts: ingestion patterns, storage layers, transformation, orchestration,
+    serving, and operational tradeoffs.'
   estimatedHours: 2
-  version: '2026.2'
-  sourceDocument: PostHog official documentation and supplied architecture models; content reviewed 2026-09-21
+  version: '2026.3'
+  sourceDocument: PostgreSQL logical replication documentation for CDC; explicit generic pipeline contracts and
+    executable fixtures for orchestration, storage, transformation, and recovery; reviewed 2026-10-07.
 sections:
 - id: pipeline-basics
   name: Pipeline Basics
   description: What data pipelines are, where data comes from, and where it's stored.
+  sectionExam:
+    enabled: true
+    passingScore: 0.8
+    questionCount: 6
+    minTransferQuestions: 6
+    timeLimitMinutes: 18
+    blueprint:
+    - conceptId: what-is-a-pipeline
+      minQuestions: 2
+    - conceptId: sources-and-ingestion
+      minQuestions: 2
+    - conceptId: storage-layers
+      minQuestions: 2
+    instructions: Work from the supplied evidence. Distinguish the nearest competing interpretation, preserve
+      the declared population and identity, and select the best action under the stated constraints. These are
+      separate assessment cases.
 - id: pipeline-architecture
   name: Pipeline Architecture
   description: Transformation patterns, orchestration, and the tradeoffs that shape pipeline design.
+  sectionExam:
+    enabled: true
+    passingScore: 0.8
+    questionCount: 6
+    minTransferQuestions: 6
+    timeLimitMinutes: 18
+    blueprint:
+    - conceptId: transformation-etl-elt
+      minQuestions: 2
+    - conceptId: orchestration-and-serving
+      minQuestions: 2
+    - conceptId: pipeline-tradeoffs
+      minQuestions: 2
+    instructions: Work from the supplied evidence. Distinguish the nearest competing interpretation, preserve
+      the declared population and identity, and select the best action under the stated constraints. These are
+      separate assessment cases.
 concepts:
 - id: what-is-a-pipeline
   name: What Is a Data Pipeline?
@@ -22,7 +55,8 @@ concepts:
   - foundational
   - pipelines
   section: pipeline-basics
-  prerequisites: []
+  prerequisites:
+  - data-models:data-modeling-process
   encompassing: []
   knowledgePoints:
   - id: pipeline-definition-and-flow
@@ -32,30 +66,45 @@ concepts:
 
 
       Name each boundary and the expected output. This makes a flow testable instead of treating the whole system
-      as one black box.'
-    workedExample: A nightly reporting flow copies orders into raw storage, converts currencies, and publishes a
-      sales table. The raw copy lets the team rerun the conversion without reading the source again.
+      as one black box.
+
+
+      Application boundary: Convert before mixing units and retain the source, rate, and effective date. Otherwise
+      the aggregate cannot be audited.'
+    workedExample: A nightly reporting flow copies orders into raw storage, converts currencies, and publishes
+      a sales table. The raw copy lets the team rerun the conversion without reading the source again.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/logical-replication.html
+      title: 'What Is a Data Pipeline?: pipeline definition and flow'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Convert before mixing units and retain the source, rate, and effective date. Otherwise the aggregate
+        cannot be audited.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: A nightly reporting flow copies orders into raw storage, converts currencies, and publishes a sales
+        table. The raw copy lets the team rerun the conversion without reading the source again.
     problems:
     - question: Which description identifies a data pipeline?
       options:
-      - Connected steps that move and process data from a source toward a use.
-      - A dashboard that only displays an already prepared metric.
-      - A rule requiring every system to transform before any storage.
-      - A static collection of source records with no defined movement or processing.
+      - Source-to-use connected steps.
+      - A report that displays prepared values.
+      - A store holding source records without a delivery contract.
+      - An API schema without movement or processing steps.
       correct: 0
       explanation: A pipeline is the connected flow. ETL and ELT are possible designs rather than universal step
         orders.
       id: 3d3e3cba-abc0-4925-a820-399d4eb31f95
       type: multiple_choice
       difficulty: 2
-    - question: An ELT pipeline copies source records into its target before transforming them there. Put its three
-        main stages in order.
+      purpose: practice
+      isTransfer: false
+    - question: An ELT pipeline copies source records into its target before transforming them there. Put its
+        three main stages in order.
       options:
       - Transform in the target
       - Extract from the source
@@ -68,72 +117,161 @@ concepts:
       type: ordering
       id: e5533990-da1c-4139-a929-6f82e8131a83
       difficulty: 3
-    - question: A customer asks where to add a currency conversion so reports use one reporting currency while source
-        values remain recoverable. Which design meets both requirements?
+      purpose: practice
+      isTransfer: false
+    - question: USD and EUR orders feed a USD report. The source amount and conversion rate must remain auditable.
+        Which sequence supports that contract?
       options:
-      - Use the first currency found as the unit for every row.
-      - Convert values after the report has already summed mixed currencies.
-      - Overwrite the only source values and discard the conversion rate.
-      - Preserve source values and add a documented conversion step before serving the report.
-      correct: 3
-      explanation: Preserve the original evidence and transform at a defined boundary. Mixed-currency sums and undocumented
-        overwrites cannot satisfy both requirements.
-      id: fdd1f0ea-9987-4583-806a-54d90ecd2715
+      - Sum mixed currencies then apply one rate.
+      - Preserve inputs; per-row conversion; aggregate.
+      - Convert rows with today's rate for all dates.
+      - Overwrite source amounts with no rate trace.
+      correct: 1
+      explanation: Convert before mixing units and retain the source, rate, and effective date. Otherwise the
+        aggregate cannot be audited.
       type: scenario
       difficulty: 4
+      id: fdd1f0ea-9987-4583-806a-54d90ecd2715
+      purpose: practice
+      isTransfer: true
+    - question: An extract, warehouse transform, and dashboard all report success, but the dashboard uses last
+        week's table. Which pipeline definition helps find the gap?
+      options:
+      - Connector status without lineage.
+      - Dashboard duration without its input version.
+      - Source-to-served-output lineage/version.
+      - Warehouse size without serving evidence.
+      correct: 2
+      explanation: Trace the actual served lineage and freshness, including the table consumed. Independent component
+        success does not prove end-to-end correctness.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-what-is-a-pipeline-pipeline-definition-and-flow-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A report needs one row per customer-month. Sources contain order lines. Which boundary must define
+        that output grain?
+      options:
+      - Transport compression.
+      - Display formatter.
+      - Credential-refresh interval.
+      - The aggregate/serving grain contract.
+      correct: 3
+      explanation: Pipeline contracts include the output's meaning and grain. Transport and presentation do not
+        establish an aggregation rule.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-what-is-a-pipeline-pipeline-definition-and-flow-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: what-is-a-pipeline
   - id: pipeline-failure-points
     instruction: '**Boundary checks** compare what entered and left each stage. Inspect counts, required fields,
-      identifiers, timestamps, and error records. Data can arrive but still be wrong, incomplete, duplicated, or
-      late.
+      identifiers, timestamps, and error records. Data can arrive but still be wrong, incomplete, duplicated,
+      or late.
 
 
-      Investigate the earliest boundary where evidence diverges from expectations. An accepted request proves less
-      than a correctly queryable output.'
+      Investigate the earliest boundary where evidence diverges from expectations. An accepted request proves
+      less than a correctly queryable output.
+
+
+      Application boundary: Equal distinct identities can hide row multiplication, duplicate accumulation, or
+      mapping errors. Per-ID contributions distinguish these hypotheses.'
     workedExample: The source has 1,000 records, the raw store has 1,000, and the transformed table has 870. Check
       transform rejections and filters before changing the source connector.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/logical-replication.html
+      title: 'What Is a Data Pipeline?: pipeline failure points'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Equal distinct identities can hide row multiplication, duplicate accumulation, or mapping errors.
+        Per-ID contributions distinguish these hypotheses.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: The source has 1,000 records, the raw store has 1,000, and the transformed table has 870. Check transform
+        rejections and filters before changing the source connector.
     problems:
     - question: A pipeline reports that all requests were accepted. What still needs validation?
       options:
-      - Only whether the capture endpoint returned a success status.
-      - Whether the expected records and values reached the final output correctly.
-      - Only whether the destination connection can be opened.
-      - Nothing, because acceptance proves every downstream stage succeeded.
-      correct: 1
-      explanation: Acceptance is one boundary signal. Validate completeness, values, and downstream visibility separately.
+      - Output records, values, and freshness.
+      - Only the request acceptance status.
+      - Only the destination connection handshake.
+      - Only the orchestrator's task count.
+      correct: 0
+      explanation: Acceptance is one boundary signal. Validate completeness, values, and downstream visibility
+        separately.
       id: e3022e6d-da88-4ce9-b425-464931471f9b
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: Source count is 2,000, landing count is 2,000, and transformed count is 1,650. The serving layer
         shows those same 1,650 rows. Where does the first measured loss occur?
       options:
-      - At every stage equally.
-      - Between transformed output and serving.
-      - Between landing and transformed output.
-      - Before the source produced records.
-      correct: 2
+      - Source to landing.
+      - Landing-to-transform.
+      - Transformed output to serving.
+      - Serving to report rendering.
+      correct: 1
       explanation: Compare adjacent boundaries. The first change is in transformation, so start with its filters,
         errors, and input handling.
       id: 4bd5b494-d406-40ac-8779-bf6e7500f1ce
       type: scenario
       difficulty: 3
-    - question: Counts match end to end, but revenue doubled after a retry. Which evidence should you inspect next?
+      purpose: practice
+      isTransfer: false
+    - question: Landing has 100 invoice IDs and transformed output has the same 100 IDs. Revenue is twice the
+        source total. Which check best distinguishes repeated effects from a unit error?
       options:
-      - Record identities, retry behavior, and whether repeated records contribute twice to revenue.
-      - Only the report's date range, without checking repeated record identities.
-      - Only total row counts, because equal counts rule out duplicated effects.
-      - Only the connector success status, because a retry cannot change totals.
-      correct: 0
-      explanation: Equal counts do not prove correct values or deduplication. Trace stable record identities and
-        the effect of retries on aggregation.
-      id: 54caff01-0cf4-4020-90dd-8be2c6313096
+      - Recheck only distinct invoice counts.
+      - Reconcile only job-success statuses.
+      - Per-ID amounts, units, and join multiplicity.
+      - Inspect only top-level total without units.
+      correct: 2
+      explanation: Equal distinct identities can hide row multiplication, duplicate accumulation, or mapping errors.
+        Per-ID contributions distinguish these hypotheses.
       type: scenario
       difficulty: 4
+      id: 54caff01-0cf4-4020-90dd-8be2c6313096
+      purpose: practice
+      isTransfer: true
+    - question: Source has 80 rows; landing has 80; validated output has 72 plus 8 rejects; serving has 72. What
+        does this establish?
+      options:
+      - Eight source transport losses.
+      - Eight missing served validated rows.
+      - All eighty satisfy the serving contract.
+      - Eight validation rejects; inspect their reasons.
+      correct: 3
+      explanation: The count reconciles through validation. Whether rejection is acceptable requires reasons and
+        requirements, not a loss assumption.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-what-is-a-pipeline-pipeline-failure-points-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: Source emits one order; landing records two deliveries with the same order ID. The target has
+        one order, but a downstream sum counts both landing rows. Where is the relevant failure?
+      options:
+      - Aggregation uses delivery rather than business grain.
+      - Source must have created two orders.
+      - Target upsert must have failed.
+      - Identical row counts prove correct aggregation.
+      correct: 0
+      explanation: Retry deliveries and intended records have different grain. The target can be correct while
+        a different downstream path double-counts.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-what-is-a-pipeline-pipeline-failure-points-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: what-is-a-pipeline
+  sourceRef: https://www.postgresql.org/docs/current/logical-replication.html; relevant named topic/contract in
+    this concept; verified 2026-10-07.
 - id: sources-and-ingestion
   name: Sources & Ingestion Patterns
   difficulty: 3
@@ -147,110 +285,212 @@ concepts:
   encompassing: []
   knowledgePoints:
   - id: where-data-comes-from
-    instruction: '**Source contracts** define the shape, ownership, and meaning of incoming data. Application events
-      describe actions, operational databases store changing records, and third-party APIs expose another system''s
-      data. Each needs an access and change strategy.
+    instruction: '**Source contracts** define the shape, ownership, and meaning of incoming data. Application
+      events describe actions, operational databases store changing records, and third-party APIs expose another
+      system''s data. Each needs an access and change strategy.
 
 
-      Check identifiers, timestamps, pagination, deletion signals, and schema changes. A successful connection alone
-      does not establish a complete extract.'
+      Check identifiers, timestamps, pagination, deletion signals, and schema changes. A successful connection
+      alone does not establish a complete extract.
+
+
+      Application boundary: Ordinary live-row updates cannot communicate absent deleted records. Pagination and
+      deletion contracts are separate.'
     workedExample: An API returns at most 100 invoices per page. The importer follows every next-page token and
       records a stable invoice ID so repeated fetches can be reconciled.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/logical-replication.html
+      title: 'Sources & Ingestion Patterns: where data comes from'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Ordinary live-row updates cannot communicate absent deleted records. Pagination and deletion contracts
+        are separate.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: An API returns at most 100 invoices per page. The importer follows every next-page token and records
+        a stable invoice ID so repeated fetches can be reconciled.
     problems:
     - question: Which source contract detail determines whether an API extract must make more requests after its
         first response?
       options:
-      - Its schema's numeric field units.
-      - Its pagination rules.
-      - Its authentication token's expiry time.
-      - Its policy for deleting source records.
+      - Numeric field units.
+      - Pagination rules.
+      - Token expiry rules.
+      - Deletion notification rules.
       correct: 1
-      explanation: Pagination determines how to retrieve the complete result. A successful first response may contain
-        only one page.
+      explanation: Pagination determines how to retrieve the complete result. A successful first response may
+        contain only one page.
       id: bedbc2c5-8757-4150-96fa-d70e2d1e2139
       type: multiple_choice
       difficulty: 2
-    - question: A billing API says there are 240 invoices and returns pages of 100, 100, and 40. The importer stops
-        after the first page. What is missing? Enter the number only.
+      purpose: practice
+      isTransfer: false
+    - question: A billing API says there are 240 invoices and returns pages of 100, 100, and 40. The importer
+        stops after the first page. What is missing? Enter the number only.
       options: []
       correct: '140'
       explanation: The first page contains 100 of 240 records. Follow all pages and reconcile the extracted count.
       type: fill_blank
       id: b0bc1936-23ec-4c90-8f2a-790afc0b662a
       difficulty: 3
-    - question: An API removes deleted customers from ordinary list responses. A nightly incremental importer only
-        requests recently updated rows. What must the team clarify to keep the destination accurate?
+      purpose: practice
+      isTransfer: false
+    - question: The incremental list API omits deleted customers. A destination still marks them active. Which
+        source capability must be established?
       options:
-      - Whether changing the primary-key column name will expose deleted rows.
-      - Whether the target can retain removed customers as active forever.
-      - How deletions are signaled or detected, and how the importer applies them.
-      - Whether a larger page size can substitute for deletion tracking.
+      - Poll active rows more frequently.
+      - Retain removed rows as active indefinitely.
+      - Deletion feed, tombstones, or reconciliation.
+      - Treat missing pages as deletion evidence.
       correct: 2
-      explanation: Updates and deletions are separate contract concerns. Without deletion evidence or reconciliation,
-        stale destination rows can survive indefinitely.
-      id: 31ec533e-6f50-4cf0-879b-1b56c5b33416
+      explanation: Ordinary live-row updates cannot communicate absent deleted records. Pagination and deletion
+        contracts are separate.
       type: scenario
       difficulty: 4
+      id: 31ec533e-6f50-4cf0-879b-1b56c5b33416
+      purpose: practice
+      isTransfer: true
+    - question: The first API response has 100 rows and a next_cursor. The reported total is 250. Which completion
+        check is defensible?
+      options:
+      - Stop after the first non-empty page.
+      - Repeat page 1 and concatenate.
+      - Trust the total as distinct new records without scope checks.
+      - Follow pagination and reconcile the scope.
+      correct: 3
+      explanation: A total and continuation govern different parts of the contract. Verify identity, filters,
+        and completeness across all pages.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-sources-and-ingestion-where-data-comes-from-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A source permits 60 requests per minute. A full extract needs 180 pages and its token expires
+        during long jobs. Which plan addresses both source constraints?
+      options:
+      - Bounded pacing, credential renewal, resumable cursor.
+      - Parallelize all pages with the initial token.
+      - Skip pages to satisfy request allowance.
+      - Restart from page 1after expiry without identity reconciliation.
+      correct: 0
+      explanation: Source limits and credential lifetime must both be respected. Resume must retain pagination
+        scope and avoid silent gaps.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-sources-and-ingestion-where-data-comes-from-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: what-is-a-pipeline
   - id: ingestion-approaches
-    instruction: '**Ingestion** brings source data into the pipeline. Batch ingestion handles bounded sets on a
-      schedule. Streaming processes a continuing flow. Change data capture, or CDC, tracks database changes; it
-      can use logs, triggers, or other methods.
+    instruction: '**Ingestion** brings source data into the pipeline. Batch ingestion handles bounded sets on
+      a schedule. Streaming processes a continuing flow. Change data capture, or CDC, tracks database changes;
+      it can use logs, triggers, or other methods.
 
 
       Log-based CDC reads supported change logs. Compare freshness needs, source load, available change history,
-      and recovery behavior when choosing an approach.'
+      and recovery behavior when choosing an approach.
+
+
+      Application boundary: Unavailable history cannot be reconstructed by pretending a newer cursor is continuous.
+      Recovery needs a consistent source baseline and change boundary.'
     workedExample: A dashboard with a 24-hour freshness target can use a nightly batch. A fraud alert with a seconds-level
       target needs a lower-latency path and monitoring that matches that target.
     instructionContent:
     - type: link
-      url: https://aws.amazon.com/what-is/change-data-capture/
-      title: Official reference
-      description: Check the current documented behavior and platform-specific details.
-    workedExampleContent: []
+      url: https://www.postgresql.org/docs/current/logical-replication.html
+      title: 'Sources & Ingestion Patterns: ingestion approaches'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
+    - type: callout
+      title: Boundary to verify
+      body: Unavailable history cannot be reconstructed by pretending a newer cursor is continuous. Recovery needs
+        a consistent source baseline and change boundary.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: A dashboard with a 24-hour freshness target can use a nightly batch. A fraud alert with a seconds-level
+        target needs a lower-latency path and monitoring that matches that target.
     problems:
     - question: What specifically distinguishes log-based CDC from other CDC approaches?
       options:
-      - It requires a full-table export for every change.
-      - It stores only final report images.
-      - It means every possible CDC implementation uses logs.
-      - It reads database change logs to observe changes.
-      correct: 3
+      - A scheduled full-table snapshot.
+      - Database-change-log reading.
+      - A transformation of final report images.
+      - Polling changed rows by an updated_at field.
+      correct: 1
       explanation: The qualifier log-based names the mechanism. CDC also includes other ways to detect changes.
       id: ed5bc6b9-a5da-4d09-9caf-88c85c530bbd
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: A daily finance report is due at 08:00 and may use data through midnight. A reliable 02:00 batch
         finishes in 30 minutes. Does the stated freshness need require streaming?
       options:
-      - No. Therefore failures and completeness never need monitoring.
-      - Yes. Batch data cannot contain timestamps.
-      - Yes. Every report requires second-level updates.
-      - No. The batch meets the stated schedule if it completes and is validated.
-      correct: 3
+      - Batch meets time but completeness never matters.
+      - Streaming is required because batch cannot preserve timestamps.
+      - Validated batch meets this deadline.
+      - Streaming is required for every daily report.
+      correct: 2
       explanation: Select the approach from the actual freshness requirement. This batch fits, while still requiring
         operational checks.
       id: 6849db42-db7d-4f0d-9c3b-dadcbaa37639
       type: scenario
       difficulty: 3
-    - question: A log-based CDC consumer was offline longer than the source retains change logs. Its last position
-        is no longer available. What is the sound recovery plan?
+      purpose: practice
+      isTransfer: false
+    - question: CDC resumes after an outage, but its saved log position is older than source retention. Which
+        recovery preserves completeness?
       options:
-      - Skip to the latest position and claim that no changes were lost.
-      - Replay an arbitrary earlier timestamp without checking source availability.
-      - Use a supported resnapshot or reconciliation procedure, then resume changes from a consistent position.
-      - Continue serving the old data as current indefinitely.
-      correct: 2
-      explanation: A missing log interval breaks continuity. Recover a consistent baseline and verify it before
-        claiming completeness.
-      id: b0c06325-c0de-491e-94a5-e8351acf7488
+      - Skip to newest log position.
+      - Resume expired cursor without resnapshot.
+      - Mark old snapshot current after restart.
+      - Consistent baseline, then resume.
+      correct: 3
+      explanation: Unavailable history cannot be reconstructed by pretending a newer cursor is continuous. Recovery
+        needs a consistent source baseline and change boundary.
       type: scenario
       difficulty: 4
+      id: b0c06325-c0de-491e-94a5-e8351acf7488
+      purpose: practice
+      isTransfer: true
+    - question: A stock-alert consumer needs updates within 10 seconds. Nightly snapshots meet finance requirements.
+        What follows?
+      options:
+      - Separate freshness contracts for each consumer.
+      - One nightly path for both deadlines.
+      - Stream every finance history without a measured need.
+      - Relabel alerts instead of meeting their deadline.
+      correct: 0
+      explanation: Different consumers can require different ingestion paths. The requirement, rather than the
+        product label, defines acceptable age.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-sources-and-ingestion-ingestion-approaches-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: An updated_at poll uses a strict greater-than cursor. Several records share the cursor timestamp
+        and pages can split them. Which safeguard is needed?
+      options:
+      - Strict timestamp-only cursor across page boundaries.
+      - Tie-breaker or overlap-and-deduplicate strategy.
+      - Advance cursor to wall clock before writes.
+      - Invent extraction timestamps as source identity.
+      correct: 1
+      explanation: A timestamp alone can skip tied records. A supported continuation boundary plus stable identity
+        prevents omissions and duplicate effects.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-sources-and-ingestion-ingestion-approaches-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: what-is-a-pipeline
+  sourceRef: https://www.postgresql.org/docs/current/logical-replication.html; relevant named topic/contract in
+    this concept; verified 2026-10-07.
 - id: storage-layers
   name: 'Storage Layers: Where Data Lives'
   difficulty: 3
@@ -265,113 +505,214 @@ concepts:
   knowledgePoints:
   - id: raw-lake-warehouse
     instruction: '**Raw storage** retains data close to its received form. A **data lake** commonly stores varied
-      files for flexible later use. A **warehouse** provides queryable data for analysis and can contain both raw
-      and curated tables. These roles can overlap.
+      files for flexible later use. A **warehouse** provides queryable data for analysis and can contain both
+      raw and curated tables. These roles can overlap.
 
 
       A curated dataset applies agreed types, definitions, and quality rules. Storage technology alone does not
-      prove that curation happened.'
+      prove that curation happened.
+
+
+      Application boundary: Both can be technically valid while answering different business questions. Reconcile
+      meaning before moving storage.'
     workedExample: A warehouse has raw_orders and daily_revenue tables. The first preserves source rows; the second
       applies the finance team's revenue definition. Both are warehouse tables with different roles.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/logical-replication.html
+      title: 'Storage Layers: Where Data Lives: raw lake warehouse'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Both can be technically valid while answering different business questions. Reconcile meaning before
+        moving storage.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: A warehouse has raw_orders and daily_revenue tables. The first preserves source rows; the second applies
+        the finance team's revenue definition. Both are warehouse tables with different roles.
     problems:
     - question: What makes a dataset curated for a business metric?
       options:
-      - A table name ending in final or certified.
-      - The fact that the data is stored in a warehouse.
-      - A successful copy job with no documented metric rules.
-      - Agreed definitions and transformations with suitable quality checks.
-      correct: 3
+      - A table named final.
+      - Storage inside a warehouse.
+      - Metric definitions and checks.
+      - A connector success status.
+      correct: 2
       explanation: Curation is a process with explicit rules. A storage label or filename does not establish trustworthy
         meaning.
       id: c1e19fee-f292-4201-a8fa-f3a60cda4002
       type: multiple_choice
       difficulty: 2
-    - question: A warehouse contains untouched source JSON in one table and validated daily sales in another. How
-        should these tables be classified?
+      purpose: practice
+      isTransfer: false
+    - question: A warehouse contains untouched source JSON in one table and validated daily sales in another.
+        How should these tables be classified?
       options:
-      - Raw and curated layers within the same warehouse.
-      - Neither can be used in a pipeline.
-      - Both must be raw because they share a database.
-      - Both must be curated because warehouses cannot hold raw data.
-      correct: 0
+      - Two separate source systems.
+      - Two raw datasets because the engine is shared.
+      - Two curated datasets because the engine is a warehouse.
+      - Raw and curated in one engine.
+      correct: 3
       explanation: Classify the role from the data and processing, not from the product category of the storage
         system.
       id: b368d62f-c3a5-4c2f-b871-2c4198d4b87e
       type: scenario
       difficulty: 3
-    - question: Two reports use different revenue definitions from the same warehouse. The team proposes moving
-        all data to a lake to make the numbers agree. What should be addressed first?
+      purpose: practice
+      isTransfer: false
+    - question: 'Two warehouse reports disagree: one uses gross sales, another net of refunds. What should be
+        reconciled first?'
       options:
-      - Select whichever report shows the higher revenue without reconciling it.
-      - Align the metric definitions and transformations, then validate both report paths.
-      - Rename both tables daily_revenue while keeping their different calculations.
-      - Move the same conflicting calculations to a new storage format.
-      correct: 1
-      explanation: The disagreement concerns meaning. Resolve the calculation rules before making an infrastructure
-        change that may leave the conflict intact.
-      id: 56a2ddc8-5053-4405-8758-6db596df7dd7
+      - Revenue definitions, refund timing, and lineage.
+      - Move both unchanged computations to a lake.
+      - Rename both measures revenue without reconciliation.
+      - Choose the higher total as canonical.
+      correct: 0
+      explanation: Both can be technically valid while answering different business questions. Reconcile meaning
+        before moving storage.
       type: scenario
       difficulty: 4
+      id: 56a2ddc8-5053-4405-8758-6db596df7dd7
+      purpose: practice
+      isTransfer: true
+    - question: A lake table has enforced schema, deduplication, and certified revenue rules. What determines
+        whether it is curated?
+      options:
+      - Engine label alone.
+      - Metric contract and quality checks.
+      - Table name alone.
+      - Equal row count alone.
+      correct: 1
+      explanation: Raw and curated describe treatment and fitness for use. Engine names alone do not classify
+        a dataset.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-storage-layers-raw-lake-warehouse-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A team retains source JSON and a net-revenue table. A refund rule changes. Which evidence helps
+        reproduce the revised measure?
+      options:
+      - Final total without inputs.
+      - Report label without transformation rules.
+      - Preserved inputs and applicable computation rules.
+      - Only current source rows after history expired.
+      correct: 2
+      explanation: Reproduction requires preserved inputs and a declared computation. A new label or final total
+        cannot recover missing evidence.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-storage-layers-raw-lake-warehouse-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: sources-and-ingestion
   - id: choosing-storage-layers
-    instruction: '**Storage-layer selection** balances recovery, query speed, cost, and access. Retaining raw inputs
-      can support replay when logic changes. Curated outputs make routine queries easier and more consistent.
+    instruction: '**Storage-layer selection** balances recovery, query speed, cost, and access. Retaining raw
+      inputs can support replay when logic changes. Curated outputs make routine queries easier and more consistent.
 
 
       Retention and access need explicit rules. Keeping every payload forever is a separate decision from choosing
-      ETL, ELT, a lake, or a warehouse.'
-    workedExample: A team retains restricted raw records for 30 days and keeps validated daily totals for two years.
-      It can repair recent transformations while meeting its chosen retention policy.
+      ETL, ELT, a lake, or a warehouse.
+
+
+      Application boundary: Separate access and retention by purpose. Longer aggregate retention need not imply
+      equally long retention of detailed sensitive payloads.'
+    workedExample: A team retains restricted raw records for 30 days and keeps validated daily totals for two
+      years. It can repair recent transformations while meeting its chosen retention policy.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/logical-replication.html
+      title: 'Storage Layers: Where Data Lives: choosing storage layers'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Separate access and retention by purpose. Longer aggregate retention need not imply equally long retention
+        of detailed sensitive payloads.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: A team retains restricted raw records for 30 days and keeps validated daily totals for two years.
+        It can repair recent transformations while meeting its chosen retention policy.
     problems:
     - question: Which need most directly supports retaining replayable raw inputs?
       options:
-      - Making all source data public.
-      - Guaranteeing that raw data is already a certified business metric.
-      - Recomputing outputs after a transformation bug is fixed.
-      - Avoiding any retention decisions.
-      correct: 2
-      explanation: Raw inputs preserve evidence for replay. They still need access controls, retention rules, and
-        interpretation.
+      - Publishing all inputs to every consumer.
+      - Certifying raw payloads without transformations.
+      - Avoiding a retention policy.
+      - Recompute after a transform fix.
+      correct: 3
+      explanation: Raw inputs preserve evidence for replay. They still need access controls, retention rules,
+        and interpretation.
       id: 631d5b76-7935-4c5c-bcaa-7d0b396fcf2f
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: A calculation bug affected the last week. The pipeline retains raw inputs for 30 days and records
         transform versions. What recovery option does this enable?
       options:
-      - Recover the correct values merely by renaming the output table.
-      - Reprocess the affected inputs with the corrected transform and compare results.
-      - Recover years of discarded inputs without another source.
-      - Assume the existing totals are correct because raw data exists.
-      correct: 1
+      - Corrected replay and reconciliation.
+      - Rename the existing output.
+      - Restore inputs outside the retention window automatically.
+      - Certify the old output because raw inputs exist.
+      correct: 0
       explanation: The retained inputs cover the affected week. Use them with the corrected logic and verify the
         replacement output.
       id: 603320fd-0831-48ac-a029-1a18a44f2eb8
       type: scenario
       difficulty: 3
-    - question: A team needs daily aggregate reports for two years but only 14 days of detailed replay. Raw payloads
-        include sensitive fields. Which design best fits those stated needs?
+      purpose: practice
+      isTransfer: false
+    - question: Raw payloads contain sensitive fields. Reports need two-year aggregates and only 14-day detailed
+        replay. Which retention contract fits?
       options:
-      - Keep every raw field forever because replay is sometimes useful.
-      - Give every report viewer access to all detailed payloads.
-      - Delete all raw data immediately and promise 14-day replay.
-      - Apply restricted access and 14-day raw retention, with longer retention for the required aggregates.
-      correct: 3
-      explanation: Match retention and access to the separate use cases. Aggregated reporting does not require unlimited
-        detailed retention.
-      id: 50544765-b050-4add-95ef-256952b14bbd
+      - Full raw two-year retention for all analysts.
+      - Restricted 14-day raw; longer required aggregates.
+      - Immediate raw deletion with promised replay.
+      - Two-year aggregates without fourteen-day replay.
+      correct: 1
+      explanation: Separate access and retention by purpose. Longer aggregate retention need not imply equally
+        long retention of detailed sensitive payloads.
       type: scenario
       difficulty: 4
+      id: 50544765-b050-4add-95ef-256952b14bbd
+      purpose: practice
+      isTransfer: true
+    - question: A mapping bug affected days 1-20; raw retention is 14 days, and it is now day 21. What recovery
+        statement is supportable?
+      options:
+      - All expired inputs restore from transform metadata.
+      - No retained day can be rebuilt.
+      - Replay retained evidence; reconcile older sources.
+      - Version labels recreate discarded source values.
+      correct: 2
+      explanation: State the recoverable window precisely. Version metadata cannot recreate discarded evidence.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-storage-layers-choosing-storage-layers-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A replay uses the corrected transform but writes beside the old output. Reports sum both versions.
+        Which storage operation needs a contract?
+      options:
+      - Append corrected and old versions together.
+      - Extend retention to fix already-served duplication.
+      - Update report labels without output replacement.
+      - Validated version/partition replacement.
+      correct: 3
+      explanation: Correct recomputation can still double-count if publication has no replacement boundary. Validate
+        which version serves each partition.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-storage-layers-choosing-storage-layers-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: sources-and-ingestion
+  sourceRef: https://www.postgresql.org/docs/current/logical-replication.html; relevant named topic/contract in
+    this concept; verified 2026-10-07.
 - id: transformation-etl-elt
   name: 'Transformation: ETL vs ELT'
   difficulty: 4
@@ -385,34 +726,50 @@ concepts:
   encompassing: []
   knowledgePoints:
   - id: what-transformation-does
-    instruction: '**Transformation** changes data into a form or meaning required downstream. Examples include type
-      conversion, normalization, enrichment, deduplication, and aggregation. Each rule should define how invalid
-      and missing inputs are handled.
+    instruction: '**Transformation** changes data into a form or meaning required downstream. Examples include
+      type conversion, normalization, enrichment, deduplication, and aggregation. Each rule should define how
+      invalid and missing inputs are handled.
 
 
       Preserve enough evidence to explain output values. Quietly coercing a bad input to zero can corrupt an aggregate
-      while making the job appear successful.'
+      while making the job appear successful.
+
+
+      Application boundary: Task success does not establish value correctness. Invalid values need an explicit
+      disposition and a measured recovery path.'
     workedExample: A transform converts amount_cents = 1250 to amount_dollars = 12.50. If amount_cents contains
-      "unknown", the row is rejected or quarantined under an explicit rule rather than counted as a zero-value sale.
+      "unknown", the row is rejected or quarantined under an explicit rule rather than counted as a zero-value
+      sale.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/logical-replication.html
+      title: 'Transformation: ETL vs ELT: what transformation does'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Task success does not establish value correctness. Invalid values need an explicit disposition and
+        a measured recovery path.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: A transform converts amount_cents = 1250 to amount_dollars = 12.50. If amount_cents contains "unknown",
+        the row is rejected or quarantined under an explicit rule rather than counted as a zero-value sale.
     problems:
     - question: Which operation changes data meaning or structure as a transformation step?
       options:
-      - Granting an analyst access to a report.
-      - Retrying a failed network connection.
-      - Converting a documented cents field to dollars.
-      - Copying identical bytes without changing their representation.
-      correct: 2
-      explanation: The unit conversion changes the represented value using a defined rule. Transfer, retries, and
-        access are different concerns.
+      - Documented cents-to-dollars conversion.
+      - Changing a viewer's access permission.
+      - Retrying an unchanged request.
+      - Copying unchanged bytes to another store.
+      correct: 0
+      explanation: The unit conversion changes the represented value using a defined rule. Transfer, retries,
+        and access are different concerns.
       id: c07d8165-5940-46af-8f34-847b33b71518
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: A source stores 2,450 cents. The target requires dollars with two decimal places. What value should
         a correct conversion produce? Enter the number only.
       options: []
@@ -424,48 +781,98 @@ concepts:
       type: fill_blank
       id: a7757a8a-5d47-42d4-9e74-7abc4ab48ab8
       difficulty: 3
-    - question: A transform converts malformed amounts to zero, and its success count stays high while reported
-        revenue falls. Which change best makes this failure visible?
+      purpose: practice
+      isTransfer: false
+    - question: A transform maps malformed amounts to zero. Invalid rows rise to 12%, while task success remains
+        100%. Which repair preserves reliable revenue?
       options:
-      - Keep the zeros and suppress the revenue alert.
-      - Treat the job success count as proof of correct revenue.
-      - Multiply every result by an arbitrary adjustment factor.
-      - Separate invalid rows with reasons, alert on their rate, and fix the source or mapping before replay.
-      correct: 3
-      explanation: Silent coercion hides rejected meaning. Track invalid inputs explicitly and repair the relevant
-        rule using evidence.
-      id: 344cb015-f1f8-4cc3-b22a-ef15f56cf736
+      - Keep invalid zeros and adjust alert threshold.
+      - Separate invalid rows; fix and reconcile replay.
+      - Apply a global revenue correction multiplier.
+      - Drop invalid rows without reasons or reconciliation.
+      correct: 1
+      explanation: Task success does not establish value correctness. Invalid values need an explicit disposition
+        and a measured recovery path.
       type: scenario
       difficulty: 4
+      id: 344cb015-f1f8-4cc3-b22a-ef15f56cf736
+      purpose: practice
+      isTransfer: true
+    - question: Amounts 1250 and 500 are cents. Which transformed dollar total should a fixture assert?
+      options:
+      - '1750.00'
+      - '1.75'
+      - '17.50'
+      - '1250.50'
+      correct: 2
+      explanation: Sum consistent source units, then divide by 100 once. A fixture should catch both missing and
+        repeated conversion.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-transformation-etl-elt-what-transformation-does-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: The source schema changes amount from integer cents to decimal dollars. Existing conversion still
+        divides by 100. Which contract check catches this?
+      options:
+      - Row counts alone.
+      - Transport statuses alone.
+      - Query durations alone.
+      - Schema/unit checks against known values.
+      correct: 3
+      explanation: A unit change can preserve row counts and successful delivery while corrupting every amount.
+        Check meaning as well as type.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-transformation-etl-elt-what-transformation-does-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: storage-layers
   - id: etl-vs-elt
     instruction: '**ETL** transforms data before loading it into the target. **ELT** loads data into the target
       before transforming it there. The relevant target must be named when describing a flow.
 
 
       The acronym does not decide whether raw inputs are retained elsewhere. Choose the transformation boundary
-      from sensitivity, compute, target constraints, and replay requirements.'
+      from sensitivity, compute, target constraints, and replay requirements.
+
+
+      Application boundary: A target boundary applies when data enters storage. Post-load masking does not meet
+      a never-receive requirement.'
     workedExample: A pipeline removes unnecessary personal fields before loading the analytics warehouse. It can
       still retain an approved, restricted source archive under a separate policy. ETL does not imply that every
       raw copy is discarded.
     instructionContent:
     - type: link
-      url: https://aws.amazon.com/what-is/etl/
-      title: Official reference
-      description: Check the current documented behavior and platform-specific details.
-    workedExampleContent: []
+      url: https://www.postgresql.org/docs/current/logical-replication.html
+      title: 'Transformation: ETL vs ELT: etl vs elt'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
+    - type: callout
+      title: Boundary to verify
+      body: A target boundary applies when data enters storage. Post-load masking does not meet a never-receive
+        requirement.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: A pipeline removes unnecessary personal fields before loading the analytics warehouse. It can still
+        retain an approved, restricted source archive under a separate policy. ETL does not imply that every raw
+        copy is discarded.
     problems:
     - question: What determines whether a flow is ETL or ELT relative to a named target?
       options:
-      - Whether transformation occurs before or after loading into that target.
-      - Whether the team uses a dashboard.
-      - Whether every raw copy is deleted.
-      - Whether the data originates from an API.
+      - Transform placement relative to target.
+      - Whether output appears in a dashboard.
+      - Whether raw data is retained elsewhere.
+      - Whether the source uses HTTP.
       correct: 0
-      explanation: The order relative to the target is the defining distinction. Retention and source type are separate
-        choices.
+      explanation: The order relative to the target is the defining distinction. Retention and source type are
+        separate choices.
       id: 60178634-df60-4a26-90a7-9d673caa3793
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: A warehouse must receive only cleaned data. Put these ETL stages in order. A separate source archive
         does not change the warehouse step order.
       options:
@@ -481,19 +888,56 @@ concepts:
       type: ordering
       id: fcf52f7f-d54f-415d-9348-4bc9986e2273
       difficulty: 3
-    - question: A warehouse must never receive payment card fields, and the extraction payload includes them. Which
-        design meets that boundary requirement?
+      purpose: practice
+      isTransfer: false
+    - question: The analytics warehouse must never receive card-number fields. Source payloads contain them. Which
+        boundary meets the rule?
       options:
-      - Remove those fields in a controlled step before loading into the warehouse, and verify the output schema.
-      - Rename the fields after analysts have access.
-      - Load everything first and promise to hide the fields in dashboards.
-      - Treat the ELT label as permission to ignore the target restriction.
-      correct: 0
-      explanation: The requirement applies at entry to the warehouse. Enforce and validate the transformation before
-        that boundary.
-      id: a9bb08fa-77a0-473f-8390-99b3fec8b07e
+      - Load raw fields, then mask dashboard output.
+      - Remove fields before warehouse load; verify payload.
+      - Load encrypted fields, though target may never receive them.
+      - Delete card fields in a later nightly transform.
+      correct: 1
+      explanation: A target boundary applies when data enters storage. Post-load masking does not meet a never-receive
+        requirement.
       type: scenario
       difficulty: 4
+      id: a9bb08fa-77a0-473f-8390-99b3fec8b07e
+      purpose: practice
+      isTransfer: true
+    - question: A source archive keeps raw data; a cleaning step runs before loading a separate warehouse. Which
+        label describes the warehouse path?
+      options:
+      - ELT because a separate raw archive exists.
+      - CDC because cleaning is scheduled.
+      - ETL relative to the warehouse.
+      - Neither because raw archives are prohibited.
+      correct: 2
+      explanation: Always name the target when classifying the sequence. A separate archive does not reverse the
+        warehouse path.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-transformation-etl-elt-etl-vs-elt-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A warehouse receives raw JSON, then SQL creates validated tables there. A downstream API reads
+        those tables. Which sequence describes the warehouse?
+      options:
+      - ETL relative to the warehouse.
+      - Transform-only with no extraction.
+      - Streaming because SQL executes in storage.
+      - ELT relative to the warehouse.
+      correct: 3
+      explanation: Extraction and loading precede transformation in that target. The serving layer is a separate
+        downstream boundary.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-transformation-etl-elt-etl-vs-elt-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: storage-layers
+  sourceRef: https://www.postgresql.org/docs/current/logical-replication.html; relevant named topic/contract in
+    this concept; verified 2026-10-07.
 - id: orchestration-and-serving
   name: Orchestration & Serving Data
   difficulty: 3
@@ -513,106 +957,205 @@ concepts:
 
 
       Retries, timeouts, and failure states belong in the workflow. A schedule alone does not guarantee that required
-      input is ready.'
+      input is ready.
+
+
+      Application boundary: An elapsed clock time is not an upstream-success signal. Publication must validate
+      the actual input version and handle lateness explicitly.'
     workedExample: Extract feeds both Validate and Archive. Publish depends on Validate. Archive can run alongside
       Validate after Extract succeeds; Publish must wait for Validate.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/logical-replication.html
+      title: 'Orchestration & Serving Data: workflow orchestration'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: An elapsed clock time is not an upstream-success signal. Publication must validate the actual input
+        version and handle lateness explicitly.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: Extract feeds both Validate and Archive. Publish depends on Validate. Archive can run alongside Validate
+        after Extract succeeds; Publish must wait for Validate.
     problems:
     - question: What makes a dependency graph acyclic?
       options:
-      - Following directed dependency edges cannot lead back to the starting task.
-      - Every task has exactly one predecessor.
-      - Every task has the same execution time.
-      - Every task runs at the same time.
+      - No directed dependency cycle.
+      - Every task has one predecessor.
+      - All tasks have equal duration.
+      - Tasks run on the same machine.
       correct: 0
-      explanation: A cycle would make tasks depend on a chain that returns to themselves. DAGs can still have branches
-        and multiple predecessors.
+      explanation: A cycle would make tasks depend on a chain that returns to themselves. DAGs can still have
+        branches and multiple predecessors.
       id: d6f4a1fc-ef12-4128-b6ed-41b4fd35fe25
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: Extract must finish before Validate and Archive. Publish requires Validate. Extract has succeeded
         and the other tasks have not started. Which tasks are now eligible?
       options:
-      - Validate and Archive.
       - Publish only.
+      - Validate and Archive.
       - Extract and Publish.
-      - All tasks regardless of dependencies.
-      correct: 0
+      - Archive and Publish before validation.
+      correct: 1
       explanation: Both immediate dependents are ready. Publish still lacks its required Validate result.
       id: eec11405-a85e-41a6-bc71-194dc0990adb
       type: scenario
       difficulty: 3
-    - question: A report is scheduled for 03:00, but its upstream import sometimes finishes at 03:20. The report
-        occasionally uses yesterday's data. What should orchestration enforce?
+      purpose: practice
+      isTransfer: false
+    - question: Import usually finishes at 02:50 but sometimes 03:20. A fixed 03:00 report can publish stale data.
+        Which dependency meets the freshness contract?
       options:
-      - Start the report earlier to avoid the slow import.
-      - Retry the report continuously without checking which input it uses.
-      - Run publication after a successful import and freshness check, with a defined late-data response.
-      - Keep the fixed time and label all outputs current.
+      - Publish at 03:00 regardless of input version.
+      - Retry publication without checking freshness.
+      - Freshness-gated dependency.
+      - Shift the clock schedule without dependencies.
       correct: 2
-      explanation: Use dependency and freshness evidence. A clock time alone cannot prove that the needed data is
-        ready.
-      id: 5713b0d0-5431-40a0-8e2f-1f0369eadcf0
+      explanation: An elapsed clock time is not an upstream-success signal. Publication must validate the actual
+        input version and handle lateness explicitly.
       type: scenario
       difficulty: 4
+      id: 5713b0d0-5431-40a0-8e2f-1f0369eadcf0
+      purpose: practice
+      isTransfer: true
+    - question: Extract succeeded; Validate failed; Archive succeeded. Publish depends on Validate. Which action
+        respects the graph?
+      options:
+      - Publish because extraction passed.
+      - Publish because archiving passed.
+      - Remove required validation for this run.
+      - Hold publication; resolve validation.
+      correct: 3
+      explanation: A required predecessor failure blocks dependent publication. Archiving is not a substitute
+        for validated output.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-orchestration-and-serving-workflow-orchestration-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: Job A depends on B, B on C, and C on A. Why can this graph not schedule its first task?
+      options:
+      - Every task waits on the same cycle.
+      - Every graph must run concurrently.
+      - All tasks require exactly one predecessor.
+      - Task count alone prevents scheduling.
+      correct: 0
+      explanation: A cycle has no satisfied starting dependency. Fix the causal ordering, rather than changing
+        execution timing.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-orchestration-and-serving-workflow-orchestration-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: transformation-etl-elt
   - id: serving-data
     instruction: '**Serving** exposes data in the form consumers need, such as a dashboard table, an API response,
       or a destination export. Define the contract: fields, meaning, freshness, access, and availability.
 
 
       A served dataset can be technically reachable yet unsuitable because it is stale or at the wrong level of
-      detail. Validate the consumer''s actual use case.'
+      detail. Validate the consumer''s actual use case.
+
+
+      Application boundary: Latency and freshness are independent. A fast read of stale data still misses the
+      serving contract.'
     workedExample: An executive report needs one row per account per day. A raw click stream has a different grain,
       so a serving table computes the agreed daily account measures.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/logical-replication.html
+      title: 'Orchestration & Serving Data: serving data'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Latency and freshness are independent. A fast read of stale data still misses the serving contract.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: An executive report needs one row per account per day. A raw click stream has a different grain, so
+        a serving table computes the agreed daily account measures.
     problems:
     - question: Which concern belongs in a serving contract?
       options:
-      - A requirement to send every raw field to every consumer.
-      - The output's meaning, grain, and freshness expected by its consumer.
-      - Only the source connector's internal batch size.
-      - Only the table's physical file format, without its business meaning.
+      - Expose every raw field to all consumers.
+      - Meaning, grain, age, and access.
+      - Specify only connector batch size.
+      - Specify only physical file format.
       correct: 1
       explanation: A useful serving contract describes what the consumer receives and when it is valid for use.
       id: 47215b42-b350-427d-8533-5d34b3f6bc95
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: A dashboard expects one row per account per day, but an export emits one row per click. What mismatch
         must be resolved?
       options:
-      - The grain of the served data.
-      - The choice of account display name.
-      - The source event retention window alone.
-      - The destination's network retry interval.
-      correct: 0
+      - Account display-name capitalization.
+      - Source retention alone.
+      - Serving grain.
+      - Network retry delay alone.
+      correct: 2
       explanation: Grain means what one row represents. Aggregate or redesign the consumer deliberately so counts
         are interpreted correctly.
       id: 74174276-bb6b-41a5-97f3-6c97264ba710
       type: scenario
       difficulty: 3
-    - question: An API responds in 100 milliseconds but returns data last refreshed three days ago. The contract
-        requires a one-hour maximum age. What does this evidence establish?
+      purpose: practice
+      isTransfer: false
+    - question: An API responds in 100 ms; its data is three days old. Consumers require one-hour freshness. Which
+        metric fails?
       options:
-      - The source data must be incorrect because the API is reachable.
-      - Response latency passes, but freshness fails and needs its own check and recovery.
-      - The contract passes because the API is fast.
-      - The only useful fix is a faster web server.
-      correct: 1
-      explanation: Availability, response latency, and data freshness are separate dimensions. Measure and repair
-        the dimension that failed.
-      id: 1721622a-5745-41c6-ad89-91236597e648
+      - Response latency.
+      - Endpoint availability.
+      - Request processing duration.
+      - Data age.
+      correct: 3
+      explanation: Latency and freshness are independent. A fast read of stale data still misses the serving contract.
       type: scenario
       difficulty: 4
+      id: 1721622a-5745-41c6-ad89-91236597e648
+      purpose: practice
+      isTransfer: true
+    - question: A workspace-day report consumes click rows and returns several rows per workspace-day. What check
+        should fail before publication?
+      options:
+      - Workspace-day grain uniqueness.
+      - Account-name formatting.
+      - HTTP cache-key width.
+      - Raw event-property count.
+      correct: 0
+      explanation: Validate the promised output identity. Click-level facts must be aggregated under a defined
+        rule.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-orchestration-and-serving-serving-data-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: The data is fresh and correctly aggregated, but the export includes another tenant's rows. Which
+        serving dimension failed?
+      options:
+      - Schema syntax alone.
+      - Access and tenant scope.
+      - Extraction duration alone.
+      - Compression ratio alone.
+      correct: 1
+      explanation: Correct values and freshness do not establish correct audience scope. Validate authorization
+        and tenancy at the serving boundary.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-orchestration-and-serving-serving-data-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: transformation-etl-elt
+  sourceRef: https://www.postgresql.org/docs/current/logical-replication.html; relevant named topic/contract in
+    this concept; verified 2026-10-07.
 - id: pipeline-tradeoffs
   name: 'Pipeline Tradeoffs: Latency, Cost, Complexity'
   difficulty: 4
@@ -626,92 +1169,155 @@ concepts:
   encompassing: []
   knowledgePoints:
   - id: three-tensions
-    instruction: 'Pipeline design balances **freshness, cost, and operational complexity**. A shorter refresh interval
-      can increase compute, source load, and monitoring needs. More recovery guarantees can require extra state
-      and storage.
+    instruction: 'Pipeline design balances **freshness, cost, and operational complexity**. A shorter refresh
+      interval can increase compute, source load, and monitoring needs. More recovery guarantees can require extra
+      state and storage.
 
 
       Use measurable requirements and expected volume. Choose the least complex design that meets the actual need,
-      then measure its behavior under load and failure.'
+      then measure its behavior under load and failure.
+
+
+      Application boundary: Match freshness to the consumer and leave recovery time. Higher frequency alone does
+      not improve completeness.'
     workedExample: A daily staffing report needs yesterday's totals by 07:00. A tested nightly batch can satisfy
       this need with less operational work than a continuously running stream.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/logical-replication.html
+      title: 'Pipeline Tradeoffs: Latency, Cost, Complexity: three tensions'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Match freshness to the consumer and leave recovery time. Higher frequency alone does not improve completeness.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: A daily staffing report needs yesterday's totals by 07:00. A tested nightly batch can satisfy this
+        need with less operational work than a continuously running stream.
     problems:
     - question: Which information should anchor a choice between a nightly batch and a continuous stream?
       options:
-      - Which design has the shortest polling interval, regardless of need.
-      - Required data age, expected volume, recovery needs, and operating cost.
-      - Which option retains the most data, regardless of cost or purpose.
-      - Which option has the lowest bill, even if it misses the required deadline.
-      correct: 1
-      explanation: Compare the designs against measurable needs and constraints. A technology label alone does not
-        establish suitability.
+      - Smallest polling interval alone.
+      - Longest retention alone.
+      - Data age, volume, recovery, cost.
+      - Lowest bill alone.
+      correct: 2
+      explanation: Compare the designs against measurable needs and constraints. A technology label alone does
+        not establish suitability.
       id: 8050c316-f285-4a2a-b6ad-b82c25f46aa3
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: A fraud decision must use events within five seconds. A nightly batch costs less but makes data
         available the next morning. Which tradeoff matters most here?
       options:
-      - Both have equal freshness because both eventually process events.
-      - The batch misses the required freshness target despite its lower cost.
-      - The lower cost proves the batch meets every requirement.
-      - The report format decides whether five seconds is achievable.
-      correct: 1
-      explanation: A mandatory latency target constrains the design. Compare cost only among designs that can meet
-        the required behavior.
+      - Equal freshness because both eventually process.
+      - Batch is acceptable solely because it costs less.
+      - The display format determines data age.
+      - Batch misses required freshness.
+      correct: 3
+      explanation: A mandatory latency target constrains the design. Compare cost only among designs that can
+        meet the required behavior.
       id: fc717f23-b185-48b3-badf-31ef03f97d9a
       type: scenario
       difficulty: 3
-    - question: A team proposes subsecond updates for a monthly board report. The source has strict request limits,
-        and no consumer needs intraday updates. Which recommendation fits the evidence?
+      purpose: practice
+      isTransfer: false
+    - question: A monthly report needs complete month-end data by noon on day 2. The API has strict limits. No
+        user needs intraday updates. Which design fits?
       options:
-      - Drop validation to compensate for the extra request volume.
-      - Stop monitoring because the report is infrequent.
-      - Use a scheduled, validated extract aligned with the report deadline and leave room for retries.
-      - Adopt subsecond polling regardless of source limits.
-      correct: 2
-      explanation: The consumer gains no stated benefit from subsecond freshness. A scheduled design can meet the
-        deadline with lower load and enough recovery time.
-      id: 970b6681-ab2e-422b-95c4-b219aac38df2
+      - Validated scheduled extract with retry capacity.
+      - Subsecond full-history polling.
+      - One deadline-time extract without retry margin.
+      - Continuous delivery without completeness checks.
+      correct: 0
+      explanation: Match freshness to the consumer and leave recovery time. Higher frequency alone does not improve
+        completeness.
       type: scenario
       difficulty: 4
+      id: 970b6681-ab2e-422b-95c4-b219aac38df2
+      purpose: practice
+      isTransfer: true
+    - question: A stream costs more but meets a 10-second alert requirement. A batch is cheaper and arrives hourly.
+        Which decision respects the requirement?
+      options:
+      - Cheaper batch despite missed deadline.
+      - Preserve alert freshness; assess stream recovery/cost.
+      - Treat hourly and 10-seconddata as equally fresh.
+      - Remove timestamps so lateness is unmeasured.
+      correct: 1
+      explanation: A hard freshness requirement excludes the stated batch. Cost remains relevant among designs
+        that satisfy the contract.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-pipeline-tradeoffs-three-tensions-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A report permits one-day age. Polling every minute exhausts the source allowance before noon.
+        What should change first?
+      options:
+      - Query caching without fixing API pressure.
+      - Drop source identities to reduce payloads.
+      - Align polling/retries with the age contract.
+      - Suppress request-limit errors and continue.
+      correct: 2
+      explanation: Frequency consumes an operational budget. Respect the requirement and the source contract together.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-pipeline-tradeoffs-three-tensions-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: orchestration-and-serving
   - id: operational-safety
-    instruction: '**Idempotency** means repeating an operation has the same intended effect as doing it once. Stable
-      source IDs and explicit update rules can make retries safe. A checkpoint records progress, but its relationship
-      to committed output matters.
+    instruction: '**Idempotency** means repeating an operation has the same intended effect as doing it once.
+      Stable source IDs and explicit update rules can make retries safe. A checkpoint records progress, but its
+      relationship to committed output matters.
 
 
-      Define how to handle partial failure, late records, and replay. Test those paths instead of relying only on
-      a successful first run.'
+      Define how to handle partial failure, late records, and replay. Test those paths instead of relying only
+      on a successful first run.
+
+
+      Application boundary: A checkpoint must represent durable progress. Coordinate output and checkpoint, or
+      use a recovery contract that safely replays incomplete work.'
     workedExample: An import upserts by source invoice ID. If the connection fails after some rows commit, retrying
       the batch updates those same records rather than adding duplicate invoices.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/logical-replication.html
+      title: 'Pipeline Tradeoffs: Latency, Cost, Complexity: operational safety'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: A checkpoint must represent durable progress. Coordinate output and checkpoint, or use a recovery
+        contract that safely replays incomplete work.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: An import upserts by source invoice ID. If the connection fails after some rows commit, retrying the
+        batch updates those same records rather than adding duplicate invoices.
     problems:
     - question: What does an idempotent import allow you to do safely?
       options:
-      - Guarantee that the source never changes.
-      - Skip all validation forever.
-      - Discard record identities after every batch.
-      - Repeat the same import without creating an extra intended record for each retry.
+      - Prevent the source from ever changing.
+      - Avoid validation after the first run.
+      - Discard stable record identities.
+      - Same input; no extra intended records.
       correct: 3
       explanation: Idempotency controls the effect of repetition. It does not remove the need for validation or
         change handling.
       id: 5c13e942-ce1c-4664-a9e5-6900876b6c04
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: A batch of 100 invoices commits 60 rows and then fails. It retries all 100 using an upsert keyed
-        by stable invoice ID. With unchanged input, how many invoice records should exist after success? Enter the
-        number only.
+        by stable invoice ID. With unchanged input, how many invoice records should exist after success? Enter
+        the number only.
       options: []
       correct: '100'
       explanation: The retry updates the first 60 and inserts the remaining 40. Stable-key upserts prevent duplicate
@@ -719,16 +1325,52 @@ concepts:
       type: fill_blank
       id: b1558d5d-7e5a-44ce-b6d9-672320a83610
       difficulty: 3
-    - question: A job advances its checkpoint before writing output. It crashes after the checkpoint but before
-        the write. What failure must the design prevent?
+      purpose: practice
+      isTransfer: false
+    - question: A job persists checkpoint 100 before writing rows 81-100, then crashes. What must recovery prevent?
       options:
-      - Skipping unwritten records on restart by coordinating durable output and checkpoint progress.
-      - Treating the advanced checkpoint as proof that output exists.
-      - Reordering dashboard columns after restart.
-      - Giving every retry a new source record ID.
+      - Restart must not skip unwritten records.
+      - Treat advanced checkpoint as write proof.
+      - Skip to the newest source record on restart.
+      - Replay with new record IDs after every crash.
       correct: 0
-      explanation: The checkpoint claims work is complete before it is durable. Coordinate commits or use a recovery
-        protocol that can safely replay the uncertain interval.
-      id: 0b91e70b-ebd4-48d7-835b-e9e3eb67d7ff
+      explanation: A checkpoint must represent durable progress. Coordinate output and checkpoint, or use a recovery
+        contract that safely replays incomplete work.
       type: scenario
       difficulty: 4
+      id: 0b91e70b-ebd4-48d7-835b-e9e3eb67d7ff
+      purpose: practice
+      isTransfer: true
+    - question: A retry of the same 40 invoices uses a new random target ID each time. Counts rise to 80. Which
+        contract is broken?
+      options:
+      - Source invoice amount rule.
+      - Stable business identity for retry writes.
+      - Source page ordering.
+      - Dashboard response latency.
+      correct: 1
+      explanation: A retry is another delivery of the same intended record. Changing identity creates new records
+        instead of reconciling existing ones.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-pipeline-tradeoffs-operational-safety-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A replay covers one day. The target is partitioned daily and supports atomic replacement. Which
+        publication plan is safest?
+      options:
+      - Append corrected beside old rows.
+      - Clear all historical partitions first.
+      - Validate then atomically replace the affected partition.
+      - Change the report label only.
+      correct: 2
+      explanation: Bounded replacement avoids double-counting and limits damage. Retain a rollback path and validate
+        the exact affected scope.
+      type: scenario
+      difficulty: 4
+      id: data-pipelines-pipeline-tradeoffs-operational-safety-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: orchestration-and-serving
+  sourceRef: https://www.postgresql.org/docs/current/logical-replication.html; relevant named topic/contract in
+    this concept; verified 2026-10-07.
