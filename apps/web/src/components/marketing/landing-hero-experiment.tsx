@@ -17,7 +17,7 @@ function GraspfulHeroExperiment(
   props: Omit<LandingHeroExperimentProps, "isGraspful">,
 ) {
   const variant = useFeatureFlagVariant(HOMEPAGE_PRODUCT_PROOF_FLAG, {
-    fallbackAfterMs: 500,
+    fallbackAfterMs: 2000,
     fallbackVariant: "control",
   });
 
