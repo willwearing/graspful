@@ -204,6 +204,29 @@ describe('CourseYamlExportService', () => {
     expect(runQualityGate(parsed).score).toBe('10/10');
   });
 
+  it('preserves qualified academy edges and knowledge-point remediation targets', async () => {
+    legacyCourse(1, 15);
+    const concept = authoredLegacyConcept(15);
+    Object.assign(concept.knowledgePoints[0], { keyPrerequisiteConceptId: 'foundation-key' });
+    mockPrisma.concept.findMany.mockReset();
+    mockPrisma.concept.findMany.mockResolvedValueOnce([concept]).mockResolvedValueOnce([
+      { id: 'foundation-key', slug: 'keys', course: { slug: 'foundation' } },
+    ]);
+    mockPrisma.prerequisiteEdge.findMany.mockResolvedValue([
+      { sourceConceptId: 'foundation-key', targetConceptId: concept.id },
+    ]);
+    mockPrisma.encompassingEdge.findMany.mockResolvedValue([
+      { sourceConceptId: concept.id, targetConceptId: 'foundation-key', weight: 0.6 },
+    ]);
+    const parsed = yaml.load(await service.exportCourse('org-1', 'course-1')) as any;
+    expect(parsed.concepts[0].prerequisites).toEqual(['foundation:keys']);
+    expect(parsed.concepts[0].encompassing).toEqual([{ concept: 'foundation:keys', weight: 0.6 }]);
+    expect(parsed.concepts[0].knowledgePoints[0].keyPrerequisite).toBe('foundation:keys');
+    expect(mockPrisma.concept.findMany).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: { id: { in: ['foundation-key'] }, orgId: 'org-1' },
+    }));
+  });
+
   it('preserves an explicit course total instead of replacing it with the concept sum', async () => {
     legacyCourse(8, 15);
     const parsed = yaml.load(await service.exportCourse('org-1', 'course-1')) as any;

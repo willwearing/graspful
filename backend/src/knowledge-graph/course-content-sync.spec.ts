@@ -1,4 +1,39 @@
-import { syncProblems } from './course-content-sync';
+import { syncKeyPrerequisites, syncProblems } from './course-content-sync';
+
+describe('authored remediation targets', () => {
+  const course = (keyPrerequisite?: string) => ({
+    course: { id: 'advanced' }, concepts: [{ id: 'joins', knowledgePoints: [{ id: 'grain', keyPrerequisite }] }],
+  }) as any;
+  const conceptIds = new Map([['joins', 'join-id']]);
+  const resolver = new Map([['advanced:joins', 'join-id'], ['foundation:keys', 'keys-id']]);
+
+  it('persists a qualified prerequisite against the existing knowledge point', async () => {
+    const tx = { knowledgePoint: { update: jest.fn() } };
+    await syncKeyPrerequisites(tx as any, course('foundation:keys'), conceptIds, resolver);
+    expect(tx.knowledgePoint.update).toHaveBeenCalledWith({
+      where: { conceptId_slug: { conceptId: 'join-id', slug: 'grain' } },
+      data: { keyPrerequisiteConceptId: 'keys-id' },
+    });
+  });
+
+  it('avoids self remediation and preserves a target omitted from a partial export', async () => {
+    const tx = { knowledgePoint: { update: jest.fn() } };
+    await syncKeyPrerequisites(tx as any, course('joins'), conceptIds, resolver);
+    expect(tx.knowledgePoint.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: { keyPrerequisiteConceptId: null },
+    }));
+    tx.knowledgePoint.update.mockClear();
+    await syncKeyPrerequisites(tx as any, course(), conceptIds, resolver);
+    expect(tx.knowledgePoint.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unresolved key prerequisite before updating its knowledge point', async () => {
+    const tx = { knowledgePoint: { update: jest.fn() } };
+    await expect(syncKeyPrerequisites(tx as any, course('foundation:missing'), conceptIds, resolver))
+      .rejects.toThrow('Unknown key prerequisite');
+    expect(tx.knowledgePoint.update).not.toHaveBeenCalled();
+  });
+});
 
 describe('problem purpose content sync', () => {
   it('updates existing problem identity and writes independent exam metadata', async () => {
