@@ -20,6 +20,12 @@ vi.mock("../client", () => ({
   },
 }));
 
+type FlagsCallback = (
+  flags: string[],
+  variants: Record<string, string | boolean>,
+  context: { errorsLoading?: boolean },
+) => void;
+
 describe("useFeatureFlagVariant", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -60,5 +66,69 @@ describe("useFeatureFlagVariant", () => {
 
     expect(mocks.getFeatureFlag).not.toHaveBeenCalled();
     expect(result.current).toBe("control");
+  });
+
+  it("settles on a flag that arrives after the old 500ms deadline", () => {
+    let notifyFlagsLoaded: (() => void) | undefined;
+    mocks.onFeatureFlags.mockImplementation((callback: () => void) => {
+      notifyFlagsLoaded = callback;
+      return vi.fn();
+    });
+    mocks.getFeatureFlag.mockReturnValue("product-proof");
+
+    const { result } = renderHook(() =>
+      useFeatureFlagVariant("homepage-product-proof-v1", {
+        fallbackAfterMs: 2000,
+        fallbackVariant: "control",
+      }),
+    );
+
+    act(() => vi.advanceTimersByTime(1200));
+    expect(result.current).toBeUndefined();
+
+    act(() => notifyFlagsLoaded?.());
+
+    expect(mocks.getFeatureFlag).toHaveBeenCalledWith("homepage-product-proof-v1");
+    expect(result.current).toBe("product-proof");
+  });
+
+  it("uses the fallback at once when the flag request fails", () => {
+    let notifyFlagsLoaded: FlagsCallback | undefined;
+    mocks.onFeatureFlags.mockImplementation((callback: FlagsCallback) => {
+      notifyFlagsLoaded = callback;
+      return vi.fn();
+    });
+    mocks.getFeatureFlag.mockReturnValue(undefined);
+
+    const { result } = renderHook(() =>
+      useFeatureFlagVariant("homepage-product-proof-v1", {
+        fallbackAfterMs: 2000,
+        fallbackVariant: "control",
+      }),
+    );
+
+    act(() => notifyFlagsLoaded?.([], {}, { errorsLoading: true }));
+
+    expect(result.current).toBe("control");
+  });
+
+  it("keeps a cached variant when a flag refresh fails", () => {
+    let notifyFlagsLoaded: FlagsCallback | undefined;
+    mocks.onFeatureFlags.mockImplementation((callback: FlagsCallback) => {
+      notifyFlagsLoaded = callback;
+      return vi.fn();
+    });
+    mocks.getFeatureFlag.mockReturnValue("product-proof");
+
+    const { result } = renderHook(() =>
+      useFeatureFlagVariant("homepage-product-proof-v1", {
+        fallbackAfterMs: 2000,
+        fallbackVariant: "control",
+      }),
+    );
+
+    act(() => notifyFlagsLoaded?.([], {}, { errorsLoading: true }));
+
+    expect(result.current).toBe("product-proof");
   });
 });

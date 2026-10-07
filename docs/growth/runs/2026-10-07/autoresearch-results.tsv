@@ -1,0 +1,2 @@
+iteration	commit	metric	delta	guard	status	description
+0	7085443	46.153846	0	-	baseline	Six of thirteen fixed measurement scenarios pass on the production implementation
