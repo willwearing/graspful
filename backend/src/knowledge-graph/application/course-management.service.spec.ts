@@ -181,6 +181,39 @@ describe('CourseManagementService', () => {
     });
   });
 
+  it.each([true, false])('reviews academy prerequisites in context, target exists: %s', async (exists) => {
+    mockPrisma.course.findFirst.mockResolvedValue({ id: 'course-1', academyId: 'academy-1', updatedAt: new Date() });
+    mockPrisma.concept = { findMany: jest.fn().mockResolvedValue(
+      exists ? [{ slug: 'keys', course: { slug: 'foundation' } }] : [],
+    ) };
+    mockCourseYamlExport.exportCourse.mockResolvedValue(dump({
+      course: { id: 'joins', name: 'Join foundations', estimatedHours: 1, version: '1' },
+      concepts: [{
+        id: 'grain', name: 'Check join grain', difficulty: 2, estimatedMinutes: 5,
+        prerequisites: ['foundation:keys'],
+        knowledgePoints: [{ id: 'unique-keys',
+          instruction: 'Join each source record using its unique key. Repeated detail rows can multiply source contributions.',
+          workedExample: 'Order A has two detail rows. Summing its amount after the join counts the same order twice.',
+          problems: [
+            { id: 'one', type: 'true_false', question: 'A repeated detail row can count the same order again.', correct: true, difficulty: 1 },
+            { id: 'two', type: 'true_false', question: 'A unique order key identifies one source order.', correct: true, difficulty: 2 },
+            { id: 'three', type: 'true_false', question: 'Two detail rows guarantee two separate source orders.', correct: false, difficulty: 3 },
+          ],
+        }],
+      }],
+    }));
+    mockReviewService.review.mockImplementation((raw: unknown) => new ReviewService().review(raw));
+    mockPrisma.organization.findUnique.mockResolvedValue(null);
+    const result = await service.publishCourse('org-1', 'course-1');
+    expect(result.published).toBe(exists);
+    expect(mockPrisma.concept.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ AND: expect.arrayContaining([
+        { orgId: 'org-1', course: { academyId: 'academy-1', archivedAt: null } },
+      ]) }),
+    }));
+    if (!exists) expect(result.review.failures.some((failure) => failure.check === 'import_dry_run')).toBe(true);
+  });
+
   it('returns the persisted published state when replacing a live course without a publish flag', async () => {
     mockImporter.importFromYaml.mockResolvedValue({ courseId: 'course-1', published: true });
     mockPrisma.organization.findUnique.mockResolvedValue(null);
