@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { ExternalLink, ImageIcon, Lightbulb, PlayCircle } from "lucide-react";
 import type { RichContentBlock } from "@/lib/types";
+import { MarkdownText } from "./markdown-text";
 
 interface LessonRichContentProps {
   blocks: RichContentBlock[];
@@ -110,7 +111,9 @@ export function LessonRichContent({ blocks }: LessonRichContentProps) {
               Callout
             </div>
             <p className="text-sm font-medium text-foreground">{block.title}</p>
-            <p className="mt-2 text-sm text-muted-foreground">{block.body}</p>
+            <div className="mt-2 overflow-x-auto text-sm text-muted-foreground">
+              <MarkdownText>{block.body}</MarkdownText>
+            </div>
           </div>
         );
       })}

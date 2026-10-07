@@ -1,5 +1,7 @@
 import { Prisma, ProblemType } from '@prisma/client';
 import type { CourseYaml } from '@graspful/shared';
+import { BadRequestException } from '@nestjs/common';
+import { parseConceptRef } from './concept-ref';
 
 type ExistingItem = { id: string; slug: string };
 export type ExistingKnowledgePoint = ExistingItem & {
@@ -8,6 +10,27 @@ export type ExistingKnowledgePoint = ExistingItem & {
 };
 type ConceptYaml = CourseYaml['concepts'][number];
 type KnowledgePointYaml = ConceptYaml['knowledgePoints'][number];
+
+/** Resolve authored remediation targets after all academy concepts exist. */
+export async function syncKeyPrerequisites(
+  tx: Prisma.TransactionClient,
+  course: CourseYaml,
+  conceptIds: Map<string, string>,
+  resolver: Map<string, string>,
+) {
+  for (const concept of course.concepts) for (const kp of concept.knowledgePoints) {
+    if (!kp.keyPrerequisite) continue;
+    const ref = parseConceptRef(kp.keyPrerequisite, course.course.id);
+    const target = resolver.get(ref.qualifiedRef);
+    if (!target) throw new BadRequestException(`Unknown key prerequisite "${kp.keyPrerequisite}" for "${concept.id}/${kp.id}"`);
+    const conceptId = conceptIds.get(concept.id)!;
+    await tx.knowledgePoint.update({
+      where: { conceptId_slug: { conceptId, slug: kp.id } },
+      // A self reference denotes the current skill, with no external remediation target.
+      data: { keyPrerequisiteConceptId: target === conceptId ? null : target },
+    });
+  }
+}
 
 export async function syncSections(
   tx: Prisma.TransactionClient,

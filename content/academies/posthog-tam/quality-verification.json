@@ -1,0 +1,157 @@
+{
+  "date": "2026-10-07",
+  "stats": [
+    {
+      "course": "data-models",
+      "concepts": 7,
+      "knowledgePoints": 15,
+      "practice": 45,
+      "exam": 30,
+      "transferPractice": 15,
+      "exams": 2
+    },
+    {
+      "course": "data-pipelines",
+      "concepts": 6,
+      "knowledgePoints": 12,
+      "practice": 36,
+      "exam": 24,
+      "transferPractice": 12,
+      "exams": 2
+    },
+    {
+      "course": "posthog-data-model",
+      "concepts": 27,
+      "knowledgePoints": 51,
+      "practice": 153,
+      "exam": 102,
+      "transferPractice": 51,
+      "exams": 8
+    },
+    {
+      "course": "posthog-ingestion-pipeline",
+      "concepts": 6,
+      "knowledgePoints": 10,
+      "practice": 30,
+      "exam": 20,
+      "transferPractice": 10,
+      "exams": 2
+    }
+  ],
+  "originalIdentitiesPreserved": 237,
+  "questionCount": 440,
+  "checkedConceptReferences": 204,
+  "newConceptIds": [
+    "posthog-data-model:hogql-event-selection",
+    "posthog-data-model:hogql-property-units",
+    "posthog-data-model:hogql-actor-grain",
+    "posthog-data-model:hogql-join-grain",
+    "posthog-data-model:hogql-zero-usage",
+    "posthog-data-model:hogql-query-validation",
+    "posthog-data-model:identity-trace-capstone",
+    "posthog-ingestion-pipeline:tracking-payload-capstone",
+    "posthog-ingestion-pipeline:quota-recovery-capstone"
+  ],
+  "newFrontierAfterOriginalMastery": [
+    "posthog-data-model:hogql-event-selection",
+    "posthog-data-model:identity-trace-capstone",
+    "posthog-ingestion-pipeline:tracking-payload-capstone",
+    "posthog-ingestion-pipeline:quota-recovery-capstone"
+  ],
+  "newNodesHaveNoOriginalMasteryState": true,
+  "newNodesUseOnlyNewSections": true,
+  "sectionCount": 14,
+  "composedAcademyQualityGate": {
+    "passed": true,
+    "score": "10/10",
+    "failures": [],
+    "warnings": [],
+    "stats": {
+      "concepts": 46,
+      "kps": 88,
+      "problems": 440,
+      "authoredConcepts": 46,
+      "stubConcepts": 0
+    }
+  },
+  "cueBaselines": {
+    "practice": {
+      "selectable": 255,
+      "longestFirstTieCorrect": 53,
+      "shortestFirstTieCorrect": 96,
+      "positions": [
+        65,
+        65,
+        63,
+        62
+      ]
+    },
+    "transferPractice": {
+      "selectable": 88,
+      "longestFirstTieCorrect": 20,
+      "shortestFirstTieCorrect": 25,
+      "positions": [
+        23,
+        22,
+        23,
+        20
+      ]
+    },
+    "exam": {
+      "selectable": 176,
+      "longestFirstTieCorrect": 57,
+      "shortestFirstTieCorrect": 45,
+      "positions": [
+        43,
+        43,
+        45,
+        45
+      ]
+    }
+  },
+  "portableSqlFixtures": [
+    {
+      "name": "direct join duplicates order contribution",
+      "sql": "SELECT sum(o.amount) FROM orders o JOIN detail d ON o.id=d.order_id",
+      "expected": 60,
+      "actual": 60
+    },
+    {
+      "name": "order-key repair preserves equal legitimate amounts",
+      "sql": "SELECT sum(o.amount) FROM orders o JOIN (SELECT order_id FROM detail GROUP BY order_id) d ON o.id=d.order_id",
+      "expected": 40,
+      "actual": 40
+    },
+    {
+      "name": "numeric DISTINCT loses a legitimate equal-price order",
+      "sql": "SELECT sum(DISTINCT o.amount) FROM orders o JOIN detail d ON o.id=d.order_id",
+      "expected": 20,
+      "actual": 20
+    },
+    {
+      "name": "half-open day excludes the next midnight",
+      "sql": "SELECT count(*) FROM times WHERE timestamp >= '2026-10-01 00:00:00' AND timestamp < '2026-10-02 00:00:00'",
+      "expected": 2,
+      "actual": 2
+    }
+  ],
+  "zeroUsageRows": [
+    {
+      "account_id": "A",
+      "n": 2
+    },
+    {
+      "account_id": "B",
+      "n": 0
+    },
+    {
+      "account_id": "C",
+      "n": 1
+    }
+  ],
+  "limits": [
+    "This offline fixture verifies relational results in SQLite; it does not prove every HogQL engine/type/identity behavior.",
+    "Mechanical 10/10 does not independently establish factual correctness or cognitive depth.",
+    "Parent separately verified the equal-price join in live HogQL and the actual passing-path selector."
+  ]
+}

@@ -275,10 +275,10 @@ export const CourseYamlSchema = z
         (concept) => concept.section === section.id,
       );
 
-      if (sectionConcepts.length < 2) {
+      if (sectionConcepts.length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `Section "${section.id}" needs at least two concepts when sectionExam is enabled`,
+          message: `Section "${section.id}" needs at least one concept when sectionExam is enabled`,
         });
       }
 

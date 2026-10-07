@@ -1,9 +1,9 @@
 academy:
   id: posthog-tam
   name: PostHog TAM Academy
-  description: 'Complete training for PostHog Technical Account Managers: from data modeling fundamentals through
-    the PostHog data model, ingestion pipeline, identification, group analytics, CDP, and querying.'
-  version: '1.1'
+  description: 'A data and identity foundation for PostHog TAMs: inspect tracking contracts, trace identity and
+    group attribution, validate SQL metrics, and plan bounded ingestion recovery.'
+  version: '1.2'
 parts:
 - id: foundations
   name: Foundations
@@ -17,19 +17,19 @@ courses:
   file: courses/data-models.yaml
 - id: data-pipelines
   name: Data Pipelines
-  description: 'Generic pipeline concepts: ingestion patterns, storage layers, transformation, orchestration, serving,
-    and operational tradeoffs.'
+  description: 'Generic pipeline concepts: ingestion patterns, storage layers, transformation, orchestration,
+    serving, and operational tradeoffs.'
   part: foundations
   file: courses/data-pipelines.yaml
 - id: posthog-data-model
   name: PostHog Data Model
-  description: 'PostHog-specific data model: events, persons, properties, sessions, actions, identification, groups,
-    CDP, cohorts, and HogQL.'
+  description: Events, person-property time semantics, identity transitions, account attribution, cohorts, CDP
+    delivery, and scaffolded SQL with join and denominator fixtures.
   part: foundations
   file: courses/posthog-data-model.yaml
 - id: posthog-ingestion-pipeline
   name: PostHog Ingestion Pipeline
-  description: 'PostHog-specific ingestion: event capture, the Kafka-to-ClickHouse pipeline, storage architecture,
-    and person processing.'
+  description: Capture contracts and lifecycle delivery, acceptance versus ingestion, scoped distributed-storage
+    reasoning, person-processing cost rules, and bounded quota/recovery diagnosis.
   part: foundations
   file: courses/posthog-ingestion-pipeline.yaml

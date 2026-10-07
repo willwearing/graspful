@@ -3,7 +3,7 @@ import * as yaml from 'js-yaml';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { StudentStateService } from '@/student-model/student-state.service';
-import { syncSections, syncConcepts, syncKnowledgePoints } from './course-content-sync';
+import { syncSections, syncConcepts, syncKnowledgePoints, syncKeyPrerequisites } from './course-content-sync';
 import { GraphValidationService } from './graph-validation.service';
 import { buildQualifiedConceptRef, parseConceptRef } from './concept-ref';
 import { CourseYamlSchema, reviewCourseYaml, type CourseYaml } from '@graspful/shared';
@@ -439,6 +439,7 @@ export class CourseImporterService {
     structure: CourseStructureSyncResult,
     conceptResolver: Map<string, string>,
   ): Promise<CourseEdgeSyncResult> {
+    await syncKeyPrerequisites(tx, data, structure.conceptSlugToId, conceptResolver);
     if (structure.edgeOwnerConceptIds.length > 0) {
       await tx.prerequisiteEdge.deleteMany({
         where: {

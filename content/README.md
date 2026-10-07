@@ -234,3 +234,7 @@ Concepts with `# KPs to be authored` placeholders are imported as graph structur
 | `ab-nfpa-1001-firefighter-i.yaml` | Firefighting (Alberta) | ~50 | 3 | Validate format for skills/standards-based content |
 
 These two courses were chosen to stress-test the YAML format across maximally different content types. If the schema works for both state-specific law AND international safety standards, it works for everything in between.
+
+### Remediation references
+
+The importer resolves each authored `keyPrerequisite` after the full academy graph is available. Use a concept ID, or `course-slug:concept-id` for another course in the same academy. A reference to the current concept represents no external remediation target and is stored as null, which prevents self remediation. Omitting the field preserves an existing target during an update. Course export includes stored targets and qualified academy edges.

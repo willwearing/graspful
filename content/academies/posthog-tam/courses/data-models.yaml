@@ -4,14 +4,19 @@ course:
   description: 'Generic data modeling concepts: entities, attributes, keys, relationships, cardinality, join tables,
     and the design process.'
   estimatedHours: 2
-  version: '2026.2'
-  sourceDocument: PostHog official documentation and supplied architecture models; content reviewed 2026-09-21
+  version: '2026.3'
+  sourceDocument: Official PostHog documentation and current SDK/person-processing source, PostgreSQL documentation
+    for relational rules, and explicitly scoped teaching fixtures; verified 2026-10-07.
 sections:
 - id: data-modeling-basics
   name: Data Modeling Basics
   description: 'Entities, attributes, and keys: the building blocks of any data model.'
   sectionExam:
     enabled: true
+    passingScore: 0.8
+    questionCount: 6
+    minTransferQuestions: 6
+    timeLimitMinutes: 18
     blueprint:
     - conceptId: entities
       minQuestions: 2
@@ -19,14 +24,30 @@ sections:
       minQuestions: 2
     - conceptId: keys-and-identity
       minQuestions: 2
-    instructions: Work without step-by-step cues. Show that you can distinguish entities, attributes, and keys,
-      then apply those ideas to realistic PostHog-flavored examples.
-    passingScore: 0.75
-    questionCount: 6
-    timeLimitMinutes: 12
+    instructions: Work from the supplied evidence. Distinguish the nearest competing interpretation, preserve
+      the declared population and identity, and select the best action under the stated constraints. These are
+      separate assessment cases.
 - id: data-modeling-design
   name: Data Modeling Design
   description: Relationships, cardinality, join tables, and the design process.
+  sectionExam:
+    enabled: true
+    passingScore: 0.8
+    questionCount: 8
+    minTransferQuestions: 8
+    timeLimitMinutes: 24
+    blueprint:
+    - conceptId: relationships
+      minQuestions: 2
+    - conceptId: cardinality
+      minQuestions: 2
+    - conceptId: associative-entities
+      minQuestions: 2
+    - conceptId: data-modeling-process
+      minQuestions: 2
+    instructions: Work from the supplied evidence. Distinguish the nearest competing interpretation, preserve
+      the declared population and identity, and select the best action under the stated constraints. These are
+      separate assessment cases.
 concepts:
 - id: entities
   name: 'Entities: Things That Exist'
@@ -46,53 +67,104 @@ concepts:
 
 
       Start with nouns, then check the requirements. An action can also become an entity when you must track each
-      occurrence, such as an appointment or a payment.'
-    workedExample: A clinic records each appointment, its time, patient, and outcome. Appointment is an entity because
-      two appointments can involve the same patient and still need separate records.
+      occurrence, such as an appointment or a payment.
+
+
+      Application boundary: Equal amounts and a shared order cannot distinguish the two refundable occurrences.
+      An occurrence needs an identity even when its name is a verb.'
+    workedExample: A clinic records each appointment, its time, patient, and outcome. Appointment is an entity
+      because two appointments can involve the same patient and still need separate records.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/ddl-constraints.html
+      title: 'Entities: Things That Exist: what is an entity'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Equal amounts and a shared order cannot distinguish the two refundable occurrences. An occurrence
+        needs an identity even when its name is a verb.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: A clinic records each appointment, its time, patient, and outcome. Appointment is an entity because
+        two appointments can involve the same patient and still need separate records.
     problems:
     - question: Which requirement most strongly supports treating something as an entity?
       options:
-      - The word appears as a noun in a sentence.
-      - The value can be stored as text.
-      - The value appears on a report.
-      - The system must distinguish individual instances and store facts about each.
-      correct: 3
+      - Its value describes another tracked record.
+      - Separate tracked instances and facts.
+      - It labels a category shared by many records.
+      - It summarizes several tracked occurrences.
+      correct: 1
       explanation: Look for a need to identify and track separate instances. A noun alone does not establish that
         need.
       id: c2731731-5fd5-4374-b333-fa0fb819ede1
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: A delivery app tracks each delivery attempt, including its time and outcome. One parcel can have
         several attempts. What should the model include?
       options:
-      - Only an outcome label on the customer.
-      - A DeliveryAttempt entity with one instance per attempt.
-      - One latest-attempt field on Parcel, with earlier attempts overwritten.
-      - One shared attempt record for all parcels.
-      correct: 1
-      explanation: Each attempt has its own identity and facts. Overwriting one field would lose the required history.
+      - A latest outcome attribute on Parcel.
+      - A daily count attribute on Parcel.
+      - DeliveryAttempt occurrences.
+      - A delivery status enum with one value per outcome.
+      correct: 2
+      explanation: Each attempt has its own identity and facts. Overwriting one field would lose the required
+        history.
       id: 533eb212-1ff3-4907-b1ae-05ea43da8480
       type: scenario
       difficulty: 3
-    - question: A team rejects Payment as an entity because paying is an action. The system must refund individual
-        payments and retain their dates and amounts. What is the best review feedback?
+      purpose: practice
+      isTransfer: false
+    - question: Two payments of $30 fund the same order. Either payment can be refunded independently. Which identity
+        supports the refund requirement?
       options:
-      - Keep only the latest paid amount on Customer.
-      - Create one Payment record per customer regardless of the number of payments.
-      - Model individual payments because the requirements give each occurrence a separate identity.
-      - Use the verb rule and remove Payment from the model.
-      correct: 2
-      explanation: The tracking requirement decides the model. A grammar shortcut must not remove separately refundable
-        payment records.
-      id: d528e8c6-0101-4a73-9656-f7d45d5d44d9
+      - One payment ID per order.
+      - Customer ID plus latest payment amount.
+      - Amount/date as the payment key.
+      - A separate payment ID per occurrence.
+      correct: 3
+      explanation: Equal amounts and a shared order cannot distinguish the two refundable occurrences. An occurrence
+        needs an identity even when its name is a verb.
       type: scenario
       difficulty: 4
+      id: d528e8c6-0101-4a73-9656-f7d45d5d44d9
+      purpose: practice
+      isTransfer: true
+    - question: A rental system stores Vehicle and Customer. Each rental can be extended and settled independently.
+        Which missing entity is required?
+      options:
+      - Rental, one record per agreement.
+      - VehicleCategory, with one identity per class.
+      - CustomerBalance, with one identity per customer.
+      - RentalStatus, with one identity per status value.
+      correct: 0
+      explanation: The agreement has its own lifecycle. Status is an attribute of an agreement; a customer balance
+        combines several agreements.
+      type: scenario
+      difficulty: 4
+      id: data-models-entities-what-is-an-entity-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A service retains only the latest failed-login time per user. Security now needs to investigate
+        each attempt and its IP. What model change meets the new requirement?
+      options:
+      - Add another timestamp field to User.
+      - Separate LoginAttempt records.
+      - Create one FailedLoginStatus per outcome.
+      - Use IP address as the unique attempt key.
+      correct: 1
+      explanation: Separate occurrences must be retained. An IP can be shared and repeated; another latest-time
+        field still loses attempts.
+      type: scenario
+      difficulty: 4
+      id: data-models-entities-what-is-an-entity-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: entities
   - id: identifying-entities
     instruction: '**Entity discovery** starts with the system boundary. List the things that the application must
       manage, then test whether each needs its own records. Similar names can describe the same thing, while similar-looking
@@ -100,56 +172,106 @@ concepts:
 
 
       Ask stakeholders about ambiguous cases before you add or combine entities. A model should support the stated
-      use cases without inventing extra ones.'
+      use cases without inventing extra ones.
+
+
+      Application boundary: Tenant account closure and global authentication are separate lifecycles. Sharing
+      a login need not merge business accounts.'
     workedExample: A library tracks a book title and each physical copy. Two copies share a title but have different
       barcodes and loan histories, so BookTitle and BookCopy serve different needs.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/ddl-constraints.html
+      title: 'Entities: Things That Exist: identifying entities'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Tenant account closure and global authentication are separate lifecycles. Sharing a login need not
+        merge business accounts.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: A library tracks a book title and each physical copy. Two copies share a title but have different
+        barcodes and loan histories, so BookTitle and BookCopy serve different needs.
     problems:
-    - question: Requirements use both Account and Customer, but their meaning is unclear. Which question helps decide
-        whether they should be separate entity types?
+    - question: Which basis should decide whether two labels describe one entity or separate entities?
       options:
-      - Can their instances exist independently, and do they have different identity or lifecycle rules?
-      - Do the two words appear on different screens, regardless of their meaning?
-      - Can their fields fit in one table, regardless of the business rules?
-      - Does one label appear more often in the requirements, regardless of its meaning?
-      correct: 0
-      explanation: Clarify independent identity and lifecycle. Different labels can describe one entity, and similar
-        fields can describe separate entities.
+      - Merge records when their display names match.
+      - Use the storage engine to decide business identities.
+      - Identity, scope, and lifecycle.
+      - Give every noun a separate persistent identity.
+      correct: 2
+      explanation: Identity and lifecycle requirements decide the boundary. Equal labels or storage convenience
+        do not establish it.
       id: 50094d2a-038d-4ce6-a0a0-bc8af5c18b9a
       type: multiple_choice
       difficulty: 2
-    - question: A hiring system manages applicants and interviews. It only displays the employer name, and it manages
-        no employer records. Which initial entity set fits the stated scope?
+      purpose: practice
+      isTransfer: false
+    - question: Shipping and billing destinations can change independently and have distinct required histories.
+        Which initial model respects those lifecycles?
       options:
-      - Applicant only, with one interview date overwritten each time.
-      - Interview only, with applicant details repeated in every interview.
-      - Applicant, Interview, and a mandatory employer-management subsystem.
-      - Applicant and Interview.
+      - Merge them because both contain a street address.
+      - Model only the postal address and infer billing rules.
+      - Duplicate all fields but use a shared mutable name key.
+      - Separate destination roles and histories.
       correct: 3
-      explanation: Applicant and Interview have separate records in scope. A displayed label alone does not require
-        an employer-management entity.
+      explanation: Independent required histories need explicit roles/links. Shared address structure alone does
+        not merge their lifecycles.
       id: 8352c582-4ee4-49ee-ab93-c2b2b2a2d2f2
       type: scenario
       difficulty: 3
-    - question: A school uses Student and Customer for the same people in different screens. The requirements do
-        not say whether one person can hold both roles. What should happen before you create two unrelated entity
-        types?
+      purpose: practice
+      isTransfer: false
+    - question: The same person buys from two tenants. Each tenant can close its own customer account; a global
+        login remains active. Which boundary fits these lifecycles?
       options:
-      - Clarify shared identity and role rules with the stakeholders.
-      - Create unrelated records because the screen labels differ.
-      - Combine them and discard the role distinction immediately.
-      - Use the displayed name to match records after launch.
+      - Global login plus tenant customer accounts.
+      - One shared customer state on the login.
+      - Separate global logins per tenant account.
+      - One tenant account keyed only by email.
       correct: 0
-      explanation: Clarify identity and lifecycle first. Both unconditional separation and unconditional merging
-        can encode the wrong business rules.
-      id: a2eecd3e-9537-4b5d-bb4f-9bbbef848b04
+      explanation: Tenant account closure and global authentication are separate lifecycles. Sharing a login need
+        not merge business accounts.
       type: scenario
       difficulty: 4
+      id: a2eecd3e-9537-4b5d-bb4f-9bbbef848b04
+      purpose: practice
+      isTransfer: true
+    - question: An address can change while a shipment must retain the destination used when dispatched. Which
+        discovery question resolves the model?
+      options:
+      - Store only the mutable current address link.
+      - Is a historical shipment destination required?
+      - Store a shipment copy without an occurrence-time contract.
+      - Merge billing/shipping solely because both use address fields.
+      correct: 1
+      explanation: An explicit historical requirement decides whether current address references are sufficient.
+        Storage convenience does not answer it.
+      type: scenario
+      difficulty: 4
+      id: data-models-entities-identifying-entities-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A marketplace calls suppliers vendors in billing and sellers in the catalog. Both records reference
+        the same legal business and close together. What evidence supports one entity?
+      options:
+      - The names differ across screens.
+      - Both tables have an email field.
+      - Their shared identity and lifecycle.
+      - The two displays currently show equal counts.
+      correct: 2
+      explanation: Names and equal counts are weak evidence. A common identity and lifecycle support one entity,
+        with distinct roles where required.
+      type: scenario
+      difficulty: 4
+      id: data-models-entities-identifying-entities-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: entities
+  sourceRef: https://www.postgresql.org/docs/current/ddl-constraints.html; relevant named topic/contract in this
+    concept; verified 2026-10-07.
 - id: attributes
   name: 'Attributes: Properties of Entities'
   difficulty: 2
@@ -169,108 +291,206 @@ concepts:
 
 
       Store units and meanings with numeric fields in the schema design. A number without a defined unit can support
-      conflicting interpretations.'
+      conflicting interpretations.
+
+
+      Application boundary: Current catalog price cannot reconstruct every charge. The price used in a transaction
+      is a fact about that line occurrence.'
     workedExample: A parcel has weight_grams = 750. The field name defines the unit. An address used for postal-code
       filtering has a separate postal_code attribute.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/ddl-constraints.html
+      title: 'Attributes: Properties of Entities: what are attributes'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Current catalog price cannot reconstruct every charge. The price used in a transaction is a fact about
+        that line occurrence.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: A parcel has weight_grams = 750. The field name defines the unit. An address used for postal-code
+        filtering has a separate postal_code attribute.
     problems:
-    - question: Which item is an attribute of a particular parcel?
+    - question: What makes a value an attribute rather than an independent entity or relationship?
       options:
-      - The rule that customers may send parcels.
-      - Its weight in grams.
-      - The delivery company entity type.
-      - The collection of all parcels.
-      correct: 1
-      explanation: An attribute records a fact about one instance. Weight needs a defined unit to be interpreted
-        correctly.
+      - A separate occurrence with its own lifecycle.
+      - A connection joining two entity identities.
+      - A rule restricting how many instances can connect.
+      - A fact about one instance.
+      correct: 3
+      explanation: An attribute is a fact about the declared instance. Independent occurrences and links have
+        different identities.
       id: ecf8bfce-02d6-4d39-b02e-c943cd51eba3
       type: multiple_choice
       difficulty: 2
-    - question: A contact system must filter addresses by city and validate postal codes. Which design directly
-        supports both needs?
+      purpose: practice
+      isTransfer: false
+    - question: A report needs the current employee count for each organization. Which placement expresses that
+        fact at the stated grain?
       options:
-      - A numeric address ID with no address details stored anywhere.
-      - A single unstructured address string used for every operation.
-      - A free-text notes field containing the address.
-      - Separate city and postal_code attributes, with other address fields as needed.
-      correct: 3
-      explanation: Use structured components for required filters and validation. A display-only string makes these
-        operations unreliable.
+      - Organization employee_count.
+      - A separate organization for each headcount value.
+      - A global employee-count constant for every organization.
+      - A relationship identity keyed only by the numeric value.
+      correct: 0
+      explanation: The count describes one organization at the stated time. The numeric value is not an independent
+        identity.
       id: 3366def7-78ff-4e2c-a426-bdfada6fac57
       type: scenario
       difficulty: 3
-    - question: Two services write 500 and 0.5 to a field named weight for the same parcel. One uses grams and the
-        other kilograms. Which change addresses the cause?
+      purpose: practice
+      isTransfer: false
+    - question: Product prices change monthly. Reports need the exact unit price charged on each OrderLine. Where
+        should that fact be stored?
       options:
-      - Rename the field size and keep both input conventions.
-      - Store whichever value arrives last without documenting its unit.
-      - Define one storage unit, validate inputs, and convert at the integration boundary.
-      - Average the two values before displaying them.
-      correct: 2
-      explanation: The mismatch is semantic. Define a shared unit and conversion rule before comparing or combining
-        values.
-      id: 535ba43a-4d2c-45a9-92ae-5ed3e49d0e69
+      - Current Product price joined at report time.
+      - Charged-price snapshot on OrderLine.
+      - Latest paid amount on the Customer.
+      - Product SKU with price embedded.
+      correct: 1
+      explanation: Current catalog price cannot reconstruct every charge. The price used in a transaction is a
+        fact about that line occurrence.
       type: scenario
       difficulty: 4
+      id: 535ba43a-4d2c-45a9-92ae-5ed3e49d0e69
+      purpose: practice
+      isTransfer: true
+    - question: A user has a display name and a workspace role. Roles differ by workspace. Which fact is a User
+        attribute?
+      options:
+      - The role in all workspaces.
+      - The workspace membership start date.
+      - User display name.
+      - The number of licenses owned by the workspace.
+      correct: 2
+      explanation: Display name describes the user. Role and membership dates describe a specific user-workspace
+        link.
+      type: scenario
+      difficulty: 4
+      id: data-models-attributes-what-are-attributes-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A report stores daily active-user count for each workspace and date. What does active_user_count
+        describe?
+      options:
+      - Each individual User record.
+      - The global definition of Workspace.
+      - A stable key that identifies a single user.
+      - The workspace-day aggregate.
+      correct: 3
+      explanation: The grain is workspace per day. A count is a measured attribute at that grain, not a user identity.
+      type: scenario
+      difficulty: 4
+      id: data-models-attributes-what-are-attributes-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: entities
   - id: attribute-boundaries
     instruction: '**Attribute ownership** follows the fact being described. A customer owns their current contact
       address. An invoice can own a snapshot of the billing address used when it was issued.
 
 
       A stored snapshot preserves a past fact. A reference to current data follows later changes. Choose deliberately
-      from the requirement, and label historical snapshots clearly.'
+      from the requirement, and label historical snapshots clearly.
+
+
+      Application boundary: Multiple certificates have independent facts and history. A latest expiry or list
+      of names cannot express those requirements.'
     workedExample: A customer changes address in June. A May invoice retains its billing_address_at_issue, while
       the customer record receives the new current address.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/ddl-constraints.html
+      title: 'Attributes: Properties of Entities: attribute boundaries'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Multiple certificates have independent facts and history. A latest expiry or list of names cannot
+        express those requirements.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: A customer changes address in June. A May invoice retains its billing_address_at_issue, while the
+        customer record receives the new current address.
     problems:
-    - question: Which question best determines where an attribute belongs?
+    - question: Which rule determines where a fact belongs in the data model?
       options:
-      - Which placement duplicates the fewest values regardless of historical requirements?
-      - Which entity currently has the fewest attributes?
-      - Which entity instance and point in time does this fact describe?
-      - Which screen first displayed this fact?
-      correct: 2
-      explanation: Ownership depends on meaning and time. Table size and implementation order do not establish the
-        correct owner.
+      - Meaning, multiplicity, and time.
+      - Store each fact on whichever table has the fewest columns.
+      - Store each fact on every related entity for faster lookup.
+      - Use one entity for facts that share a data type.
+      correct: 0
+      explanation: Attach a fact to the instance, multiplicity, and point in time that define its meaning.
       id: 8066348a-9ddf-4f93-b40f-16107f3503c2
       type: multiple_choice
       difficulty: 2
-    - question: A customer can place many orders. Each order has a different shipping address, and the exact address
-        used must remain available. Where should that address be stored?
+      purpose: practice
+      isTransfer: false
+    - question: A user is admin in one workspace and viewer in another. Where does that role belong?
       options:
-      - As a shipping-address snapshot for each order.
-      - As one shared address overwritten by the latest order.
-      - Only as a product attribute.
-      - Only as the customer's current address.
-      correct: 0
-      explanation: The address describes that order at shipping time. A current customer address cannot preserve
-        several historical destinations.
+      - One role attribute on User.
+      - Workspace membership.
+      - One role attribute on Workspace.
+      - One global role lookup without a membership link.
+      correct: 1
+      explanation: A role differs by user-workspace pair, so it belongs to the membership rather than either endpoint
+        globally.
       id: 0a13b9ad-1272-4256-90cc-666510a0e6f0
       type: scenario
       difficulty: 3
-    - question: Old invoices now show a customer's new address because the invoice screen always reads the current
-        customer record. The requirement is to reproduce the issued invoice. What is the sound fix?
+      purpose: practice
+      isTransfer: false
+    - question: An employee can have several certificates. Each certificate has an issuer, expiry, and revocation
+        state. What design supports renewal history?
       options:
-      - Use an invoice-time address snapshot and recover historical values only from reliable records.
-      - Copy the current address into every old invoice and label it historical.
-      - Prevent all future customer address changes.
-      - Remove invoice addresses from all documents.
-      correct: 0
-      explanation: A snapshot meets the requirement for future invoices. Existing historical values require evidence;
-        current data cannot reconstruct them reliably.
-      id: ae83e56c-5c6e-41f5-8cd5-ea14e0c8cf03
+      - Latest certificate and expiry on Employee.
+      - Certificate names plus one shared expiry.
+      - Certificate occurrences linked to Employee.
+      - One record per issuer, reused for all holders.
+      correct: 2
+      explanation: Multiple certificates have independent facts and history. A latest expiry or list of names
+        cannot express those requirements.
       type: scenario
       difficulty: 4
+      id: ae83e56c-5c6e-41f5-8cd5-ea14e0c8cf03
+      purpose: practice
+      isTransfer: true
+    - question: A booking links one traveler to one flight. Seat choice can differ between the traveler's bookings.
+        Where does seat belong?
+      options:
+      - Traveler, as one permanent seat.
+      - Flight, as one seat shared by passengers.
+      - Airline, as a default seat string.
+      - Booking.
+      correct: 3
+      explanation: The fact depends on the link occurrence. Neither endpoint alone identifies the assignment.
+      type: scenario
+      difficulty: 4
+      id: data-models-attributes-attribute-boundaries-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A workspace has one billing currency. Each invoice also retains the currency used when issued.
+        Which model preserves both meanings?
+      options:
+      - Current workspace setting plus invoice snapshot.
+      - Store only current currency on Workspace and join it for all invoices.
+      - Store one currency on the user who downloads the invoice.
+      - Make each currency change create a new invoice identity for old invoices.
+      correct: 0
+      explanation: Current settings and transaction snapshots answer different questions. Keeping both explicit
+        avoids rewriting historical invoice meaning.
+      type: scenario
+      difficulty: 4
+      id: data-models-attributes-attribute-boundaries-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: entities
+  sourceRef: https://www.postgresql.org/docs/current/ddl-constraints.html; relevant named topic/contract in this
+    concept; verified 2026-10-07.
 - id: keys-and-identity
   name: 'Keys: Uniquely Identifying Things'
   difficulty: 3
@@ -285,168 +505,316 @@ concepts:
   encompassing: []
   knowledgePoints:
   - id: primary-keys
-    instruction: 'A **primary key** uniquely identifies each row and cannot be null. It can contain one column or
-      a combination of columns. Human-readable names often repeat and usually need a separate identifier.
+    instruction: 'A **primary key** uniquely identifies each row and cannot be null. It can contain one column
+      or a combination of columns. Human-readable names often repeat and usually need a separate identifier.
 
 
       The key identifies the row; other constraints express business rules. Check uniqueness in the full intended
-      scope, including records from different tenants or source systems.'
+      scope, including records from different tenants or source systems.
+
+
+      Application boundary: A durable identity separates equal or changing names from the customer. Natural keys
+      can work only when their stated stability and uniqueness contracts hold.'
     workedExample: Two customers can both be named Sam Lee. customer_id values 41 and 42 keep their records distinct
       without changing either name.
     instructionContent:
     - type: link
       url: https://www.postgresql.org/docs/current/ddl-constraints.html
-      title: Official reference
-      description: Check the current documented behavior and platform-specific details.
-    workedExampleContent: []
+      title: 'Keys: Uniquely Identifying Things: primary keys'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
+    - type: callout
+      title: Boundary to verify
+      body: A durable identity separates equal or changing names from the customer. Natural keys can work only
+        when their stated stability and uniqueness contracts hold.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: Two customers can both be named Sam Lee. customer_id values 41 and 42 keep their records distinct
+        without changing either name.
     problems:
-    - question: What does a primary key guarantee for rows in its table?
+    - question: What does a primary key guarantee for its table rows?
       options:
-      - Every value stays unchanged forever.
-      - Every column is unique.
-      - A unique, non-null key value or key combination.
-      - Rows are returned in insertion order.
-      correct: 2
-      explanation: A primary key enforces uniqueness and non-null values. Stable key choice is a design decision,
-        and query order needs its own rule.
+      - A unique display label that can be absent.
+      - Unique and non-null.
+      - Any indexed value used by a frequent query.
+      - A required value that several rows may share.
+      correct: 1
+      explanation: A primary key requires a unique non-null value or combination. Stability remains a separate
+        design requirement.
       id: bed70432-6728-4cbd-af05-58d236da8161
       type: multiple_choice
       difficulty: 2
-    - question: Two tenants both use local customer number 17. The shared table must store both. Which proposed
-        primary key preserves that distinction?
+      purpose: practice
+      isTransfer: false
+    - question: Emails can change and tenants can have independently managed customers. Which design keeps row
+        identity stable while validating the declared email business rule?
       options:
-      - The customer's display name alone.
-      - The combination of tenant_id and local_customer_number.
-      - The customer's current subscription plan.
-      - local_customer_number alone.
-      correct: 1
-      explanation: The number is unique only inside a tenant. Include the tenant in the key scope or use a globally
-        unique surrogate key.
+      - Use email as identity because it is searchable.
+      - Use full name as identity and normalize capitalization.
+      - Stable ID; separate email rule.
+      - Use current company name and move references on each rename.
+      correct: 2
+      explanation: Separate row identity from mutable email business rules and namespace. Validate the actual
+        declared uniqueness scope.
       id: 7864e82d-d6e1-4f15-b166-10df35888e7c
       type: scenario
       difficulty: 3
-    - question: A migration plans to use email as a primary key, but the source contains shared email addresses
-        and missing emails. Which conclusion follows from the evidence?
+      purpose: practice
+      isTransfer: false
+    - question: Two customers share a legal name, and either may rename. Existing orders must stay attached after
+        a rename. Which key policy fits?
       options:
-      - Replace every missing email with the same placeholder and use it as the key.
-      - Delete all rows that share an email without a business decision.
-      - Choose another valid key and define separate email rules.
-      - Proceed because most emails are unique.
-      correct: 2
-      explanation: The proposed column violates the required uniqueness and non-null rules. Preserve valid records
-        and choose an identity design that fits the data.
-      id: 303e593a-7bed-4ef7-9ee5-65d6f1ae1256
+      - Legal name key with cascading rename.
+      - Email-domain key shared by organizations.
+      - Name/date pair without a uniqueness contract.
+      - Stable customer_id; mutable legal name.
+      correct: 3
+      explanation: A durable identity separates equal or changing names from the customer. Natural keys can work
+        only when their stated stability and uniqueness contracts hold.
       type: scenario
       difficulty: 4
+      id: 303e593a-7bed-4ef7-9ee5-65d6f1ae1256
+      purpose: practice
+      isTransfer: true
+    - question: A staging table contains IDs 10, 10, and NULL. Which primary-key requirement fails?
+      options:
+      - Uniqueness and non-nullness.
+      - Uniqueness only.
+      - Non-nullness only.
+      - Neither, if all three rows have different names.
+      correct: 0
+      explanation: Two rows share 10 and one lacks an ID. Display names do not repair either key constraint.
+      type: scenario
+      difficulty: 4
+      id: data-models-keys-and-identity-primary-keys-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A tenant can use SKU ABC, and another tenant can independently use SKU ABC. Which identity can
+        represent both catalog entries?
+      options:
+      - Globally unique sku alone.
+      - Tenant_id plus SKU.
+      - Price and sku without tenant identity.
+      - Product title with no uniqueness rule.
+      correct: 1
+      explanation: The namespace is tenant-specific. A composite key encodes that namespace; a surrogate ID with
+        an equivalent uniqueness rule also works.
+      type: scenario
+      difficulty: 4
+      id: data-models-keys-and-identity-primary-keys-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: entities
   - id: foreign-keys-need-stable-targets
-    instruction: 'A **foreign key** requires a referenced value to exist in an eligible unique or primary key. The
-      update rule controls what happens when the referenced key changes. With ON UPDATE CASCADE, the database can
-      update dependent references. Other rules can reject the change.
+    instruction: 'A **foreign key** requires a referenced value to exist in an eligible unique or primary key.
+      The update rule controls what happens when the referenced key changes. With ON UPDATE CASCADE, the database
+      can update dependent references. Other rules can reject the change.
 
 
       Stable identifiers reduce the need for coordinated updates. Use a mutable name or email as descriptive data
-      when it has no need to be the identifier.'
+      when it has no need to be the identifier.
+
+
+      Application boundary: A stable identity avoids making every email edit an identity migration. A natural
+      key can work with appropriate rules, but those rules are absent here.'
     workedExample: Orders reference customer_id 41. Changing that customer's email leaves the relationship intact.
       If email were the referenced key, the update would need the configured foreign-key action.
     instructionContent:
     - type: link
       url: https://www.postgresql.org/docs/current/ddl-constraints.html
-      title: Official reference
-      description: Check the current documented behavior and platform-specific details.
-    workedExampleContent: []
+      title: 'Keys: Uniquely Identifying Things: foreign keys need stable targets'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
+    - type: callout
+      title: Boundary to verify
+      body: A stable identity avoids making every email edit an identity migration. A natural key can work with
+        appropriate rules, but those rules are absent here.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: Orders reference customer_id 41. Changing that customer's email leaves the relationship intact. If
+        email were the referenced key, the update would need the configured foreign-key action.
     problems:
     - question: Why does a stable customer ID help orders retain their customer relationship?
       options:
-      - A change to descriptive customer data leaves the referenced ID intact.
-      - It causes deleted customers to remain available automatically.
-      - It makes every customer attribute immutable.
-      - It removes the need for a foreign-key constraint.
-      correct: 0
-      explanation: Stable IDs separate record identity from mutable descriptions. Referential rules are still needed
-        for updates and deletes.
+      - Guarantee referenced display names never change.
+      - Require exactly one child row per parent.
+      - Non-null references require real targets.
+      - Automatically preserve every historical parent value.
+      correct: 2
+      explanation: Stable IDs separate record identity from mutable descriptions. Referential rules are still
+        needed for updates and deletes.
       id: fc1fb61b-f524-4034-b033-22908982c66d
       type: multiple_choice
       difficulty: 2
-    - question: Order.customer_email references a unique Customer.email with ON UPDATE CASCADE. A valid email changes.
-        What does that configured rule do?
+      purpose: practice
+      isTransfer: false
+    - question: Order.customer_email references a unique Customer.email with ON UPDATE CASCADE. A valid email
+        changes. What does that configured rule do?
       options:
-      - Always rejects the email change.
-      - Updates the matching foreign-key values in Order.
-      - Deletes the related orders.
-      - Always leaves dangling order references.
-      correct: 1
-      explanation: CASCADE propagates this key update. Do not assume all mutable-key changes break references; inspect
-        the configured action.
+      - Reference the current display name without a uniqueness rule.
+      - Reference whichever parent was created most recently.
+      - Copy the name and assume matching text proves a link.
+      - Stable key and update policy.
+      correct: 3
+      explanation: CASCADE propagates this key update. Do not assume all mutable-key changes break references;
+        inspect the configured action.
       id: 2112c6fd-2c59-404c-9d66-ff5d5c46d8dd
       type: scenario
       difficulty: 3
-    - question: A proposed integration uses a customer's editable display name as a referenced key. Names can repeat,
-        and several services send references asynchronously. Which design reduces both ambiguity and update coordination?
+      purpose: practice
+      isTransfer: false
+    - question: Orders reference Customer.email. Email changes, and the foreign key has no update cascade. Which
+        design reduces identity coupling?
       options:
-      - Require each service to guess the latest spelling of the name.
-      - Add the current date to the name whenever a conflict occurs.
-      - Use a stable unique customer ID in every service and keep the name as a separate attribute.
-      - Use the name and disable validation when duplicates appear.
-      correct: 2
-      explanation: A shared stable identifier avoids duplicate-name ambiguity and coordinated reference rewrites.
-        The display name can then change independently.
-      id: 86cde7a7-03b8-4469-a50e-18bc6833c9eb
+      - Stable customer_id; email as an attribute.
+      - Email references with no update rule.
+      - Name matching after removing the foreign key.
+      - New customer identity for each email edit.
+      correct: 0
+      explanation: A stable identity avoids making every email edit an identity migration. A natural key can work
+        with appropriate rules, but those rules are absent here.
       type: scenario
       difficulty: 4
+      id: 86cde7a7-03b8-4469-a50e-18bc6833c9eb
+      purpose: practice
+      isTransfer: true
+    - question: An import has Order.customer_id = 77, but Customer 77 has not loaded. What should a dependency-aware
+        import do?
+      options:
+      - Disable validation permanently.
+      - Load the referenced customer first.
+      - Attach the order to the lowest available customer ID.
+      - Replace the order ID with 77.
+      correct: 1
+      explanation: A foreign key requires a real target. Correct dependency handling preserves the relationship
+        rather than inventing a substitute customer.
+      type: scenario
+      difficulty: 4
+      id: data-models-keys-and-identity-foreign-keys-need-stable-targets-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: Support tickets may be unassigned. Every non-null assignee_id must reference a user. Which constraint
+        model fits?
+      options:
+      - Required assignee_id referencing a shared fake user.
+      - Unique assignee_id so users receive one ticket.
+      - Nullable assignee_id with a foreign key.
+      - A free-text assignee name with no identity reference.
+      correct: 2
+      explanation: Optionality and referential integrity are distinct. NULL represents no assignee; non-null values
+        still require valid users.
+      type: scenario
+      difficulty: 4
+      id: data-models-keys-and-identity-foreign-keys-need-stable-targets-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: entities
   - id: choosing-key-types
     instruction: 'A **natural key** comes from the domain. A **surrogate key** is assigned for record identity,
-      such as a generated number or UUID. A surrogate key does not enforce business uniqueness by itself. Add a
-      unique constraint for any separate rule, such as one account per tenant and external account number.
+      such as a generated number or UUID. A surrogate key does not enforce business uniqueness by itself. Add
+      a unique constraint for any separate rule, such as one account per tenant and external account number.
 
 
-      Choose keys from their real scope, stability, and constraints rather than their appearance.'
+      Choose keys from their real scope, stability, and constraints rather than their appearance.
+
+
+      Application boundary: Historical identity and active business uniqueness are separate constraints. A conditional
+      uniqueness policy preserves both.'
     workedExample: An import assigns each row a UUID. It also enforces uniqueness on source_system plus external_id
       so the same source record cannot be inserted twice under different UUIDs.
     instructionContent:
     - type: link
       url: https://www.postgresql.org/docs/current/ddl-constraints.html
-      title: Official reference
-      description: Check the current documented behavior and platform-specific details.
-    workedExampleContent: []
+      title: 'Keys: Uniquely Identifying Things: choosing key types'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
+    - type: callout
+      title: Boundary to verify
+      body: Historical identity and active business uniqueness are separate constraints. A conditional uniqueness
+        policy preserves both.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: An import assigns each row a UUID. It also enforces uniqueness on source_system plus external_id so
+        the same source record cannot be inserted twice under different UUIDs.
     problems:
-    - question: After adding a generated UUID primary key, what enforces the rule that an external account number
-        is unique within each tenant?
+    - question: What should anchor the choice between a natural, composite, and surrogate key?
       options:
-      - A separate unique constraint on tenant_id and external_account_number.
-      - A convention that import jobs should avoid duplicates, with no validation.
-      - A non-unique display-name column.
-      - The UUID primary key automatically enforces that rule.
-      correct: 0
-      explanation: A surrogate key identifies rows. Business uniqueness needs its own constraint or equivalent enforcement.
+      - Prefer whichever key has the most readable display value.
+      - Require every entity to use exactly two key columns.
+      - Use mutable business status as identity for easy filtering.
+      - Identity scope and stability.
+      correct: 3
+      explanation: Key choice follows identity scope, uniqueness, stability, and the required lifecycle.
       id: 13002928-15f2-450e-aee6-b9c7aee2b107
       type: multiple_choice
       difficulty: 2
-    - question: A product table uses generated product_id values. The business also requires each active SKU to
-        be unique. Two imports create different product IDs with the same SKU. Which missing rule explains the duplicate?
+      purpose: practice
+      isTransfer: false
+    - question: Products have generated IDs; active SKU must be unique. Which additional design preserves the
+        business rule?
       options:
-      - A generated primary key automatically validates every business field, so no rule is missing.
-      - The product_id values must be identical whenever any descriptive field matches.
-      - A separate uniqueness rule for the SKU in the required business scope.
-      - The SKU must be removed because surrogate and natural identifiers cannot coexist.
-      correct: 2
-      explanation: A surrogate primary key prevents duplicate row identities. The SKU business rule needs its own
-        constraint or equivalent validation.
+      - Stable ID plus active-SKU rule.
+      - Natural SKU without a uniqueness scope.
+      - Latest price as the key, with title as a fallback.
+      - SKU on Product with no duplicate checks at all.
+      correct: 0
+      explanation: A generated ID protects row identity, not active-SKU uniqueness. Enforce the declared business
+        rule separately.
       id: a73a34cf-5201-4187-90a8-2d8f13e25e97
       type: scenario
       difficulty: 3
-    - question: A team favors a product code as the primary key because it is readable. Codes are reassigned after
-        product retirement, while orders must reference the original product indefinitely. What is the better design?
+      purpose: practice
+      isTransfer: false
+    - question: A SKU may be reused only after its old product is retired. Historical orders must still identify
+        the original product. Which design fits?
       options:
-      - Reuse the old product row whenever the code is reassigned.
-      - Use the current product name as the permanent key.
-      - Update historical orders to point to the new product with the same code.
-      - Use a permanent product ID and model the code with its business validity rules.
-      correct: 3
-      explanation: Historical references need permanent identity. A reused business code cannot alone distinguish
-        the old and new product.
-      id: 9d41f71b-7217-4aca-befc-9229031bfd7f
+      - SKU identity with retired rows overwritten.
+      - Stable ID; active-SKU uniqueness.
+      - Surrogate IDs without active-SKU validation.
+      - SKU-plus-current-price identity.
+      correct: 1
+      explanation: Historical identity and active business uniqueness are separate constraints. A conditional
+        uniqueness policy preserves both.
       type: scenario
       difficulty: 4
+      id: 9d41f71b-7217-4aca-befc-9229031bfd7f
+      purpose: practice
+      isTransfer: true
+    - question: An external provider changes account numbers during migrations, while its immutable account UUID
+        persists. Which identifier is best for durable links?
+      options:
+      - Current account number.
+      - Current account label.
+      - Provider UUID in its namespace.
+      - Position of the account in each export.
+      correct: 2
+      explanation: Use the supplied stable identity contract and retain the human-facing number as an attribute.
+        Export positions are not identities.
+      type: scenario
+      difficulty: 4
+      id: data-models-keys-and-identity-choosing-key-types-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: An Enrollment identity uses student_id and course_id. Students can retake a course in later offerings.
+        Which key boundary must expand?
+      options:
+      - Keep the pair and replace the older grade.
+      - Make course title unique across all offerings.
+      - Use grade as a third identity field.
+      - Enrollment/offering occurrence identity.
+      correct: 3
+      explanation: A retake is a distinct occurrence. A mutable result is not a suitable occurrence discriminator.
+      type: scenario
+      difficulty: 4
+      id: data-models-keys-and-identity-choosing-key-types-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: entities
+  sourceRef: https://www.postgresql.org/docs/current/ddl-constraints.html; relevant named topic/contract in this
+    concept; verified 2026-10-07.
 - id: relationships
   name: 'Relationships: How Entities Connect'
   difficulty: 3
@@ -461,60 +829,109 @@ concepts:
   encompassing: []
   knowledgePoints:
   - id: what-are-relationships
-    instruction: 'A **relationship** connects entity instances according to a business rule, such as an order placed
-      by a customer. In a relational database, a foreign-key column can store the reference, and a foreign-key constraint
-      can enforce its validity.
+    instruction: 'A **relationship** connects entity instances according to a business rule, such as an order
+      placed by a customer. In a relational database, a foreign-key column can store the reference, and a foreign-key
+      constraint can enforce its validity.
 
 
       The conceptual relationship can exist even if no database constraint enforces it. In that case, application
-      logic or data checks must detect invalid references.'
-    workedExample: Order.customer_id records which customer placed an order. A foreign-key constraint rejects a
-      value that points to a nonexistent customer, subject to the declared null rules.
+      logic or data checks must detect invalid references.
+
+
+      Application boundary: Different relationship roles can connect the same kinds of entities. Naming the roles
+      prevents ambiguous joins.'
+    workedExample: Order.customer_id records which customer placed an order. A foreign-key constraint rejects
+      a value that points to a nonexistent customer, subject to the declared null rules.
     instructionContent:
     - type: link
       url: https://www.postgresql.org/docs/current/ddl-constraints.html
-      title: Official reference
-      description: Check the current documented behavior and platform-specific details.
-    workedExampleContent: []
+      title: 'Relationships: How Entities Connect: what are relationships'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
+    - type: callout
+      title: Boundary to verify
+      body: Different relationship roles can connect the same kinds of entities. Naming the roles prevents ambiguous
+        joins.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: Order.customer_id records which customer placed an order. A foreign-key constraint rejects a value
+        that points to a nonexistent customer, subject to the declared null rules.
     problems:
     - question: What does the relationship "Customer places Order" describe?
       options:
-      - A connection between a particular customer and their orders.
-      - A single attribute value shared by all customers.
-      - A requirement that Customer and Order use identical columns.
-      - The physical order of rows on disk.
+      - A meaningful link between instances.
+      - A fact that describes only one instance.
+      - A collection of equal display labels.
+      - A rule for formatting a report column.
       correct: 0
-      explanation: A relationship connects instances. Storage layout and shared column structure are separate design
-        choices.
+      explanation: A relationship connects instances. Storage layout and shared column structure are separate
+        design choices.
       id: 86424806-95f3-4b5e-abf2-eedc36a13f1a
       type: multiple_choice
       difficulty: 2
-    - question: Order.customer_id contains customer IDs, but the database has no foreign-key constraint. Which statement
-        is accurate?
+      purpose: practice
+      isTransfer: false
+    - question: Order.customer_id contains customer IDs, but the database has no foreign-key constraint. Which
+        statement is accurate?
       options:
-      - The reference models a relationship, but the database does not enforce that customers exist.
-      - Each order must now belong to every customer.
-      - Every customer ID is guaranteed valid.
-      - The data cannot represent a relationship at all.
-      correct: 0
-      explanation: Distinguish the reference from enforcement. Without the constraint, invalid references can enter
-        unless another control prevents them.
+      - An Order stores only a customer display name.
+      - Order-to-Customer reference.
+      - An Order uses amount as the customer key.
+      - Customer and Order share a table prefix.
+      correct: 1
+      explanation: Distinguish the reference from enforcement. Without the constraint, invalid references can
+        enter unless another control prevents them.
       id: 5da1d5b0-0f92-474d-8a79-55a1508f6b91
       type: scenario
       difficulty: 3
-    - question: An audit finds orders referring to deleted customers in a schema without foreign-key enforcement.
-        Which response addresses both existing damage and future integrity?
+      purpose: practice
+      isTransfer: false
+    - question: A contact works at a company and buys for a different company. Reports need both connections.
+        Which design distinguishes their meaning?
       options:
-      - Copy the deleted customer ID into a text field and treat it as verified.
-      - Rename customer_id to make the intended relationship clearer.
-      - Add a join to hide unmatched orders from every report.
-      - Investigate and repair the invalid references, then add suitable enforcement or controlled deletion rules.
-      correct: 3
-      explanation: Hiding rows conceals the issue. Repair using evidence and enforce the intended relationship so
-        the fault does not recur.
-      id: e0afb99d-ad30-4cf6-aa3f-176ab948f02e
+      - One company link with no role meaning.
+      - One employer link reused for purchasing.
+      - Separate employer and purchasing-account links.
+      - Two company labels stored without identities.
+      correct: 2
+      explanation: Different relationship roles can connect the same kinds of entities. Naming the roles prevents
+        ambiguous joins.
       type: scenario
       difficulty: 4
+      id: e0afb99d-ad30-4cf6-aa3f-176ab948f02e
+      purpose: practice
+      isTransfer: true
+    - question: An account has an owner and a billing contact, sometimes the same user. Which model supports different
+        users when needed?
+      options:
+      - One user relationship reused without a role label.
+      - Two copies of every user, one for each role.
+      - A company name property used as both user identities.
+      - Two role-specific references.
+      correct: 3
+      explanation: Separate meanings do not require duplicate user identities. Each reference preserves its role.
+      type: scenario
+      difficulty: 4
+      id: data-models-relationships-what-are-relationships-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A dashboard joins invoices to users by equal email text. Emails can change and are not unique.
+        What evidence is required for a durable relationship?
+      options:
+      - An authoritative invoice-user identity link.
+      - A larger sample of matching email strings.
+      - Sorting users by newest signup time.
+      - Restricting the chart to invoices above $100.
+      correct: 0
+      explanation: Coincidental value equality does not establish a business relationship. Use the authoritative
+        identity and scope.
+      type: scenario
+      difficulty: 4
+      id: data-models-relationships-what-are-relationships-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: entities
   - id: optional-vs-mandatory
     instruction: '**Optionality** specifies whether an instance can exist without a related instance. For a foreign-key
       column, NOT NULL requires a value and the foreign-key constraint requires that value to reference a valid
@@ -522,54 +939,102 @@ concepts:
 
 
       Consider lifecycle stages. A draft may allow a missing assignee, while a submitted record may require one.
-      That conditional business rule needs suitable validation.'
+      That conditional business rule needs suitable validation.
+
+
+      Application boundary: Mandatory participation depends on lifecycle state. A global NOT NULL rule alone cannot
+      represent the initial optional state.'
     workedExample: A draft support ticket may have assignee_id = null. Submission checks that an assignee is present.
       A foreign key checks that a supplied assignee exists.
     instructionContent:
     - type: link
       url: https://www.postgresql.org/docs/current/ddl-constraints.html
-      title: Official reference
-      description: Check the current documented behavior and platform-specific details.
-    workedExampleContent: []
+      title: 'Relationships: How Entities Connect: optional vs mandatory'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
+    - type: callout
+      title: Boundary to verify
+      body: Mandatory participation depends on lifecycle state. A global NOT NULL rule alone cannot represent
+        the initial optional state.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: A draft support ticket may have assignee_id = null. Submission checks that an assignee is present.
+        A foreign key checks that a supplied assignee exists.
     problems:
-    - question: Which combination requires every stored order to reference an existing customer through customer_id?
+    - question: What does relationship optionality specify?
       options:
-      - A NOT NULL customer_id with no reference validation.
-      - A nullable customer_id with a foreign-key constraint.
-      - A unique order number and an unconstrained customer_id.
-      - A NOT NULL customer_id and a foreign-key constraint.
-      correct: 3
-      explanation: NOT NULL enforces presence. The foreign key enforces a valid reference. Both are needed for the
-        stated rule.
+      - Whether display labels can be edited.
+      - Whether a link can be absent.
+      - Whether both tables have the same row count.
+      - Whether the relationship query has an index.
+      correct: 1
+      explanation: Optionality states whether a link can be absent, independently of its maximum multiplicity.
       id: 6f40d49e-e617-4799-8882-dba2f379035a
       type: multiple_choice
       difficulty: 2
-    - question: A ticket can remain unassigned in a queue. Once an agent is assigned, that agent must exist. Which
-        column design fits this basic rule?
+      purpose: practice
+      isTransfer: false
+    - question: Orders may exist before dispatch. A shipment must reference a real order. Which Order-to-Shipment
+        participation rule fits?
       options:
-      - An unconstrained assignee name.
-      - A unique assignee_id that allows each agent only one ticket.
-      - A mandatory assignee_id with a fake agent ID for unassigned tickets.
-      - A nullable assignee_id with a foreign-key constraint.
-      correct: 3
-      explanation: Null represents the permitted absence. The foreign key validates supplied assignees without inventing
-        fake records.
+      - Every order must already have a shipment.
+      - Each shipment can represent every order.
+      - Zero shipments allowed before dispatch.
+      - Every order can have at most one customer name.
+      correct: 2
+      explanation: An order can exist without a shipment. Any actual shipment still needs a valid order reference.
       id: a7e17ca1-ae35-42a8-9270-d0d25ca18dde
       type: scenario
       difficulty: 3
-    - question: Draft orders may have no address, but submitted orders must have one. Making address_id NOT NULL
-        prevents valid drafts. What should the design add?
+      purpose: practice
+      isTransfer: false
+    - question: A lead can exist before assignment; after conversion it must have an owner. Which rule expresses
+        the requirement?
       options:
-      - A unique constraint on address_id so drafts cannot share addresses.
-      - Validation that requires a valid address when the order enters the submitted state.
-      - A fabricated address for every draft.
-      - A rule allowing submitted orders to omit addresses permanently.
-      correct: 1
-      explanation: The requirement depends on lifecycle state. Enforce the state transition while retaining valid
-        drafts.
-      id: b16277f1-1a04-4ef6-9afa-1e052576f121
+      - Mandatory owner for every lifecycle state.
+      - Optional owner even after conversion.
+      - Unique owner limiting each owner to one lead.
+      - Optional for leads; required after conversion.
+      correct: 3
+      explanation: Mandatory participation depends on lifecycle state. A global NOT NULL rule alone cannot represent
+        the initial optional state.
       type: scenario
       difficulty: 4
+      id: b16277f1-1a04-4ef6-9afa-1e052576f121
+      purpose: practice
+      isTransfer: true
+    - question: A locker may be empty. An employee may have no locker. Which schema choice matches optional participation?
+      options:
+      - Allow absence; validate actual assignments.
+      - Require a fake employee for empty lockers.
+      - Create an employee row for each locker.
+      - Make every employee own exactly one locker.
+      correct: 0
+      explanation: Absence should be represented explicitly. Referential checks apply when a link exists.
+      type: scenario
+      difficulty: 4
+      id: data-models-relationships-optional-vs-mandatory-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: Guest checkout allows orders without a registered user. Every order needs a delivery address.
+        Which rule follows?
+      options:
+      - Both relationships are mandatory.
+      - Optional user; mandatory delivery address.
+      - Both relationships are optional.
+      - User participation is mandatory; delivery address is optional.
+      correct: 1
+      explanation: Test each relationship against its own requirement. Guest checkout removes the user requirement,
+        not delivery information.
+      type: scenario
+      difficulty: 4
+      id: data-models-relationships-optional-vs-mandatory-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: entities
+  sourceRef: https://www.postgresql.org/docs/current/ddl-constraints.html; relevant named topic/contract in this
+    concept; verified 2026-10-07.
 - id: cardinality
   name: 'Cardinality: How Many of Each?'
   difficulty: 4
@@ -583,117 +1048,220 @@ concepts:
   encompassing: []
   knowledgePoints:
   - id: cardinality-types
-    instruction: '**Cardinality** gives the maximum number of related instances in each direction. One-to-many from
-      Author to Book means one author can have many books, while each book has at most one author under that model.
-      Co-authorship changes that rule.
+    instruction: '**Cardinality** gives the maximum number of related instances in each direction. One-to-many
+      from Author to Book means one author can have many books, while each book has at most one author under that
+      model. Co-authorship changes that rule.
 
 
-      Optionality gives the minimum, often zero or one. State both direction and domain rules before choosing a
-      cardinality.'
+      Optionality gives the minimum, often zero or one. State both direction and domain rules before choosing
+      a cardinality.
+
+
+      Application boundary: Do not substitute the cardinality of a different relationship. Appointment participation
+      does not constrain provider affiliations.'
     workedExample: In a single-author catalog, Author to Book is one-to-many. A catalog that permits co-authors
       needs many-to-many, because both directions can have several instances.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/ddl-constraints.html
+      title: 'Cardinality: How Many of Each?: cardinality types'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Do not substitute the cardinality of a different relationship. Appointment participation does not
+        constrain provider affiliations.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: In a single-author catalog, Author to Book is one-to-many. A catalog that permits co-authors needs
+        many-to-many, because both directions can have several instances.
     problems:
-    - question: In a model where each book has exactly one author and an author can write many books, what is the
-        cardinality from Author to Book?
+    - question: In a model where each book has exactly one author and an author can write many books, what is
+        the cardinality from Author to Book?
       options:
-      - One-to-many.
       - Many-to-many.
       - Many-to-one.
+      - One-to-many.
       - One-to-one.
-      correct: 0
+      correct: 2
       explanation: Read the direction explicitly. The first author can relate to many books; each book has only
         one author under the stated rule.
       id: 74c27407-645a-40b4-b2a8-a886e7966061
       type: multiple_choice
       difficulty: 2
-    - question: Each employee may have zero or one assigned locker. Each locker may have zero or one employee. How
-        should the relationship be described?
+      purpose: practice
+      isTransfer: false
+    - question: Each employee may have zero or one assigned locker. Each locker may have zero or one employee.
+        How should the relationship be described?
       options:
-      - One employee to many lockers.
-      - An optional one-to-one relationship on both sides.
-      - Many employees to many lockers.
-      - A mandatory one-to-one relationship on both sides.
-      correct: 1
+      - Optional one-to-many from employee to locker.
+      - Mandatory many-to-many on both sides.
+      - Mandatory one-to-one on both sides.
+      - Optional one-to-one, both sides.
+      correct: 3
       explanation: The maximum is one in each direction, while the minimum is zero. Optionality and maximum cardinality
         express different parts of the rule.
       id: a59347a7-f618-431d-b4c4-c59033e293e3
       type: scenario
       difficulty: 3
-    - question: A design assumes each patient has one doctor. Interviews show patients can see several doctors and
-        doctors can treat several patients. What must change?
+      purpose: practice
+      isTransfer: false
+    - question: A provider works at several clinics. Each clinic hosts several providers. One appointment still
+        has one provider. Which cardinality describes Provider to Clinic?
       options:
-      - Keep the model because a patient has only one doctor during a single appointment.
-      - Use a many-to-many relationship based on the confirmed care rules.
-      - Make Doctor.name unique and keep the original relationship.
-      - Keep one-to-many and overwrite the patient's doctor after each visit.
-      correct: 1
-      explanation: The relationship concerns all relevant care connections, not just one appointment. Both directions
-        can have multiple instances.
-      id: 0b008c93-403a-457d-bcf8-ed6abe6498d1
+      - Many-to-many provider-clinic affiliation.
+      - One-to-many from clinic to provider.
+      - One-to-many from provider to clinic.
+      - One-to-one based on appointment participation.
+      correct: 0
+      explanation: Do not substitute the cardinality of a different relationship. Appointment participation does
+        not constrain provider affiliations.
       type: scenario
       difficulty: 4
+      id: 0b008c93-403a-457d-bcf8-ed6abe6498d1
+      purpose: practice
+      isTransfer: true
+    - question: Every invoice belongs to one account. An account can have zero or many invoices. Which direction
+        places the many end?
+      options:
+      - Account is the many end.
+      - Invoice.
+      - Both ends are many.
+      - Neither end is many.
+      correct: 1
+      explanation: Read both directions. Multiple invoices can reference the same account; each invoice has one
+        account.
+      type: scenario
+      difficulty: 4
+      id: data-models-cardinality-cardinality-types-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: Each device has at most one current employee. An employee may have several devices. Which relationship
+        is allowed?
+      options:
+      - Many employees per current device.
+      - Exactly one device per employee.
+      - Several devices per employee; optional assignment.
+      - Many employees and many current owners per device.
+      correct: 2
+      explanation: Maximum participation defines cardinality; absence defines optionality. Keep the two decisions
+        explicit.
+      type: scenario
+      difficulty: 4
+      id: data-models-cardinality-cardinality-types-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: relationships
   - id: implementing-cardinality
     instruction: 'For a **one-to-many relationship**, put the reference on the many side. Several orders can reference
       one customer. A unique constraint on that reference would restrict it to at most one order per customer.
 
 
       Model direct relationships from business rules. A path through other entities does not automatically require
-      another stored relationship.'
-    workedExample: Playlist references its owner User. PlaylistSong links playlists to songs. A user can reach songs
-      through playlists; a separate UserSong record is needed only if the application tracks a distinct user-song
-      fact, such as a favorite.
+      another stored relationship.
+
+
+      Application boundary: An explicit user-song fact is now required. Before that requirement, the transitive
+      playlist path was sufficient.'
+    workedExample: Playlist references its owner User. PlaylistSong links playlists to songs. A user can reach
+      songs through playlists; a separate UserSong record is needed only if the application tracks a distinct
+      user-song fact, such as a favorite.
     instructionContent:
     - type: link
       url: https://www.postgresql.org/docs/current/ddl-constraints.html
-      title: Official reference
-      description: Check the current documented behavior and platform-specific details.
-    workedExampleContent: []
+      title: 'Cardinality: How Many of Each?: implementing cardinality'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
+    - type: callout
+      title: Boundary to verify
+      body: An explicit user-song fact is now required. Before that requirement, the transitive playlist path
+        was sufficient.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: Playlist references its owner User. PlaylistSong links playlists to songs. A user can reach songs
+        through playlists; a separate UserSong record is needed only if the application tracks a distinct user-song
+        fact, such as a favorite.
     problems:
     - question: Where does the foreign key usually sit for Customer to Order, when a customer can have many orders
         and each order has one customer?
       options:
-      - On both tables with unrelated values.
-      - Only in the customer's display name.
-      - On Customer, with space for only one order ID.
-      - On Order, referencing Customer.
+      - Unrelated IDs on both tables.
+      - A customer name string on Order.
+      - A single order_id on Customer.
+      - Order.customer_id.
       correct: 3
       explanation: The many side holds the reference. Each order then selects its customer while a customer can
         be referenced repeatedly.
       id: 5b878f57-1b0f-4750-9ba5-5cadba7732b6
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: Customer to Order should be one-to-many, but Order.customer_id has a unique constraint. A second
         order for the same customer fails. What causes the failure?
       options:
-      - The foreign key alone prohibits repeated customer references.
-      - Order needs the customer name instead of its ID.
-      - The uniqueness rule restricts each customer to at most one order.
-      - The customer primary key should allow duplicate customer rows.
-      correct: 2
+      - Unique customer_id limits repeat orders.
+      - The foreign key requires unique customers per order set.
+      - The customer name was not copied.
+      - The primary key requires equal row counts in both tables.
+      correct: 0
       explanation: A foreign key allows repeated valid references. The extra unique constraint imposes the unintended
         one-to-one maximum.
       id: ed689fae-a3f3-4e98-95a1-4cd4aabbafbe
       type: scenario
       difficulty: 3
-    - question: Users own playlists, and playlists contain songs. The only requirement is to find songs through
-        a user's playlists. Should a separate UserSong table be added now?
+      purpose: practice
+      isTransfer: false
+    - question: Users own playlists, and playlists contain songs. The app now needs a user's independent favorites
+        even when a song is in no playlist. What change is justified?
       options:
-      - Store the entire song catalog on each user.
-      - Add it because every transitive connection must be stored twice.
-      - Use the existing relationship path; add UserSong when a separate user-song fact is required.
-      - Replace Playlist with UserSong and discard playlist membership.
-      correct: 2
-      explanation: An extra relationship needs its own meaning. Duplicating a derived path creates synchronization
-        work without meeting a new requirement.
-      id: 6af220e4-4dc9-4f69-a572-a102be45316a
+      - Infer favorites from playlist membership.
+      - Add independent UserSongFavorite links.
+      - One user owner reference on each Song.
+      - A favorite flag on the global Song record.
+      correct: 1
+      explanation: An explicit user-song fact is now required. Before that requirement, the transitive playlist
+        path was sufficient.
       type: scenario
       difficulty: 4
+      id: 6af220e4-4dc9-4f69-a572-a102be45316a
+      purpose: practice
+      isTransfer: true
+    - question: One workspace may have several members. A unique constraint on Membership.workspace_id rejects
+        the second member. What repair preserves the requirement?
+      options:
+      - Remove the user reference and keep one anonymous member row.
+      - Make the workspace display name the membership key.
+      - Unique workspace-user pairs, not workspace alone.
+      - Move membership role onto Workspace only.
+      correct: 2
+      explanation: Uniqueness must match the relationship grain. Each workspace can repeat across different member
+        pairs.
+      type: scenario
+      difficulty: 4
+      id: data-models-cardinality-implementing-cardinality-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A department has one current manager; a user may manage several departments. Which constraint
+        is too strong?
+      options:
+      - Foreign key from Department.manager_id to User.id.
+      - A stable primary key on Department.id.
+      - A non-null manager_id when all departments require a manager.
+      - Unique Department.manager_id.
+      correct: 3
+      explanation: Unique manager_id would permit a user to manage only one department. The other rules fit the
+        stated requirement.
+      type: scenario
+      difficulty: 4
+      id: data-models-cardinality-implementing-cardinality-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: relationships
+  sourceRef: https://www.postgresql.org/docs/current/ddl-constraints.html; relevant named topic/contract in this
+    concept; verified 2026-10-07.
 - id: associative-entities
   name: 'Associative Entities: Join Tables'
   difficulty: 4
@@ -712,51 +1280,100 @@ concepts:
 
 
       If the same pair can relate repeatedly, define the occurrence as part of its identity. Repeated enrollments
-      might include a course offering or term.'
+      might include a course offering or term.
+
+
+      Application boundary: The link has repeated occurrences. The offering separates retakes while retaining
+      endpoint identities.'
     workedExample: StudentCourse(student_id, course_id) has one row per enrollment when a student can take each
       course once. If retakes are allowed, enrollment_id or an offering-aware key distinguishes occurrences.
     instructionContent:
     - type: link
       url: https://www.postgresql.org/docs/current/ddl-constraints.html
-      title: Official reference
-      description: Check the current documented behavior and platform-specific details.
-    workedExampleContent: []
+      title: 'Associative Entities: Join Tables: resolving many to many'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
+    - type: callout
+      title: Boundary to verify
+      body: The link has repeated occurrences. The offering separates retakes while retaining endpoint identities.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: StudentCourse(student_id, course_id) has one row per enrollment when a student can take each course
+        once. If retakes are allowed, enrollment_id or an offering-aware key distinguishes occurrences.
     problems:
     - question: What is the purpose of a join table between Student and Course?
       options:
-      - Force every student to take exactly one course.
-      - Store only the total number of students.
-      - Store individual links between students and courses.
-      - Remove the identities of both linked entities.
-      correct: 2
+      - Each individual student-course link.
+      - Store only one preferred course per student.
+      - Store a total enrollment count on Course.
+      - Store course names as the student identity.
+      correct: 0
       explanation: Each row represents a relationship instance and references both endpoints.
       id: 4589f2bd-a176-4986-90bb-e98be4e9bca0
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: A student can enroll in each course only once. Which constraint prevents duplicate rows in StudentCourse?
       options:
-      - A unique constraint on course_id alone.
-      - A unique constraint on student_id and course_id together.
-      - A unique constraint on student_id alone.
-      - A unique constraint on an unrelated timestamp alone.
+      - Unique course_id alone.
+      - Unique student-course pair.
+      - Unique student_id alone.
+      - Unique enrollment date alone.
       correct: 1
       explanation: The pair defines membership. Uniqueness on either endpoint alone would incorrectly limit the
         many-to-many relationship.
       id: 5ddff7ab-2d4d-45ac-82df-38ecf7a4c84c
       type: scenario
       difficulty: 3
-    - question: The school now allows a student to retake the same course in a later term and retain both grades.
-        What should the relationship model represent?
+      purpose: practice
+      isTransfer: false
+    - question: A student retakes the same course in two terms. Both grades must remain. Which enrollment identity
+        supports that requirement?
       options:
-      - Duplicate identical rows with no way to distinguish terms.
-      - One row for the student-course pair with the old grade overwritten.
-      - One grade on the Course record shared by all students.
-      - Separate enrollment occurrences, with term or offering identity and an appropriate uniqueness rule.
-      correct: 3
-      explanation: A retake is a separate occurrence. Its identity must preserve both attempts and their facts.
-      id: f8284188-e6e4-4e56-a674-d1c7a0adb652
+      - Student-course pair with latest grade.
+      - Student-course-grade as mutable identity.
+      - Enrollment identity includes offering.
+      - One current enrollment per student.
+      correct: 2
+      explanation: The link has repeated occurrences. The offering separates retakes while retaining endpoint
+        identities.
       type: scenario
       difficulty: 4
+      id: f8284188-e6e4-4e56-a674-d1c7a0adb652
+      purpose: practice
+      isTransfer: true
+    - question: One user can join several projects and each project has several users. A row includes project_id,
+        user_id, joined_at. Which duplicate should be rejected when repeat joining is out of scope?
+      options:
+      - A different user joining the same project.
+      - The same user joining a different project.
+      - Two different pairs with the same joined_at.
+      - Repeated project-user pair.
+      correct: 3
+      explanation: Pair uniqueness preserves many-to-many participation. Timestamp uniqueness would reject unrelated
+        simultaneous joins.
+      type: scenario
+      difficulty: 4
+      id: data-models-associative-entities-resolving-many-to-many-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A product can have several suppliers. Supplier-specific cost differs. Which relation supports
+        quoting the right cost?
+      options:
+      - ProductSupplier with pair-specific cost.
+      - One global supplier_cost on Product.
+      - One global product_cost on Supplier.
+      - A free-text supplier list on Product with one cost.
+      correct: 0
+      explanation: The price depends on both endpoints. A link record preserves pair-specific facts.
+      type: scenario
+      difficulty: 4
+      id: data-models-associative-entities-resolving-many-to-many-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: cardinality
   - id: relationship-level-attributes
     instruction: 'A **relationship attribute** describes a link or occurrence. Quantity belongs to an order line
       because it depends on both the order and the product. A student''s grade belongs to their enrollment rather
@@ -764,52 +1381,103 @@ concepts:
 
 
       Specify time when a relationship fact can change. A current membership role and a historical role assignment
-      have different storage needs.'
+      have different storage needs.
+
+
+      Application boundary: Historical state needs historical evidence. Effective intervals must have clear boundaries
+      and overlap rules.'
     workedExample: OrderLine stores product_id, quantity, and unit_price_at_purchase. The product owns its current
       catalog price; the order line preserves the agreed historical price.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/ddl-constraints.html
+      title: 'Associative Entities: Join Tables: relationship level attributes'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Historical state needs historical evidence. Effective intervals must have clear boundaries and overlap
+        rules.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: OrderLine stores product_id, quantity, and unit_price_at_purchase. The product owns its current catalog
+        price; the order line preserves the agreed historical price.
     problems:
     - question: Which fact belongs to an OrderLine linking an order and a product?
       options:
-      - The quantity of that product in that order.
-      - The order's unique ID definition.
-      - The product's global SKU.
-      - The customer's date of birth.
-      correct: 0
+      - The global identity definition of Order.
+      - Quantity on the order-product line.
+      - The global SKU of Product.
+      - The current billing name of Customer.
+      correct: 1
       explanation: Quantity describes this specific line. It can differ for the same product in another order.
       id: e0dc111d-5cf2-40b2-ab80-75bfa36722e0
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: Alex is an administrator in workspace A and a viewer in workspace B. Where should the workspace
         role be recorded?
       options:
-      - As one global role on Alex.
-      - On each Alex-workspace membership.
-      - As one role shared by all users of each workspace.
-      - On the product's pricing plan.
-      correct: 1
-      explanation: The role depends on both person and workspace. A single global value cannot represent both memberships.
+      - User, as one role across every workspace.
+      - Workspace, as one role for every member.
+      - The user-workspace membership.
+      - Subscription, as the role for every user on its plan.
+      correct: 2
+      explanation: The role depends on both person and workspace. A single global value cannot represent both
+        memberships.
       id: 86526d40-c80b-4128-bacb-9203f234ab59
       type: scenario
       difficulty: 3
-    - question: An audit must show who held a workspace role on any past date. The current Membership.role field
-        is overwritten on each change. Which model meets the new requirement?
+      purpose: practice
+      isTransfer: false
+    - question: A member was viewer in May and admin from June. The audit asks for the role on 20 May. Which record
+        supports the answer?
       options:
-      - Keep overwriting the field and infer history from its current value.
-      - Copy the current role onto every user event regardless of event time.
-      - Create a new workspace each time someone changes role.
-      - Record role assignments with effective time ranges and rules that prevent conflicting overlaps.
+      - Current role on User.
+      - Current role on Membership without history.
+      - Role at report time copied onto old records.
+      - Effective role-assignment intervals.
       correct: 3
-      explanation: Historical questions require historical evidence. Effective intervals preserve when each relationship
-        fact applied.
-      id: 4e36a890-cf2d-4230-8c50-0b07b2cafa90
+      explanation: Historical state needs historical evidence. Effective intervals must have clear boundaries
+        and overlap rules.
       type: scenario
       difficulty: 4
+      id: 4e36a890-cf2d-4230-8c50-0b07b2cafa90
+      purpose: practice
+      isTransfer: true
+    - question: The same consultant bills two customers at different hourly rates. Which attribute location fits?
+      options:
+      - The consultant-customer agreement.
+      - One rate on Consultant.
+      - One rate on every Customer unrelated to consultant.
+      - A rate inferred from the consultant name.
+      correct: 0
+      explanation: The rate belongs to the agreement, where both identities and the applicable period are defined.
+      type: scenario
+      difficulty: 4
+      id: data-models-associative-entities-relationship-level-attributes-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: An order has two lines for the same product, one discounted. What identity avoids losing line-specific
+        quantity and price?
+      options:
+      - Unique product_id on OrderLine.
+      - Line occurrence ID or order-line number.
+      - Unique order_id and product_id regardless of requirements.
+      - One total quantity and current product price on Order.
+      correct: 1
+      explanation: A pair constraint would collapse separately priced occurrences. Choose line grain from the
+        requirement.
+      type: scenario
+      difficulty: 4
+      id: data-models-associative-entities-relationship-level-attributes-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: cardinality
+  sourceRef: https://www.postgresql.org/docs/current/ddl-constraints.html; relevant named topic/contract in this
+    concept; verified 2026-10-07.
 - id: data-modeling-process
   name: The Data Modeling Design Process
   difficulty: 3
@@ -837,107 +1505,207 @@ concepts:
       5. Validate with sample data and real use cases.
 
 
-      Iterate when evidence changes a rule. A diagram, paper example, or small SQL prototype can help. Choose a
-      tool that exposes mistakes cheaply.'
+      Iterate when evidence changes a rule. A diagram, paper example, or small SQL prototype can help. Choose
+      a tool that exposes mistakes cheaply.
+
+
+      Application boundary: Executable edge cases expose missing occurrence identity. A label and valid DDL do
+      not establish that requirements work.'
     workedExample: A sample shows a customer with two addresses. If the model permits only one and the use case
       needs both, revise the relationship before the design is treated as finished.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/ddl-constraints.html
+      title: 'The Data Modeling Design Process: five step workflow'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Executable edge cases expose missing occurrence identity. A label and valid DDL do not establish that
+        requirements work.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: A sample shows a customer with two addresses. If the model permits only one and the use case needs
+        both, revise the relationship before the design is treated as finished.
     problems:
     - question: What is the purpose of the validation step in the modeling workflow?
       options:
-      - Confirm that the table names match the first requirements draft.
-      - Treat successful table creation as proof that all business cases work.
-      - Test the model against real cases and revise rules that fail.
-      - Ensure the diagram uses a separate entity for every noun.
+      - Confirm the first diagram's table names.
+      - Confirm SQL table creation succeeds.
+      - Test required cases; revise failures.
+      - Ensure every noun has a separate entity.
       correct: 2
       explanation: Validation tests whether the design represents required cases. It can send you back to earlier
         decisions.
       id: 0b4ed024-5cea-4437-b34a-9a98ed53ec7a
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: A model lists Student and Course but has no enrollment relationship or cardinality rules. Which
         work is still needed before realistic validation?
       options:
-      - Define how students connect to courses and the allowed counts and absences.
-      - Choose a database engine and assume its defaults establish the enrollment rules.
-      - Assume each student has exactly one course without checking.
-      - Add a mandatory course_id to Student without checking whether students take multiple courses.
-      correct: 0
+      - Pick an engine and accept its relationship defaults.
+      - Add indexes before defining enrollment meaning.
+      - Specify display colors before specifying enrollment rules.
+      - Enrollment links and participation rules.
+      correct: 3
       explanation: Entity lists alone do not describe valid connections. State the relationship rules before testing
         sample enrollments.
       id: 35227b16-b446-46b2-a8de-820a0e502a2f
       type: scenario
       difficulty: 3
-    - question: A team disagrees about whether a many-to-many design supports retakes. They can test sample enrollments
-        in a small SQL prototype today. How should they use it?
+      purpose: practice
+      isTransfer: false
+    - question: A prototype creates its tables but rejects a student's second-term retake. Retakes are required.
+        Which evidence should drive revision?
       options:
-      - Avoid prototypes because modeling must use diagrams exclusively.
-      - Run representative and edge cases, then revise the model from the results.
-      - Treat successful table creation as proof that every business case works.
-      - Skip requirements review once the SQL executes.
-      correct: 1
-      explanation: A prototype is a valid modeling tool. Test the business cases and constraints, not just whether
-        tables can be created.
-      id: 3ede9a26-748e-4dd4-a66d-0c61c79ed487
+      - The failed required retake operation.
+      - Successful schema creation as acceptance.
+      - Many-to-many diagram label as acceptance.
+      - Single-term enrollment test as acceptance.
+      correct: 0
+      explanation: Executable edge cases expose missing occurrence identity. A label and valid DDL do not establish
+        that requirements work.
       type: scenario
       difficulty: 4
+      id: 3ede9a26-748e-4dd4-a66d-0c61c79ed487
+      purpose: practice
+      isTransfer: true
+    - question: A model has entities, attributes, keys, and links. What validates a claimed optional assignment
+        rule?
+      options:
+      - A list of table names from the database.
+      - Create unassigned, then assign validly.
+      - An index benchmark on existing assigned instances.
+      - A screenshot of the relationship diagram.
+      correct: 1
+      explanation: Validation should perform the required state transitions. Performance checks answer a different
+        question.
+      type: scenario
+      difficulty: 4
+      id: data-models-data-modeling-process-five-step-workflow-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: An interviewer says active employees require a department, but contractors do not. Which next
+        step avoids encoding an unsupported global rule?
+      options:
+      - Apply NOT NULL department_id to all people.
+      - Drop department links from every category.
+      - Test both categories and conditional ownership.
+      - Split people solely by whether their names match.
+      correct: 2
+      explanation: Translate the business distinction into explicit cases before choosing the constraint implementation.
+      type: scenario
+      difficulty: 4
+      id: data-models-data-modeling-process-five-step-workflow-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: associative-entities
   - id: applying-the-workflow
     instruction: '**Model validation** uses examples that can disprove the design. Include empty cases, repeated
       relationships, changes over time, and records from different tenants. Trace one required query or operation
       through the proposed model.
 
 
-      When a case fails, identify the missing entity, relationship, or constraint. Change that part and rerun the
-      affected cases.'
+      When a case fails, identify the missing entity, relationship, or constraint. Change that part and rerun
+      the affected cases.
+
+
+      Application boundary: Separate tenures preserve the same real identities and their history. Test joining,
+      leaving, rejoining, and past-date lookup.'
     workedExample: A subscription model passes a single-account example but fails when one user joins two accounts.
       That case exposes an assumed one-to-one relationship that needs revision.
     instructionContent:
+    - type: link
+      url: https://www.postgresql.org/docs/current/ddl-constraints.html
+      title: 'The Data Modeling Design Process: applying the workflow'
+      description: 'Verification date: 2026-10-07. Read the named claim and scope in this lesson; fixture assumptions
+        are stated explicitly.'
     - type: callout
-      title: Practice method
-      body: State the requirement, trace the supplied evidence, and check whether your answer meets every stated
-        constraint.
-    workedExampleContent: []
+      title: Boundary to verify
+      body: Separate tenures preserve the same real identities and their history. Test joining, leaving, rejoining,
+        and past-date lookup.
+    workedExampleContent:
+    - type: callout
+      title: Trace the example
+      body: A subscription model passes a single-account example but fails when one user joins two accounts. That
+        case exposes an assumed one-to-one relationship that needs revision.
     problems:
     - question: Which test case is most useful for checking a claimed many-to-many enrollment model?
       options:
-      - Several students share a course, and one student takes several courses.
-      - Several students each take a different single course, with no shared courses.
-      - One student takes one course, with no other cases.
-      - An empty StudentCourse table with valid column names.
-      correct: 0
-      explanation: Exercise both directions of multiplicity. A one-to-one example can pass under an incorrect, more
-        restrictive model.
+      - Several students each take a separate course.
+      - One student takes one course.
+      - The empty link table accepts its schema.
+      - Both directions of repeated enrollment.
+      correct: 3
+      explanation: Exercise both directions of multiplicity. A one-to-one example can pass under an incorrect,
+        more restrictive model.
       id: cd6e9873-435f-4a0a-802b-754e8cad5e66
       type: multiple_choice
       difficulty: 2
+      purpose: practice
+      isTransfer: false
     - question: A team has identified entities, attributes, keys, relationships, and cardinality rules. What is
         the next step in the stated five-step workflow?
       options:
-      - Restart entity discovery without testing the completed model.
-      - Validate with sample data and required operations.
-      - Optimize table indexes before testing whether the model represents the required cases.
-      - Deploy immediately because the diagram has all its labels.
-      correct: 1
+      - Sample-data validation.
+      - Repeat entity discovery without sample cases.
+      - Benchmark indexes before testing relationship rules.
+      - Publish because the diagram includes all labels.
+      correct: 0
       explanation: The structural decisions are ready to be tested. Representative operations reveal gaps before
         deployment.
       id: d12a7ed8-6080-4255-85ed-529e918d1bef
       type: scenario
       difficulty: 3
-    - question: A model passes signup tests but cannot represent a user leaving one account and later rejoining
-        with a different role while retaining history. What is the best next action?
+      purpose: practice
+      isTransfer: false
+    - question: A user leaves a workspace, then rejoins with a different role. Current membership uses a unique
+        pair and overwrites the old role. History is required. Which revision should be tested?
       options:
-      - Create a new user identity for every role change.
-      - Overwrite the old membership and declare the history out of scope despite the requirement.
-      - Remove the historical query from the test suite.
-      - Add or revise time-aware membership occurrences, then retest joining, leaving, and historical role queries.
-      correct: 3
-      explanation: The failing use case points to relationship history. Repair that specific model gap and verify
-        both current and historical behavior.
-      id: 10d06114-c1b7-41e0-aea3-6d30f8f01a5c
+      - Current membership overwritten on rejoin.
+      - Membership tenure records with time boundaries.
+      - New global user identity per tenure.
+      - Free-text history without occurrence boundaries.
+      correct: 1
+      explanation: Separate tenures preserve the same real identities and their history. Test joining, leaving,
+        rejoining, and past-date lookup.
       type: scenario
       difficulty: 4
+      id: 10d06114-c1b7-41e0-aea3-6d30f8f01a5c
+      purpose: practice
+      isTransfer: true
+    - question: A design passes one-customer one-order tests. Customers can share a billing contact and have several
+        orders. Which test set exposes unsupported assumptions?
+      options:
+      - A larger order amount on the same single order.
+      - A longer customer name on the same single row.
+      - Shared contact plus repeated customer orders.
+      - Repeated reads of the existing single order.
+      correct: 2
+      explanation: Test both relationship directions and repetitions. Cosmetic changes do not exercise cardinality.
+      type: scenario
+      difficulty: 4
+      id: data-models-data-modeling-process-applying-the-workflow-exam-1
+      purpose: exam
+      isTransfer: true
+    - question: A model retains memberships by interval. Two active intervals for the same user-workspace pair
+        overlap. Which acceptance check is missing?
+      options:
+      - A uniqueness rule on display name.
+      - A faster account-name search.
+      - A different ID for every report run.
+      - Conflicting interval-overlap validation.
+      correct: 3
+      explanation: Historical models need integrity rules as well as timestamps. Overlap can make the answer to
+        a past-role query ambiguous.
+      type: scenario
+      difficulty: 4
+      id: data-models-data-modeling-process-applying-the-workflow-exam-2
+      purpose: exam
+      isTransfer: true
+    keyPrerequisite: associative-entities
+  sourceRef: https://www.postgresql.org/docs/current/ddl-constraints.html; relevant named topic/contract in this
+    concept; verified 2026-10-07.

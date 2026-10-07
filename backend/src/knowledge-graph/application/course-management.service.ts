@@ -11,6 +11,9 @@ import type { OrgContext } from '@/auth/org-context';
 import type { ImportCourseDto } from '../dto/import-course.dto';
 import type { ImportAcademyDto } from '../dto/import-academy.dto';
 import type { ImportResult } from '../course-importer.service';
+import { CourseYamlSchema } from '@graspful/shared';
+import { activeConceptWhere } from '../active-course-content';
+import { parseConceptRef } from '../concept-ref';
 
 @Injectable()
 export class CourseManagementService {
@@ -110,7 +113,31 @@ export class CourseManagementService {
     // Review raw exports so legacy invalid answer/schema data produces a
     // failed publication result instead of bypassing withdrawal through a
     // schema exception before the publication flag is updated.
-    const courseYaml = yaml.load(courseYamlString);
+    let courseYaml = yaml.load(courseYamlString);
+    const parsed = CourseYamlSchema.safeParse(courseYaml);
+    if (parsed.success) {
+      const data = parsed.data;
+      const hasExternalPrerequisites = data.concepts.some((concept) =>
+        concept.prerequisites.some((ref) => parseConceptRef(ref, data.course.id).courseSlug !== data.course.id),
+      );
+      if (hasExternalPrerequisites) {
+        const academyConcepts = await this.prisma.concept.findMany({
+          where: activeConceptWhere({ orgId, course: { academyId: course.academyId, archivedAt: null } }),
+          select: { slug: true, course: { select: { slug: true } } },
+        });
+        const known = new Set(academyConcepts.map((concept) => `${concept.course.slug}:${concept.slug}`));
+        courseYaml = { ...data, concepts: data.concepts.map((concept) => ({
+          ...concept,
+          prerequisites: concept.prerequisites.flatMap((ref) => {
+            const resolved = parseConceptRef(ref, data.course.id);
+            if (resolved.courseSlug === data.course.id) return [resolved.conceptSlug];
+            // Per-course readiness reviews local content. Retain unresolved
+            // academy references so the gate still rejects them.
+            return known.has(resolved.qualifiedRef) ? [] : [ref];
+          }),
+        })) };
+      }
+    }
     const review = this.reviewService.review(courseYaml);
 
     // A replacement can finish while export/review is running. Publish only

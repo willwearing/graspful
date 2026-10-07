@@ -5,8 +5,6 @@ import {
   activeConceptWhere,
   activeSectionWhere,
   activeKnowledgePointWhere,
-  activePrerequisiteEdgeWhere,
-  activeEncompassingEdgeWhere,
 } from './active-course-content';
 
 @Injectable()
@@ -45,10 +43,16 @@ export class CourseYamlExportService {
           },
         }),
         this.prisma.prerequisiteEdge.findMany({
-          where: activePrerequisiteEdgeWhere(courseId),
+          where: {
+            targetConcept: activeConceptWhere({ courseId }),
+            sourceConcept: activeConceptWhere({ orgId, course: { academyId: course.academyId } }),
+          },
         }),
         this.prisma.encompassingEdge.findMany({
-          where: activeEncompassingEdgeWhere(courseId),
+          where: {
+            sourceConcept: activeConceptWhere({ courseId }),
+            targetConcept: activeConceptWhere({ orgId, course: { academyId: course.academyId } }),
+          },
         }),
       ]);
 
@@ -56,6 +60,20 @@ export class CourseYamlExportService {
     const conceptIdToSlug = new Map<string, string>();
     for (const c of concepts) {
       conceptIdToSlug.set(c.id, c.slug);
+    }
+    const referencedIds = new Set([
+      ...prerequisiteEdges.map((edge) => edge.sourceConceptId),
+      ...encompassingEdges.map((edge) => edge.targetConceptId),
+      ...concepts.flatMap((concept) => concept.knowledgePoints.map((kp) => kp.keyPrerequisiteConceptId)),
+    ].filter((id): id is string => Boolean(id) && !conceptIdToSlug.has(id!)));
+    if (referencedIds.size > 0) {
+      const external = await this.prisma.concept.findMany({
+        where: { id: { in: [...referencedIds] }, orgId },
+        select: { id: true, slug: true, course: { select: { slug: true } } },
+      });
+      for (const concept of external) {
+        conceptIdToSlug.set(concept.id, `${concept.course.slug}:${concept.slug}`);
+      }
     }
 
     const sectionIdToSlug = new Map<string, string>();
@@ -146,6 +164,9 @@ export class CourseYamlExportService {
           const kpObj: Record<string, unknown> = {
             id: kp.slug,
           };
+          if (kp.keyPrerequisiteConceptId) {
+            kpObj.keyPrerequisite = conceptIdToSlug.get(kp.keyPrerequisiteConceptId);
+          }
           if (kp.instructionText) kpObj.instruction = kp.instructionText;
           if (
             kp.instructionContent &&
