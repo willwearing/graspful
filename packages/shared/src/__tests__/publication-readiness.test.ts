@@ -31,6 +31,41 @@ function courseWithProblem(problem: Record<string, unknown>) {
 const hasReadinessFailure = (raw: unknown) => runQualityGate(raw).failures.some(({ check }) => check === 'publication_readiness');
 
 describe('publication readiness', () => {
+  it('preserves authored problem roles and requires sufficient held-out exam coverage', () => {
+    const raw = authoredCourse();
+    const kp = raw.concepts[0].knowledgePoints[0];
+    Object.assign(raw.concepts[0], { section: 's1' });
+    raw.concepts.push({ ...raw.concepts[0], id: 'another-concept', knowledgePoints: [] });
+    const withExam = { ...raw, sections: [{ id: 's1', name: 'Fractions', sectionExam: {
+      enabled: true, questionCount: 2, minTransferQuestions: 2,
+      blueprint: [{ conceptId: 'equal-denominators', minQuestions: 2 }],
+    } }] };
+    const examCases = [
+      { ...kp.problems[0], id: 'exam-a', purpose: 'exam', isTransfer: true },
+      { ...kp.problems[0], id: 'exam-b', purpose: 'exam', isTransfer: true },
+    ];
+    Object.assign(kp, { problems: [...kp.problems, ...examCases] });
+    const parsed = CourseYamlSchema.parse(withExam);
+    expect(parsed.concepts[0].knowledgePoints[0].problems.at(-1)).toMatchObject({ purpose: 'exam', isTransfer: true });
+    examCases[1].isTransfer = false;
+    expect(CourseYamlSchema.safeParse(withExam).success).toBe(false);
+  });
+
+  it('prevents held-out exam cases from masking a thin practice bank', () => {
+    const raw = authoredCourse();
+    raw.concepts[0].knowledgePoints[0].problems.slice(1).forEach((problem) => Object.assign(problem, { purpose: 'exam' }));
+    expect(runQualityGate(raw).failures.some(({ check }) => check === 'problem_variant_depth')).toBe(true);
+  });
+
+  it('requires a difficulty staircase within practice even when exam cases are harder', () => {
+    const raw = authoredCourse();
+    const kp = raw.concepts[0].knowledgePoints[0];
+    kp.problems.forEach((problem) => { problem.difficulty = 2; });
+    kp.problems.push({ ...kp.problems[0], id: 'independent-exam', difficulty: 4 });
+    Object.assign(kp.problems.at(-1)!, { purpose: 'exam' });
+    expect(runQualityGate(raw).failures.some(({ check }) => check === 'difficulty_staircase')).toBe(true);
+  });
+
   it('passes authored teaching and uses one ten-check documentation registry', () => {
     expect(runQualityGate(authoredCourse()).passed).toBe(true);
     expect(runQualityGate(authoredCourse()).score).toBe('10/10');

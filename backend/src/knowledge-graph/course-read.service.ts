@@ -199,7 +199,9 @@ export class CourseReadService {
           where: activeKnowledgePointWhere(),
           orderBy: { sortOrder: 'asc' },
           include: {
-            problems: true,
+            problems: {
+              where: { isArchived: false, ...(options.includeDrafts ? {} : { purpose: { not: 'exam' as const } }) },
+            },
           },
         },
         prerequisiteOf: {

@@ -153,11 +153,15 @@ describe("LessonFlow", () => {
 
     fireEvent.click(screen.getByRole("radio", { name: "Heat" }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
-    // The hint advances directly to kp2's practice — no "Practice complete"
-    // intermediate for the old KP since the stream keeps flowing.
+    // The next teaching step starts with instruction and its worked example.
     await waitFor(() => {
-      expect(screen.getByText("Flashover is best described as:")).toBeTruthy();
+      expect(screen.getByText("Flashover occurs when all surfaces in a room ignite simultaneously.")).toBeTruthy();
     }, { timeout: 2500 });
+    expect(screen.queryByText("Flashover is best described as:")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    expect(screen.getByText(/500.*600/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    expect(screen.getByText("Flashover is best described as:")).toBeTruthy();
     expect(screen.getByText(/2 of 2/)).toBeTruthy();
   });
 
@@ -193,10 +197,15 @@ describe("LessonFlow", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Heat" }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
     await waitFor(() => {
-      expect(screen.getByText("Flashover is best described as:")).toBeTruthy();
+      expect(screen.getByText("Flashover occurs when all surfaces in a room ignite simultaneously.")).toBeTruthy();
     }, { timeout: 2500 });
+    expect(screen.queryByText("Flashover is best described as:")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    expect(screen.getByText(/500.*600/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    expect(screen.getByText("Flashover is best described as:")).toBeTruthy();
 
-    // KP2: already in practice (stream-driven) -> answer -> lessonComplete
+    // KP2: answer -> lessonComplete
     fireEvent.click(screen.getByRole("radio", { name: /all surfaces igniting in a room/i }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
     await waitFor(() => {
@@ -238,10 +247,15 @@ describe("LessonFlow", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Heat" }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
     await waitFor(() => {
-      expect(screen.getByText("Flashover is best described as:")).toBeTruthy();
+      expect(screen.getByText("Flashover occurs when all surfaces in a room ignite simultaneously.")).toBeTruthy();
     }, { timeout: 2500 });
+    expect(screen.queryByText("Flashover is best described as:")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    expect(screen.getByText(/500.*600/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    expect(screen.getByText("Flashover is best described as:")).toBeTruthy();
 
-    // KP2: already in practice -> answer -> lessonComplete -> complete
+    // KP2: answer -> lessonComplete -> complete
     fireEvent.click(screen.getByRole("radio", { name: /all surfaces igniting in a room/i }));
     fireEvent.click(screen.getByRole("button", { name: /submit answer/i }));
     await waitFor(() => {

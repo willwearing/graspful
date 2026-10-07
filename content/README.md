@@ -65,6 +65,8 @@ concepts:
             options: [string]          # for MC, ordering, matching
             correct: string | number   # answer
             explanation: string        # shown after answering
+            purpose: practice | review | exam # optional, defaults to practice
+            isTransfer: boolean        # optional, defaults to false
 
 sections:
   - id: string
@@ -75,6 +77,7 @@ sections:
       passingScore: 0.0-1.0
       timeLimitMinutes: number
       questionCount: number
+      minTransferQuestions: number     # optional, defaults to zero
       blueprint:
         - conceptId: concept-id
           minQuestions: number
@@ -82,6 +85,14 @@ sections:
 ```
 
 ## Authoring Guidelines
+
+### Applied practice and separate exams
+
+Use `purpose: practice` for lesson and diagnostic questions, `purpose: review` for spaced review variants, and `purpose: exam` for separate section exam cases. Exam cases are excluded from lessons, diagnostics, reviews, quizzes, and learner concept previews. If a section contains exam cases, its exam uses that pool exclusively.
+
+Mark applied practice questions with `isTransfer: true`. An unpassed knowledge point with applied questions requires both two consecutive correct answers and a correct applied answer. Existing completed knowledge points retain their progress. Keep each practice bank at three or more questions, even when it also has exam cases.
+
+Set `minTransferQuestions` to the required number of applied cases in a section exam. Write enough independent cases for the blueprint and retakes. Exam selection prefers questions the learner has not seen and persists its selection for session resume.
 
 ### Course vs academy boundary
 
@@ -147,7 +158,7 @@ A concept = one teachable idea that can be tested independently. Too broad = stu
 - Difficulty should rise one small step at a time. Learners should feel like they are climbing a staircase, not jumping over a gap.
 - Each fully-authored KP needs: instruction text, 2-3 practice problems minimum
 - Applied or high-transfer KPs should usually include a worked example, not just prose plus problems
-- 2 consecutive correct answers = KP passed
+- Passing requires two consecutive correct answers and any authored applied question requirement.
 - Problems should test understanding, not just recall
 - Explanations are reactive feedback, not answer reveals. They should name the likely misconception and point the learner back to the rule, contrast, or earlier skill they missed.
 

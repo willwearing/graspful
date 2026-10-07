@@ -122,6 +122,7 @@ export class ReviewService {
       where: activeProblemWhere({
         knowledgePoint: { conceptId },
         isReviewVariant: true,
+        purpose: { not: 'exam' },
       }),
       take: 5,
       orderBy: { difficulty: 'asc' },
@@ -132,6 +133,7 @@ export class ReviewService {
     if (selectedProblems.length < 3) {
       selectedProblems = await this.prisma.problem.findMany({
         where: activeProblemWhere({
+          purpose: 'practice',
           knowledgePoint: { conceptId },
         }),
         take: 5,

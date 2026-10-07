@@ -292,6 +292,7 @@ describe('CourseReadService', () => {
     await service.getConceptDetail('org-1', 'course-1', 'concept-1');
     const relatedConcept = activeConceptWhere({ course: { orgId: 'org-1', ...publishedCourse } });
     const include = mockPrisma.concept.findFirst.mock.calls[0][0].include;
+    expect(include.knowledgePoints.include.problems.where).toEqual({ isArchived: false, purpose: { not: 'exam' } });
     expect(include.prerequisiteOf.where.targetConcept).toEqual(relatedConcept);
     expect(include.prerequisiteFor.where.sourceConcept).toEqual(relatedConcept);
     expect(include.encompassedBy.where.targetConcept).toEqual(relatedConcept);

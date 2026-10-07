@@ -94,6 +94,7 @@ export async function loadDiagnosticProblemsForConcept(
       }),
       isArchived: false,
       isReviewVariant: false,
+      purpose: 'practice',
     },
     include: {
       knowledgePoint: { select: { conceptId: true } },

@@ -44,6 +44,30 @@ describe('StudentStateService', () => {
     service = new StudentStateService(mockPrisma, new EnrollmentService(mockPrisma));
   });
 
+  describe('applied mastery evidence', () => {
+    it.each([
+      [false, false, false],
+      [false, true, true],
+      [true, false, true],
+    ])('preserves passed=%s and requires transferPassed=%s for new mastery', async (alreadyPassed, transferPassed, expected) => {
+      await service.upsertKPState('u1', 'kp1', true,
+        { consecutiveCorrect: 1, passed: alreadyPassed }, 'session1', mockPrisma,
+        { requiresTransfer: true, transferPassed });
+      expect(mockPrisma.studentKPState.upsert).toHaveBeenCalledWith(expect.objectContaining({
+        update: expect.objectContaining({ consecutiveCorrect: 2, passed: expected }),
+      }));
+    });
+
+    it('still requires two consecutive correct answers after an applied success', async () => {
+      await service.upsertKPState('u1', 'kp1', true,
+        { consecutiveCorrect: 0, passed: false }, 'session1', mockPrisma,
+        { requiresTransfer: true, transferPassed: true });
+      expect(mockPrisma.studentKPState.upsert).toHaveBeenCalledWith(expect.objectContaining({
+        update: expect.objectContaining({ consecutiveCorrect: 1, passed: false }),
+      }));
+    });
+  });
+
   describe('getConceptStates', () => {
     it('should return all concept states for a user in a course', async () => {
       mockPrisma.concept.findMany.mockResolvedValue([

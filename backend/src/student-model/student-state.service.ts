@@ -343,10 +343,12 @@ export class StudentStateService {
     },
     sessionId?: string,
     tx: Prisma.TransactionClient = this.prisma,
+    masteryEvidence?: { requiresTransfer: boolean; transferPassed: boolean },
   ) {
     const currentConsecutive = currentState?.consecutiveCorrect ?? 0;
     const newConsecutive = correct ? currentConsecutive + 1 : 0;
-    const passed = (currentState?.passed ?? false) || newConsecutive >= 2;
+    const appliedRequirementMet = !masteryEvidence?.requiresTransfer || masteryEvidence.transferPassed;
+    const passed = (currentState?.passed ?? false) || (newConsecutive >= 2 && appliedRequirementMet);
 
     // Slice 3 — record the first and most-recent session in which the
     // student failed this KP. The KPPlateauDetector uses this pair to

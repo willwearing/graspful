@@ -30,9 +30,9 @@ export async function computeNextProblemHint(
       id: true,
       sortOrder: true,
       problems: {
-        where: activeProblemWhere({ isReviewVariant: false }),
+        where: activeProblemWhere({ isReviewVariant: false, purpose: 'practice' }),
         orderBy: { createdAt: 'asc' },
-        select: { id: true },
+        select: { id: true, isTransfer: true },
       },
     },
   });
@@ -57,12 +57,14 @@ export async function computeNextProblemHint(
       consecutiveCorrect:
         kpStateById.get(kp.id)?.consecutiveCorrect ?? 0,
       attempts: kpStateById.get(kp.id)?.attempts ?? 0,
+      requiresTransfer: kp.problems.some((problem) => problem.isTransfer),
     });
     kp.problems.forEach((p, idx) => {
       problemBank.push({
         problemId: p.id,
         knowledgePointId: kp.id,
         sortOrder: idx,
+        isTransfer: p.isTransfer,
       });
     });
   }

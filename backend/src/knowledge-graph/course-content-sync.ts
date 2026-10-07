@@ -112,6 +112,9 @@ export async function syncProblems(
       correctAnswer: problem.correct as Prisma.InputJsonValue,
       explanation: problem.explanation,
       difficulty: problem.difficulty ?? 3,
+      purpose: problem.purpose ?? 'practice',
+      isTransfer: problem.isTransfer ?? false,
+      isReviewVariant: problem.purpose === 'review',
       authoredId: problem.id,
       isArchived: false,
     };

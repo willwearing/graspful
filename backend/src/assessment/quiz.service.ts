@@ -101,6 +101,7 @@ export class QuizService {
 
     const problems = await this.prisma.problem.findMany({
       where: activeProblemWhere({
+        purpose: { not: 'exam' },
         knowledgePoint: {
           conceptId: { in: selectedConceptIds },
           concept: { courseId },
