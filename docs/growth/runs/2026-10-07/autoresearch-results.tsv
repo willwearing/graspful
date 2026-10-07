@@ -1,2 +1,3 @@
 iteration	commit	metric	delta	guard	status	description
 0	7085443	46.153846	0	-	baseline	Six of thirteen fixed measurement scenarios pass on the production implementation
+1	37958fc	61.538462	15.384616	fail	discard	Timing repair improved two scenarios but the verification harness lacked Bun type definitions; reverted before repairing the harness
