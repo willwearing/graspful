@@ -2,9 +2,10 @@
 
 import { Hero } from "@/components/marketing/hero";
 import { ProductProofHero } from "@/components/marketing/product-proof-hero";
+import { useHostSurface } from "@/lib/host-context";
 import { useFeatureFlagVariant } from "@/lib/posthog/useFeatureFlag";
 
-export const HOMEPAGE_PRODUCT_PROOF_FLAG = "homepage-product-proof-v1";
+export const HOMEPAGE_PRODUCT_PROOF_FLAG = "homepage-product-proof-v2";
 
 interface LandingHeroExperimentProps {
   isGraspful: boolean;
@@ -17,7 +18,7 @@ function GraspfulHeroExperiment(
   props: Omit<LandingHeroExperimentProps, "isGraspful">,
 ) {
   const variant = useFeatureFlagVariant(HOMEPAGE_PRODUCT_PROOF_FLAG, {
-    fallbackAfterMs: 500,
+    fallbackAfterMs: 2000,
     fallbackVariant: "control",
   });
 
@@ -44,7 +45,9 @@ export function LandingHeroExperiment({
   isGraspful,
   ...heroProps
 }: LandingHeroExperimentProps) {
-  if (!isGraspful) {
+  const hostSurface = useHostSurface();
+
+  if (!isGraspful || hostSurface !== "platform") {
     return <Hero {...heroProps} />;
   }
 

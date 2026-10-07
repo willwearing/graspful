@@ -40,9 +40,19 @@ export function useFeatureFlagVariant(
       setVariant(nextVariant);
     };
 
-    const updateVariant = () => {
+    const updateVariant = (
+      _flags?: string[],
+      _variants?: Record<string, string | boolean>,
+      context?: { errorsLoading?: boolean },
+    ) => {
       if (settled) return;
-      settle(posthog.getFeatureFlag(flag));
+      const nextVariant = posthog.getFeatureFlag(flag);
+      // A failed flag request will not retry before the timer, so stop hiding content now.
+      settle(
+        nextVariant === undefined && context?.errorsLoading
+          ? fallbackVariant
+          : nextVariant,
+      );
     };
     listener.unsubscribe = posthog.onFeatureFlags(updateVariant);
 

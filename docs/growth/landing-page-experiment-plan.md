@@ -28,19 +28,21 @@ Traffic is mainly direct. Organic search produced six visitors and ten pageviews
 
 ### Exposure
 
-Use PostHog's standard experiment exposure event. Evaluate `homepage-product-proof-v1` only on the Graspful homepage. Other hosted brands must stay outside the experiment.
+Use PostHog's standard experiment exposure event, filtered to the experiment flag, `$host = graspful.ai`, and `$pathname = /`. Evaluate `homepage-product-proof-v2` only on the platform host surface. Academy, app, and local surfaces must stay outside enrollment. The exact exposure host filter excludes preview deployments from analysis.
+
+Allow up to two seconds for assignment. On a request error, show the control immediately. After a fallback, keep that rendered variant for the visit and stop flag evaluation. A fallback is not an assigned experiment exposure. Review exposure coverage separately; the longer timeout does not guarantee enrollment for every slow request.
 
 ### Primary metric
 
-`landing_cta_clicked`, filtered to `page = /` and measured as a user-level funnel after exposure.
+`landing_cta_clicked`, filtered to `page = /` and `$host = graspful.ai`, measured as an ordered user-level funnel after exposure. Do not filter to an exact `$current_url`: campaign query strings must remain eligible.
 
 This event includes the CTA location, destination, page, and brand ID. The page filter prevents later clicks on other marketing pages from counting as homepage conversions. A funnel keeps repeated clicks from one person from inflating the conversion rate.
 
 ### Secondary metric
 
-`sign_up`, measured as a user-level funnel after exposure.
+`account_created`, measured as an ordered user-level funnel after exposure.
 
-Use this as a guardrail for the first experiment. The challenger sends people to the quickstart first, so it may increase qualified interest while reducing immediate signup clicks.
+Use this as a guardrail. The backend emits it once after provisioning a new account, using the user ID that the browser later identifies. Cross-device email confirmation can still prevent an anonymous browser from linking to that identity. Keep `sign_up` as a diagnostic event for confirmation in the originating browser. The challenger sends people to the quickstart first, so it may increase qualified interest while reducing immediate account creation.
 
 ### Diagnostic events
 
@@ -50,7 +52,7 @@ Use this as a guardrail for the first experiment. The challenger sends people to
 - Scroll depth
 - Session recordings for exposed visitors
 
-These events explain why a result changed. Add them as experiment metrics only after production has received them.
+These events explain why a result changed. `docs_code_copied` was absent in the October 7 review. Instrument and verify it before using it in a live metric. Add diagnostic events as experiment metrics only after production has received them.
 
 ### Activation limitation
 
@@ -58,17 +60,18 @@ These events explain why a result changed. Add them as experiment metrics only a
 
 ## Experiment 1: Product proof before account creation
 
-Status: Draft in PostHog.
+Status: v1 is inconclusive and is being replaced by a separate measurement window. Preserve its dates, metrics, and historical results. See the [October 7 review](https://us.posthog.com/project/345138/notebooks/Qb2iTfn8).
 
-- Experiment: `Homepage product proof`
-- Feature flag: `homepage-product-proof-v1`
+- Historical experiment: [Homepage product proof](https://us.posthog.com/project/345138/experiments/460864), `homepage-product-proof-v1`
+- Rerun: [Homepage product proof, measurement rerun](https://us.posthog.com/project/345138/experiments/473920), `homepage-product-proof-v2`
 - Control: `control`, the current homepage hero
 - Challenger: `product-proof`, a source-to-course workflow with a quickstart CTA
 - Allocation: 50% control, 50% challenger
 - Rollout: 100% of eligible homepage visitors
 - Primary metric: Homepage CTA conversion
-- Secondary metric: Signup completion
-- Internal and test users: Excluded
+- Secondary metric: Account creation after homepage exposure
+- Multiple variants: Excluded from analysis
+- Test traffic: Project test filter enabled, canonical production exposure host required, and local/CI ingestion disabled. Explicit internal-user classification on the production hostname remains a limitation.
 
 Hypothesis:
 
@@ -76,12 +79,12 @@ Showing a concrete source-to-course workflow and sending visitors to a runnable 
 
 ### Launch checklist
 
-1. Deploy the code that reads `homepage-product-proof-v1`.
+1. Deploy the code that reads `homepage-product-proof-v2`.
 2. Confirm that an unknown, missing, or `control` value renders the original hero.
 3. Use PostHog's local flag override to inspect both variants on desktop and mobile.
 4. Confirm one exposure event per visitor and the correct variant property.
 5. Click each CTA and confirm `location`, `destination`, and `brand_id`.
-6. Complete a signup and confirm identity continuity from anonymous activity to `sign_up`.
+6. Verify identity continuity from anonymous activity to the identified user used by `account_created`. Run signup tests against isolated local Supabase with real ingestion disabled.
 7. Check that non-Graspful brands never evaluate the flag.
 8. Launch only after these checks pass.
 
@@ -92,11 +95,11 @@ Run for at least two full weeks to cover weekday and weekend behavior. Because c
 Ship the challenger when all of these conditions are true:
 
 - PostHog gives it at least a 95% chance of improving the primary metric.
-- Signup completion has no clear harmful change.
+- Account creation has no clear harmful change.
 - Recordings show that visitors understand the workflow and reach the quickstart intentionally.
 - The result is stable for seven days.
 
-Keep the control when the challenger clearly harms CTA conversion or signup completion. Mark the result inconclusive when volume stays too low or the credible interval remains wide.
+Keep the control when the challenger clearly harms CTA conversion or account creation. Mark the result inconclusive when volume stays too low or the credible interval remains wide. The sample gates are minimums, not a statistical power calculation. Keep v1 and v2 results separate.
 
 ## Next experiments
 
@@ -109,7 +112,7 @@ Question: Does a low-commitment quickstart CTA outperform an account CTA?
 - Control: Winning hero with its current primary CTA
 - Challenger: Same hero, primary CTA changed between `/sign-up` and `/docs/quickstart`
 - Primary: `landing_cta_clicked`
-- Secondary: `sign_up`, `docs_code_copied`
+- Secondary: `account_created`; add `docs_code_copied` after instrumentation is verified
 
 ### Experiment 3: Product artifact
 
@@ -118,7 +121,7 @@ Question: Does showing a real course output improve comprehension?
 - Control: Winning hero
 - Challenger: Same copy and CTA with an interactive course outline, knowledge graph, or learner path preview
 - Primary: `landing_cta_clicked`
-- Secondary: `docs_code_copied`, `sign_up`
+- Secondary: `account_created`; add `docs_code_copied` after instrumentation is verified
 
 ### Experiment 4: Audience framing
 
@@ -127,7 +130,7 @@ Question: Which audience statement attracts qualified creators?
 - Control: Broad AI course-builder framing
 - Challenger: AI-agent and developer-tool framing
 - Primary: `landing_cta_clicked`
-- Secondary: `docs_code_copied`, `sign_up`
+- Secondary: `account_created`; add `docs_code_copied` after instrumentation is verified
 - Breakdown: Source, campaign, device, and new versus returning visitor
 
 ### Experiment 5: Trust and evidence
@@ -137,7 +140,9 @@ Question: Does concrete proof reduce uncertainty?
 - Control: Winning page
 - Challenger: Adds one verified case study, real review-gate output, and a live academy example near the first CTA
 - Primary: `landing_cta_clicked`
-- Secondary: `sign_up`, course import after identity tracking is fixed
+- Secondary: `account_created`, course import after identity tracking is fixed
+
+New candidates from the October 7 review are saved in [the review notebook](https://us.posthog.com/project/345138/notebooks/Qb2iTfn8) and [the run record](runs/2026-10-07/review.md). Keep them queued while the measurement rerun collects its sample. They are hypotheses to test, not conclusions from the small current sample.
 
 ## Weekly review
 
