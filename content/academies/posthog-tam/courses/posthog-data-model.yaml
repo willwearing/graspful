@@ -5311,8 +5311,8 @@ concepts:
       id: hogql-basics-property-types-and-units-4
       purpose: exam
       isTransfer: true
-    - question: A property key is $feature/checkout. Which documented access form avoids treating slash as expression
-        syntax?
+    - question: An event property key is $feature/checkout. Which documented access form reads that full event-property
+        key without treating slash as expression syntax?
       options:
       - properties.$feature / checkout
       - person.properties['$feature/checkout']
