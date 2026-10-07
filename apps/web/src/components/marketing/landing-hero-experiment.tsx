@@ -5,7 +5,7 @@ import { ProductProofHero } from "@/components/marketing/product-proof-hero";
 import { useHostSurface } from "@/lib/host-context";
 import { useFeatureFlagVariant } from "@/lib/posthog/useFeatureFlag";
 
-export const HOMEPAGE_PRODUCT_PROOF_FLAG = "homepage-product-proof-v1";
+export const HOMEPAGE_PRODUCT_PROOF_FLAG = "homepage-product-proof-v2";
 
 interface LandingHeroExperimentProps {
   isGraspful: boolean;

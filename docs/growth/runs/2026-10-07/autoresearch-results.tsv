@@ -2,3 +2,4 @@ iteration	commit	metric	delta	guard	status	description
 0	7085443	46.153846	0	-	baseline	Six of thirteen fixed measurement scenarios pass on the production implementation
 1	37958fc	61.538462	15.384616	fail	discard	Timing repair improved two scenarios but the verification harness lacked Bun type definitions; reverted before repairing the harness
 2	bbe9ab7	61.538462	15.384616	pass	keep	Delayed assignment and immediate error fallback pass with unchanged scenarios and passing lint/typecheck
+3	ba4cf2d	100.000000	38.461538	pass	keep	Platform enrollment and pre-pageview host/brand registration pass all thirteen frozen scenarios
