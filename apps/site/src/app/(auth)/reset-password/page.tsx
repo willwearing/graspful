@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useHydrated } from "@graspful/creator-ui/use-hydrated";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient, hasSupabaseBrowserEnv } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const hydrated = useHydrated();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,6 +66,7 @@ export default function ResetPasswordPage() {
                 New password
               </label>
               <input
+                disabled={!hydrated}
                 id="password"
                 type="password"
                 value={password}
@@ -82,6 +85,7 @@ export default function ResetPasswordPage() {
                 Confirm password
               </label>
               <input
+                disabled={!hydrated}
                 id="confirmPassword"
                 type="password"
                 value={confirmPassword}
@@ -95,7 +99,7 @@ export default function ResetPasswordPage() {
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading || !hydrated}>
               {loading ? "Updating..." : "Update password"}
             </Button>
           </form>

@@ -10,6 +10,8 @@ import { safeRedirectPath } from "@graspful/shared";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
+  const tokenHash = searchParams.get("token_hash");
+  const isSignupToken = tokenHash && searchParams.get("type") === "signup";
   const hostname = getRequestHost(request.headers);
   const surface = getHostSurface(hostname);
   const redirect = safeRedirectPath(
@@ -17,7 +19,7 @@ export async function GET(request: NextRequest) {
     getDefaultAuthRedirectPath(surface)
   );
 
-  if (code) {
+  if (code || isSignupToken) {
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,7 +42,9 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = isSignupToken
+      ? await supabase.auth.verifyOtp({ token_hash: tokenHash!, type: "signup" })
+      : await supabase.auth.exchangeCodeForSession(code!);
     if (!error) {
       // Fire sign_up event for email-confirmation flow
       const user = data?.session?.user;
@@ -103,15 +107,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL(redirect, origin));
     }
 
-    emitServerLog("auth", "WARN", "Auth callback code exchange failed", {
+    emitServerLog("auth", "WARN", "Auth callback verification failed", {
       "error.message": error.message,
       "auth.redirect": redirect,
     });
     flushServerLogsAfterResponse();
   }
 
-  if (!code) {
-    emitServerLog("auth", "WARN", "Auth callback missing code", {
+  if (!code && !isSignupToken) {
+    emitServerLog("auth", "WARN", "Auth callback missing signup token or code", {
       "auth.redirect": redirect,
     });
     flushServerLogsAfterResponse();

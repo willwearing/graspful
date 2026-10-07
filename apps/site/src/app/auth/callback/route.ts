@@ -6,9 +6,11 @@ import { safeRedirectPath } from "@graspful/shared";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
+  const tokenHash = searchParams.get("token_hash");
+  const isSignupToken = tokenHash && searchParams.get("type") === "signup";
   const redirect = safeRedirectPath(searchParams.get("redirect"), "/creator");
 
-  if (code) {
+  if (code || isSignupToken) {
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,7 +31,9 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = isSignupToken
+      ? await supabase.auth.verifyOtp({ token_hash: tokenHash!, type: "signup" })
+      : await supabase.auth.exchangeCodeForSession(code!);
     if (!error) {
       const token = data?.session?.access_token;
       if (token) {

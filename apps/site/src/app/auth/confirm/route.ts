@@ -6,15 +6,15 @@ import { safeRedirectPath } from "@graspful/shared";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const tokenHash = searchParams.get("token_hash");
+  const code = searchParams.get("code");
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = safeRedirectPath(searchParams.get("next"), "/creator");
 
-  if (tokenHash && type) {
+  if (code || (tokenHash && type)) {
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.auth.verifyOtp({
-      type,
-      token_hash: tokenHash,
-    });
+    const { error } = code
+      ? await supabase.auth.exchangeCodeForSession(code)
+      : await supabase.auth.verifyOtp({ type: type!, token_hash: tokenHash! });
 
     if (!error) {
       return NextResponse.redirect(new URL(next, origin));

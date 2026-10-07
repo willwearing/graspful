@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { safeRedirectPath } from "@graspful/shared";
 import { useHydrated } from "@graspful/creator-ui/use-hydrated";
+import { SignupConfirmation } from "@graspful/creator-ui/signup-confirmation";
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up";
@@ -180,7 +181,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const description = isSignIn
     ? `Sign in to continue studying with ${brand.name}`
     : isConfirmationPending
-      ? "Check your email for a confirmation link."
+      ? "Check your email or sign in to your existing account."
       : brand.pricing.trialDays > 0
         ? `Start your ${brand.pricing.trialDays}-day free trial with ${brand.name}`
         : `Create a free ${brand.name} account. No credit card required.`;
@@ -201,17 +202,21 @@ export function AuthForm({ mode }: AuthFormProps) {
         </CardHeader>
         <CardContent>
           {isConfirmationPending ? (
-            <div className="space-y-4 text-center">
-              <p className="text-sm text-muted-foreground">
-                We sent a confirmation link to <strong>{submittedEmail}</strong>.
-              </p>
-              <AuthLink
-                href={buildAuthHref("/sign-in", redirectTo, submittedEmail)}
-                className="inline-block text-sm font-medium text-primary hover:underline"
-              >
-                Back to sign in
-              </AuthLink>
-            </div>
+            <SignupConfirmation
+              email={submittedEmail!}
+              signInHref={buildAuthHref("/sign-in", redirectTo, submittedEmail!)}
+              resetPasswordHref={`/forgot-password?email=${encodeURIComponent(submittedEmail!)}`}
+              onResend={async () => {
+                const { error } = await supabase.auth.resend({
+                  type: "signup",
+                  email: submittedEmail!,
+                  options: {
+                    emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
+                  },
+                });
+                if (error) throw error;
+              }}
+            />
           ) : (
             <>
               {reason === "session_expired" && (

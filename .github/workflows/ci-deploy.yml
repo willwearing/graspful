@@ -117,6 +117,7 @@ jobs:
           supabase init --workdir "$supabase_dir"
           SUPABASE_TEST_DIR="$supabase_dir" python3 - <<'PYCONFIG'
           import os
+          import shutil
           from pathlib import Path
 
           config = Path(os.environ["SUPABASE_TEST_DIR"]) / "supabase/config.toml"
@@ -124,6 +125,12 @@ jobs:
           contents = contents.replace('site_url = "http://127.0.0.1:3000"', 'site_url = "http://localhost:3001"')
           contents = contents.replace('additional_redirect_urls = ["https://127.0.0.1:3000"]', 'additional_redirect_urls = ["http://localhost:3001/**", "http://localhost:3002/**", "http://graspful.ai:3001/**", "http://app.graspful.ai:3001/**"]')
           contents = contents.replace('# signing_keys_path = "./signing_keys.json"', 'signing_keys_path = "./signing_keys.json"')
+          # Match production confirmation requirements and deliver to Mailpit.
+          contents = contents.replace('enable_confirmations = false', 'enable_confirmations = true')
+          contents = contents.replace('email_sent = 2', 'email_sent = 1000')
+          shutil.copytree('supabase/templates', config.parent / 'templates')
+          contents += '\n[auth.email.template.confirmation]\nsubject = "Confirm your Graspful email"\ncontent_path = "./supabase/templates/confirmation.html"\n'
+          contents += '\n[auth.email.template.recovery]\nsubject = "Reset your Graspful password"\ncontent_path = "./supabase/templates/recovery.html"\n'
           assert 'signing_keys_path = "./signing_keys.json"' in contents
           assert 'site_url = "http://localhost:3001"' in contents
           assert 'http://localhost:3002/**' in contents

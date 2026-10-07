@@ -14,4 +14,21 @@ additional_redirect_urls = [
   "https://graspful.vercel.app/**",
   "https://graspful-site.vercel.app/**",
   "https://*.graspful.ai/**",
+  "https://posthog-tam.vercel.app/**",
+  "https://firefighterprep.vercel.app/**",
+  "https://electricianprep.vercel.app/**",
+  "https://javascriptprep.vercel.app/**",
 ]
+
+# Token hashes let the server verify email links in any browser, including resends.
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+
+[auth.email.template.confirmation]
+subject = "Confirm your Graspful email"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Graspful password"
+content_path = "./supabase/templates/recovery.html"
