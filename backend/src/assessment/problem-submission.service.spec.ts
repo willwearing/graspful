@@ -98,6 +98,7 @@ describe('ProblemSubmissionService', () => {
         }),
       },
       problemAttempt: {
+        findFirst: jest.fn().mockResolvedValue(null),
         findUnique: jest.fn().mockImplementation(({ where }: any) => savedAttempts.get(where.id) ?? null),
         create: jest.fn().mockImplementation(({ data }: any) => {
           savedAttempts.set(data.id, data);
@@ -170,6 +171,37 @@ describe('ProblemSubmissionService', () => {
       mockStudentState as any,
       mockRemediationService as any,
       mockScope,
+    );
+  });
+
+  it('rejects held-out exam questions through ordinary submissions before changing progress', async () => {
+    mockPrisma.problem.findUnique.mockResolvedValue({ ...mockProblem, purpose: 'exam' });
+    await expect(service.submitAnswer({
+      orgId: 'org-1', courseId: 'course-1', conceptId: 'concept-1', userId: 'user-1',
+      problemId: 'prob-1', answer: 'opt-b', responseTimeMs: 5000, activityType: 'lesson',
+    })).rejects.toThrow('This problem is not available');
+    expect(mockPrisma.problemAttempt.create).not.toHaveBeenCalled();
+    expect(mockStudentState.upsertKPState).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])('checks durable applied evidence before allowing mastery, previous success=%s', async (previousSuccess) => {
+    mockPrisma.problem.findUnique.mockResolvedValue({
+      ...mockProblem, purpose: 'practice', isTransfer: false,
+      knowledgePoint: { ...mockProblem.knowledgePoint, _count: { problems: 1 } },
+    });
+    mockPrisma.problemAttempt.findFirst.mockResolvedValue(previousSuccess ? { id: 'previous-applied-success' } : null);
+    await service.submitAnswer({
+      orgId: 'org-1', courseId: 'course-1', conceptId: 'concept-1', userId: 'user-1',
+      problemId: 'prob-1', answer: 'opt-b', responseTimeMs: 5000, activityType: 'lesson',
+    });
+    expect(mockPrisma.problemAttempt.findFirst).toHaveBeenCalledWith({
+      where: { userId: 'user-1', correct: true, problem: {
+        knowledgePointId: 'kp-1', isArchived: false, purpose: 'practice', isTransfer: true,
+      } }, select: { id: true },
+    });
+    expect(mockStudentState.upsertKPState).toHaveBeenCalledWith(
+      'user-1', 'kp-1', true, undefined, expect.any(String), mockPrisma,
+      { requiresTransfer: true, transferPassed: previousSuccess },
     );
   });
 

@@ -14,6 +14,33 @@ const concepts = [
 ];
 
 describe('Section exam question selection', () => {
+  const examConcepts = [{ id: 'c1', slug: 'one', knowledgePoints: [{ problems: [
+    { id: 'practice', purpose: 'practice', isReviewVariant: false, isTransfer: true },
+    { id: 'exam-a', purpose: 'exam', isReviewVariant: false, isTransfer: true },
+    { id: 'exam-b', purpose: 'exam', isReviewVariant: false, isTransfer: true },
+    { id: 'exam-c', purpose: 'exam', isReviewVariant: false, isTransfer: false },
+  ] }] }];
+
+  it('uses separate exam cases and prefers unseen transfer cases on retakes', () => {
+    const selected = selectSectionExamQuestions(examConcepts,
+      parseSectionExamConfig({ questionCount: 1, minTransferQuestions: 1 }),
+      { seed: 'retake', exposedProblemIds: new Set(['exam-a']) });
+    expect(selected).toEqual([{ problemId: 'exam-b', conceptId: 'c1' }]);
+  });
+
+  it('keeps seeded selection reproducible without exposing practice cases', () => {
+    const config = parseSectionExamConfig({ questionCount: 2, minTransferQuestions: 2 });
+    const first = selectSectionExamQuestions(examConcepts, config, { seed: 'saved-session' });
+    expect(selectSectionExamQuestions(examConcepts, config, { seed: 'saved-session' })).toEqual(first);
+    expect(first.map((p) => p.problemId).sort()).toEqual(['exam-a', 'exam-b']);
+  });
+
+  it('rejects an exam transfer quota that only practice cases can satisfy', () => {
+    expect(() => selectSectionExamQuestions(examConcepts,
+      parseSectionExamConfig({ questionCount: 3, minTransferQuestions: 3 })))
+      .toThrow('Not enough transfer problems');
+  });
+
   it.each(['entities', 'concept-1'])('resolves blueprint %s and fills from review variants without duplicates', (conceptId) => {
     const config = parseSectionExamConfig({ questionCount: 3, blueprint: [{ conceptId, minQuestions: 1 }] });
     expect(selectSectionExamQuestions(concepts, config)).toEqual([

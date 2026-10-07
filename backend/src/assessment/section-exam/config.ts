@@ -5,6 +5,7 @@ export type SectionExamConfig = {
   passingScore?: number;
   timeLimitMinutes?: number;
   questionCount?: number;
+  minTransferQuestions?: number;
   blueprint?: Array<{ conceptId: string; minQuestions: number }>;
   instructions?: string;
 };
@@ -20,6 +21,7 @@ export function parseSectionExamConfig(raw: Prisma.JsonValue | null): Required<S
     passingScore: config.passingScore ?? DEFAULT_PASSING_SCORE,
     timeLimitMinutes: config.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES,
     questionCount: config.questionCount ?? DEFAULT_QUESTION_COUNT,
+    minTransferQuestions: config.minTransferQuestions ?? 0,
     blueprint: config.blueprint ?? [],
     instructions: config.instructions ?? '',
   };

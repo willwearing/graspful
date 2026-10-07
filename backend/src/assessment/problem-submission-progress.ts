@@ -12,13 +12,14 @@ export async function updateSubmissionKPState(
   correct: boolean,
   sessionId: string,
   tx: Prisma.TransactionClient,
+  masteryEvidence?: { requiresTransfer: boolean; transferPassed: boolean },
 ) {
   const existing = await studentState.getKPState(userId, knowledgePointId, tx);
   const rawExisting = existing as
     | (typeof existing & { firstFailedSessionId?: string | null })
     | null;
 
-  return studentState.upsertKPState(
+  const args = [
     userId,
     knowledgePointId,
     correct,
@@ -31,7 +32,10 @@ export async function updateSubmissionKPState(
       : undefined,
     sessionId,
     tx,
-  );
+  ] as const;
+  return masteryEvidence?.requiresTransfer
+    ? studentState.upsertKPState(...args, masteryEvidence)
+    : studentState.upsertKPState(...args);
 }
 
 export async function updateSubmissionConceptState(

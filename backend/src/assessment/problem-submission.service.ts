@@ -60,6 +60,7 @@ export class ProblemSubmissionService {
       include: {
         knowledgePoint: {
           include: {
+            _count: { select: { problems: { where: { isArchived: false, purpose: 'practice', isTransfer: true } } } },
             concept: {
               include: {
                 section: true,
@@ -88,6 +89,9 @@ export class ProblemSubmissionService {
     if (problem.isArchived || kp.isArchived || concept.isArchived || concept.section?.isArchived ||
         concept.id !== input.conceptId || concept.courseId !== input.courseId) {
       throw new NotFoundException(`Problem ${problemId} not found`);
+    }
+    if (problem.purpose === 'exam' || (activityType === 'lesson' && (problem.purpose === 'review' || problem.isReviewVariant))) {
+      throw new BadRequestException('This problem is not available in lesson practice');
     }
 
     // Resolve enrollment before creating an attempt or touching the learner model.
@@ -145,6 +149,13 @@ export class ProblemSubmissionService {
 
     // 6. Update StudentKPState (pass sessionId for Slice 3 failed-session tracking)
     const sessionIdNow = currentSessionId();
+    const requiresTransfer = (kp._count?.problems ?? 0) > 0;
+    const transferPassed = !requiresTransfer || currentKPState?.passed === true ||
+      (evaluation.correct && problem.isTransfer && problem.purpose === 'practice') ||
+      Boolean(await tx.problemAttempt.findFirst({
+        where: { userId, correct: true, problem: { knowledgePointId: kp.id, isArchived: false, purpose: 'practice', isTransfer: true } },
+        select: { id: true },
+      }));
     const updatedKPState = await updateSubmissionKPState(
       this.studentState,
       userId,
@@ -152,6 +163,7 @@ export class ProblemSubmissionService {
       evaluation.correct,
       sessionIdNow,
       tx,
+      { requiresTransfer, transferPassed },
     );
 
     // Slice 3 : after a miss, check whether this KP has plateaued across

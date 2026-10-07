@@ -174,6 +174,8 @@ export class CourseYamlExportService {
               if (p.options) pObj.options = p.options;
               if (p.explanation) pObj.explanation = p.explanation;
               if (p.difficulty !== 3) pObj.difficulty = p.difficulty;
+              if (p.purpose && p.purpose !== 'practice') pObj.purpose = p.purpose;
+              if (p.isTransfer) pObj.isTransfer = true;
               return pObj;
             });
           }

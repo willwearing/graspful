@@ -292,6 +292,7 @@ describe('SectionExamService', () => {
         }),
       },
       sectionExamQuestion: {
+        findMany: jest.fn().mockResolvedValue([]),
         createMany: jest.fn().mockResolvedValue({ count: 2 }),
       },
       studentSectionState: {

@@ -41,7 +41,7 @@ export function Practice({ progress, practice }: PracticeProps) {
       ) : (
         <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-5">
           <p className="text-sm font-medium text-green-700 dark:text-green-300">Practice complete</p>
-          <p className="mt-2 text-sm text-muted-foreground">You have worked through all authored practice problems for this knowledge point.</p>
+          <p className="mt-2 text-sm text-muted-foreground">You have met the practice requirements for this knowledge point.</p>
         </div>
       )}
     </div>

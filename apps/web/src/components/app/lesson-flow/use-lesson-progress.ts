@@ -20,7 +20,8 @@ export function useLessonProgress(lesson: LessonData) {
   const progressPercent = ((currentPhaseIndex + 1) / (lesson.knowledgePoints.length * 3)) * 100;
 
   function resetPractice() {
-    setCurrentProblemId(kp.problems?.[0]?.id ?? null);
+    setCurrentProblemId(problems.some((problem) => problem.id === currentProblemId)
+      ? currentProblemId : kp.problems?.[0]?.id ?? null);
     setKpPracticeDone(false);
   }
 
@@ -75,7 +76,8 @@ export function useLessonProgress(lesson: LessonData) {
       if (targetIndex >= 0) {
         setKpPracticeDone(false);
         setCurrentKP(targetIndex);
-        setPhase("practice");
+        setPhase("instruction");
+        setWorkedExampleOpen(true);
       }
     }
     setCurrentProblemId(hint.nextProblemId);

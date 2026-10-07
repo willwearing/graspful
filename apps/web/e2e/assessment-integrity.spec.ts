@@ -499,6 +499,52 @@ test("academy enrollment cannot expose draft course content or stale draft progr
   expect(after.courseEnrollments.filter((enrollment) => enrollment.courseId === draftCourseId)).toHaveLength(0);
 });
 
+test("lesson mastery requires an applied success and keeps exam cases out of practice", async ({ request }) => {
+  const conceptId = concepts[2];
+  const base = `${courseUrl(courses[1])}/lessons/${conceptId}`;
+  const problem = await prisma.problem.findUniqueOrThrow({ where: { id: problems[2][0] } });
+  const examId = randomUUID();
+  await prisma.problem.create({ data: {
+    id: examId, authoredId: `private-exam-${examId}`, knowledgePointId: problem.knowledgePointId,
+    purpose: "exam", isTransfer: true, type: "multiple_choice", questionText: "Held-out exam case",
+    options: ["One", "Two"], correctAnswer: 0, difficulty: 4,
+  } });
+  await prisma.problem.update({ where: { id: problems[2][2] }, data: { isTransfer: true } });
+  await prisma.studentKPState.deleteMany({ where: { userId: otherLearner.userId, knowledgePointId: problem.knowledgePointId } });
+  await prisma.problemAttempt.deleteMany({ where: { userId: otherLearner.userId, problem: { knowledgePointId: problem.knowledgePointId } } });
+  try {
+    const lesson = await json(await post(request, `${base}/start`, otherLearner));
+    expect(lesson.knowledgePoints.flatMap((kp: { problems: { id: string }[] }) => kp.problems).map((p: { id: string }) => p.id)).not.toContain(examId);
+    const detail = await json(await request.get(`${courseUrl(courses[1])}/concepts/${conceptId}`, {
+      headers: { Authorization: `Bearer ${otherLearner.token}` },
+    }), 200);
+    expect(detail.knowledgePoints.flatMap((kp: { problems: { id: string }[] }) => kp.problems).map((p: { id: string }) => p.id)).not.toContain(examId);
+    const before = await snapshot(otherLearner.userId);
+    await json(await post(request, `${base}/answer`, otherLearner, {
+      requestId: randomUUID(), problemId: examId, answer: 0, responseTimeMs: 3000,
+    }), 400);
+    expect(await snapshot(otherLearner.userId)).toEqual(before);
+    for (const problemId of problems[2].slice(0, 2)) {
+      await json(await post(request, `${base}/answer`, otherLearner, {
+        requestId: randomUUID(), problemId, answer: 0, responseTimeMs: 3000,
+      }));
+    }
+    expect(await prisma.studentKPState.findUniqueOrThrow({ where: {
+      userId_knowledgePointId: { userId: otherLearner.userId, knowledgePointId: problem.knowledgePointId },
+    } })).toMatchObject({ consecutiveCorrect: 2, passed: false });
+    const applied = await json(await post(request, `${base}/answer`, otherLearner, {
+      requestId: randomUUID(), problemId: problems[2][2], answer: 0, responseTimeMs: 3000,
+    }));
+    expect(applied.nextProblemHint.lessonComplete).toBe(true);
+    expect(await prisma.studentKPState.findUniqueOrThrow({ where: {
+      userId_knowledgePointId: { userId: otherLearner.userId, knowledgePointId: problem.knowledgePointId },
+    } })).toMatchObject({ passed: true });
+  } finally {
+    await prisma.problem.delete({ where: { id: examId } });
+    await prisma.problem.update({ where: { id: problems[2][2] }, data: { isTransfer: false } });
+  }
+});
+
 test("lesson answer retries preserve one attempt, one KP update, and one XP award", async ({ request }) => {
   const lessonUrl = `${courseUrl(courses[1])}/lessons/${concepts[2]}/answer`;
   const problem = await prisma.problem.findUniqueOrThrow({ where: { id: problems[2][0] } });
@@ -622,4 +668,52 @@ test("section exams enforce session scope and award completion once", async ({ r
   expect(await json(await post(request, `${sessionUrl}/complete`, learner))).toEqual({ ...result, alreadyCompleted: true });
   expect(await snapshot(learner.userId)).toEqual(after);
   expect(await readSession()).toEqual(completedSession);
+});
+
+test("section exam retakes use fresh applied cases and preserve resume selection", async ({ request }) => {
+  const examIds: string[] = [];
+  for (const conceptIndex of [0, 1]) {
+    const kp = await prisma.problem.findUniqueOrThrow({ where: { id: problems[conceptIndex][0] } });
+    for (let variant = 0; variant < 2; variant++) {
+      const id = randomUUID();
+      examIds.push(id);
+      await prisma.problem.create({ data: {
+        id, authoredId: `fresh-case-${id}`, knowledgePointId: kp.knowledgePointId,
+        purpose: "exam", isTransfer: true, type: "multiple_choice", difficulty: 4,
+        questionText: `Independent applied case ${variant}`, options: ["Supported", "Unsupported"], correctAnswer: 0,
+      } });
+    }
+  }
+  const ready = async () => {
+    await prisma.studentConceptState.updateMany({
+      where: { userId: otherLearner.userId, conceptId: { in: concepts.slice(0, 2) } },
+      data: { masteryState: "mastered" },
+    });
+    await prisma.studentSectionState.update({
+      where: { userId_sectionId: { userId: otherLearner.userId, sectionId: sections[0] } },
+      data: { status: "exam_ready" },
+    });
+  };
+  await prisma.courseSection.update({ where: { id: sections[0] }, data: { sectionExamConfig: {
+    enabled: true, questionCount: 2, minTransferQuestions: 2, passingScore: 1,
+    blueprint: concepts.slice(0, 2).map((conceptId) => ({ conceptId, minQuestions: 1 })),
+  } } });
+  try {
+    await ready();
+    const base = `${courseUrl()}/sections/${sections[0]}/exam`;
+    const first = await json(await post(request, `${base}/start`, otherLearner));
+    const firstIds = first.problems.map((p: { id: string }) => p.id);
+    expect(firstIds.every((id: string) => examIds.includes(id))).toBe(true);
+    expect((await json(await post(request, `${base}/start`, otherLearner))).problems.map((p: { id: string }) => p.id)).toEqual(firstIds);
+    for (const problemId of firstIds) {
+      await json(await post(request, `${base}/${first.sessionId}/answer`, otherLearner, { problemId, answer: 1, responseTimeMs: 3000 }));
+    }
+    expect(await json(await post(request, `${base}/${first.sessionId}/complete`, otherLearner))).toMatchObject({ passed: false });
+    // The fixture completes remediation before starting the retake.
+    await ready();
+    const retake = await json(await post(request, `${base}/start`, otherLearner));
+    expect(retake.problems.every((p: { id: string }) => examIds.includes(p.id) && !firstIds.includes(p.id))).toBe(true);
+  } finally {
+    await prisma.problem.deleteMany({ where: { id: { in: examIds } } });
+  }
 });

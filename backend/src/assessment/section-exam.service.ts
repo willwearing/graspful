@@ -19,6 +19,7 @@ import { evaluateAnswer } from './answer-evaluator';
 import { calculateQuizXP } from './xp-calculator';
 import { AssessmentScopeService } from './assessment-scope.service';
 import { isDeepStrictEqual } from 'node:util';
+import { randomUUID } from 'node:crypto';
 
 import { parseSectionExamConfig } from './section-exam/config';
 import { serializeSectionExamSession } from './section-exam/presentation';
@@ -82,6 +83,8 @@ export class SectionExamService {
                     correctAnswer: true,
                     explanation: true,
                     isReviewVariant: true,
+                    purpose: true,
+                    isTransfer: true,
                     difficulty: true,
                   },
                 },
@@ -133,8 +136,6 @@ export class SectionExamService {
       return serializeSectionExamSession(existing, config);
     }
 
-    const selectedQuestions = selectSectionExamQuestions(section.concepts, config);
-
     const session = await this.prisma.$transaction(async (tx) => {
       const currentState = await this.studentState.lockSectionForExam(tx, userId, sectionId);
       const resumed = await tx.sectionExamSession.findFirst({
@@ -150,6 +151,15 @@ export class SectionExamService {
       if (resumed) {
         return resumed;
       }
+
+      const exposed = await tx.sectionExamQuestion.findMany({
+        where: { session: { userId, courseId, sectionId } },
+        select: { problemId: true },
+      });
+      const selectedQuestions = selectSectionExamQuestions(section.concepts, config, {
+        seed: randomUUID(),
+        exposedProblemIds: new Set(exposed.map((question) => question.problemId)),
+      });
 
       const created = await tx.sectionExamSession.create({
         data: {

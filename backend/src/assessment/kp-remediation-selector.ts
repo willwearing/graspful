@@ -7,8 +7,8 @@
  *    chances to learn and demonstrate their learning."
  *
  * On a wrong answer the learner stays on the same knowledge point and sees a
- * different problem from the bank. On two consecutive correct answers the KP
- * is "passed" and the selector advances to the next KP in sortOrder.
+ * different problem from the bank. Two consecutive correct answers and any
+ * authored applied requirement pass the KP, then delivery advances in sortOrder.
  *
  * This module lives inside `assessment/` because it only consults KP state
  * and the lesson's problem bank. It does NOT traverse the prerequisite graph;
@@ -19,6 +19,7 @@ export interface ProblemBankEntry {
   problemId: string;
   knowledgePointId: string;
   sortOrder: number;
+  isTransfer?: boolean;
 }
 
 export interface KPStateSnapshot {
@@ -27,6 +28,7 @@ export interface KPStateSnapshot {
   passed: boolean;
   consecutiveCorrect: number;
   attempts: number;
+  requiresTransfer?: boolean;
 }
 
 export interface KPRemediationInput {
@@ -111,7 +113,7 @@ export function selectNextKPProblem(
   const currentKPState = kpStatesById.get(currentKPId);
   const currentKPPassed =
     currentKPState?.passed === true ||
-    (currentKPState?.consecutiveCorrect ?? 0) >= CONSECUTIVE_CORRECT_TO_PASS;
+    (!currentKPState?.requiresTransfer && (currentKPState?.consecutiveCorrect ?? 0) >= CONSECUTIVE_CORRECT_TO_PASS);
 
   // Decide which KP the next problem targets.
   let targetKPId = currentKPId;
@@ -123,7 +125,7 @@ export function selectNextKPProblem(
     );
     const nextKP = sortedKPs
       .slice(currentIdx + 1)
-      .find((s) => !s.passed && s.consecutiveCorrect < CONSECUTIVE_CORRECT_TO_PASS);
+      .find((s) => !s.passed && (s.requiresTransfer || s.consecutiveCorrect < CONSECUTIVE_CORRECT_TO_PASS));
     if (!nextKP) {
       return {
         targetKPId: currentKPId,
@@ -160,10 +162,13 @@ export function selectNextKPProblem(
   } else {
     // Bank exhausted for this KP in the session — recycle. Avoid serving the
     // same problem the learner just saw when possible.
-    const recycled = candidates.find(
+    const missingTransfer = kpStatesById.get(targetKPId)?.requiresTransfer && !kpStatesById.get(targetKPId)?.passed;
+    const eligible = missingTransfer && candidates.some((candidate) => candidate.isTransfer)
+      ? candidates.filter((candidate) => candidate.isTransfer) : candidates;
+    const recycled = eligible.find(
       (c) => c.problemId !== input.lastProblemId,
     );
-    nextProblemId = (recycled ?? candidates[0]).problemId;
+    nextProblemId = (recycled ?? eligible[0]).problemId;
   }
 
   // Anti-gaming retry delay: attempts on target KP > threshold within the

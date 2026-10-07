@@ -430,7 +430,9 @@ function checkDifficultyStaircase(courseYaml: CourseYaml): QualityCheckResult {
     const difficulties = new Set<number>();
     for (const kp of concept.knowledgePoints) {
       for (const problem of kp.problems) {
-        difficulties.add(problem.difficulty ?? 3);
+        if (!problem.purpose || problem.purpose === 'practice') {
+          difficulties.add(problem.difficulty ?? 3);
+        }
       }
     }
 
@@ -463,8 +465,9 @@ function checkProblemVariantDepth(courseYaml: CourseYaml): QualityCheckResult {
     }
 
     for (const kp of concept.knowledgePoints) {
-      if (kp.problems.length < 3) {
-        failures.push(`"${concept.id}/${kp.id}" has ${kp.problems.length} problem(s) - need 3+`);
+      const practiceCount = kp.problems.filter((problem) => !problem.purpose || problem.purpose === 'practice').length;
+      if (practiceCount < 3) {
+        failures.push(`"${concept.id}/${kp.id}" has ${practiceCount} practice problem(s) - need 3+`);
       }
     }
   }

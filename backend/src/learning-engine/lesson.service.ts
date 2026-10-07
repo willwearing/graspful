@@ -89,7 +89,7 @@ export class LessonService {
         instructionAudioUrl: true,
         workedExampleAudioUrl: true,
         problems: {
-          where: { isReviewVariant: false, isArchived: false },
+          where: { isReviewVariant: false, isArchived: false, purpose: 'practice' },
           orderBy: { createdAt: 'asc' },
           select: {
             id: true,

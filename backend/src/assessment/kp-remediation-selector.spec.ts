@@ -75,6 +75,26 @@ describe('selectNextKPProblem', () => {
   });
 
   describe('after a correct answer', () => {
+    it('requires the applied question after two correct foundational answers', () => {
+      const result = selectNextKPProblem({
+        currentKPId: 'kp-a', lastProblemId: 'p-a-2', lastAnswerCorrect: true,
+        problemBank: bank.map((p) => ({ ...p, isTransfer: p.problemId === 'p-a-3' })),
+        kpStates: [{ ...kpA, consecutiveCorrect: 2, attempts: 2, requiresTransfer: true }, kpB],
+        seenProblemIdsThisSession: new Set(['p-a-1', 'p-a-2']),
+      });
+      expect(result).toMatchObject({ targetKPId: 'kp-a', nextProblemId: 'p-a-3', lessonComplete: false });
+    });
+
+    it('retries the applied question when the bank is exhausted and it remains unpassed', () => {
+      const result = selectNextKPProblem({
+        currentKPId: 'kp-a', lastProblemId: 'p-a-2', lastAnswerCorrect: true,
+        problemBank: bank.map((p) => ({ ...p, isTransfer: p.problemId === 'p-a-3' })),
+        kpStates: [{ ...kpA, consecutiveCorrect: 2, attempts: 5, requiresTransfer: true }, kpB],
+        seenProblemIdsThisSession: new Set(['p-a-1', 'p-a-2', 'p-a-3']),
+      });
+      expect(result).toMatchObject({ targetKPId: 'kp-a', nextProblemId: 'p-a-3', lessonComplete: false });
+    });
+
     it('should stay on the SAME KP when consecutiveCorrect < 2', () => {
       const input: KPRemediationInput = {
         currentKPId: 'kp-a',

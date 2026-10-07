@@ -84,6 +84,8 @@ const ProblemYamlSchema = z.object({
   correct: CorrectAnswerSchema,
   explanation: z.string().optional(),
   difficulty: z.number().int().min(1).max(5).optional(),
+  purpose: z.enum(['practice', 'review', 'exam']).optional(),
+  isTransfer: z.boolean().optional(),
 }).superRefine((problem, ctx) => {
   const invalid = (path: 'correct' | 'options', message: string) =>
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
@@ -218,6 +220,7 @@ const SectionExamYamlSchema = z.object({
   passingScore: z.number().min(0).max(1).default(0.75),
   timeLimitMinutes: z.number().int().positive().optional(),
   questionCount: z.number().int().positive().default(10),
+  minTransferQuestions: z.number().int().nonnegative().optional(),
   blueprint: z.array(SectionExamBlueprintYamlSchema).default([]),
   instructions: z.string().optional(),
 });
@@ -290,11 +293,14 @@ export const CourseYamlSchema = z
         });
       }
 
+      const allProblems = sectionConcepts.flatMap((concept) => concept.knowledgePoints.flatMap((kp) => kp.problems));
+      const dedicatedExam = allProblems.some((problem) => problem.purpose === 'exam');
+      const eligible = (problem: ProblemYaml) => !dedicatedExam || problem.purpose === 'exam';
       const availableProblems = sectionConcepts.reduce(
         (sum, concept) =>
           sum +
           concept.knowledgePoints.reduce(
-            (kpSum, kp) => kpSum + kp.problems.length,
+            (kpSum, kp) => kpSum + kp.problems.filter(eligible).length,
             0,
           ),
         0,
@@ -305,6 +311,11 @@ export const CourseYamlSchema = z
           code: z.ZodIssueCode.custom,
           message: `Section "${section.id}" does not have enough eligible problems for its section exam`,
         });
+      }
+
+      if ((exam.minTransferQuestions ?? 0) > exam.questionCount ||
+          allProblems.filter((problem) => eligible(problem) && problem.isTransfer).length < (exam.minTransferQuestions ?? 0)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Section "${section.id}" cannot satisfy its transfer-question minimum` });
       }
 
       for (const item of exam.blueprint) {
@@ -321,6 +332,10 @@ export const CourseYamlSchema = z
             code: z.ZodIssueCode.custom,
             message: `Section "${section.id}" blueprint concept "${item.conceptId}" must belong to the same section`,
           });
+        }
+        const concept = sectionConcepts.find((candidate) => candidate.id === item.conceptId);
+        if (concept && concept.knowledgePoints.flatMap((kp) => kp.problems).filter(eligible).length < item.minQuestions) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Section "${section.id}" has insufficient eligible exam problems for "${item.conceptId}"` });
         }
       }
     }
