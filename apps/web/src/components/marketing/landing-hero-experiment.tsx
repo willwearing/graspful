@@ -2,6 +2,7 @@
 
 import { Hero } from "@/components/marketing/hero";
 import { ProductProofHero } from "@/components/marketing/product-proof-hero";
+import { useHostSurface } from "@/lib/host-context";
 import { useFeatureFlagVariant } from "@/lib/posthog/useFeatureFlag";
 
 export const HOMEPAGE_PRODUCT_PROOF_FLAG = "homepage-product-proof-v1";
@@ -44,7 +45,9 @@ export function LandingHeroExperiment({
   isGraspful,
   ...heroProps
 }: LandingHeroExperimentProps) {
-  if (!isGraspful) {
+  const hostSurface = useHostSurface();
+
+  if (!isGraspful || hostSurface !== "platform") {
     return <Hero {...heroProps} />;
   }
 

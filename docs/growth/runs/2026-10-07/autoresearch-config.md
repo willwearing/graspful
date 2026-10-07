@@ -10,7 +10,7 @@ Direction: Higher.
 
 Guard: `bun run lint` and `bun run typecheck`. Run the complete web suite, script suite, build, and relevant browser checks before release.
 
-Iterations: 2.
+Iterations: 3, including one discarded attempt caused by a verification harness type error.
 
 1. Allow flag assignment to settle for two seconds, with immediate fallback on request errors and no later variant switch.
 2. Limit enrollment to the platform host surface and register host/brand properties before pageview capture.
