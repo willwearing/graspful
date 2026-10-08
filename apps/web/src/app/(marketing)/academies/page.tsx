@@ -1,19 +1,20 @@
+import { cache } from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, Globe, Layers3, LibraryBig } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getPublicAcademyCatalog } from "@/lib/public-academies";
+import { buildAcademiesMetadata } from "@/lib/seo/academies-metadata";
 
-export const metadata: Metadata = {
-  title: { absolute: "Academies | Graspful" },
-  description:
-    "Browse public academies and their course tracks across the Graspful network.",
-  alternates: { canonical: "https://graspful.ai/academies" },
-};
+const loadCatalog = cache(getPublicAcademyCatalog);
+
+export async function generateMetadata(): Promise<Metadata> {
+  return buildAcademiesMetadata(await loadCatalog());
+}
 
 export default async function AcademiesPage() {
-  const brands = await getPublicAcademyCatalog();
+  const brands = await loadCatalog();
 
   return (
     <div className="bg-background text-foreground">
