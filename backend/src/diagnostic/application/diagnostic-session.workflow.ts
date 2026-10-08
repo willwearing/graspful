@@ -1,6 +1,7 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
+import { persistDiagnosticSnapshots, type DiagnosticSnapshotUpdate } from './diagnostic-snapshot.persistence';
 import { StudentStateService } from '@/student-model/student-state.service';
 import { EnrollmentService } from '@/student-model/enrollment.service';
 import { evaluateAnswer } from '@/assessment/answer-evaluator';
@@ -96,6 +97,7 @@ export async function startDiagnosticSession(
       }
 
       return {
+        supportsQuestionIdentity: true,
         sessionId: existing.id,
         questionNumber: existing.questionCount + 1,
         totalEstimated: Math.min(concepts.length, 60),
@@ -188,6 +190,7 @@ export async function startDiagnosticSession(
   });
 
   return {
+    supportsQuestionIdentity: true,
     sessionId: session.id,
     questionNumber: 1,
     totalEstimated: Math.min(concepts.length, 60),
@@ -225,6 +228,12 @@ export async function submitDiagnosticAnswer(
   }
   if (expectedAcademyId !== undefined && session.academyId !== expectedAcademyId) {
     throw new NotFoundException('Diagnostic session not found');
+  }
+  if (
+    (input.expectedProblemId !== undefined && input.expectedProblemId !== session.currentProblemId) ||
+    (input.questionNumber !== undefined && input.questionNumber !== session.questionCount + 1)
+  ) {
+    throw new ConflictException('Diagnostic question changed. Reload the current question.');
   }
   if (session.status !== 'in_progress') {
     throw new BadRequestException('Session is not in progress');
@@ -313,24 +322,9 @@ export async function submitDiagnosticAnswer(
     difficultyTheta: conceptData?.difficultyTheta ?? 0,
   });
 
-  const snapshotUpdates = Array.from(masteries.entries()).map(([conceptId, pL]) => {
-    const tested = testedConceptIds.has(conceptId);
-    return {
-      where: {
-        diagnosticSessionId_conceptId: {
-          diagnosticSessionId: sessionId,
-          conceptId,
-        },
-      },
-      update: { pL, tested },
-      create: {
-        diagnosticSessionId: sessionId,
-        conceptId,
-        pL,
-        tested,
-      },
-    };
-  });
+  const snapshotUpdates = Array.from(masteries.entries()).map(([conceptId, pL]) => ({
+    conceptId, pL, tested: testedConceptIds.has(conceptId),
+  }));
 
   if (shouldStopDiagnostic(newQuestionCount, masteries)) {
     return completeDiagnosticSession(
@@ -406,6 +400,7 @@ export async function submitDiagnosticAnswer(
   });
 
   return {
+    supportsQuestionIdentity: true,
     sessionId,
     questionNumber: newQuestionCount + 1,
     totalEstimated: Math.min(concepts.length, 60),
@@ -459,11 +454,18 @@ async function completeDiagnosticSession(
   responses: DiagnosticResponse[],
   concepts: DiagnosticConceptRecord[],
   questionCount: number,
-  snapshotUpdates: Prisma.DiagnosticMasterySnapshotUpsertArgs[],
+  snapshotUpdates: DiagnosticSnapshotUpdate[],
   currentProblem: DiagnosticProblemRecord,
   input: DiagnosticAnswerInput,
   correct: boolean,
 ): Promise<DiagnosticSessionCompletion> {
+  const speedResult = bootstrapSpeedParameters(responses, concepts);
+  const diagnosticUpdates = Array.from(masteries, ([conceptId, pL]) => ({
+    conceptId,
+    diagnosticState: classifyDiagnosticState(pL),
+    pL,
+    speed: speedResult.conceptSpeeds.get(conceptId)!,
+  }));
   await prisma.$transaction(async (tx) => {
     await persistDiagnosticAnswer(
       tx,
@@ -482,23 +484,11 @@ async function completeDiagnosticSession(
       correct,
     );
 
-    for (const [conceptId, pL] of masteries) {
-      const state = classifyDiagnosticState(pL);
-      await studentState.updateConceptDiagnosticState(
-        session.userId,
-        conceptId,
-        state,
-        pL,
-        tx,
-      );
-    }
-
-    const speedResult = bootstrapSpeedParameters(responses, concepts);
-    await studentState.updateSpeedParameters(
+    await studentState.updateDiagnosticStates(
       session.userId,
+      diagnosticUpdates,
       speedResult.abilityTheta,
       speedResult.speedRD,
-      speedResult.conceptSpeeds,
       tx,
     );
 
@@ -531,6 +521,7 @@ async function completeDiagnosticSession(
   return {
     sessionId: session.id,
     isComplete: true,
+    wasCorrect: correct,
     questionsAnswered: questionCount,
     result: buildDiagnosticResult(masteries, questionCount, conceptCourseMap),
   };
@@ -539,17 +530,27 @@ async function completeDiagnosticSession(
 async function persistDiagnosticAnswer(
   tx: Prisma.TransactionClient,
   session: DiagnosticSessionRecord,
-  snapshotUpdates: Prisma.DiagnosticMasterySnapshotUpsertArgs[],
+  snapshotUpdates: DiagnosticSnapshotUpdate[],
   sessionData: Prisma.DiagnosticSessionUpdateArgs['data'],
   currentProblem: DiagnosticProblemRecord,
   input: DiagnosticAnswerInput,
   correct: boolean,
 ): Promise<void> {
-  await Promise.all(snapshotUpdates.map((data) => tx.diagnosticMasterySnapshot.upsert(data)));
-  await tx.diagnosticSession.update({
-    where: { id: session.id },
+  // Claim the question before writing evidence. A concurrent answer must not
+  // overwrite the winning answer, its next question, or its completion state.
+  const claimed = await tx.diagnosticSession.updateMany({
+    where: {
+      id: session.id,
+      status: 'in_progress',
+      questionCount: session.questionCount,
+      currentProblemId: session.currentProblemId,
+    },
     data: sessionData,
   });
+  if (claimed.count !== 1) {
+    throw new ConflictException('Diagnostic question changed. Reload the current question.');
+  }
+  await persistDiagnosticSnapshots(tx, session.id, snapshotUpdates);
   await tx.problemAttempt.create({
     data: {
       userId: session.userId,

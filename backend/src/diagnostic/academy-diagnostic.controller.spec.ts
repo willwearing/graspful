@@ -20,13 +20,16 @@ describe('AcademyDiagnosticController session route scope', () => {
   });
 
   it('passes the route academy when submitting an answer', async () => {
-    const input = { sessionId: 'session-1', answer: 'A', responseTimeMs: 1000 };
+    const input = { sessionId: 'session-1', answer: 'A', responseTimeMs: 1000, expectedProblemId: 'problem-1', questionNumber: 3 };
     const result = { sessionId: 'session-1', isComplete: true };
     diagnostic.submitAnswer.mockResolvedValue(result);
     await expect(controller.submitAnswer('academy-1', input, org)).resolves.toEqual(result);
     expect(diagnostic.submitAnswer).toHaveBeenCalledWith('session-1', 'learner', {
-      answer: 'A', responseTimeMs: 1000,
+      answer: 'A', responseTimeMs: 1000, expectedProblemId: 'problem-1', questionNumber: 3,
     }, 'academy-1');
+    expect(posthog.capture).toHaveBeenCalledWith({ distinctId: 'learner' }, 'diagnostic completed', {
+      session_id: 'session-1', org_id: 'org-1',
+    });
   });
 
   it('passes the route academy when reading a result', async () => {
@@ -34,9 +37,13 @@ describe('AcademyDiagnosticController session route scope', () => {
     diagnostic.getResult.mockResolvedValue(result);
     await expect(controller.getResult('academy-1', 'session-1', org)).resolves.toEqual(result);
     expect(diagnostic.getResult).toHaveBeenCalledWith('session-1', 'learner', 'academy-1');
-    expect(posthog.capture).toHaveBeenCalledWith({ distinctId: 'learner' }, 'diagnostic completed', {
-      session_id: 'session-1', org_id: 'org-1',
-    });
+    expect(posthog.capture).not.toHaveBeenCalled();
+  });
+
+  it('does not report completion for a continuing answer', async () => {
+    diagnostic.submitAnswer.mockResolvedValue({ isComplete: false });
+    await controller.submitAnswer('academy-1', { sessionId: 'session-1', answer: 'A', responseTimeMs: 1000 }, org);
+    expect(posthog.capture).not.toHaveBeenCalled();
   });
 
   it('does not record completion when the session belongs to another academy', async () => {

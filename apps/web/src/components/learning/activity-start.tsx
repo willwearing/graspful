@@ -2,8 +2,9 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { DiagnosticStart, LessonStart } from '@graspful/shared';
-import { apiClientFetch } from '@/lib/api-client';
+import { apiClientFetch, ApiError } from '@/lib/api-client';
 import { DiagnosticFlow } from '@/components/app/diagnostic-flow';
 import { LessonFlow } from '@/components/app/lesson-flow';
 import { QuizFlow, type QuizData } from '@/components/app/quiz-flow';
@@ -39,6 +40,7 @@ type ActivityData =
 
 /** Starting an activity is an explicit action. Rendering and prefetch never write. */
 export function ActivityStart(props: ActivityStartProps) {
+  const router = useRouter();
   const { kind, orgSlug, courseId, token, conceptId, sectionId, academyId, backHref, continueHref } = props;
   const [data, setData] = useState<ActivityData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +59,18 @@ export function ActivityStart(props: ActivityStartProps) {
         case 'diagnostic':
           // Enrollment is idempotent. A failed enrollment must not start a diagnostic.
           await post('enroll');
-          setData({ kind, value: await post<DiagnosticStart>('diagnostic/start') });
+          try {
+            setData({ kind, value: await post<DiagnosticStart>('diagnostic/start') });
+          } catch (cause) {
+            // Completion can commit before a reload or a lost final response.
+            // The server's recorded completion makes returning safe.
+            if (cause instanceof ApiError && cause.statusCode === 400 && cause.message === 'Diagnostic already completed') {
+              router.replace(backHref);
+              router.refresh();
+              return;
+            }
+            throw cause;
+          }
           break;
         case 'lesson':
           setData({ kind, value: await post<LessonStart>(`lessons/${encodeURIComponent(conceptId!)}/start`) });

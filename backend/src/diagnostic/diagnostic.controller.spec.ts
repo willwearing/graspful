@@ -65,13 +65,15 @@ describe('DiagnosticController', () => {
       mockDiagnostic.submitAnswer.mockResolvedValue(answerResult);
 
       const orgCtx = { orgId: 'org-1', userId: 'u1', email: 'a@b.com', role: 'member' };
-      const body = { sessionId: 'sess-1', answer: 'A', responseTimeMs: 5000 };
+      const body = { sessionId: 'sess-1', answer: 'A', responseTimeMs: 5000, expectedProblemId: 'p1', questionNumber: 1 };
       const result = await controller.submitAnswer({ id: 'course-1', orgId: 'org-1', academyId: 'academy-1' }, body, orgCtx as any);
 
       expect(result).toEqual(answerResult);
       expect(mockDiagnostic.submitAnswer).toHaveBeenCalledWith('sess-1', 'u1', {
         answer: 'A',
         responseTimeMs: 5000,
+        expectedProblemId: 'p1',
+        questionNumber: 1,
       }, 'academy-1');
     });
   });
