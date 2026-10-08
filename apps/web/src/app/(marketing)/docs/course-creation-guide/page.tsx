@@ -30,6 +30,14 @@ export default function CourseCreationGuidePage() {
       description="A complete guide to building an adaptive learning course on Graspful. Every section explains the concept first, then shows a worked example using a JavaScript Fundamentals course as illustration. The principles apply to any subject — firefighting, real estate, AWS, or anything else that can be broken into learnable concepts."
     >
 
+      <p className="mt-6 text-sm text-muted-foreground">
+        Evaluating Graspful first? Start with the{" "}
+        <Link href="/ai-course-builder" className="text-primary hover:underline">
+          AI course builder overview
+        </Link>
+        .
+      </p>
+
       {/* Table of contents */}
       <nav className="mt-8 rounded-xl border border-border/50 bg-muted/30 p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground mb-3">

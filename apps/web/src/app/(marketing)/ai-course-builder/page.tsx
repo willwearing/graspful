@@ -11,11 +11,12 @@ import {
 } from "lucide-react";
 import { FAQPageJsonLd } from "@/components/seo/json-ld";
 import { TrackedMarketingLink } from "@/components/marketing/tracked-marketing-link";
+import { LessonPreview } from "@/components/marketing/lesson-preview";
 
 export const metadata: Metadata = {
-  title: "AI Course Builder for Adaptive Learning",
+  title: "AI Course Builder for Claude Code, Codex, and Cursor",
   description:
-    "Build validated adaptive courses from source material with Claude, Codex, Cursor, or another MCP client. Create knowledge graphs, lessons, assessments, and a branded learning site.",
+    "Turn your own documents into an adaptive course with the AI agent you already use. Your agent writes lessons and practice questions, Graspful checks them, and learners get scheduled review.",
   keywords: [
     "AI course builder",
     "AI course generator",
@@ -27,9 +28,9 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "https://graspful.ai/ai-course-builder" },
   openGraph: {
-    title: "AI Course Builder for Adaptive Learning | Graspful",
+    title: "AI Course Builder for Claude Code, Codex, and Cursor | Graspful",
     description:
-      "Turn source material into a validated adaptive course with your AI coding agent.",
+      "Turn your own documents into an adaptive course with the AI agent you already use.",
     url: "https://graspful.ai/ai-course-builder",
     images: [
       {
@@ -42,9 +43,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "AI Course Builder for Adaptive Learning | Graspful",
+    title: "AI Course Builder for Claude Code, Codex, and Cursor | Graspful",
     description:
-      "Turn source material into a validated adaptive course with your AI coding agent.",
+      "Turn your own documents into an adaptive course with the AI agent you already use.",
     images: ["/images/og-graspful.png"],
   },
 };
@@ -86,6 +87,11 @@ const differentiators = [
 ];
 
 const faqs = [
+  {
+    question: "Can ChatGPT or Claude create a course by itself?",
+    answer:
+      "They can draft outlines, lessons, and questions from your documents. They don't give you a fixed course format, checks for missing practice or broken answers, or a place where learners practice and come back for review. Graspful supplies those parts. Your agent still does the writing, and you still check the facts.",
+  },
   {
     question: "What is an AI course builder?",
     answer:
@@ -136,9 +142,10 @@ export default function AiCourseBuilderPage() {
             <span className="text-gradient">learning that adapts.</span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg lg:text-xl">
-            Give source material to your external AI agent. It writes lessons and
-            practice problems with Graspful tools. Review the content and checks
-            before you publish an adaptive course for your learners.
+            Already using Claude Code, Codex, or Cursor? Point it at your docs,
+            notes, or PDFs. It writes lessons and practice questions with
+            Graspful tools. You review the content and the checks, then publish
+            a course that uses learner answers to guide practice and review.
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <TrackedMarketingLink
@@ -223,6 +230,29 @@ graspful review course.yaml
               );
             })}
           </ol>
+        </div>
+      </section>
+
+      <section className="border-t border-border/40">
+        <div className="mx-auto grid max-w-6xl gap-10 px-6 py-20 md:py-28 lg:grid-cols-2 lg:items-center">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-sky-700 dark:text-sky-300">What learners get</p>
+            <h2 className="mt-2 text-3xl font-bold tracking-[-0.035em] sm:text-4xl">
+              Try a question from the example course
+            </h2>
+            <p className="mt-4 max-w-xl leading-7 text-muted-foreground">
+              This question comes from the SQL example course in the Graspful
+              repository. Pick a wrong answer to see the feedback a learner gets.
+              The course file is public, so you can read the lesson, worked
+              example, and questions your agent would write.
+            </p>
+            <p className="mt-4 max-w-xl leading-7 text-muted-foreground">
+              Want a course from a one-line prompt in a web app? A no-code
+              generator is faster for that. Graspful fits creators who already
+              work in an AI agent and have source material they trust.
+            </p>
+          </div>
+          <LessonPreview />
         </div>
       </section>
 

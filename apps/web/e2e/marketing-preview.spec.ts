@@ -33,3 +33,12 @@ test('FirefighterPrep mobile hero fits its subject headline', async ({ page, con
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: '/tmp/graspful-marketing-firefighter-mobile.png', fullPage: true });
 });
+
+test('AI course builder page shows the example lesson', async ({ page }) => {
+  await page.goto('/ai-course-builder');
+  const preview = page.getByRole('complementary', { name: 'Example SQL lesson' });
+  await expect(preview).toBeVisible();
+  await preview.getByRole('radio', { name: 'SELECT' }).check();
+  await preview.getByRole('button', { name: 'Check answer' }).click();
+  await expect(preview.getByRole('status')).toContainText('Correct. SELECT chooses the columns.');
+});
