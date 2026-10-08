@@ -255,6 +255,9 @@ The backend follows Domain-Driven Design with bounded contexts. Each NestJS modu
 2. **Controllers are thin.** Extract, validate, delegate to service, return. No domain logic in controllers.
 3. **Each module owns its Prisma queries.** Other modules request data through the owning module's service.
 4. **Cross-context data for the frontend** should be composed at the API/controller layer or in a dedicated query service , not by having one domain service reach into another's tables.
+5. **Collection writes in learner flows use typed bulk commands.** Calculate changes in domain code, then pass the changed records to the owning service. Keep parameterized SQL and bounded batches in that module's persistence functions. Each command defines its allowed fields and learner scope.
+6. **The use case owns the transaction.** Pass its transaction through all participating services. Keep writes across batches atomic, preserve concurrency guards, and normalize raw SQL serialization/deadlock errors to the Prisma conflict type handled by the caller's retry loop. Shared helpers can handle batching and error translation; domain modules own business validation.
+7. **Bulk-write changes require database regression proof.** Check bounded query counts, learner and academy isolation, rollback across batches, and concurrent updates against an isolated local database. Keep the normal learner transaction timeout.
 
 ## Backend
 

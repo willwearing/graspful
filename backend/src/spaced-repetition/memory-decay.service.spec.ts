@@ -36,11 +36,14 @@ describe('MemoryDecayService', () => {
 
     await service.decayAllMemory('user1', 'course1', now);
 
-    expect(mockStudentState.batchDecayMemory).toHaveBeenCalledWith([
+    expect(mockStudentState.batchDecayMemory).toHaveBeenCalledWith('user1', [
       expect.objectContaining({
-        userId: 'user1',
         conceptId: 'c1',
         memory: expect.any(Number),
+        expectedMemory: 0.8,
+        expectedInterval: 7,
+        expectedLastPracticedAt: sevenDaysAgo,
+        expectedMasteryState: 'mastered',
       }),
     ]);
   });

@@ -41,10 +41,14 @@ export class MemoryDecayService {
     if (updates.length === 0) return;
 
     await this.studentState.batchDecayMemory(
+      userId,
       updates.map(({ state, decayed }) => ({
-        userId: state.userId,
         conceptId: state.conceptId,
         memory: decayed,
+        expectedMemory: state.memory,
+        expectedInterval: state.interval,
+        expectedLastPracticedAt: state.lastPracticedAt!,
+        expectedMasteryState: state.masteryState,
       })),
     );
   }

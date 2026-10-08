@@ -2,9 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { StudentStateService } from '@/student-model/student-state.service';
-import {
-  activeEncompassingEdgeWhereAcademy,
-} from '@/knowledge-graph/active-course-content';
+import { EncompassingQueryService } from '@/knowledge-graph/encompassing-query.service';
 import {
   calculateRawDelta,
   calculateDecay,
@@ -20,6 +18,7 @@ export class FireUpdateService {
   constructor(
     private prisma: PrismaService,
     private studentState: StudentStateService,
+    private encompassing: EncompassingQueryService,
   ) {}
 
   /**
@@ -96,14 +95,7 @@ export class FireUpdateService {
     }
 
     // Fetch encompassing edges across all courses in this academy
-    const edges = await tx.encompassingEdge.findMany({
-      where: activeEncompassingEdgeWhereAcademy(academyId),
-      select: {
-        sourceConceptId: true,
-        targetConceptId: true,
-        weight: true,
-      },
-    });
+    const edges = await this.encompassing.getForAcademy(academyId, tx);
 
     if (edges.length === 0) return;
 
@@ -130,21 +122,18 @@ export class FireUpdateService {
       conceptStates.map((s) => [s.conceptId, s]),
     );
 
-    await Promise.all(
-      updates.map((update) => {
-        const current = stateMap.get(update.conceptId);
-        if (!current) return Promise.resolve();
-
-        const newRepNum = Math.max(0, current.repNum + update.repNumDelta);
-        const newMemory = Math.min(1, Math.max(0, current.memory + update.memoryDelta));
-
-        return this.studentState.updateConceptFIRe(userId, update.conceptId, {
-          repNum: newRepNum,
-          memory: newMemory,
-          interval: calculateNextInterval(newRepNum),
-        }, tx);
-      }),
-    );
+    const stateUpdates = updates.flatMap((update) => {
+      const current = stateMap.get(update.conceptId);
+      if (!current) return [];
+      const repNum = Math.max(0, current.repNum + update.repNumDelta);
+      return [{
+        conceptId: update.conceptId,
+        repNum,
+        memory: Math.min(1, Math.max(0, current.memory + update.memoryDelta)),
+        interval: calculateNextInterval(repNum),
+      }];
+    });
+    await this.studentState.applyRepetitionUpdates(userId, stateUpdates, tx);
   }
 
   private async runTransaction(
