@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -204,6 +203,13 @@ jobs:
         run: cd backend && bun run test --runInBand --runTestsByPath src/diagnostic/application/diagnostic-session.integration.spec.ts
         env:
           RUN_DIAGNOSTIC_DB_TESTS: "1"
+          DATABASE_URL: ${{ steps.supabase.outputs.DB_URL }}
+          DIRECT_URL: ${{ steps.supabase.outputs.DB_URL }}
+
+      - name: Test learner state bulk writes with database latency
+        run: cd backend && bun run test --runInBand --runTestsByPath src/student-model/application/student-state.integration.spec.ts
+        env:
+          RUN_STUDENT_STATE_DB_TESTS: "1"
           DATABASE_URL: ${{ steps.supabase.outputs.DB_URL }}
           DIRECT_URL: ${{ steps.supabase.outputs.DB_URL }}
 

@@ -1,3 +1,4 @@
+import { EncompassingQueryService } from '@/knowledge-graph/encompassing-query.service';
 import { FireUpdateService } from './fire-update.service';
 
 describe('FireUpdateService', () => {
@@ -19,9 +20,10 @@ describe('FireUpdateService', () => {
     mockStudentState = {
       getConceptState: jest.fn(),
       updateConceptFIRe: jest.fn().mockResolvedValue({}),
+      applyRepetitionUpdates: jest.fn().mockResolvedValue(undefined),
       getConceptStatesForFIRe: jest.fn().mockResolvedValue([]),
     };
-    service = new FireUpdateService(mockPrisma, mockStudentState);
+    service = new FireUpdateService(mockPrisma, mockStudentState, new EncompassingQueryService(mockPrisma));
   });
 
   describe('updateAfterReview', () => {
@@ -92,10 +94,9 @@ describe('FireUpdateService', () => {
       await service.propagateImplicitRepetition('u1', 'big', 0.3, 'academy1');
 
       // Should update small's repNum and memory
-      const smallUpdate = mockStudentState.updateConceptFIRe.mock.calls.find(
-        (call: any[]) => call[1] === 'small',
+      expect(mockStudentState.applyRepetitionUpdates).toHaveBeenCalledWith(
+        'u1', [expect.objectContaining({ conceptId: 'small', repNum: 1.15, memory: 0.55 })], mockTx,
       );
-      expect(smallUpdate).toBeDefined();
     });
 
     it('should not crash when no encompassing edges exist', async () => {
@@ -122,10 +123,9 @@ describe('FireUpdateService', () => {
       // Practice course-a-concept — should propagate to course-b-concept
       await service.propagateImplicitRepetition('u1', 'course-a-concept', 0.4, 'academy1');
 
-      const crossCourseUpdate = mockStudentState.updateConceptFIRe.mock.calls.find(
-        (call: any[]) => call[1] === 'course-b-concept',
+      expect(mockStudentState.applyRepetitionUpdates).toHaveBeenCalledWith(
+        'u1', [expect.objectContaining({ conceptId: 'course-b-concept', repNum: 2.24, memory: 0.74 })], mockTx,
       );
-      expect(crossCourseUpdate).toBeDefined();
     });
   });
 
@@ -151,7 +151,8 @@ describe('FireUpdateService', () => {
       );
       expect(mockStudentState.getConceptState).toHaveBeenCalledWith('u1', 'big', mockTx);
       expect(mockStudentState.getConceptStatesForFIRe).toHaveBeenCalledWith('u1', 'academy1', mockTx);
-      expect(mockStudentState.updateConceptFIRe).toHaveBeenCalledTimes(2);
+      expect(mockStudentState.updateConceptFIRe).toHaveBeenCalledTimes(1);
+      expect(mockStudentState.applyRepetitionUpdates.mock.calls[0][2]).toBe(mockTx);
       for (const call of mockStudentState.updateConceptFIRe.mock.calls) {
         expect(call[3]).toBe(mockTx);
       }
@@ -200,8 +201,16 @@ describe('FireUpdateService', () => {
       );
       mockStudentState.updateConceptFIRe.mockImplementation(
         async (_userId: string, conceptId: string, data: any, tx: any) => {
-          if (conceptId === 'small2' && failPropagation) throw new Error('propagation failed');
           tx.pending.set(conceptId, { ...tx.pending.get(conceptId), ...data });
+        },
+      );
+
+      mockStudentState.applyRepetitionUpdates.mockImplementation(
+        async (_userId: string, updates: any[], tx: any) => {
+          if (failPropagation) throw new Error('propagation failed');
+          for (const update of updates) {
+            tx.pending.set(update.conceptId, { ...tx.pending.get(update.conceptId), ...update });
+          }
         },
       );
 

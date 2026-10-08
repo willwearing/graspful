@@ -63,8 +63,6 @@ describe('DiagnosticSessionService', () => {
     mockStudentState = {
       getMasteryMap: jest.fn(),
       updateDiagnosticStates: jest.fn(),
-      bulkUpdateMasteries: jest.fn(),
-      updateSpeedParameters: jest.fn(),
       markDiagnosticComplete: jest.fn(),
       getMasteryMapForAcademy: jest.fn(),
     };
@@ -329,7 +327,6 @@ describe('DiagnosticSessionService', () => {
       mockPrisma.prerequisiteEdge.findMany.mockResolvedValue([]);
       mockPrisma.diagnosticMasterySnapshot.upsert.mockResolvedValue({});
       mockStudentState.updateDiagnosticStates.mockResolvedValue({});
-      mockStudentState.updateSpeedParameters.mockResolvedValue([]);
       mockStudentState.markDiagnosticComplete.mockResolvedValue({});
       mockPrisma.academyEnrollment.update.mockResolvedValue({});
 

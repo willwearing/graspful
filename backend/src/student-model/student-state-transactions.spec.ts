@@ -5,6 +5,7 @@ import { StudentStateService } from './student-state.service';
 
 describe('Diagnostic student state transaction boundaries', () => {
   const createClient = () => ({
+    $executeRaw: jest.fn().mockResolvedValue(1),
     studentConceptState: { update: jest.fn().mockResolvedValue({}) },
     academyEnrollment: { update: jest.fn().mockResolvedValue({}) },
     studentKPState: { findMany: jest.fn().mockResolvedValue([]) },
@@ -17,18 +18,16 @@ describe('Diagnostic student state transaction boundaries', () => {
     const service = new StudentStateService(client, new EnrollmentService(client));
     const transaction = tx as unknown as Prisma.TransactionClient;
 
-    await service.updateConceptDiagnosticState('user-1', 'concept-1', 'partially_known', 0.6, transaction);
-    await service.updateSpeedParameters('user-1', 0.9, 0.2, new Map([['concept-1', 1.4]]), transaction);
+    await service.updateDiagnosticStates('user-1', [
+      { conceptId: 'concept-1', diagnosticState: 'partially_known', pL: 0.6, speed: 1.4 },
+    ], 0.9, 0.2, transaction);
+    await service.applyRepetitionUpdates('user-1', [
+      { conceptId: 'concept-1', repNum: 2, memory: 0.7, interval: 7 },
+    ], transaction);
     await service.markDiagnosticComplete('user-1', 'academy-1', transaction);
 
-    expect(tx.studentConceptState.update).toHaveBeenNthCalledWith(1, {
-      where: { userId_conceptId: { userId: 'user-1', conceptId: 'concept-1' } },
-      data: { diagnosticState: 'partially_known', masteryState: 'in_progress', memory: 0.6 },
-    });
-    expect(tx.studentConceptState.update).toHaveBeenNthCalledWith(2, {
-      where: { userId_conceptId: { userId: 'user-1', conceptId: 'concept-1' } },
-      data: { speed: 1.4, abilityTheta: 0.9, speedRD: 0.2 },
-    });
+    expect(tx.$executeRaw).toHaveBeenCalledTimes(2);
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
     expect(tx.academyEnrollment.update).toHaveBeenCalledWith({
       where: { userId_academyId: { userId: 'user-1', academyId: 'academy-1' } },
       data: { diagnosticCompleted: true, diagnosticCompletedAt: expect.any(Date) },

@@ -1,3 +1,10 @@
+import {
+  persistDiagnosticStates,
+  persistMemoryDecay,
+  persistRepetitionStates,
+  type MemoryDecayRow,
+  type RepetitionStateRow,
+} from './application/student-concept-state.persistence';
 import { seedStudentStateForNewConcepts } from './application/content-state-seeder';
 import {
   applySectionExamResult,
@@ -127,65 +134,25 @@ export class StudentStateService {
     return loadMasteryMapForAcademy(this.prisma, userId, academyId);
   }
 
-  async updateConceptDiagnosticState(
-    userId: string,
-    conceptId: string,
-    diagnosticState: DiagnosticState,
-    pL: number,
-    tx: Prisma.TransactionClient = this.prisma,
-  ) {
-    const masteryState = this.diagnosticToMasteryState(diagnosticState);
-
-    logger.emit({
-      severityNumber: SeverityNumber.INFO,
-      severityText: 'INFO',
-      body: `Mastery updated`,
-      attributes: { 'user.id': userId, 'concept.id': conceptId, 'mastery.state': masteryState, 'mastery.pL': pL },
-    });
-
-    return tx.studentConceptState.update({
-      where: { userId_conceptId: { userId, conceptId } },
-      data: {
-        diagnosticState,
-        masteryState,
-        memory: pL,
-      },
-    });
-  }
-
-  async bulkUpdateMasteries(userId: string, updates: Map<string, number>) {
-    const promises = Array.from(updates.entries()).map(([conceptId, pL]) =>
-      this.prisma.studentConceptState.update({
-        where: { userId_conceptId: { userId, conceptId } },
-        data: { memory: pL },
-      }),
-    );
-    return Promise.all(promises);
-  }
-
   /** Apply diagnostic mastery and speed together without a query per concept. */
   async updateDiagnosticStates(
     userId: string,
     updates: Array<{ conceptId: string; diagnosticState: DiagnosticState; pL: number; speed: number }>,
     abilityTheta: number,
     speedRD: number,
-    tx: Prisma.TransactionClient = this.prisma,
+    tx?: Prisma.TransactionClient,
   ): Promise<void> {
     if (updates.length === 0) return;
+    if (!tx) {
+      return this.prisma.$transaction((client) =>
+        this.updateDiagnosticStates(userId, updates, abilityTheta, speedRD, client),
+      );
+    }
     const rows = updates.map((update) => ({
       ...update,
       masteryState: this.diagnosticToMasteryState(update.diagnosticState),
     }));
-    const count = await tx.$executeRaw`
-      UPDATE student_concept_states AS state
-      SET diagnostic_state = row."diagnosticState"::diagnostic_state,
-          mastery_state = row."masteryState"::mastery_state,
-          memory = row."pL", speed = row.speed,
-          ability_theta = ${abilityTheta}, speed_rd = ${speedRD}, updated_at = CURRENT_TIMESTAMP
-      FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb)
-        AS row("conceptId" uuid, "diagnosticState" text, "masteryState" text, "pL" double precision, speed double precision)
-      WHERE state.user_id = ${userId}::uuid AND state.concept_id = row."conceptId"
-    `;
+    const count = await persistDiagnosticStates(tx, userId, rows, abilityTheta, speedRD);
     // Keep completion atomic if imported or removed content changed the learner state.
     if (count !== updates.length) {
       throw new NotFoundException('Diagnostic learner state is no longer available');
@@ -196,23 +163,6 @@ export class StudentStateService {
       body: 'Diagnostic mastery updated',
       attributes: { 'user.id': userId, 'concepts.total': count },
     });
-  }
-
-  async updateSpeedParameters(
-    userId: string,
-    abilityTheta: number,
-    speedRD: number,
-    conceptSpeeds: Map<string, number>,
-    tx: Prisma.TransactionClient = this.prisma,
-  ) {
-    const promises = Array.from(conceptSpeeds.entries()).map(
-      ([conceptId, speed]) =>
-        tx.studentConceptState.update({
-          where: { userId_conceptId: { userId, conceptId } },
-          data: { speed, abilityTheta, speedRD },
-        }),
-    );
-    return Promise.all(promises);
   }
 
   async getProfileSummary(userId: string, courseId: string) {
@@ -509,23 +459,20 @@ export class StudentStateService {
     });
   }
 
-  async batchDecayMemory(
-    updates: Array<{ userId: string; conceptId: string; memory: number }>,
-  ) {
+  async applyRepetitionUpdates(
+    userId: string,
+    updates: RepetitionStateRow[],
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    const count = await persistRepetitionStates(tx, userId, updates);
+    if (count !== updates.length) {
+      throw new NotFoundException('Repetition learner state is no longer available');
+    }
+  }
+
+  async batchDecayMemory(userId: string, updates: MemoryDecayRow[]): Promise<void> {
     if (updates.length === 0) return;
-    return this.prisma.$transaction(
-      updates.map((update) =>
-        this.prisma.studentConceptState.update({
-          where: {
-            userId_conceptId: {
-              userId: update.userId,
-              conceptId: update.conceptId,
-            },
-          },
-          data: { memory: update.memory },
-        }),
-      ),
-    );
+    await this.prisma.$transaction((tx) => persistMemoryDecay(tx, userId, updates));
   }
 
   async seedStudentStateForNewConcepts(

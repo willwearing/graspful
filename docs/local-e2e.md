@@ -53,6 +53,14 @@ that failed completion writes roll back. CI runs it after migrations:
 (cd backend && RUN_DIAGNOSTIC_DB_TESTS=1 bun run test --runInBand --runTestsByPath src/diagnostic/application/diagnostic-session.integration.spec.ts)
 ```
 
+The learner-state persistence test covers memory decay and repetition credit for
+up to 1,001 related concepts, with query latency, concurrent practice, learner
+isolation, and rollback across multiple batches. Run it against the same database:
+
+```sh
+(cd backend && RUN_STUDENT_STATE_DB_TESTS=1 bun run test --runInBand --runTestsByPath src/student-model/application/student-state.integration.spec.ts)
+```
+
 The web config builds and starts the backend, then starts the web app. It does not apply database migrations. The site config starts the site app. Both configs pass the validated local environment to their servers and disable Stripe, PostHog, and Vercel domain writes for the test run. Account registration tests require the backend's development mode.
 
 By default, tests refuse to reuse an existing app server. Set `E2E_REUSE_EXISTING_SERVER=1` only after starting your own servers with these same local credentials. This is required when you want to run both suites against one prestarted stack. A local HTTP address alone does not prove that an existing backend uses a local database.

@@ -91,7 +91,6 @@ describe('diagnostic session workflow', () => {
   let studentState: {
     getMasteryMapForAcademy: jest.Mock;
     updateDiagnosticStates: jest.Mock;
-    updateSpeedParameters: jest.Mock;
     markDiagnosticComplete: jest.Mock;
   };
   let enrollment: { requireAcademyEnrollment: jest.Mock; getAcademyIdForCourse: jest.Mock };
@@ -124,7 +123,6 @@ describe('diagnostic session workflow', () => {
         ['concept-1', 0.5], ['concept-2', 0.5],
       ])),
       updateDiagnosticStates: jest.fn().mockResolvedValue({}),
-      updateSpeedParameters: jest.fn().mockResolvedValue([]),
       markDiagnosticComplete: jest.fn().mockResolvedValue({}),
     };
     enrollment = {
@@ -518,7 +516,6 @@ describe('diagnostic session workflow', () => {
       await expect(submit()).rejects.toThrow('Attempt failed');
 
       expect(studentState.updateDiagnosticStates).not.toHaveBeenCalled();
-      expect(studentState.updateSpeedParameters).not.toHaveBeenCalled();
       expect(studentState.markDiagnosticComplete).not.toHaveBeenCalled();
     });
 
@@ -582,7 +579,6 @@ describe('diagnostic session workflow', () => {
           { conceptId: 'concept-2', diagnosticState: 'conditionally_mastered', pL: 0.5, speed: expect.any(Number) },
         ], expect.any(Number), 250, tx,
       );
-      expect(studentState.updateSpeedParameters).not.toHaveBeenCalled();
       expect(studentState.markDiagnosticComplete).toHaveBeenCalledWith(userId, academyId, tx);
       expect(prisma.diagnosticSession.update).not.toHaveBeenCalled();
       expect(prisma.problemAttempt.create).not.toHaveBeenCalled();
@@ -619,7 +615,6 @@ describe('diagnostic session workflow', () => {
       expect(persistSnapshots).toHaveBeenCalledWith(tx, sessionId, [expect.objectContaining({ conceptId: 'concept-1' })]);
       expect(studentState.updateDiagnosticStates).toHaveBeenCalledTimes(1);
       expect(studentState.updateDiagnosticStates.mock.calls[0][1]).toEqual([expect.objectContaining({ conceptId: 'concept-1' })]);
-      expect(studentState.updateSpeedParameters).not.toHaveBeenCalled();
     });
   });
 
