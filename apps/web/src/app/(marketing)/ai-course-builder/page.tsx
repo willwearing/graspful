@@ -90,7 +90,7 @@ const faqs = [
   {
     question: "Can ChatGPT or Claude create a course by itself?",
     answer:
-      "They can draft outlines, lessons, and questions from your documents. They don't give you a fixed course format, checks for missing practice or broken answers, or a place where learners practice and come back for review. Graspful supplies those parts. Your agent still does the writing, and you still check the facts.",
+      "They can draft outlines, lessons, and questions from your documents. They don't give you a fixed course format, checks that catch thin practice and placeholder answers, or a place where learners practice and come back for review. Graspful supplies those parts. Your agent still does the writing, and you still check the facts.",
   },
   {
     question: "What is an AI course builder?",
