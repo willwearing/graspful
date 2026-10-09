@@ -44,6 +44,40 @@ describe('StudentStateService', () => {
     service = new StudentStateService(mockPrisma, new EnrollmentService(mockPrisma));
   });
 
+  describe('bulk diagnostic completion', () => {
+    it('maps all diagnostic classifications and uses only the supplied transaction', async () => {
+      const tx = { $executeRaw: jest.fn().mockResolvedValue(4) };
+      const updates = [
+        { conceptId: 'c1', diagnosticState: 'mastered' as const, pL: 0.9, speed: 2 },
+        { conceptId: 'c2', diagnosticState: 'conditionally_mastered' as const, pL: 0.6, speed: 1.5 },
+        { conceptId: 'c3', diagnosticState: 'partially_known' as const, pL: 0.3, speed: 1 },
+        { conceptId: 'c4', diagnosticState: 'unknown' as const, pL: 0.1, speed: 0.5 },
+      ];
+      await service.updateDiagnosticStates('u1', updates, 1.25, 250, tx as any);
+      expect(tx.$executeRaw).toHaveBeenCalledTimes(1);
+      const [sql, abilityTheta, speedRD, rows, userId] = tx.$executeRaw.mock.calls[0];
+      expect(sql.join('?')).toContain('state.user_id = ?::uuid');
+      expect([abilityTheta, speedRD, userId]).toEqual([1.25, 250, 'u1']);
+      expect(JSON.parse(rows)).toEqual(updates.map((update, index) => ({
+        ...update, masteryState: ['mastered', 'in_progress', 'in_progress', 'unstarted'][index],
+      })));
+      expect(mockPrisma.studentConceptState.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects incomplete learner writes so the caller rolls back completion', async () => {
+      const tx = { $executeRaw: jest.fn().mockResolvedValue(0) };
+      await expect(service.updateDiagnosticStates('u1', [
+        { conceptId: 'missing', diagnosticState: 'unknown', pL: 0.1, speed: 0.5 },
+      ], 1, 250, tx as any)).rejects.toThrow('Diagnostic learner state is no longer available');
+    });
+
+    it('does not write an empty diagnostic', async () => {
+      const tx = { $executeRaw: jest.fn() };
+      await service.updateDiagnosticStates('u1', [], 1, 250, tx as any);
+      expect(tx.$executeRaw).not.toHaveBeenCalled();
+    });
+  });
+
   describe('applied mastery evidence', () => {
     it.each([
       [false, false, false],

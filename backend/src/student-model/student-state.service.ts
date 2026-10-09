@@ -163,6 +163,41 @@ export class StudentStateService {
     return Promise.all(promises);
   }
 
+  /** Apply diagnostic mastery and speed together without a query per concept. */
+  async updateDiagnosticStates(
+    userId: string,
+    updates: Array<{ conceptId: string; diagnosticState: DiagnosticState; pL: number; speed: number }>,
+    abilityTheta: number,
+    speedRD: number,
+    tx: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    if (updates.length === 0) return;
+    const rows = updates.map((update) => ({
+      ...update,
+      masteryState: this.diagnosticToMasteryState(update.diagnosticState),
+    }));
+    const count = await tx.$executeRaw`
+      UPDATE student_concept_states AS state
+      SET diagnostic_state = row."diagnosticState"::diagnostic_state,
+          mastery_state = row."masteryState"::mastery_state,
+          memory = row."pL", speed = row.speed,
+          ability_theta = ${abilityTheta}, speed_rd = ${speedRD}, updated_at = CURRENT_TIMESTAMP
+      FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb)
+        AS row("conceptId" uuid, "diagnosticState" text, "masteryState" text, "pL" double precision, speed double precision)
+      WHERE state.user_id = ${userId}::uuid AND state.concept_id = row."conceptId"
+    `;
+    // Keep completion atomic if imported or removed content changed the learner state.
+    if (count !== updates.length) {
+      throw new NotFoundException('Diagnostic learner state is no longer available');
+    }
+    logger.emit({
+      severityNumber: SeverityNumber.INFO,
+      severityText: 'INFO',
+      body: 'Diagnostic mastery updated',
+      attributes: { 'user.id': userId, 'concepts.total': count },
+    });
+  }
+
   async updateSpeedParameters(
     userId: string,
     abilityTheta: number,
