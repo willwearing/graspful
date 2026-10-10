@@ -5,9 +5,9 @@ import { QUALITY_CHECKS } from "@graspful/shared";
 import { CodeBlock, InlineCode } from "@/components/docs/code-block";
 
 export const metadata: Metadata = {
-  title: "MCP Server — Graspful Docs",
+  title: { absolute: "Graspful MCP Server: Setup and Login" },
   description:
-    "Set up the Graspful MCP server for Claude Code, Cursor, Codex, VS Code, and other AI agents. Tool schemas and configuration examples.",
+    "Install the Graspful MCP server in Claude Code, Cursor, Codex, or VS Code. Log in with graspful login or an API key, then scaffold, review, and publish courses.",
   keywords: [
     "graspful mcp",
     "mcp server",
