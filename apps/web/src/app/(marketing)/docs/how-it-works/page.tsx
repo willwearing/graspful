@@ -7,9 +7,9 @@ import { CodeBlock } from "@/components/docs/code-block";
 import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "How Graspful Works — Graspful Docs",
+  title: { absolute: "How Graspful Works: Adaptive Courses That Track Mastery" },
   description:
-    "Conceptual overview of the Graspful adaptive learning engine. Knowledge graphs, adaptive diagnostics, mastery-based progression, spaced repetition, and the two-YAML workflow.",
+    "Graspful maps what each learner knows with an adaptive diagnostic, unlocks concepts once prerequisites are mastered, and schedules review before they forget.",
   keywords: [
     "graspful overview",
     "adaptive learning engine",
