@@ -7,9 +7,9 @@ import { CodeBlock } from "@/components/docs/code-block";
 import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Quickstart | Graspful Docs",
+  title: { absolute: "Graspful Quickstart: Install the CLI and Build Your First Course" },
   description:
-    "Install the CLI, author and review a course locally, then import a draft and confirm publication.",
+    "Install the Graspful CLI with Bun, scaffold a course in YAML, run validate and review, then import a draft and publish. Your AI agent can do the authoring through MCP.",
   keywords: ["graspful quickstart", "graspful tutorial", "create course", "CLI quickstart"],
   alternates: { canonical: "https://graspful.ai/docs/quickstart" },
 };
