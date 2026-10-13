@@ -17,11 +17,11 @@ import { SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 import { AuthLink } from "@/components/navigation/auth-link";
 
 export const metadata: Metadata = {
-  title: "AI Agents",
+  title: "Build Adaptive Courses with AI Agents via MCP",
   description:
     "Build adaptive learning courses with AI agents. Define courses as YAML, import via CLI or MCP, and review and publish a course from your source material.",
   openGraph: {
-    title: "Build courses with AI agents — Graspful",
+    title: "Build Adaptive Courses with AI Agents via MCP | Graspful",
     description:
       "Define courses as YAML, import via CLI or MCP, and publish reviewed lessons with a knowledge graph, practice problems, and scheduled review.",
     url: "https://graspful.ai/agents",
@@ -30,13 +30,13 @@ export const metadata: Metadata = {
         url: "/images/og-graspful.png",
         width: 1200,
         height: 630,
-        alt: "Build courses with AI agents — Graspful",
+        alt: "Build Adaptive Courses with AI Agents via MCP | Graspful",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Build courses with AI agents — Graspful",
+    title: "Build Adaptive Courses with AI Agents via MCP | Graspful",
     description:
       "Define courses as YAML, import via CLI or MCP, and review and publish adaptive learning courses.",
     images: ["/images/og-graspful.png"],
