@@ -772,8 +772,8 @@ export const graspfulBrand: BrandConfig = {
   },
 
   seo: {
-    title: "Graspful: Build courses with practice and review",
-    description: "Create courses from source material with your agent and Graspful CLI or MCP tools. Review and publish lessons with practice questions and scheduled review.",
+    title: "Graspful: Build adaptive courses with Claude Code and MCP",
+    description: "Draft a course from your source material with Claude Code, Codex, or Cursor and the Graspful CLI or MCP tools. Review checks gate publishing. Learners get practice and scheduled review.",
     keywords: [
       "course creation",
       "adaptive learning",
