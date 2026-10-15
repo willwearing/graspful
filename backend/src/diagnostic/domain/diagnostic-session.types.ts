@@ -6,6 +6,8 @@ import { classifyDiagnosticState } from '../bkt-engine';
 export interface DiagnosticAnswerInput {
   answer: unknown;
   responseTimeMs: number;
+  expectedProblemId?: string;
+  questionNumber?: number;
 }
 
 export interface DiagnosticConceptRecord {
@@ -24,6 +26,7 @@ export type DiagnosticProblemRecord = Prisma.ProblemGetPayload<{
 }>;
 
 export interface DiagnosticSessionQuestion {
+  supportsQuestionIdentity?: boolean;
   sessionId: string;
   questionNumber: number;
   totalEstimated: number;
@@ -64,6 +67,7 @@ export interface DiagnosticResult {
 export interface DiagnosticSessionCompletion {
   sessionId: string;
   isComplete: true;
+  wasCorrect: boolean;
   questionsAnswered: number;
   result: DiagnosticResult;
 }

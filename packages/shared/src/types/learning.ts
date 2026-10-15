@@ -19,6 +19,8 @@ export interface LessonStart {
 
 /** Response shared by course and academy diagnostic endpoints. */
 export interface DiagnosticStart {
+  /** Advertised by servers that validate the submitted question identity. */
+  supportsQuestionIdentity?: boolean;
   sessionId: string;
   courseId: string;
   questionNumber: number;

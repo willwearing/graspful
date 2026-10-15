@@ -45,6 +45,14 @@ Run either suite from the repository root:
 (cd apps/site && bun run test:e2e)
 ```
 
+The diagnostic persistence test uses the same isolated database. It adds database
+latency to a 140-concept academy, checks concurrent and stale answers, and verifies
+that failed completion writes roll back. CI runs it after migrations:
+
+```sh
+(cd backend && RUN_DIAGNOSTIC_DB_TESTS=1 bun run test --runInBand --runTestsByPath src/diagnostic/application/diagnostic-session.integration.spec.ts)
+```
+
 The web config builds and starts the backend, then starts the web app. It does not apply database migrations. The site config starts the site app. Both configs pass the validated local environment to their servers and disable Stripe, PostHog, and Vercel domain writes for the test run. Account registration tests require the backend's development mode.
 
 By default, tests refuse to reuse an existing app server. Set `E2E_REUSE_EXISTING_SERVER=1` only after starting your own servers with these same local credentials. This is required when you want to run both suites against one prestarted stack. A local HTTP address alone does not prove that an existing backend uses a local database.
