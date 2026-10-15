@@ -44,7 +44,7 @@ const routeCases = [
   ["/docs/mcp", "MCP Server", "api-key setup claude-code cursor codex vscode workflow tools graspful_scaffold_course graspful_fill_concept graspful_validate graspful_review_course graspful_import_course graspful_publish_course graspful_describe_course graspful_create_brand graspful_import_brand graspful_list_courses"],
   ["/docs", "Documentation", ""],
   ["/docs/quickstart", "Quickstart", "install authoring scaffold fill review register import publish brand"],
-  ["/docs/review-gate", "Review gate", "how-it-works checks scoring"],
+  ["/docs/review-gate", "Review gate: check an AI-generated course before publishing", "how-it-works checks scoring"],
 ] as const;
 
 const routes = new Map<string, { default: ComponentType; metadata: Metadata }>([

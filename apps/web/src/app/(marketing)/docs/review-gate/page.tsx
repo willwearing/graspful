@@ -5,9 +5,11 @@ import type { Metadata } from "next";
 import { QUALITY_CHECK_METADATA } from "@graspful/shared";
 import { CodeBlock, InlineCode } from "@/components/docs/code-block";
 
+const CHECK_COUNT = QUALITY_CHECK_METADATA.length;
+
 export const metadata: Metadata = {
-  title: "Review gate | Graspful docs",
-  description: "The automated checks required to publish a Graspful course, their limits, and how to resolve failures.",
+  title: { absolute: "Check an AI-Generated Course Before Publishing: Graspful Review Gate" },
+  description: `Run ${CHECK_COUNT} automated checks on an AI-authored course before it goes live: duplicate questions, difficulty staircase, problem depth, worked examples, and an import dry run. Then check facts against your sources.`,
   alternates: { canonical: "https://graspful.ai/docs/review-gate" },
 };
 
@@ -15,7 +17,7 @@ export default function ReviewGatePage() {
   const checkCount = QUALITY_CHECK_METADATA.length;
   return (
     <DocPage
-      title="Review gate"
+      title="Review gate: check an AI-generated course before publishing"
       titleClassName="tracking-tight"
       description={<>
         A course must pass {checkCount} automated checks before publication.
