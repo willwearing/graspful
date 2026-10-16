@@ -1139,6 +1139,8 @@ concepts:
 
           Primary buyers: Support Leaders, Engineering Leads, Product Managers, AI Leads, CS Leaders.
 
+          Support leaders care about faster resolution, fewer escalations, and what their agent tooling costs per seat. So open with where the work lands and what it costs: "Where do customer conversations land today, and what does that tool cost you per seat?" Then ask what their agents already know when a ticket comes in, and what they have to go ask for. The gap between those two answers is where Replay, Error Tracking, and Logs fit.
+
           Key business impact: engineering time savings. Bug reproduction drops from 2 hours to 30-60 minutes. Support shares one link (replay + errors + logs) and engineering has full context in seconds. Can justify the entire PostHog contract on debugging time savings alone.
         instructionContent:
           - body: Bug reproduction drops from 2 hours to 30-60 minutes. Support shares one link (replay + errors + logs) and engineering has full context in seconds. This alone can justify the entire PostHog contract.
