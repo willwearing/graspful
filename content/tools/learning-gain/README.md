@@ -8,7 +8,7 @@ A small model (Haiku) plays a new hire and takes a multiple-choice exam three wa
 
 | Mode | Reading the student gets | What it tells you |
 |------|--------------------------|-------------------|
-| `guess` | Nothing | The floor. Questions answerable by common sense. |
+| `guess` | Nothing | Which items common sense already answers. Those don't count as hard. |
 | `taught` | The concept's lesson plus its direct prerequisites | The score the loop tries to raise. |
 | `oracle` | The source material the exam was written from | Exam health. Items the oracle misses are broken and stop counting. |
 
@@ -18,7 +18,7 @@ In `taught` and `oracle` mode a right answer only counts when it's backed by a v
 - `unsupported`: the student picked an answer the lesson doesn't state. Make the idea explicit.
 - `wrong`: the lesson led the student to the wrong option. The lesson is unclear or misleading.
 
-Learning gain is `(taught - guess) / (1 - guess)` on the dev split.
+Learning gain is the share of hard dev items (ones the `guess` student misses) that the `taught` student gets right. Taught answers need a quote and guesses don't, so subtracting one score from the other would mix two different things.
 
 ## The exam stays hidden
 
