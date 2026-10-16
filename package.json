@@ -13,7 +13,7 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "test:scripts": "bun test backend/scripts"
+    "test:scripts": "bun test backend/scripts content/tools"
   },
   "devDependencies": {
     "turbo": "^2.4.0",
