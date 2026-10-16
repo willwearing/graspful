@@ -259,6 +259,10 @@ Any agent that edits a course YAML — whether adding concepts, rewriting proble
 - Do not override a gate failure with a justification. If the gate says fail, either fix the issue or revert the change.
 - Do not treat the gate as a final step. It is a loop — the agent should expect to run it multiple times per authoring session.
 
+### After the gate passes: learning gain
+
+The gate is pass/fail, so a course at 10/10 gives this loop nothing left to climb. From there, use the [learning-gain eval](../content/tools/learning-gain/README.md) as the score: a simulated student takes a hidden exam written from the source material, using only the course's lessons. Keep a change only when the target concept answers more exam items and the gate still passes.
+
 ### Logging
 
 Each iteration should be logged so quality trends are visible:
