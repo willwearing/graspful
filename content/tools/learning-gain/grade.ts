@@ -29,6 +29,8 @@ export interface Report {
   samples: number;
   dev: { correct: number; total: number; score: number };
   test: { correct: number; total: number; score: number };
+  // Dev items the no-reading guesser misses. Getting these right is learning, not common sense.
+  hard: { correct: number; total: number; score: number };
   concepts: Record<string, ConceptScore>;
 }
 
@@ -67,7 +69,7 @@ export function gradeItem(mode: Mode, item: ExamItem, answer: Answer | undefined
   return choice === item.correct ? 'correct' : 'wrong';
 }
 
-function majorityCorrect(outcomes: Outcome[]): boolean {
+export function majorityCorrect(outcomes: Outcome[]): boolean {
   return outcomes.filter((o) => o === 'correct').length * 2 > outcomes.length;
 }
 
@@ -78,12 +80,13 @@ function mostCommonMiss(outcomes: Outcome[]): Outcome {
   return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'wrong';
 }
 
-export function summarize(mode: Mode, samples: number, results: ItemResult[]): Report {
+export function summarize(mode: Mode, samples: number, results: ItemResult[], guessable: Set<string> = new Set()): Report {
   const report: Report = {
     mode,
     samples,
     dev: { correct: 0, total: 0, score: 0 },
     test: { correct: 0, total: 0, score: 0 },
+    hard: { correct: 0, total: 0, score: 0 },
     concepts: {},
   };
   for (const result of results) {
@@ -93,12 +96,16 @@ export function summarize(mode: Mode, samples: number, results: ItemResult[]): R
     if (passed) split.correct += 1;
     // Per-concept detail is dev only. Test items stay aggregate so the loop can't tune toward them.
     if (result.split !== 'dev') continue;
+    if (!guessable.has(result.id)) {
+      report.hard.total += 1;
+      if (passed) report.hard.correct += 1;
+    }
     const concept = (report.concepts[result.conceptId] ??= { correct: 0, total: 0, failed: [] });
     concept.total += 1;
     if (passed) concept.correct += 1;
     else concept.failed.push({ objective: result.objective, outcome: mostCommonMiss(result.outcomes) });
   }
-  for (const split of [report.dev, report.test]) split.score = split.total ? split.correct / split.total : 0;
+  for (const split of [report.dev, report.test, report.hard]) split.score = split.total ? split.correct / split.total : 0;
   return report;
 }
 

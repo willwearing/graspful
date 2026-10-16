@@ -30,7 +30,7 @@ export function studentPrompt(mode: Mode, reading: string | null, items: ExamIte
       ];
   const output = '{"answers":[{"id":"<question id>","choice":"A|B|C|D|null","quote":"..."}]}';
   const deliver = answerPath
-    ? `Write ONLY this JSON (no prose, no code fences) to the file ${answerPath}: ${output}. Answer every question. Do not read any other files. Then reply "done".`
+    ? `Write ONLY this JSON (no prose, no code fences) to the file ${answerPath}: ${output}. Answer every question. Do not read any other files. Then reply with only the word "done". Never repeat questions, choices, or quotes in your reply.`
     : `Reply with ONLY this JSON (no prose, no code fences): ${output}. Answer every question.`;
   return [
     ...rules,

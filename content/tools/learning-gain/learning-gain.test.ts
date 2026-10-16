@@ -96,8 +96,9 @@ describe('summarize and decide', () => {
   ].map((r) => ({ ...r, outcomes: [...r.outcomes] }));
 
   test('scores by majority vote and keeps test items out of the per-concept detail', () => {
-    const report = summarize('taught', 3, results);
+    const report = summarize('taught', 3, results, new Set(['q1']));
     expect(report.dev).toEqual({ correct: 1, total: 2, score: 0.5 });
+    expect(report.hard).toEqual({ correct: 0, total: 1, score: 0 });
     expect(report.test.correct).toBe(1);
     expect(report.concepts.b.failed).toEqual([{ objective: 'two', outcome: 'abstain' }]);
     expect(JSON.stringify(report)).not.toContain('hidden');
@@ -108,6 +109,7 @@ describe('summarize and decide', () => {
     samples: 3,
     dev: { correct: 0, total: 0, score: 0 },
     test: { correct: 0, total: 0, score: 0 },
+    hard: { correct: 0, total: 0, score: 0 },
     concepts: { b: { correct: b, total: 5, failed: [] }, d: { correct: d, total: 5, failed: [] } },
   });
 

@@ -23,6 +23,8 @@ export interface Exam {
   items: ExamItem[];
   // Written by `calibrate`: items the source-taught student misses are broken and stop counting.
   excluded?: string[];
+  // Also from `calibrate`: dev items a student with no reading gets right anyway.
+  guessable?: string[];
   guessRate?: number;
 }
 

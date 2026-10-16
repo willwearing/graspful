@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { checkExam, type Exam, type ExamItem, loadExam, scoredItems } from './exam';
-import { type Answer, decide, gradeItem, type ItemResult, type Report, summarize } from './grade';
+import { type Answer, decide, gradeItem, type ItemResult, majorityCorrect, type Outcome, type Report, summarize } from './grade';
 import { affectedConcepts, hashText, loadCourse, type Mode, readingFor } from './lesson';
 import { studentPrompt } from './prompt';
 import { runQualityGate } from '../../../packages/shared/src/index';
@@ -29,6 +29,9 @@ const { positionals, values: flags } = parseArgs({
     model: { type: 'string', default: 'claude-haiku-5-5' },
   },
 });
+
+// Roughly 40k tokens: comfortable for one Haiku subagent to read and answer.
+const MAX_BATCH_CHARS = 150_000;
 
 interface Packet {
   name: string;
@@ -91,19 +94,30 @@ function prepare(): Manifest {
   const exam = loadExam(examPath);
   const manifest: Manifest = { course: coursePath, exam: examPath, mode, samples, packets: [] };
   fs.rmSync(out, { recursive: true, force: true });
+  const batches: string[][] = [];
   for (let sample = 1; sample <= samples; sample++) {
-    const batch: string[] = [];
+    // Each batch is one subagent. Samples never share one, and big readings split across several.
+    let batch: string[] = [];
+    let size = 0;
     for (const [conceptId, items] of itemsByConcept(exam, selectConcepts(course))) {
       const name = `${conceptId}.${mode}.s${sample}`;
       const reading = readingFor(mode, conceptId, course, exam);
       const packetPath = path.join(out, 'packets', `${name}.md`);
+      const packet = studentPrompt(mode, reading, items, path.join(out, 'answers', `${name}.json`));
       fs.mkdirSync(path.dirname(packetPath), { recursive: true });
-      fs.writeFileSync(packetPath, studentPrompt(mode, reading, items, path.join(out, 'answers', `${name}.json`)));
+      fs.writeFileSync(packetPath, packet);
       manifest.packets.push({ name, conceptId, sample, itemIds: items.map((i) => i.id), readingHash: reading === null ? null : hashText(reading) });
+      if (batch.length && size + packet.length > MAX_BATCH_CHARS) {
+        batches.push(batch);
+        batch = [];
+        size = 0;
+      }
       batch.push(packetPath);
+      size += packet.length;
     }
-    fs.writeFileSync(path.join(out, `batch-s${sample}.txt`), `${batch.join('\n')}\n`);
+    if (batch.length) batches.push(batch);
   }
+  batches.forEach((batch, i) => fs.writeFileSync(path.join(out, `batch-${i + 1}.txt`), `${batch.join('\n')}\n`));
   fs.mkdirSync(path.join(out, 'answers'), { recursive: true });
   writeJson(path.join(out, 'manifest.json'), manifest);
   return manifest;
@@ -145,7 +159,7 @@ function grade(dir: string): Report {
     }
   }
   if (missing.length) console.error(`warning: no answers for ${missing.join(', ')} (scored as abstain)`);
-  const report = summarize(manifest.mode, manifest.samples, [...results.values()]);
+  const report = summarize(manifest.mode, manifest.samples, [...results.values()], new Set(exam.guessable ?? []));
   writeJson(path.join(dir, 'report.json'), report);
   // Item-level outcomes stay next to the answers for calibration. They are ids only, never question text.
   writeJson(path.join(dir, 'items.json'), [...results.values()].map(({ id, outcomes }) => ({ id, outcomes })));
@@ -180,24 +194,27 @@ async function run(): Promise<Report> {
   return grade(dir);
 }
 
-/** Broken items (the source-taught student misses them) stop counting. Guess rate is the no-reading floor. */
+/** Broken items (the source-taught student misses them) stop counting. Guessable items don't count as hard. */
 function calibrate() {
   const examPath = need('exam');
   const exam = loadExam(examPath);
-  const oracle = readJson<{ id: string; outcomes: string[] }[]>(path.join(need('oracle'), 'items.json'));
-  const guess = readJson<Report>(path.join(need('guess'), 'report.json'));
-  exam.excluded = oracle.filter((r) => r.outcomes.filter((o) => o === 'correct').length * 2 <= r.outcomes.length).map((r) => r.id);
-  const kept = exam.items.length - exam.excluded.length;
-  exam.guessRate = guess.dev.score;
+  const items = (dir: string) => readJson<{ id: string; outcomes: Outcome[] }[]>(path.join(dir, 'items.json'));
+  exam.excluded = items(need('oracle')).filter((r) => !majorityCorrect(r.outcomes)).map((r) => r.id);
+  const excluded = new Set(exam.excluded);
+  const guessed = items(need('guess')).filter((r) => !excluded.has(r.id));
+  const dev = new Set(exam.items.filter((i) => i.split === 'dev').map((i) => i.id));
+  exam.guessable = guessed.filter((r) => dev.has(r.id) && majorityCorrect(r.outcomes)).map((r) => r.id);
+  const devGuessed = guessed.filter((r) => dev.has(r.id));
+  exam.guessRate = devGuessed.length ? exam.guessable.length / devGuessed.length : 0;
   writeJson(examPath, exam);
-  return { items: exam.items.length, excluded: exam.excluded.length, kept, guessRate: exam.guessRate };
+  return { items: exam.items.length, excluded: exam.excluded.length, guessable: exam.guessable.length, hardDev: devGuessed.length - exam.guessable.length, guessRate: exam.guessRate };
 }
 
 function printReport(report: Report, exam?: Exam) {
   const pct = (n: number) => `${Math.round(n * 100)}%`;
   console.log(`${report.mode} x${report.samples}: dev ${report.dev.correct}/${report.dev.total} (${pct(report.dev.score)}), test ${report.test.correct}/${report.test.total} (${pct(report.test.score)})`);
-  if (report.mode === 'taught' && exam?.guessRate !== undefined && exam.guessRate < 1) {
-    console.log(`learning gain (dev, normalized): ${pct((report.dev.score - exam.guessRate) / (1 - exam.guessRate))} over a ${pct(exam.guessRate)} guess floor`);
+  if (report.mode === 'taught' && exam?.guessable) {
+    console.log(`learning gain: ${report.hard.correct}/${report.hard.total} hard items taught (${pct(report.hard.score)}). Guess floor: ${pct(exam.guessRate ?? 0)} of dev items.`);
   }
   for (const [id, concept] of Object.entries(report.concepts)) {
     console.log(`  ${id}: ${concept.correct}/${concept.total}`);
@@ -219,7 +236,8 @@ async function main() {
     process.exit(errors.length ? 1 : 0);
   } else if (command === 'prepare') {
     const manifest = prepare();
-    console.log(`${manifest.packets.length} packets in ${need('out')}. Batches: ${Array.from({ length: manifest.samples }, (_, i) => `batch-s${i + 1}.txt`).join(', ')}`);
+    const batches = fs.readdirSync(need('out')).filter((f) => f.startsWith('batch-')).sort();
+    console.log(`${manifest.packets.length} packets in ${need('out')}. One subagent per batch: ${batches.join(', ')}`);
   } else if (command === 'grade') {
     const dir = need('dir');
     printReport(grade(dir), loadExam(readJson<Manifest>(path.join(dir, 'manifest.json')).exam));

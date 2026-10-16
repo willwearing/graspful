@@ -29,14 +29,14 @@ Items are split. `dev` items report per concept with their objective (the skill 
 ## Commands
 
 ```bash
-LG="bun content/tools/learning-gain/cli.ts"
-$LG check --course <course.yaml> --exam <exam.json>
-$LG prepare --course <course.yaml> --exam <exam.json> --mode taught --samples 3 --out <dir> [--concepts a,b]
-# a Haiku subagent per batch-sN.txt answers every packet listed in it
-$LG grade --dir <dir>
-$LG calibrate --exam <exam.json> --oracle <oracle-dir> --guess <guess-dir>
-$LG affected --course <course.yaml> --target <concept-id>
-$LG decide --before <dir>/report.json --after <dir>/report.json --target <concept-id>
+LG=content/tools/learning-gain/cli.ts
+bun $LG check --course <course.yaml> --exam <exam.json>
+bun $LG prepare --course <course.yaml> --exam <exam.json> --mode taught --samples 3 --out <dir> [--concepts a,b]
+# one Haiku subagent per batch-N.txt answers every packet listed in it
+bun $LG grade --dir <dir>
+bun $LG calibrate --exam <exam.json> --oracle <oracle-dir> --guess <guess-dir>
+bun $LG affected --course <course.yaml> --target <concept-id>
+bun $LG decide --before <dir>/report.json --after <dir>/report.json --target <concept-id>
 ```
 
 With `ANTHROPIC_API_KEY` set, `run` replaces prepare + subagents + grade in one step, at temperature 0.
