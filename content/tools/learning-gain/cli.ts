@@ -232,7 +232,8 @@ async function main() {
     const exam = loadExam(need('exam'));
     const errors = checkExam(exam, loadCourse(need('course')));
     const scored = scoredItems(exam);
-    console.log(errors.length ? errors.join('\n') : `OK: ${exam.items.length} items (${scored.length} scored), ${scored.filter((i) => i.split === 'test').length} held-out test`);
+    const calibration = exam.guessable ? `guess rate ${Math.round((exam.guessRate ?? 0) * 100)}%, ${exam.excluded?.length ?? 0} broken` : 'UNCALIBRATED: run oracle and guess, then calibrate';
+    console.log(errors.length ? errors.join('\n') : `OK: ${exam.items.length} items (${scored.length} scored), ${scored.filter((i) => i.split === 'test').length} held-out test, ${calibration}`);
     process.exit(errors.length ? 1 : 0);
   } else if (command === 'prepare') {
     const manifest = prepare();
