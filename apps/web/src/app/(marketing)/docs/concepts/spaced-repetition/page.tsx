@@ -7,9 +7,11 @@ import { CodeBlock } from "@/components/docs/code-block";
 import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Spaced Repetition — Graspful Docs",
+  title: {
+    absolute: "Spaced Repetition in Adaptive Courses: How Graspful Schedules Reviews",
+  },
   description:
-    "How Graspful's FIRe algorithm schedules reviews using exponential forgetting, early-repetition discounting, and implicit repetition through encompassing edges.",
+    "Graspful schedules spaced repetition reviews with the FIRe algorithm: memory decays as 0.5^(days/interval), early reviews count for less, and practicing an advanced concept credits the basics it uses.",
   keywords: [
     "spaced repetition",
     "FIRe algorithm",
