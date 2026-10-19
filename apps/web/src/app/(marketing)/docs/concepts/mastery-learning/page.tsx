@@ -7,9 +7,11 @@ import { CodeBlock } from "@/components/docs/code-block";
 import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Mastery Learning — Graspful Docs",
+  title: {
+    absolute: "Mastery Learning in Adaptive Courses: How Graspful Gates Progress",
+  },
   description:
-    "How Graspful implements mastery learning using Bayesian Knowledge Tracing to estimate student knowledge and enforce prerequisite mastery before advancement.",
+    "Graspful applies mastery learning to adaptive courses: a concept unlocks only when every prerequisite is mastered, passes after 2 correct answers in a row, and Bayesian Knowledge Tracing estimates what you already know.",
   keywords: [
     "mastery learning",
     "bayesian knowledge tracing",
