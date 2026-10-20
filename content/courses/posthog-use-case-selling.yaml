@@ -194,6 +194,8 @@ concepts:
 
           - Product Analytics and Session Replay together are primary for Customer Experience.
 
+          One matrix row has a catch. **Customer Analytics** (beta) is primary for Growth & Marketing and secondary for Product Intelligence. It answers "how is this account doing," not just "what did users do." But its B2B mode, the account-level view, requires the **Group Analytics** add-on. So when a B2B customer asks for account-level customer views, check whether they have Group Analytics first.
+
           Key insight: products can be primary for one use case and secondary for several others. Session Replay is a secondary expansion product in six of seven use cases. This means the same product gets pitched differently depending on context.
         instructionContent:
           - body: Session Replay appears as secondary in 6 of 7 use cases. The same product gets pitched differently depending on context. "Watch the drop-off" (PI), "watch the error" (Obs), "watch the bug report" (CX) — same product, different framing.
@@ -606,6 +608,8 @@ concepts:
 
           The primary buyers are SREs, Backend Engineers, Product Engineers, Engineering Managers, and early-stage Founders.
 
+          **A naming note on APM.** "APM" is PostHog's internal team name, not a product. Customer-facing, there are three OpenTelemetry pillars: **Logs**, **Distributed tracing** (alpha), and **Metrics** (alpha). So when a customer asks about the APM roadmap, don't say "APM is coming." Tell them which pillar ships today and at what maturity. Tracing and metrics are usable now and free during alpha, but a team mid-migration off Datadog should keep their existing tool running.
+
           Key business insight: observability data connected to product analytics is a moat. Only PostHog can say "this error affected 500 users, 30 were in checkout, $15k lost revenue this week." Sentry gives you a stack trace. PostHog gives you business impact.
         instructionContent:
           - body: Observability data connected to product analytics is PostHog's moat. Only PostHog can say "this error affected 500 users, 30 were in checkout, $15k lost revenue this week." Sentry gives a stack trace. PostHog gives business impact.
@@ -632,14 +636,14 @@ concepts:
             explanation: The error-to-replay connection is the killer feature. Sentry gives you a stack trace; PostHog gives you the stack trace plus the user's actual experience. No other error tracking tool offers this.
           - id: obs-kp1-p2
             type: multiple_choice
-            question: What is a known gap in the Observability story that you must be transparent about?
+            question: 'A platform engineer asks, "When is PostHog''s APM product coming?" What''s the best answer?'
             correct: 1
             options:
-              - Error Tracking doesn't capture stack traces
-              - PostHog has no APM or distributed tracing yet — it can't fully replace Datadog today
-              - Session Replay doesn't work with Error Tracking
-              - Logging is not on the roadmap
-            explanation: 'PostHog has no APM or tracing yet. Be honest: "For error tracking, better than Sentry because of user context. For full observability, building toward it — in the meantime, product analytics connection gives you something no other observability tool offers."'
+              - '"APM is coming soon. I''ll get you a launch date."'
+              - Explain that APM is an internal name, then say which pillar ships today and at what maturity (Logs, plus tracing and metrics in alpha)
+              - '"PostHog doesn''t do backend observability, so keep Datadog."'
+              - '"APM is already GA and can replace Datadog today."'
+            explanation: '"APM" is PostHog''s internal team name, not a product. Don''t promise "APM is coming." Name the pillars instead: Logs, Distributed tracing (alpha), and Metrics (alpha), all over OpenTelemetry. Be honest that tracing and metrics are alpha.'
             difficulty: 4
           - id: obs-kp1-p3
             type: multiple_choice
@@ -1196,6 +1200,8 @@ concepts:
           "Support team isn't technical enough." → The replay viewer is visual and intuitive. Support searches for a user, watches the session, shares a link. Training takes one session.
 
           "We need Zendesk/Intercom integration." → Paste replay links in tickets today. Pipelines push events via webhooks for automated workflows.
+
+          "Can we run Zendesk and PostHog Support side by side?" → Set expectations honestly. There's no live two-way sync with Zendesk or Intercom. The **Zendesk import** is a one-time historical backfill, and it's in open beta. So don't promise a hybrid steady state with tickets in both tools. Position Support as a switchover, not coexistence. If they won't switch yet, sell the context layer (replay links in their existing tickets) and wire their helpdesk in as a self-driving signal source. Revisit Support when their helpdesk contract comes up.
 
           "Session replay has privacy concerns." → Extensive controls: input masking, DOM blocking, network filtering. HIPAA BAA available with Boost package.
 
