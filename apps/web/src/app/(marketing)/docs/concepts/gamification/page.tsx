@@ -7,9 +7,11 @@ import { CodeBlock } from "@/components/docs/code-block";
 import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Gamification — Graspful Docs",
+  title: {
+    absolute: "Gamification in Adaptive Courses: How Graspful Rewards Real Study",
+  },
   description:
-    "XP system, streaks, leaderboards, and engagement mechanics in Graspful. Calibrated to reward quality study and prevent gaming.",
+    "Graspful's adaptive courses award XP that scales with problem difficulty, give 0 XP for answers under 2 seconds, cap XP at 500 a day, and count a streak day when you hit your daily XP target.",
   keywords: [
     "gamification",
     "XP system",
