@@ -8,6 +8,9 @@ const orgId = randomUUID();
 const orgSlug = `e2e-diagnostic-${orgId}`;
 const academySlug = "arithmetic";
 const diagnosticHref = `/learn/${orgSlug}/academies/${academySlug}/diagnostic`;
+const courseSlug = "arithmetic-basics";
+const courseHref = `/learn/${orgSlug}/courses/${courseSlug}`;
+const largeAcademySlug = "large-diagnostic";
 
 function requireLocalDatabase() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -48,7 +51,7 @@ test.describe("Diagnostic flow", () => {
             courses: {
               create: {
                 orgId,
-                slug: "arithmetic-basics",
+                slug: courseSlug,
                 name: "Arithmetic basics",
                 isPublished: true,
                 concepts: {
@@ -77,6 +80,37 @@ test.describe("Diagnostic flow", () => {
                   })),
                 },
               },
+            },
+          },
+        },
+      },
+    });
+    // Scenario questions in an academy-sized graph reproduce the reported path.
+    await prisma.academy.create({
+      data: {
+        orgId,
+        slug: largeAcademySlug,
+        name: "Large diagnostic academy",
+        courses: {
+          create: {
+            orgId, slug: "large-course", name: "Large scenario course", isPublished: true,
+            concepts: {
+              create: Array.from({ length: 120 }, (_, index) => ({
+                orgId, slug: `scenario-${index}`, name: `Scenario concept ${index + 1}`, sortOrder: index,
+                knowledgePoints: {
+                  create: {
+                    slug: "calculate", instructionText: "Calculate the remaining count.",
+                    workedExampleText: "Four items remain.",
+                    problems: {
+                      create: {
+                        authoredId: `scenario-${index}-question`, type: "scenario",
+                        questionText: `You have ${index + 4} items and remove ${index}. How many remain?`,
+                        options: ["4", "3", "5", "6"], correctAnswer: 0, explanation: "Four items remain.",
+                      },
+                    },
+                  },
+                },
+              })),
             },
           },
         },
@@ -138,9 +172,20 @@ test.describe("Diagnostic flow", () => {
   test("completing the diagnostic shows the recorded results", async ({ page }) => {
     await page.goto(diagnosticHref);
     await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
+    await expectQuestion(page, 1);
+    // Starting enrolls the learner. Now navigate from the academy so returning
+    // after completion exercises a cached server-rendered page.
+    await page.goto(`/learn/${orgSlug}/academies/${academySlug}`);
+    await page.getByRole("button", { name: "Take Diagnostic", exact: true }).click();
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
     for (let number = 1; number <= 3; number += 1) {
       await expectQuestion(page, number);
-      await page.getByRole("button", { name: "I don't know this yet" }).click();
+      if (number === 3) {
+        await answerCurrentQuestion(page);
+        await expect(page.getByText("Correct!", { exact: true })).toBeVisible();
+      } else {
+        await page.getByRole("button", { name: "I don't know this yet" }).click();
+      }
     }
 
     await expect(page.getByRole("heading", { name: "Diagnostic Complete" })).toBeVisible({
@@ -148,5 +193,119 @@ test.describe("Diagnostic flow", () => {
     });
     await expect(page.getByText("You answered 3 questions across 3 concepts.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Go to Academy" })).toBeVisible();
+    await page.getByRole("button", { name: "Go to Academy" }).click();
+    await expect(page).toHaveURL(`/learn/${orgSlug}/academies/${academySlug}`);
+    // A reload after the committed final answer must let the learner return.
+    await page.goto(diagnosticHref);
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
+    await expect(page).toHaveURL(`/learn/${orgSlug}/academies/${academySlug}`);
+    await page.getByRole("button", { name: "Continue Academy", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/learn/${orgSlug}/courses/${courseSlug}/study/lesson/`));
+    await page.getByRole("button", { name: "Start Lesson" }).click();
+    await expect(page.getByText("Knowledge Point 1 of 1", { exact: true })).toBeVisible();
+  });
+
+  test("a scenario answer in a large academy persists and resumes", async ({ page }) => {
+    await page.goto(`/learn/${orgSlug}/academies/${largeAcademySlug}/diagnostic`);
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
+    await expect(page.getByText("Question 1 of ~60", { exact: true })).toBeVisible();
+    await expect(page.getByText("Scenario", { exact: true })).toBeVisible();
+    await answerCurrentQuestion(page);
+    await expect(page.getByText("Question 2 of ~60", { exact: true })).toBeVisible();
+    const question = await page.getByText(/^You have /).textContent();
+    await page.reload();
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
+    await expect(page.getByText("Question 2 of ~60", { exact: true })).toBeVisible();
+    await expect(page.getByText(/^You have /)).toHaveText(question!);
+  });
+
+  test("a failed diagnostic start can be retried", async ({ page }) => {
+    await page.route("**/diagnostic/start", async (route) => {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ message: "Temporary server error" }) });
+      await page.unroute("**/diagnostic/start");
+    });
+    await page.goto(diagnosticHref);
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "Temporary server error" })).toBeVisible();
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expectQuestion(page, 1);
+  });
+
+  test("a lost answer response resumes without answering the next question twice", async ({ page }) => {
+    await page.goto(diagnosticHref);
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
+    await expectQuestion(page, 1);
+    let sessionId = "";
+    await page.route("**/diagnostic/answer", async (route) => {
+      sessionId = route.request().postDataJSON().sessionId;
+      const response = await route.fetch();
+      expect(response.ok(), await response.text()).toBe(true);
+      await route.abort();
+      await page.unroute("**/diagnostic/answer");
+    });
+    await page.getByRole("button", { name: "I don't know this yet" }).click();
+    await expect(page.getByText("Something went wrong. Please try again.")).toBeVisible();
+    await page.getByRole("button", { name: "I don't know this yet" }).click();
+    await expectQuestion(page, 2);
+    const session = await prisma.diagnosticSession.findUniqueOrThrow({ where: { id: sessionId } });
+    expect(session.questionCount).toBe(1);
+    expect(await prisma.problemAttempt.count({ where: { userId: session.userId } })).toBe(1);
+  });
+
+  test("a lost final answer response recovers completed results without a second attempt", async ({ page }) => {
+    await page.goto(diagnosticHref);
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
+    for (let number = 1; number <= 2; number += 1) {
+      await expectQuestion(page, number);
+      await page.getByRole("button", { name: "I don't know this yet" }).click();
+    }
+    await expectQuestion(page, 3);
+    let sessionId = "";
+    await page.route("**/diagnostic/answer", async (route) => {
+      sessionId = route.request().postDataJSON().sessionId;
+      const response = await route.fetch();
+      expect(response.ok(), await response.text()).toBe(true);
+      expect((await response.json()).isComplete).toBe(true);
+      await route.abort();
+      await page.unroute("**/diagnostic/answer");
+    });
+    await page.getByRole("button", { name: "I don't know this yet" }).click();
+    await expect(page.getByText("Something went wrong. Please try again.")).toBeVisible();
+    await page.getByRole("button", { name: "I don't know this yet" }).click();
+    await expect(page.getByText("You answered 3 questions across 3 concepts.")).toBeVisible();
+    const session = await prisma.diagnosticSession.findUniqueOrThrow({ where: { id: sessionId } });
+    expect(session.status).toBe("completed");
+    expect(session.questionCount).toBe(3);
+    expect(await prisma.problemAttempt.count({ where: { userId: session.userId } })).toBe(3);
+  });
+
+  test("course diagnostic completion returns to an updated course and allows a lesson", async ({ page }) => {
+    await page.goto(courseHref);
+    await expect(page.getByRole("button", { name: "Take Diagnostic", exact: true })).toBeVisible();
+    // Use the course-scoped endpoint too; the course CTA normally uses its academy.
+    await page.goto(`${courseHref}/diagnostic`);
+    let resultRequests = 0;
+    await page.route("**/diagnostic/result/**", async (route) => { resultRequests += 1; await route.abort(); });
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
+    for (let number = 1; number <= 3; number += 1) {
+      await expectQuestion(page, number);
+      if (number === 3) {
+        await answerCurrentQuestion(page);
+        await expect(page.getByText("Correct!", { exact: true })).toBeVisible();
+      } else {
+        await page.getByRole("button", { name: "I don't know this yet" }).click();
+      }
+    }
+    await expect(page.getByText("You answered 3 questions across 3 concepts.")).toBeVisible();
+    expect(resultRequests).toBe(0);
+    await page.getByRole("button", { name: "Go to Course" }).click();
+    await expect(page).toHaveURL(courseHref);
+    await page.goto(`${courseHref}/diagnostic`);
+    await page.getByRole("button", { name: "Start Diagnostic Assessment" }).click();
+    await expect(page).toHaveURL(courseHref);
+    await page.getByRole("button", { name: "Continue Studying", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/learn/${orgSlug}/courses/${courseSlug}/study/lesson/`));
+    await page.getByRole("button", { name: "Start Lesson" }).click();
+    await expect(page.getByText("Knowledge Point 1 of 1", { exact: true })).toBeVisible();
   });
 });

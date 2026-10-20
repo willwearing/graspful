@@ -5,6 +5,9 @@ import { EnrollmentService } from '@/student-model/enrollment.service';
 import { StudentStateService } from '@/student-model/student-state.service';
 import type { DiagnosticProblemRecord } from '../domain/diagnostic-session.types';
 import * as queries from '../queries/diagnostic-session.queries';
+import { persistDiagnosticSnapshots } from './diagnostic-snapshot.persistence';
+jest.mock('./diagnostic-snapshot.persistence');
+const persistSnapshots = jest.mocked(persistDiagnosticSnapshots);
 import {
   getDiagnosticResult,
   startDiagnosticForCourse,
@@ -72,6 +75,7 @@ function writes() {
     diagnosticSession: {
       create: jest.fn().mockResolvedValue({ id: sessionId }),
       update: jest.fn().mockResolvedValue({ id: sessionId }),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     diagnosticMasterySnapshot: {
       createMany: jest.fn().mockResolvedValue({ count: 2 }),
@@ -86,7 +90,7 @@ describe('diagnostic session workflow', () => {
   let tx: ReturnType<typeof writes>;
   let studentState: {
     getMasteryMapForAcademy: jest.Mock;
-    updateConceptDiagnosticState: jest.Mock;
+    updateDiagnosticStates: jest.Mock;
     updateSpeedParameters: jest.Mock;
     markDiagnosticComplete: jest.Mock;
   };
@@ -119,7 +123,7 @@ describe('diagnostic session workflow', () => {
       getMasteryMapForAcademy: jest.fn().mockResolvedValue(new Map([
         ['concept-1', 0.5], ['concept-2', 0.5],
       ])),
-      updateConceptDiagnosticState: jest.fn().mockResolvedValue({}),
+      updateDiagnosticStates: jest.fn().mockResolvedValue({}),
       updateSpeedParameters: jest.fn().mockResolvedValue([]),
       markDiagnosticComplete: jest.fn().mockResolvedValue({}),
     };
@@ -139,7 +143,7 @@ describe('diagnostic session workflow', () => {
     query.loadDiagnosticConceptCourseMap.mockResolvedValue(new Map());
   });
 
-  it.each(['updateConceptDiagnosticState', 'updateSpeedParameters', 'markDiagnosticComplete'] as const)(
+  it.each(['updateDiagnosticStates', 'markDiagnosticComplete'] as const)(
     'rolls back completion when %s fails', async (method) => {
     query.loadDiagnosticSessionById.mockResolvedValue(session({ questionCount: 59 }));
     let savedStatus = 'in_progress';
@@ -148,9 +152,9 @@ describe('diagnostic session workflow', () => {
       savedStatus = data.status;
       return { id: sessionId };
     });
-    tx.diagnosticSession.update.mockImplementation(async ({ data }) => {
+    tx.diagnosticSession.updateMany.mockImplementation(async ({ data }) => {
       pendingStatus = data.status;
-      return { id: sessionId };
+      return { count: 1 };
     });
     prisma.$transaction.mockImplementation(async (work) => {
       if (typeof work !== 'function') return Promise.all(work);
@@ -379,6 +383,25 @@ describe('diagnostic session workflow', () => {
   });
 
   describe('submitting an answer', () => {
+    it.each([
+      { expectedProblemId: 'previous-question' },
+      { questionNumber: 2 },
+    ])('rejects stale answer identity before writing evidence: %j', async (identity) => {
+      await expect(submitDiagnosticAnswer(
+        prisma as unknown as PrismaService, studentState as unknown as StudentStateService,
+        sessionId, userId, { answer: 'A', responseTimeMs: 5000, ...identity },
+      )).rejects.toThrow('Diagnostic question changed. Reload the current question.');
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(query.loadAcademyDiagnosticConcepts).not.toHaveBeenCalled();
+    });
+
+    it('rejects a concurrent answer before writing snapshots or an attempt', async () => {
+      tx.diagnosticSession.updateMany.mockResolvedValue({ count: 0 });
+      await expect(submit()).rejects.toThrow('Diagnostic question changed. Reload the current question.');
+      expect(persistSnapshots).not.toHaveBeenCalled();
+      expect(tx.problemAttempt.create).not.toHaveBeenCalled();
+      expect(studentState.updateDiagnosticStates).not.toHaveBeenCalled();
+    });
     it('rejects a session from another academy even when the user owns it', async () => {
       await expect(submitDiagnosticAnswer(
         prisma as unknown as PrismaService,
@@ -406,12 +429,13 @@ describe('diagnostic session workflow', () => {
         question: { id: 'problem-concept-2' },
       });
       expect(result).not.toHaveProperty('question.correctAnswer');
-      expect(tx.diagnosticMasterySnapshot.upsert).toHaveBeenCalledTimes(2);
-      expect(tx.diagnosticMasterySnapshot.upsert).toHaveBeenCalledWith(expect.objectContaining({
-        create: { diagnosticSessionId: sessionId, conceptId: 'concept-1', pL: 0.45 / 0.55, tested: true },
-      }));
-      expect(tx.diagnosticSession.update).toHaveBeenCalledWith({
-        where: { id: sessionId },
+      expect(persistSnapshots).toHaveBeenCalledTimes(1);
+      expect(persistSnapshots).toHaveBeenCalledWith(tx, sessionId, [
+        { conceptId: 'concept-1', pL: 0.45 / 0.55, tested: true },
+        { conceptId: 'concept-2', pL: 0.5, tested: false },
+      ]);
+      expect(tx.diagnosticSession.updateMany).toHaveBeenCalledWith({
+        where: { id: sessionId, status: 'in_progress', questionCount: 0, currentProblemId: 'problem-concept-1' },
         data: {
           questionCount: 1, currentProblemId: 'problem-concept-2', currentConceptId: 'concept-2',
           responses: [{ conceptId: 'concept-1', correct: true, difficultyTheta: 0 }],
@@ -423,7 +447,7 @@ describe('diagnostic session workflow', () => {
       expect(prisma.diagnosticMasterySnapshot.upsert).not.toHaveBeenCalled();
       expect(prisma.diagnosticSession.update).not.toHaveBeenCalled();
       expect(prisma.problemAttempt.create).not.toHaveBeenCalled();
-      expect(studentState.updateConceptDiagnosticState).not.toHaveBeenCalled();
+      expect(studentState.updateDiagnosticStates).not.toHaveBeenCalled();
       expect(studentState.markDiagnosticComplete).not.toHaveBeenCalled();
     });
 
@@ -433,7 +457,7 @@ describe('diagnostic session workflow', () => {
     ])('records $answer as incorrect with the right mastery penalty', async ({ answer, correct, mastery }) => {
       await expect(submit(answer)).resolves.toMatchObject({ isComplete: false, wasCorrect: correct });
 
-      expect(tx.diagnosticMasterySnapshot.upsert.mock.calls[0][0].create.pL).toBeCloseTo(mastery);
+      expect(persistSnapshots.mock.calls[0][2][0].pL).toBeCloseTo(mastery);
       expect(tx.problemAttempt.create).toHaveBeenCalledWith({
         data: { userId, problemId: 'problem-concept-1', answer, correct, responseTimeMs: 5000 },
       });
@@ -446,13 +470,13 @@ describe('diagnostic session workflow', () => {
 
       await submit();
 
-      expect(tx.diagnosticMasterySnapshot.upsert.mock.calls[0][0].create.pL).toBeCloseTo(0.45 / 0.475);
+      expect(persistSnapshots.mock.calls[0][2][0].pL).toBeCloseTo(0.45 / 0.475);
     });
 
     it('discounts correct answers that take more than twice the expected time', async () => {
       await submit('A', 30000);
 
-      expect(tx.diagnosticMasterySnapshot.upsert.mock.calls[0][0].create.pL)
+      expect(persistSnapshots.mock.calls[0][2][0].pL)
         .toBeCloseTo(0.5 + 0.8 * (0.45 / 0.55 - 0.5));
     });
 
@@ -472,7 +496,7 @@ describe('diagnostic session workflow', () => {
 
       await submit();
 
-      expect(tx.diagnosticSession.update.mock.calls[0][0].data.responses).toEqual([
+      expect(tx.diagnosticSession.updateMany.mock.calls[0][0].data.responses).toEqual([
         prior, { conceptId: 'concept-1', correct: true, difficultyTheta: 0 },
       ]);
     });
@@ -482,7 +506,7 @@ describe('diagnostic session workflow', () => {
 
       await submit();
 
-      expect(tx.diagnosticSession.update.mock.calls[0][0].data.responses).toEqual([
+      expect(tx.diagnosticSession.updateMany.mock.calls[0][0].data.responses).toEqual([
         { conceptId: 'concept-1', correct: true, difficultyTheta: 0 },
       ]);
     });
@@ -493,7 +517,7 @@ describe('diagnostic session workflow', () => {
 
       await expect(submit()).rejects.toThrow('Attempt failed');
 
-      expect(studentState.updateConceptDiagnosticState).not.toHaveBeenCalled();
+      expect(studentState.updateDiagnosticStates).not.toHaveBeenCalled();
       expect(studentState.updateSpeedParameters).not.toHaveBeenCalled();
       expect(studentState.markDiagnosticComplete).not.toHaveBeenCalled();
     });
@@ -512,7 +536,7 @@ describe('diagnostic session workflow', () => {
 
       expect(query.loadAcademyDiagnosticConcepts).not.toHaveBeenCalled();
       expect(prisma.$transaction).not.toHaveBeenCalled();
-      expect(studentState.updateConceptDiagnosticState).not.toHaveBeenCalled();
+      expect(studentState.updateDiagnosticStates).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -524,7 +548,7 @@ describe('diagnostic session workflow', () => {
       await expect(submit()).rejects.toThrow('Diagnostic content is no longer available');
 
       expect(prisma.$transaction).not.toHaveBeenCalled();
-      expect(studentState.updateConceptDiagnosticState).not.toHaveBeenCalled();
+      expect(studentState.updateDiagnosticStates).not.toHaveBeenCalled();
     });
   });
 
@@ -535,7 +559,7 @@ describe('diagnostic session workflow', () => {
       const result = await submit();
 
       expect(result).toMatchObject({
-        sessionId, isComplete: true, questionsAnswered: 60,
+        sessionId, isComplete: true, questionsAnswered: 60, wasCorrect: true,
         result: {
           totalConcepts: 2, questionsAnswered: 60,
           courseBreakdown: [
@@ -545,22 +569,20 @@ describe('diagnostic session workflow', () => {
         },
       });
       expect(query.loadDiagnosticProblemsForConcept).not.toHaveBeenCalled();
-      expect(tx.diagnosticSession.update).toHaveBeenCalledWith({
-        where: { id: sessionId },
+      expect(tx.diagnosticSession.updateMany).toHaveBeenCalledWith({
+        where: { id: sessionId, status: 'in_progress', questionCount: 59, currentProblemId: 'problem-concept-1' },
         data: expect.objectContaining({
           status: 'completed', completedAt: expect.any(Date), questionCount: 60,
           currentConceptId: null, currentProblemId: null,
         }),
       });
-      expect(studentState.updateConceptDiagnosticState).toHaveBeenCalledWith(
-        userId, 'concept-1', 'mastered', 0.45 / 0.55, tx,
+      expect(studentState.updateDiagnosticStates).toHaveBeenCalledWith(
+        userId, [
+          { conceptId: 'concept-1', diagnosticState: 'mastered', pL: 0.45 / 0.55, speed: expect.any(Number) },
+          { conceptId: 'concept-2', diagnosticState: 'conditionally_mastered', pL: 0.5, speed: expect.any(Number) },
+        ], expect.any(Number), 250, tx,
       );
-      expect(studentState.updateConceptDiagnosticState).toHaveBeenCalledWith(
-        userId, 'concept-2', 'conditionally_mastered', 0.5, tx,
-      );
-      expect(studentState.updateSpeedParameters).toHaveBeenCalledWith(
-        userId, expect.any(Number), 250, expect.any(Map), tx,
-      );
+      expect(studentState.updateSpeedParameters).not.toHaveBeenCalled();
       expect(studentState.markDiagnosticComplete).toHaveBeenCalledWith(userId, academyId, tx);
       expect(prisma.diagnosticSession.update).not.toHaveBeenCalled();
       expect(prisma.problemAttempt.create).not.toHaveBeenCalled();
@@ -594,10 +616,10 @@ describe('diagnostic session workflow', () => {
         isComplete: true, result: { totalConcepts: 1 },
       });
 
-      expect(tx.diagnosticMasterySnapshot.upsert).toHaveBeenCalledTimes(1);
-      expect(studentState.updateConceptDiagnosticState).toHaveBeenCalledTimes(1);
-      expect(studentState.updateConceptDiagnosticState.mock.calls[0][1]).toBe('concept-1');
-      expect(studentState.updateSpeedParameters.mock.calls[0][3].has('hidden-concept')).toBe(false);
+      expect(persistSnapshots).toHaveBeenCalledWith(tx, sessionId, [expect.objectContaining({ conceptId: 'concept-1' })]);
+      expect(studentState.updateDiagnosticStates).toHaveBeenCalledTimes(1);
+      expect(studentState.updateDiagnosticStates.mock.calls[0][1]).toEqual([expect.objectContaining({ conceptId: 'concept-1' })]);
+      expect(studentState.updateSpeedParameters).not.toHaveBeenCalled();
     });
   });
 
