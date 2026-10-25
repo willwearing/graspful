@@ -15,13 +15,26 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
+function signedIn() {
+  return { auth: { getClaims: async () => ({ data: { claims: { sub: "user" } }, error: null }) } };
+}
+
+function anonymous() {
+  return { auth: { getClaims: async () => ({ data: null, error: null }) } };
+}
+
+function request(url: string, init: { cookie?: string } = {}) {
+  const host = new URL(url).host;
+  return new NextRequest(url, { headers: { host, ...(init.cookie ? { cookie: init.cookie } : {}) } });
+}
+
 describe("routing proxy", () => {
   it("preserves refreshed auth cookies on a redirect without a brand cookie or header", async () => {
     createServerClient.mockImplementation((_url, _key, { cookies }) => ({
       auth: {
-        getUser: async () => {
+        getClaims: async () => {
           cookies.setAll([{ name: "sb-auth-token", value: "refreshed", options: { path: "/", httpOnly: true } }]);
-          return { data: { user: { id: "user" } } };
+          return { data: { claims: { sub: "user" } } };
         },
       },
     }));
@@ -38,7 +51,7 @@ describe("routing proxy", () => {
 
   it("uses the brand only for local routing", async () => {
     resolveBrand.mockResolvedValue({ id: "electrician" });
-    createServerClient.mockReturnValue({ auth: { getUser: async () => ({ data: { user: { id: "user" } } }) } });
+    createServerClient.mockReturnValue(signedIn());
     const response = await proxy(new NextRequest("http://localhost:3001/", {
       headers: { host: "localhost:3001", cookie: "dev-brand-override=electrician" },
     }));
@@ -47,7 +60,7 @@ describe("routing proxy", () => {
   });
 
   it("keeps an anonymous academy landing page public", async () => {
-    createServerClient.mockReturnValue({ auth: { getUser: async () => ({ data: { user: null } }) } });
+    createServerClient.mockReturnValue(anonymous());
     const response = await proxy(new NextRequest("https://academy.example.com/", { headers: { host: "academy.example.com" } }));
     expect(response.status).toBe(200);
     expect(response.headers.get("x-middleware-next")).toBe("1");
@@ -58,10 +71,10 @@ describe("routing proxy", () => {
   ])("preserves all cookie refresh batches for $pathname", async ({ pathname, status }) => {
     createServerClient.mockImplementation((_url, _key, { cookies }) => ({
       auth: {
-        getUser: async () => {
+        getClaims: async () => {
           cookies.setAll([{ name: "sb-auth-token.0", value: "first", options: { path: "/", httpOnly: true, sameSite: "lax" } }]);
           cookies.setAll([{ name: "sb-auth-token.1", value: "second", options: { path: "/", secure: true } }]);
-          return { data: { user: { id: "user" } } };
+          return { data: { claims: { sub: "user" } } };
         },
       },
     }));
@@ -81,4 +94,71 @@ describe("routing proxy", () => {
     }
   });
 
+  describe("shared marketing pages", () => {
+    it.each([
+      "https://graspful.ai/",
+      "https://graspful.ai/pricing",
+      "https://graspful.ai/docs/quickstart",
+      "https://graspful.ai/academies",
+      "https://graspful.ai/cli-auth",
+      "https://academy.example.com/",
+    ])("serves %s without reading the session or setting cookies", async (url) => {
+      const response = await proxy(request(url, { cookie: "sb-auth-token=expired" }));
+
+      expect(createServerClient).not.toHaveBeenCalled();
+      expect(response.status).toBe(200);
+      expect(response.headers.get("x-middleware-next")).toBe("1");
+      expect(response.headers.get("set-cookie")).toBeNull();
+    });
+
+    it("redirects app-host marketing paths to the platform without reading the session", async () => {
+      const response = await proxy(request("https://app.graspful.ai/pricing"));
+
+      expect(createServerClient).not.toHaveBeenCalled();
+      expect(response.status).toBe(307);
+      expect(response.headers.get("location")).toBe("https://graspful.ai/pricing");
+    });
+
+    it("redirects academy-host platform pages without reading the session", async () => {
+      const response = await proxy(request("https://academy.example.com/docs"));
+
+      expect(createServerClient).not.toHaveBeenCalled();
+      expect(response.headers.get("location")).toBe("https://graspful.ai/docs");
+    });
+  });
+
+  describe("routes that depend on the session", () => {
+    it.each([
+      { url: "https://graspful.ai/sign-in", anonymous: null, signedIn: "https://app.graspful.ai/creator" },
+      { url: "https://app.graspful.ai/", anonymous: "https://app.graspful.ai/sign-in", signedIn: "https://app.graspful.ai/creator" },
+      { url: "https://app.graspful.ai/creator", anonymous: "https://app.graspful.ai/sign-in?redirect=%2Fcreator", signedIn: null },
+      { url: "https://graspful.ai/learn/acme", anonymous: "https://graspful.ai/sign-in?redirect=%2Flearn%2Facme", signedIn: null },
+      { url: "https://academy.example.com/dashboard", anonymous: "https://academy.example.com/sign-in?redirect=%2Fdashboard", signedIn: null },
+      { url: "https://academy.example.com/sign-in", anonymous: null, signedIn: "https://academy.example.com/dashboard" },
+    ])("routes $url by session", async ({ url, anonymous: anonymousTarget, signedIn: signedInTarget }) => {
+      for (const [client, target] of [[anonymous(), anonymousTarget], [signedIn(), signedInTarget]] as const) {
+        createServerClient.mockReset().mockReturnValue(client);
+
+        const response = await proxy(request(url));
+
+        expect(createServerClient).toHaveBeenCalledOnce();
+        if (target) {
+          expect(response.status).toBe(307);
+          expect(response.headers.get("location")).toBe(target);
+        } else {
+          expect(response.status).toBe(200);
+        }
+      }
+    });
+
+    it("treats an invalid or missing JWT as signed out", async () => {
+      createServerClient.mockReturnValue({
+        auth: { getClaims: async () => ({ data: null, error: new Error("invalid JWT") }) },
+      });
+
+      const response = await proxy(request("https://app.graspful.ai/creator"));
+
+      expect(response.headers.get("location")).toBe("https://app.graspful.ai/sign-in?redirect=%2Fcreator");
+    });
+  });
 });

@@ -2,15 +2,31 @@ import { createServerClient } from "@supabase/ssr";
 import { createSessionCookieAdapter } from "@graspful/creator-ui/session-cookies";
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveBrand } from "@/lib/brand/resolve";
-import { decideRoute, getHostSurface, getRequestHost } from "@/lib/hosts";
+import {
+  decideRoute,
+  getHostSurface,
+  getRequestHost,
+  routeNeedsSession,
+  type RoutingContext,
+} from "@/lib/hosts";
 
 export async function proxy(request: NextRequest) {
   try {
     const hostname = getRequestHost(request.headers);
     const surface = getHostSurface(hostname);
     const cookieHeader = request.headers.get("cookie");
+    const pathname = request.nextUrl.pathname;
 
     const brandId = surface === "local" ? (await resolveBrand(hostname, cookieHeader)).id : undefined;
+    const routing: RoutingContext = { brandId, currentUrl: request.nextUrl, surface };
+
+    if (!routeNeedsSession(pathname, routing)) {
+      const decision = decideRoute(pathname, false, routing);
+      return decision.action === "redirect"
+        ? NextResponse.redirect(new URL(decision.to, request.url))
+        : NextResponse.next();
+    }
+
     const sessionCookies = createSessionCookieAdapter(request);
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -24,15 +40,12 @@ export async function proxy(request: NextRequest) {
       cookies: sessionCookies.cookies,
     });
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // getClaims verifies the JWT against the project's cached signing keys,
+    // and refreshes an expired session, without a round trip to Supabase Auth.
+    const { data } = await supabase.auth.getClaims();
+    const signedIn = Boolean(data?.claims?.sub);
 
-    const decision = decideRoute(request.nextUrl.pathname, !!user, {
-      brandId,
-      currentUrl: request.nextUrl,
-      surface,
-    });
+    const decision = decideRoute(pathname, signedIn, routing);
     if (decision.action === "redirect") {
       return sessionCookies.redirect(new URL(decision.to, request.url));
     }

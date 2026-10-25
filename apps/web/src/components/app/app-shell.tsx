@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/app/sidebar";
 import { MobileHeader } from "@/components/app/mobile-header";
 import { AudioPlayerProvider } from "@/lib/contexts/audio-player-context";
 import { PlayerBar } from "@/components/app/player-bar";
+import { PostHogIdentitySync } from "@/lib/posthog/identity-sync";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -20,6 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <PlayerBar />
+      <PostHogIdentitySync />
     </AudioPlayerProvider>
   );
 }

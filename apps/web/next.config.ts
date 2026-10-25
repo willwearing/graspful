@@ -1,11 +1,15 @@
 import type { NextConfig } from "next";
 import { join } from "node:path";
 import { withPostHogConfig } from "@posthog/nextjs-config";
+import { cdnCacheHeaders } from "./src/lib/cdn-cache";
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: join(__dirname, "../.."),
   outputFileTracingIncludes: { "/agents.md": ["../../CLAUDE.md"] },
   transpilePackages: ["@graspful/shared", "@graspful/creator-ui"],
+  async headers() {
+    return cdnCacheHeaders();
+  },
   async rewrites() {
     return [
       {

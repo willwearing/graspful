@@ -8,6 +8,26 @@
 | Backend  | https://graspful-backend-production.up.railway.app | Live, health check passing |
 | Database | Supabase `tzftjqpnisalltnkrykg`                    | Migrations applied         |
 
+### Regions
+
+Keep all three services in Virginia. Every server-rendered page calls the backend, and every backend request queries Postgres, so a cross-country hop gets paid on each step.
+
+| Service | Region | Where it's set |
+|---------|--------|----------------|
+| Vercel functions | `iad1` (Washington, D.C.) | Vercel default |
+| Railway backend | `us-east4-eqdc4a` (Virginia) | `railway.json` `deploy.multiRegionConfig` |
+| Supabase Postgres | `us-east-1` (N. Virginia) | Supabase project |
+
+### Edge caching
+
+Pages read the request host to pick a brand, so Next.js renders them on every request. Shared marketing pages (`/pricing`, `/agents`, `/ai-course-builder`, `/academies/*`, `/docs/*`) get a `Vercel-CDN-Cache-Control` header from `apps/web/src/lib/cdn-cache.ts`. Vercel serves them from the edge for 5 minutes, then refreshes them in the background. The cache key includes the host and the deployment, so brands never share entries and each deploy starts fresh.
+
+Vercel won't cache a response that sets a cookie. The proxy skips the Supabase session check on marketing routes whose routing doesn't depend on sign-in (`routeNeedsSession` in `apps/web/src/lib/hosts.ts`), so those responses carry no `Set-Cookie`.
+
+The homepage stays uncached. It evaluates the homepage experiment flag per visitor on the server and bootstraps posthog-js with the result.
+
+Check a deploy with `curl -sI https://graspful.ai/pricing | grep x-vercel-cache`. A second request should return `HIT`.
+
 ### Brand URLs (Vercel aliases)
 
 | Brand            | URL                                      |
