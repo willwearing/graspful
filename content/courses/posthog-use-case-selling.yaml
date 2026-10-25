@@ -112,6 +112,8 @@ concepts:
           7. **Customer Experience**: "Help me quickly understand what happened, identify the problem, and verify a fix."
 
           Each use case has a different core buyer. Product Intelligence sells to PMs. Release Engineering sells to engineering managers. Observability sells to SREs. Growth & Marketing sells to growth engineers and marketing leads. These are separate budgets, separate champions, separate conversations.
+
+          One word choice to get right. In brand terms, most of the things each use case bundles are tools: capabilities customers reach through PostHog's five products, which are PostHog Web, Slack, MCP, CLI, and Desktop. That doesn't change how you sell a use case, but it changes the words. Don't call PostHog Desktop a tool, and don't call product analytics a product.
         instructionContent:
           - body: Each use case has a different core buyer. PI sells to PMs. Release Engineering sells to EMs. Observability sells to SREs. Growth & Marketing sells to growth engineers. These are separate budgets, separate champions, separate conversations.
             type: callout
@@ -330,6 +332,8 @@ concepts:
 
           The expansion path follows a clear logic: Analytics shows the "what" (40% drop at step 3). Replay shows the "why" (qualitative context). Surveys let you ask users directly. Experiments let you test fixes. Revenue Analytics proves business impact. Workflows automate action on insights with behavior-triggered sequences.
 
+          Two replay patterns point somewhere else. If an account records lots of sessions but rarely watches them, pitch Replay Vision: its AI scanners read the recordings and tag the ones where users got stuck, so the team stops paying to record sessions nobody has time to watch. If the team watches replays and files tickets by hand, pitch self-driving: the step between "we saw the problem" and "someone fixed it" is all manual today.
+
           One gap to know: PostHog has no native in-app guides or tooltips. When a team needs tooltip or modal onboarding, tell them to keep a dedicated tool like Appcues or Pendo for that UX, and use PostHog for the analytics and experimentation around it.
 
           For B2B accounts, Group Analytics is a significant upsell opportunity — it answers "which companies are most engaged?" not just "which users."
@@ -541,6 +545,8 @@ concepts:
           The sweet spot: engineering teams wanting the full loop (flag → measure → debug) who are paying LaunchDarkly prices for flags alone without experiments.
 
           Statistics used to be a known gap. It isn't any more. PostHog ships both Bayesian and frequentist methods, selectable per experiment, alongside CUPED variance reduction and holdouts. Teams often arrive with a strong stats preference and expect you to have picked wrong. So ask which method they use, and match it. If they have a stats opinion, raise this early.
+
+          One gap is still real: PostHog has no built-in approval workflow for flags. Some enterprise teams want a PR-style review before a flag goes live. Don't paper over it. Flags live in code, so point them to the code review process they already run, and to PostHog's activity logs, which track every flag change.
         instructionContent:
           - body: PostHog ships Bayesian and frequentist statistics, selectable per experiment, plus CUPED variance reduction and holdouts. Ask which method the team uses and match it.
             type: callout
@@ -879,6 +885,8 @@ concepts:
 
 
           The primary buyers are AI Engineers, AI Product Managers, AI Founders, and AI Product Engineers.
+
+          With an AI engineer, lead with model-level metrics: latency, cost, token usage, and accuracy. That's what they care about first. User-level analytics comes second, so save it for after the model story has opened the door.
 
           Key differentiation: No one else connects model performance → quality → user behavior → business outcomes in one platform. Langfuse does tracing. Amplitude does analytics. Sentry does errors. Nobody connects all four.
         instructionContent:
