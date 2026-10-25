@@ -50,6 +50,8 @@ concepts:
           A use case is a discrete problem a team is trying to solve, supported by a combination of PostHog products. Billing, metering, and packaging don't change. What changes is how you talk about it, how you organize around it, and how you measure adoption.
 
           The rule is simple: use cases are how we sell, products are how we bill.
+
+          Self-driving is a capability, not a SKU. There's no self-driving line item to add to a plan. So when a customer asks to buy it, keep the conversation on the use case it serves and the product it runs on. Write it lowercase and hyphenated, and keep the customer's product as the subject: we make their product self-driving. Never say PostHog is a self-driving product.
         instructionContent:
           - body: Use cases are how we sell. Products are how we bill. Billing, metering, and packaging don't change. What changes is how you talk about it, how you organize around it, and how you measure adoption.
             type: callout
@@ -177,28 +179,28 @@ concepts:
           The product coverage matrix shows which products are primary for which use case and where they appear as secondary:
           - Product Analytics is primary for Product Intelligence, secondary for Growth,
             AI, and Customer Experience.
-
-          - Feature Flags is primary for Release Engineering AND Growth & Marketing —
-            engineering uses it for controlled rollouts, growth teams use it as the
-            foundation for experimentation.
-
-          - Error Tracking is primary for Observability AND Release Engineering —
-            SREs use it to catch production issues, engineering teams use it to catch
-            regressions introduced by new releases.
-
-          - Web Analytics is primary for Growth & Marketing.
-          - LLM Observability is primary for AI/LLM Observability.
-          - Data Warehouse and Data Pipelines are primary for Data Infrastructure.
-          - Session Replay appears as secondary in nearly every use case — it's the most
-            cross-cutting product.
-
-          - Product Analytics and Session Replay together are primary for Customer Experience.
+          - Feature Flags is primary for Release Engineering and secondary for Growth & Marketing.
+          - Error Tracking is primary for Observability, secondary for AI/LLM Observability
+            and Customer Experience.
+          - Web Analytics, Marketing Analytics, and Workflows are primary for Growth & Marketing.
+          - AI Observability, AI Evals, and Prompt management are primary for AI/LLM Observability.
+          - Data Warehouse, Data Pipelines, Endpoints, and the semantic layer are primary for
+            Data Infrastructure. Endpoints is the one to reach for when a team wants to serve
+            query results into their own app or internal tool.
+          - Logs, distributed tracing, metrics, and health checks are primary for Observability.
+          - Replay Vision is primary for Product Intelligence, secondary for Customer Experience
+            and Observability.
+          - Support is primary for Customer Experience.
+          - PostHog AI and self-driving are horizontal: they apply to every use case.
+            Self-driving converts fastest in Observability, Release Engineering, and Customer Experience.
+          - Session Replay is primary for Product Intelligence and secondary in four more:
+            Release Engineering, Observability, AI/LLM Observability, and Customer Experience.
 
           One matrix row has a catch. **Customer Analytics** (beta) is primary for Growth & Marketing and secondary for Product Intelligence. It answers "how is this account doing," not just "what did users do." But its B2B mode, the account-level view, requires the **Group Analytics** add-on. So when a B2B customer asks for account-level customer views, check whether they have Group Analytics first.
 
-          Key insight: products can be primary for one use case and secondary for several others. Session Replay is a secondary expansion product in six of seven use cases. This means the same product gets pitched differently depending on context.
+          Key insight: products can be primary for one use case and secondary for several others. Session Replay shows up in five of seven use cases, primary in one and secondary in four. This means the same product gets pitched differently depending on context.
         instructionContent:
-          - body: Session Replay appears as secondary in 6 of 7 use cases. The same product gets pitched differently depending on context. "Watch the drop-off" (PI), "watch the error" (Obs), "watch the bug report" (CX) — same product, different framing.
+          - body: Session Replay shows up in 5 of 7 use cases. The same product gets pitched differently depending on context. "Watch the drop-off" (PI), "watch the error" (Obs), "watch the bug report" (CX) — same product, different framing.
             type: callout
             title: Session Replay Is Cross-Cutting
           - url: https://posthog.com/handbook/growth/use-case-selling/use-case-selling
@@ -222,8 +224,8 @@ concepts:
               - Session Replay
               - Product Analytics
               - Error Tracking
-              - Logging
-            explanation: Error Tracking is the core product for Observability. Session Replay, Product Analytics, and Logging are expansion products that extend the value.
+              - Surveys
+            explanation: Error Tracking is the core product for Observability. Session Replay is secondary there, and Product Analytics and Surveys belong to other use cases.
             difficulty: 2
           - id: pucm-kp1-p2
             type: multiple_choice
@@ -232,9 +234,9 @@ concepts:
             options:
               - Two — Product Intelligence and Observability
               - Three — Product Intelligence, Observability, and Release Engineering
-              - Four — it's common but not everywhere
-              - Six — it's the most cross-cutting product
-            explanation: Session Replay is secondary in Product Intelligence, Release Engineering, Observability, AI/LLM Observability, Growth & Marketing, and Customer Experience. It appears in nearly every use case because "watch what the user actually did" is universally useful.
+              - Six — every use case except Data Infrastructure
+              - Four — Release Engineering, Observability, AI/LLM Observability, and Customer Experience
+            explanation: Session Replay is primary for Product Intelligence and secondary in four more use cases. It travels because "watch what the user actually did" helps in each of them. It isn't listed under Growth & Marketing or Data Infrastructure.
           - id: pucm-kp1-p3
             type: multiple_choice
             question: What are the primary tools for the Data Infrastructure use case?
@@ -326,7 +328,9 @@ concepts:
           - Designers want before/after impact of design changes.
           - Founders want to figure out what to build next.
 
-          The expansion path follows a clear logic: Analytics shows the "what" (40% drop at step 3). Replay shows the "why" (qualitative context). Surveys let you ask users directly. Experiments let you test fixes. Revenue Analytics proves business impact. Workflows and Product Tours automate action on insights.
+          The expansion path follows a clear logic: Analytics shows the "what" (40% drop at step 3). Replay shows the "why" (qualitative context). Surveys let you ask users directly. Experiments let you test fixes. Revenue Analytics proves business impact. Workflows automate action on insights with behavior-triggered sequences.
+
+          One gap to know: PostHog has no native in-app guides or tooltips. When a team needs tooltip or modal onboarding, tell them to keep a dedicated tool like Appcues or Pendo for that UX, and use PostHog for the analytics and experimentation around it.
 
           For B2B accounts, Group Analytics is a significant upsell opportunity — it answers "which companies are most engaged?" not just "which users."
         instructionContent:
@@ -536,11 +540,11 @@ concepts:
 
           The sweet spot: engineering teams wanting the full loop (flag → measure → debug) who are paying LaunchDarkly prices for flags alone without experiments.
 
-          Known limitation: PostHog uses Bayesian statistics for experiments. This is faster to reach conclusions and easier to interpret, but is a real limitation for teams that require frequentist methodology.
+          Statistics used to be a known gap. It isn't any more. PostHog ships both Bayesian and frequentist methods, selectable per experiment, alongside CUPED variance reduction and holdouts. Teams often arrive with a strong stats preference and expect you to have picked wrong. So ask which method they use, and match it. If they have a stats opinion, raise this early.
         instructionContent:
-          - body: PostHog uses Bayesian statistics for experiments. Faster conclusions, easier to interpret, but a real limitation for teams that require frequentist methodology. Be upfront about this — honesty builds trust.
+          - body: PostHog ships Bayesian and frequentist statistics, selectable per experiment, plus CUPED variance reduction and holdouts. Ask which method the team uses and match it.
             type: callout
-            title: Bayesian Limitation
+            title: Match Their Stats Method
           - url: https://posthog.com/handbook/growth/use-case-selling/release-engineering
             type: link
             title: Release Engineering Playbook
@@ -554,18 +558,18 @@ concepts:
               - PostHog has more complex targeting rules than LaunchDarkly
               - PostHog bundles flags + experiments + analytics + replay in one platform at lower cost
               - PostHog has a larger enterprise install base
-              - PostHog uses frequentist statistics which are more rigorous
-            explanation: PostHog's advantage is the bundled platform at lower cost. LaunchDarkly actually has more mature enterprise flag management. PostHog uses Bayesian (not frequentist) statistics.
+              - PostHog's statistics engine is the only reason to switch
+            explanation: PostHog's advantage is the bundled platform at lower cost. LaunchDarkly actually has more mature enterprise flag management. Stats method matters, but it's a match-their-preference point, not the headline.
           - id: re-kp2-p2
             type: multiple_choice
-            question: What is a genuine limitation of PostHog's Experiments that you must be upfront about?
+            question: An experimentation lead says their team only trusts frequentist results. What's the right response?
             correct: 1
             options:
-              - Experiments can only test two variants
-              - PostHog uses Bayesian statistics, which is a real limitation for teams requiring frequentist methodology
-              - Experiments don't integrate with Feature Flags
-              - Results take months to generate
-            explanation: PostHog uses Bayesian statistics — faster conclusions, easier to interpret, but a real limitation for teams that require frequentist methodology. Being honest about this builds trust.
+              - Admit PostHog is Bayesian-only and log it as a known limitation
+              - Confirm PostHog ships frequentist too, selectable per experiment, and match their method
+              - Argue that Bayesian is always better and they should switch
+              - Suggest they export the data and run their stats in another tool
+            explanation: PostHog ships both Bayesian and frequentist, selectable per experiment, plus CUPED and holdouts. Teams with a strong preference expect you to have picked wrong. Ask which method they use and match it.
             difficulty: 4
           - id: re-kp2-p3
             type: multiple_choice
