@@ -28,14 +28,17 @@ test.describe("Homepage first paint", () => {
 });
 
 test.describe("Shared marketing pages", () => {
-  test("never set cookies, so Vercel's CDN can cache them", async ({ request }) => {
-    for (const path of SHARED_MARKETING_PATHS) {
-      const response = await request.get(`${platformUrl}${path}`, {
-        headers: { cookie: "sb-127-auth-token=stale-session" },
-      });
+  test("never set cookies, so Vercel's CDN can cache them", async ({ context, page }) => {
+    // Browser navigations use the graspful.ai host mapping; the request fixture would not.
+    await context.addCookies([
+      { name: "sb-127-auth-token", value: "stale-session", url: platformUrl },
+    ]);
 
-      expect(response.status(), path).toBe(200);
-      expect(response.headers()["set-cookie"], path).toBeUndefined();
+    for (const path of SHARED_MARKETING_PATHS) {
+      const response = await page.goto(`${platformUrl}${path}`);
+
+      expect(response?.status(), path).toBe(200);
+      expect(await response?.headerValue("set-cookie"), path).toBeNull();
     }
   });
 
