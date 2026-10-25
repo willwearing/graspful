@@ -63,10 +63,12 @@ export async function assignServerFlag(
   );
   const distinctId = existingDistinctId ?? crypto.randomUUID();
 
-  const variant = await withTimeout(
-    posthog.getFeatureFlag(flag, distinctId, { sendFeatureFlagEvents: false }),
+  // getAllFlags records no exposure. posthog-js records it for the hero that renders.
+  const flags = await withTimeout(
+    posthog.getAllFlags(distinctId, { flagKeys: [flag] }),
     timeoutMs,
   ).catch(() => undefined);
+  const variant = flags?.[flag];
 
   if (variant === undefined || variant === false) return null;
 

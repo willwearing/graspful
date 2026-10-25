@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  getFeatureFlag: vi.fn(),
+  getAllFlags: vi.fn(),
   server: { enabled: true },
 }));
 
 vi.mock("../server", () => ({
   getServerPostHog: () =>
-    mocks.server.enabled ? { getFeatureFlag: mocks.getFeatureFlag } : null,
+    mocks.server.enabled ? { getAllFlags: mocks.getAllFlags } : null,
 }));
 
 import {
@@ -53,7 +53,7 @@ describe("assignServerFlag", () => {
     vi.stubEnv("NEXT_PUBLIC_POSTHOG_KEY", TOKEN);
     vi.stubEnv("POSTHOG_API_KEY", "");
     mocks.server.enabled = true;
-    mocks.getFeatureFlag.mockReset();
+    mocks.getAllFlags.mockReset();
   });
 
   afterEach(() => {
@@ -62,13 +62,11 @@ describe("assignServerFlag", () => {
   });
 
   it("evaluates against the visitor's existing ID and does not re-bootstrap it", async () => {
-    mocks.getFeatureFlag.mockResolvedValue("product-proof");
+    mocks.getAllFlags.mockResolvedValue({ [FLAG]: "product-proof" });
 
     const assignment = await assignServerFlag(FLAG, cookieJar(posthogCookie("returning-visitor")));
 
-    expect(mocks.getFeatureFlag).toHaveBeenCalledWith(FLAG, "returning-visitor", {
-      sendFeatureFlagEvents: false,
-    });
+    expect(mocks.getAllFlags).toHaveBeenCalledWith("returning-visitor", { flagKeys: [FLAG] });
     expect(assignment).toEqual({
       variant: "product-proof",
       bootstrap: { featureFlags: { [FLAG]: "product-proof" } },
@@ -76,11 +74,11 @@ describe("assignServerFlag", () => {
   });
 
   it("creates and bootstraps a distinct ID for a first visit", async () => {
-    mocks.getFeatureFlag.mockResolvedValue("control");
+    mocks.getAllFlags.mockResolvedValue({ [FLAG]: "control" });
 
     const assignment = await assignServerFlag(FLAG, cookieJar());
 
-    const distinctId = mocks.getFeatureFlag.mock.calls[0][1];
+    const distinctId = mocks.getAllFlags.mock.calls[0][0];
     expect(distinctId).toMatch(/^[0-9a-f-]{36}$/);
     expect(assignment).toEqual({
       variant: "control",
@@ -88,21 +86,21 @@ describe("assignServerFlag", () => {
     });
   });
 
-  it.each([false, undefined])("leaves the visitor unassigned when the flag is %s", async (value) => {
-    mocks.getFeatureFlag.mockResolvedValue(value);
+  it.each([{ [FLAG]: false }, {}])("leaves the visitor unassigned for flags %j", async (flags) => {
+    mocks.getAllFlags.mockResolvedValue(flags);
 
     await expect(assignServerFlag(FLAG, cookieJar())).resolves.toBeNull();
   });
 
   it("leaves the visitor unassigned when PostHog errors", async () => {
-    mocks.getFeatureFlag.mockRejectedValue(new Error("flags unavailable"));
+    mocks.getAllFlags.mockRejectedValue(new Error("flags unavailable"));
 
     await expect(assignServerFlag(FLAG, cookieJar())).resolves.toBeNull();
   });
 
   it("stops waiting for PostHog after the timeout", async () => {
     vi.useFakeTimers();
-    mocks.getFeatureFlag.mockReturnValue(new Promise(() => {}));
+    mocks.getAllFlags.mockReturnValue(new Promise(() => {}));
 
     const pending = assignServerFlag(FLAG, cookieJar(), { timeoutMs: 400 });
     await vi.advanceTimersByTimeAsync(400);
@@ -114,6 +112,6 @@ describe("assignServerFlag", () => {
     mocks.server.enabled = false;
 
     await expect(assignServerFlag(FLAG, cookieJar())).resolves.toBeNull();
-    expect(mocks.getFeatureFlag).not.toHaveBeenCalled();
+    expect(mocks.getAllFlags).not.toHaveBeenCalled();
   });
 });
