@@ -1,6 +1,11 @@
 import { isPlatformBrand } from "@/lib/brand/config";
 import type { Metadata } from "next";
+import { cookies, headers } from "next/headers";
 import { resolvePageBrand } from "@/lib/brand/resolve";
+import { HOMEPAGE_PRODUCT_PROOF_FLAG } from "@/lib/experiments/homepage";
+import { getHostSurface, getRequestHost } from "@/lib/hosts";
+import { PostHogBootstrapScript } from "@/lib/posthog/bootstrap-script";
+import { assignServerFlag } from "@/lib/posthog/server-flags";
 import { LandingHeroExperiment } from "@/components/marketing/landing-hero-experiment";
 import { Features } from "@/components/marketing/features";
 import { HowItWorks } from "@/components/marketing/how-it-works";
@@ -57,11 +62,18 @@ export default async function LandingPage() {
   const brand = await resolvePageBrand();
   const url = `https://${brand.domain}`;
   const isGraspful = isPlatformBrand(brand);
+  // Only the Graspful platform host is enrolled. Academy, app, and local hosts stay out.
+  const isExperimentHost =
+    isGraspful && getHostSurface(getRequestHost(await headers())) === "platform";
+  const assignment = isExperimentHost
+    ? await assignServerFlag(HOMEPAGE_PRODUCT_PROOF_FLAG, await cookies())
+    : null;
 
   return (
     <div className="bg-background text-foreground">
+      {assignment && <PostHogBootstrapScript bootstrap={assignment.bootstrap} />}
       <LandingHeroExperiment
-        isGraspful={isGraspful}
+        variant={assignment?.variant ?? null}
         headline={brand.landing.hero.headline}
         subheadline={brand.landing.hero.subheadline}
         ctaText={brand.landing.hero.ctaText}

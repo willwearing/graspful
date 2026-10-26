@@ -30,7 +30,9 @@ Traffic is mainly direct. Organic search produced six visitors and ten pageviews
 
 Use PostHog's standard experiment exposure event, filtered to the experiment flag, `$host = graspful.ai`, and `$pathname = /`. Evaluate `homepage-product-proof-v2` only on the platform host surface. Academy, app, and local surfaces must stay outside enrollment. The exact exposure host filter excludes preview deployments from analysis.
 
-Allow up to two seconds for assignment. On a request error, show the control immediately. After a fallback, keep that rendered variant for the visit and stop flag evaluation. A fallback is not an assigned experiment exposure. Review exposure coverage separately; the longer timeout does not guarantee enrollment for every slow request.
+The server assigns the variant while rendering the homepage, so the assigned hero is in the first HTML and never waits on the browser. It evaluates the flag with `posthog-node` against the visitor's posthog-js distinct ID, read from the `ph_<token>_posthog` cookie. A first visit gets a new ID. The page then bootstraps posthog-js with the assigned value, and with the new ID on a first visit only. posthog-js records the exposure for the hero that rendered.
+
+Assignment waits up to 400ms. On a timeout, an error, or a `false` flag, the server renders the control and the browser does not read the flag. A fallback is not an assigned experiment exposure. Review exposure coverage separately.
 
 ### Primary metric
 

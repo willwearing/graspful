@@ -2,54 +2,39 @@
 
 import { Hero } from "@/components/marketing/hero";
 import { ProductProofHero } from "@/components/marketing/product-proof-hero";
-import { useHostSurface } from "@/lib/host-context";
+import {
+  HOMEPAGE_PRODUCT_PROOF_FLAG,
+  HOMEPAGE_PRODUCT_PROOF_VARIANT,
+} from "@/lib/experiments/homepage";
 import { useFeatureFlagVariant } from "@/lib/posthog/useFeatureFlag";
 
-export const HOMEPAGE_PRODUCT_PROOF_FLAG = "homepage-product-proof-v2";
-
 interface LandingHeroExperimentProps {
-  isGraspful: boolean;
+  /** Variant assigned during server rendering. Null keeps the visitor out of the experiment. */
+  variant: string | true | null;
   headline: string;
   subheadline: string;
   ctaText: string;
 }
 
-function GraspfulHeroExperiment(
-  props: Omit<LandingHeroExperimentProps, "isGraspful">,
-) {
-  const variant = useFeatureFlagVariant(HOMEPAGE_PRODUCT_PROOF_FLAG, {
-    fallbackAfterMs: 2000,
-    fallbackVariant: "control",
-  });
+function AssignedHero({
+  variant,
+  ...heroProps
+}: Omit<LandingHeroExperimentProps, "variant"> & { variant: string | true }) {
+  // posthog-js is bootstrapped with the server's assignment, so reading the
+  // flag records the exposure for the hero that was rendered.
+  useFeatureFlagVariant(HOMEPAGE_PRODUCT_PROOF_FLAG);
 
-  if (variant === undefined) {
-    return (
-      <div
-        className="invisible min-h-[78vh]"
-        data-landing-variant="loading"
-        aria-hidden="true"
-      >
-        <Hero {...props} />
-      </div>
-    );
-  }
-
-  if (variant === "product-proof") {
+  if (variant === HOMEPAGE_PRODUCT_PROOF_VARIANT) {
     return <ProductProofHero />;
   }
 
-  return <Hero {...props} />;
+  return <Hero {...heroProps} />;
 }
 
-export function LandingHeroExperiment({
-  isGraspful,
-  ...heroProps
-}: LandingHeroExperimentProps) {
-  const hostSurface = useHostSurface();
-
-  if (!isGraspful || hostSurface !== "platform") {
+export function LandingHeroExperiment({ variant, ...heroProps }: LandingHeroExperimentProps) {
+  if (variant === null) {
     return <Hero {...heroProps} />;
   }
 
-  return <GraspfulHeroExperiment {...heroProps} />;
+  return <AssignedHero variant={variant} {...heroProps} />;
 }

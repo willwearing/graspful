@@ -164,6 +164,23 @@ function redirectToHost(
   return buildHostUrl(currentUrl, targetHost, destination);
 }
 
+function sameDecision(a: RoutingDecision, b: RoutingDecision): boolean {
+  return a.action === b.action && (a.action === "next" || a.to === (b as typeof a).to);
+}
+
+/**
+ * Whether the proxy must read the Supabase session for this request.
+ *
+ * App and learner pages read the session while rendering, so the proxy keeps
+ * refreshing their cookies. A marketing page only needs it when signing in
+ * would change where the visitor ends up. Skipping it elsewhere keeps
+ * Set-Cookie off shared pages so Vercel's CDN can cache them.
+ */
+export function routeNeedsSession(pathname: string, context: RoutingContext = {}): boolean {
+  if (!isMarketingRoute(pathname)) return true;
+  return !sameDecision(decideRoute(pathname, true, context), decideRoute(pathname, false, context));
+}
+
 export function decideRoute(
   pathname: string,
   user: boolean,

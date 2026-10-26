@@ -2,11 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { BrandProvider } from "@/lib/brand/context";
 import { defaultBrand } from "@/lib/brand/defaults";
-import { HostSurfaceProvider } from "@/lib/host-context";
-import type { HostSurface } from "@/lib/hosts";
-import { HOMEPAGE_PRODUCT_PROOF_FLAG, LandingHeroExperiment } from "../landing-hero-experiment";
+import { HOMEPAGE_PRODUCT_PROOF_FLAG } from "@/lib/experiments/homepage";
+import { LandingHeroExperiment } from "../landing-hero-experiment";
 
-let variant: string | boolean | undefined = "control";
 const useFeatureFlagVariant = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/posthog/useFeatureFlag", () => ({
@@ -14,49 +12,33 @@ vi.mock("@/lib/posthog/useFeatureFlag", () => ({
 }));
 
 const props = {
-  isGraspful: true,
   headline: "Build courses where students actually learn.",
   subheadline: "Current homepage copy.",
   ctaText: "Start Building Free",
 };
 
-function renderExperiment(surface: HostSurface = "platform") {
-  useFeatureFlagVariant.mockReset().mockImplementation(() => variant);
+function renderExperiment(variant: string | true | null) {
+  useFeatureFlagVariant.mockReset();
   return render(
-    <HostSurfaceProvider surface={surface}>
-      <BrandProvider brand={defaultBrand}>
-        <LandingHeroExperiment {...props} />
-      </BrandProvider>
-    </HostSurfaceProvider>,
+    <BrandProvider brand={defaultBrand}>
+      <LandingHeroExperiment variant={variant} {...props} />
+    </BrandProvider>,
   );
 }
 
 describe("LandingHeroExperiment", () => {
-  it("allows two seconds for homepage assignment before using the fallback", () => {
-    variant = undefined;
-    renderExperiment();
+  it("renders the hero visibly on first render, with no loading placeholder", () => {
+    const { container } = renderExperiment("control");
 
-    expect(useFeatureFlagVariant).toHaveBeenCalledWith(HOMEPAGE_PRODUCT_PROOF_FLAG, {
-      fallbackAfterMs: 2000,
-      fallbackVariant: "control",
-    });
+    expect(container.querySelector('[data-landing-variant="loading"]')).toBeNull();
+    expect(container.querySelector(".invisible")).toBeNull();
+    expect(screen.getByText("Current homepage copy.")).toBeVisible();
   });
 
-  it.each<HostSurface>(["academy", "app", "local"])(
-    "keeps %s hosts out of the experiment even with the Graspful brand",
-    (surface) => {
-      variant = "product-proof";
-      renderExperiment(surface);
+  it("keeps the existing hero for the control variant and records exposure", () => {
+    renderExperiment("control");
 
-      expect(useFeatureFlagVariant).not.toHaveBeenCalled();
-      expect(screen.getByText("Current homepage copy.")).toBeInTheDocument();
-    },
-  );
-
-  it("keeps the existing hero for the control variant", () => {
-    variant = "control";
-    renderExperiment();
-
+    expect(useFeatureFlagVariant).toHaveBeenCalledWith(HOMEPAGE_PRODUCT_PROOF_FLAG);
     expect(screen.getByText("Current homepage copy.")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Start Building Free" }),
@@ -64,9 +46,9 @@ describe("LandingHeroExperiment", () => {
   });
 
   it("shows concrete product proof for the challenger variant", () => {
-    variant = "product-proof";
-    renderExperiment();
+    renderExperiment("product-proof");
 
+    expect(useFeatureFlagVariant).toHaveBeenCalledWith(HOMEPAGE_PRODUCT_PROOF_FLAG);
     expect(
       screen.getByRole("heading", {
         name: "Turn source material into an adaptive course.",
@@ -80,15 +62,17 @@ describe("LandingHeroExperiment", () => {
     ).toHaveAttribute("href", "#lesson-preview");
   });
 
-  it("hides the control while assignment loads", () => {
-    variant = undefined;
-    const { container } = renderExperiment();
+  it("renders the control for an unknown variant", () => {
+    renderExperiment("some-future-variant");
 
-    expect(
-      container.querySelector('[data-landing-variant="loading"]'),
-    ).toHaveClass("invisible");
-    expect(
-      screen.queryByText("Turn source material into an adaptive course."),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText("Current homepage copy.")).toBeInTheDocument();
+  });
+
+  it("shows the control without reading the flag when the visitor is unassigned", () => {
+    renderExperiment(null);
+
+    // A fallback is not an experiment exposure.
+    expect(useFeatureFlagVariant).not.toHaveBeenCalled();
+    expect(screen.getByText("Current homepage copy.")).toBeInTheDocument();
   });
 });

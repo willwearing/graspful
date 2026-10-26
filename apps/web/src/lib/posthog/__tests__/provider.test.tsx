@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   calls: [] as string[],
   register: vi.fn(),
   capture: vi.fn(),
+  createSupabaseBrowserClient: vi.fn(),
 }));
 
 vi.mock("../client", () => ({
@@ -32,15 +33,9 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+// Marketing pages render this provider, so it must not pull in the Supabase client.
 vi.mock("@/lib/supabase/client", () => ({
-  createSupabaseBrowserClient: () => ({
-    auth: {
-      getSession: () => Promise.resolve({ data: { session: null } }),
-      onAuthStateChange: () => ({
-        data: { subscription: { unsubscribe: vi.fn() } },
-      }),
-    },
-  }),
+  createSupabaseBrowserClient: mocks.createSupabaseBrowserClient,
 }));
 
 describe("PostHogProvider", () => {
@@ -79,5 +74,17 @@ describe("PostHogProvider", () => {
       host_surface: "academy",
       brand_id: "graspful",
     });
+  });
+
+  it("does not create a Supabase client", () => {
+    render(
+      <HostSurfaceProvider surface="platform">
+        <BrandProvider brand={defaultBrand}>
+          <PostHogProvider>content</PostHogProvider>
+        </BrandProvider>
+      </HostSurfaceProvider>,
+    );
+
+    expect(mocks.createSupabaseBrowserClient).not.toHaveBeenCalled();
   });
 });
