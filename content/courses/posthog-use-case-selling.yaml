@@ -51,6 +51,8 @@ concepts:
 
           The rule is simple: use cases are how we sell, products are how we bill.
 
+          Maturity matters when you're pitching. Anything marked alpha or beta, like Endpoints, Customer Analytics, or distributed tracing, needs a caveat said out loud in the room. Don't pitch it as finished. Each use case playbook carries the specific caveat for its alpha and beta products, so check it before the call.
+
           Self-driving is a capability, not a SKU. There's no self-driving line item to add to a plan. So when a customer asks to buy it, keep the conversation on the use case it serves and the product it runs on. Write it lowercase and hyphenated, and keep the customer's product as the subject: we make their product self-driving. Never say PostHog is a self-driving product.
         instructionContent:
           - body: Use cases are how we sell. Products are how we bill. Billing, metering, and packaging don't change. What changes is how you talk about it, how you organize around it, and how you measure adoption.
@@ -334,6 +336,8 @@ concepts:
 
           Two replay patterns point somewhere else. If an account records lots of sessions but rarely watches them, pitch Replay Vision: its AI scanners read the recordings and tag the ones where users got stuck, so the team stops paying to record sessions nobody has time to watch. If the team watches replays and files tickets by hand, pitch self-driving: the step between "we saw the problem" and "someone fixed it" is all manual today.
 
+          Frame self-driving carefully for a product audience. An error has an obvious right answer, so it turns into a merged pull request fast. A product finding, like "users hesitate on the plan picker," needs a human call about what the product should do, so it usually arrives as a needs-input report, not code. That's fine: reports are free, and only pull requests are billed. To a PM, the value is a prioritized queue of investigated problems with the evidence attached, not an agent that redesigns their onboarding.
+
           One gap to know: PostHog has no native in-app guides or tooltips. When a team needs tooltip or modal onboarding, tell them to keep a dedicated tool like Appcues or Pendo for that UX, and use PostHog for the analytics and experimentation around it.
 
           For B2B accounts, Group Analytics is a significant upsell opportunity — it answers "which companies are most engaged?" not just "which users."
@@ -472,6 +476,8 @@ concepts:
           - Session Replay: When control outperforms the variant in an experiment, filter
             replays by flag variant to see why.
 
+
+          For a team drowning in old flags, pitch PostHog Desktop, which is in beta. Its enricher reads the local codebase and annotates each PostHog SDK call inline with live data: how far the flag is rolled out, whether it's stale, and whether the experiment behind it is still running. Flag debt stops being invisible in the editor. That's the flag-hygiene feature LaunchDarkly charges for.
 
           The primary buyers are Engineering Managers, Platform Engineers, Individual Developers, and Founding Engineers. They care about release velocity, incident rate, rollback time, and SDK quality.
 
@@ -1008,6 +1014,8 @@ concepts:
       - id: di-kp1
         instruction: |-
           Data Infrastructure's job is "Help me unify product data with business data and get it where it needs to go." The core products are Data Warehouse (bring external data IN — Stripe, HubSpot, Salesforce, databases) and Data Pipelines / Batch Exports (send PostHog data OUT — S3, Snowflake, BigQuery, ad platforms).
+
+          Watch the name. The current positioning for this whole area is the context warehouse: the managed warehouse plus the full pipeline that brings context in, models it, and exports it. The framing ties this use case to self-driving, because the warehouse is the fuel for agents, not just a SQL bucket. Don't say "PostHog Data Stack" to customers. It isn't a term PostHog uses externally.
 
           This is the "stickiness" use case. Once PostHog receives data from Stripe/HubSpot and feeds data out to warehouses, it's very hard to rip out. Highest retention rates of any use case.
 
