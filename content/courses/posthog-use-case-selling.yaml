@@ -956,6 +956,8 @@ concepts:
           Sweet spot: AI-native startups and teams building AI inside existing products who want model performance connected to user outcomes without managing 4 vendors.
 
           Be honest about maturity: LLM Obs feature set is newer than Langfuse's. Platform breadth is the differentiator, not depth on LLM-specific tooling.
+
+          A second honest gap: Session Replay on chat-based AI products can be noisy, because each chat session produces a lot of replay data. The fix is to configure sampling rules and focus replay viewing on sessions with error events or low AI quality scores.
         instructionContent:
           - body: LLM Obs feature set is newer than Langfuse's. Platform breadth is the differentiator, not depth on LLM-specific tooling. Lead with the connection to user outcomes, not feature-by-feature comparison.
             type: callout
