@@ -1093,6 +1093,8 @@ concepts:
           vs Segment: PostHog is analytics platform AND pipe. No separate CDP needed. Segment has more integrations and a more mature enterprise CDP.
 
           Key honest limitation: data engineering teams may not trust PostHog as a warehouse. Don't oversell. Position as complement. Demonstrate HogQL with their actual data to build credibility.
+
+          Second honest limitation: batch exports are periodic, hourly by default. A team that needs sub-minute data freshness won't get it from a batch export. For real-time needs, use Realtime Destinations instead, and set expectations on latency during the evaluation.
         instructionContent:
           - body: For mature data stacks, PostHog is a complement, not a replacement. Don't try to replace Snowflake. Demonstrate HogQL with their actual data to build credibility with skeptical data teams.
             type: callout
