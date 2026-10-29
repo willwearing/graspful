@@ -53,6 +53,8 @@ concepts:
 
           Maturity matters when you're pitching. Anything marked alpha or beta, like Endpoints, Customer Analytics, or distributed tracing, needs a caveat said out loud in the room. Don't pitch it as finished. Each use case playbook carries the specific caveat for its alpha and beta products, so check it before the call.
 
+          Every use case playbook follows the same section order, so you always know where to look. It runs from the job to be done, through products, adoption paths, business impact, personas, signals, discovery, competitive positioning, and known limitations, to getting a customer started, cross-sell pathways, internal resources, and company archetypes. Only three playbooks deviate. Growth and Marketing and Customer Experience each add an objection handling section right after getting a customer started. Data Infrastructure adds a data-maturity appendix at the end.
+
           Self-driving is a capability, not a SKU. There's no self-driving line item to add to a plan. So when a customer asks to buy it, keep the conversation on the use case it serves and the product it runs on. Write it lowercase and hyphenated, and keep the customer's product as the subject: we make their product self-driving. Never say PostHog is a self-driving product.
         instructionContent:
           - body: Use cases are how we sell. Products are how we bill. Billing, metering, and packaging don't change. What changes is how you talk about it, how you organize around it, and how you measure adoption.
@@ -894,6 +896,8 @@ concepts:
 
           With an AI engineer, lead with model-level metrics: latency, cost, token usage, and accuracy. That's what they care about first. User-level analytics comes second, so save it for after the model story has opened the door.
 
+          Watch for custom LLM events in Product Analytics, with names like llm_generation or ai_response. That team is already tracking AI behavior as plain analytics events. They're one step from AI Observability, which gives them the model-level detail those events can't: traces, tokens, latency, and cost per call. Pitch it as the upgrade to what they built by hand.
+
           Key differentiation: No one else connects model performance → quality → user behavior → business outcomes in one platform. Langfuse does tracing. Amplitude does analytics. Sentry does errors. Nobody connects all four.
         instructionContent:
           - body: No one else connects model performance, output quality, user behavior, and business outcomes in one platform. Langfuse does tracing. Amplitude does analytics. Sentry does errors. Nobody connects all four.
@@ -1034,6 +1038,8 @@ concepts:
              because it keeps teams inside PostHog.
 
 
+          Watch for the active batch exports trait in Vitally. It means the team already sends PostHog data out. The natural next step is the other direction: Data Warehouse, bringing their business data in. They likely aren't thinking of PostHog as a warehouse at all, so you have to raise it.
+
           The "lightweight warehouse" pitch works for early-stage companies who don't have Snowflake yet. PostHog gives them warehouse capabilities without a separate vendor.
         instructionContent:
           - body: Data Infrastructure is the stickiest use case. Once PostHog receives data from Stripe/HubSpot and feeds data out to warehouses, ripping it out means rebuilding multiple integrations. Highest retention rates.
@@ -1170,6 +1176,10 @@ concepts:
           Support leaders care about faster resolution, fewer escalations, and what their agent tooling costs per seat. So open with where the work lands and what it costs: "Where do customer conversations land today, and what does that tool cost you per seat?" Then ask what their agents already know when a ticket comes in, and what they have to go ask for. The gap between those two answers is where Replay, Error Tracking, and Logs fit.
 
           Key business impact: engineering time savings. Bug reproduction drops from 2 hours to 30-60 minutes. Support shares one link (replay + errors + logs) and engineering has full context in seconds. Can justify the entire PostHog contract on debugging time savings alone.
+
+          The highest-leverage usage signal in this use case: Support is enabled, but tickets arrive with no replay attached. The team is running Support as a plain inbox and getting a fraction of the value, because the value lands when each ticket carries the sender's session replay and errors. When you see tickets being created, check whether replay and Error Tracking are on. If they aren't, that's the conversation to have first.
+
+          A second signal to watch: the Support widget loads often, but few tickets get created. Compare widget loads against tickets created. A big gap usually means the widget is installed but hard to find, or user identification isn't configured. Offer a config review.
         instructionContent:
           - body: Bug reproduction drops from 2 hours to 30-60 minutes. Support shares one link (replay + errors + logs) and engineering has full context in seconds. This alone can justify the entire PostHog contract.
             type: callout
