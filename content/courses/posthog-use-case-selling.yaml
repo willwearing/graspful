@@ -412,6 +412,8 @@ concepts:
 
 
           The sweet spot for Product Intelligence: technical product teams at companies with engineers who value depth, flexibility, and not paying for 5 tools. Weaker against very large enterprises (Amplitude's ML) and non-technical teams (Hotjar/Pendo's simpler UX).
+
+          Don't oversell AI on replay. Nearly every competitor shipped an AI analyst in the last year, and some had it GA before Replay Vision. A buyer who has seen the Fullstory or LogRocket AI demo won't be moved by "we have AI too." Make the narrower claim instead. Replay Vision's output is a normal PostHog event, so "sessions where the user hit a dead end" becomes a funnel breakdown, a cohort you can survey, or an experiment exclusion. Other tools keep their AI findings inside their AI panel. And the loop keeps going past the insight, into a pull request.
         instructionContent:
           - body: Technical product teams with engineers who value depth, flexibility, and not paying for 5 tools. Weaker against very large enterprises (Amplitude's ML) and non-technical teams (Hotjar/Pendo's simpler UX).
             type: callout
@@ -542,6 +544,8 @@ concepts:
           Other competitors:
           - Statsig: Purpose-built for experimentation with a strong warehouse-native story.
             PostHog is broader (replay, surveys, workflows) and open source.
+
+          Statsig also carries a continuity risk. Its team went to OpenAI in 2025, and Amplitude took on the brand and customers in 2026. If a prospect is mid-evaluation with Statsig, raise that. Ask who will own the roadmap they're betting on.
 
           - Eppo: Warehouse-native experimentation with advanced statistics.
             PostHog doesn't require a data warehouse and has integrated replay.
@@ -1379,6 +1383,8 @@ concepts:
           Release Engineering: Feature Flags is primary/only paid product, high flag evaluations but low experiment count, customer mentions LaunchDarkly, engineering-only users.
 
           Observability: Error Tracking active but low product count, customer mentions Sentry/Datadog, high Replay usage with error filtering, engineering-heavy users.
+
+          Self-driving readiness: if Error Tracking, Logs, or health checks are active, the account is already set up for self-driving. Each one is a signal source. An SRE team that instrumented for observability has done the setup work without meaning to. That makes Observability to self-driving the strongest expansion in the playbook. The pitch: "You've got the signals. Want an agent to investigate them and open the PR, instead of you triaging every alert?"
 
           Growth & Marketing: Web Analytics active but no other products, mentions GA4/Segment/CDP, multiple marketing/growth members invited, low Pipelines despite high analytics.
 
