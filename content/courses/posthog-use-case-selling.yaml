@@ -204,6 +204,8 @@ concepts:
 
           One matrix row has a catch. **Customer Analytics** (beta) is primary for Growth & Marketing and secondary for Product Intelligence. It answers "how is this account doing," not just "what did users do." But its B2B mode, the account-level view, requires the **Group Analytics** add-on. So when a B2B customer asks for account-level customer views, check whether they have Group Analytics first.
 
+          Replay Vision has a different catch. It's generally available, so there's no waitlist to mention. But its usage is metered in credits against a monthly budget. So when you pitch it, tell the customer to scope their scanners narrowly instead of pointing them at every session.
+
           Key insight: products can be primary for one use case and secondary for several others. Session Replay shows up in five of seven use cases, primary in one and secondary in four. This means the same product gets pitched differently depending on context.
         instructionContent:
           - body: Session Replay shows up in 5 of 7 use cases. The same product gets pitched differently depending on context. "Watch the drop-off" (PI), "watch the error" (Obs), "watch the bug report" (CX) — same product, different framing.
@@ -1184,6 +1186,8 @@ concepts:
           The highest-leverage usage signal in this use case: Support is enabled, but tickets arrive with no replay attached. The team is running Support as a plain inbox and getting a fraction of the value, because the value lands when each ticket carries the sender's session replay and errors. When you see tickets being created, check whether replay and Error Tracking are on. If they aren't, that's the conversation to have first.
 
           A second signal to watch: the Support widget loads often, but few tickets get created. Compare widget loads against tickets created. A big gap usually means the widget is installed but hard to find, or user identification isn't configured. Offer a config review.
+
+          At dev-tool and infra companies, "support" is often really an issue tracker. Their users report problems as GitHub issues. So land Support through the GitHub channel: connect the repo, and issues become tickets with two-way comment sync. The team works one inbox, and nothing changes for their users. The pitch goes to the CTO, the DevRel lead, or the head of support.
         instructionContent:
           - body: Bug reproduction drops from 2 hours to 30-60 minutes. Support shares one link (replay + errors + logs) and engineering has full context in seconds. This alone can justify the entire PostHog contract.
             type: callout
@@ -1240,6 +1244,8 @@ concepts:
           "We need Zendesk/Intercom integration." → Paste replay links in tickets today. Pipelines push events via webhooks for automated workflows.
 
           "Can we run Zendesk and PostHog Support side by side?" → Set expectations honestly. There's no live two-way sync with Zendesk or Intercom. The **Zendesk import** is a one-time historical backfill, and it's in open beta. So don't promise a hybrid steady state with tickets in both tools. Position Support as a switchover, not coexistence. If they won't switch yet, sell the context layer (replay links in their existing tickets) and wire their helpdesk in as a self-driving signal source. Revisit Support when their helpdesk contract comes up.
+
+          "What about AI answering tickets for us?" → An AI reply agent isn't available yet. One is coming, it'll be opt-in, and only teams who turn it on get billed for it. Then point to what works today, in the opposite direction: recurring issues get investigated and come back as a pull request the team reviews and merges. Deflecting a ticket is good. Making it never happen again is better.
 
           "Session replay has privacy concerns." → Extensive controls: input masking, DOM blocking, network filtering. HIPAA BAA available with Boost package.
 
