@@ -206,6 +206,8 @@ concepts:
 
           Replay Vision has a different catch. It's generally available, so there's no waitlist to mention. But its usage is metered in credits against a monthly budget. So when you pitch it, tell the customer to scope their scanners narrowly instead of pointing them at every session.
 
+          Some secondary rows are bridge products: one product that opens a second use case. AI Evals lives in AI/LLM Observability, but it also unlocks Product Intelligence (where are users struggling because of output quality?) and Release Engineering (did a prompt or model change cause a quality regression?). Feature Flags does the same for Growth & Marketing. Growth defines the experiment, engineering implements the flag, and that pulls engineering toward Release Engineering.
+
           Key insight: products can be primary for one use case and secondary for several others. Session Replay shows up in five of seven use cases, primary in one and secondary in four. This means the same product gets pitched differently depending on context.
         instructionContent:
           - body: Session Replay shows up in 5 of 7 use cases. The same product gets pitched differently depending on context. "Watch the drop-off" (PI), "watch the error" (Obs), "watch the bug report" (CX) — same product, different framing.
@@ -634,6 +636,8 @@ concepts:
 
           **A naming note on APM.** "APM" is PostHog's internal team name, not a product. Customer-facing, there are three OpenTelemetry pillars: **Logs**, **Distributed tracing** (alpha), and **Metrics** (alpha). So when a customer asks about the APM roadmap, don't say "APM is coming." Tell them which pillar ships today and at what maturity. Tracing and metrics are usable now and free during alpha, but a team mid-migration off Datadog should keep their existing tool running.
 
+          The cheapest expansion in this playbook starts from Logs. Once a team exports logs to PostHog over OpenTelemetry, traces and metrics are a config change, not a new integration. Same collector, same project token, a different endpoint. The pitch: "You're already exporting OTel to us. Traces and metrics are the same collector and a different endpoint, and they're free while they're in alpha."
+
           Key business insight: observability data connected to product analytics is a moat. Only PostHog can say "this error affected 500 users, 30 were in checkout, $15k lost revenue this week." Sentry gives you a stack trace. PostHog gives you business impact.
         instructionContent:
           - body: Observability data connected to product analytics is PostHog's moat. Only PostHog can say "this error affected 500 users, 30 were in checkout, $15k lost revenue this week." Sentry gives a stack trace. PostHog gives business impact.
@@ -688,6 +692,8 @@ concepts:
           vs Sentry: PostHog has deeper product analytics and replay context. Sentry has more mature error tracking, broader language support, and a larger install base. Best pitch: "Sentry gives you the stack trace. PostHog gives you the stack trace, the user's session, and the business impact."
 
           vs Datadog: PostHog has product analytics integration, replay depth, and is much cheaper. Datadog has the complete observability stack (APM, traces, metrics) and a massive enterprise ecosystem. Don't try to replace Datadog entirely.
+
+          One gap to name honestly: PostHog can't alert on trace data. Alerts cover insights (trends, funnels, SQL) and logs, but not spans. Route around it. Alert on an error-tracking issue or a log pattern that tracks the latency they care about. The APM scout also watches p95 latency and error rate per service on a schedule and files a report. That's proactive coverage, just not a pager.
 
           vs New Relic: Similar to Datadog — PostHog adds product analytics and replay, but New Relic has more mature enterprise features.
 
@@ -760,6 +766,8 @@ concepts:
           The primary buyers are Growth Engineers, Marketing Leads, CRO/Growth PMs, Founding Growth, and Marketing Analysts. These are separate budgets from engineering — a different buyer than Product Intelligence or Release Engineering.
 
           Critical expansion mechanism: Experiments + Feature Flags create a multithreading bridge. The growth team defines the hypothesis, engineering implements the flag. Both teams are now active in PostHog. This is the highest-value cross-team play because it creates flags in the codebase (sticky) and pulls in engineering (new champion).
+
+          Watch for the signal that this bridge is stuck: experiments created, but low flag evaluation volume. The growth team is trying to experiment, but engineering hasn't implemented the flags yet. That's your opening. Step in and facilitate the handoff between growth and engineering.
         instructionContent:
           - body: 'Growth & Marketing is "probably the most underserved use case" internally. Marketing teams spending $10k+/month on Segment, Mixpanel, GA4, CDPs. The pitch is stack consolidation: replace 3-5 tools with one platform from ad click to revenue.'
             type: callout
@@ -829,6 +837,8 @@ concepts:
           - Non-technical marketers may find the UI intimidating initially.
 
           Key objection: "We already use GA4 and it's free." Response: "GA4 shows visits. PostHog shows which channels drive users who activate and pay. PostHog starts free too, and goes all the way to revenue."
+
+          Second objection: "Our growth team wants to experiment, but engineering is too busy to implement flags." Treat it as a normal starting point. The first experiment is the hardest, because engineering has to set up the Feature Flag SDK once. After that, each new experiment is much faster, and most teams find the loop runs smoothly after the first 2 to 3 experiments. Engineering also gets flag infrastructure they can use for their own releases.
         instructionContent:
           - body: '"GA4 shows visits. PostHog shows which channels drive users who activate and pay — and starts free too." Acknowledge GA4''s free tier, then reframe on depth: visits vs revenue attribution.'
             type: callout
