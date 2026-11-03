@@ -208,6 +208,8 @@ concepts:
 
           Some secondary rows are bridge products: one product that opens a second use case. AI Evals lives in AI/LLM Observability, but it also unlocks Product Intelligence (where are users struggling because of output quality?) and Release Engineering (did a prompt or model change cause a quality regression?). Feature Flags does the same for Growth & Marketing. Growth defines the experiment, engineering implements the flag, and that pulls engineering toward Release Engineering.
 
+          The question a buyer asks during an evaluation tells you which use case you're in. Listen for what they want to see, then map it to the job behind it. "Can I see which features drive retention?" is Product Intelligence. "How many lines of code to add a flag?" is Release Engineering. "Can I see the user's session when this error happened?" is Observability. "Can I see which campaigns actually drive revenue?" is Growth & Marketing. "Can I see cost per query by model?" is AI/LLM Observability. "Can I query my Stripe data alongside PostHog events without setting up Snowflake?" is Data Infrastructure. Then lead with that use case's core product.
+
           Key insight: products can be primary for one use case and secondary for several others. Session Replay shows up in five of seven use cases, primary in one and secondary in four. This means the same product gets pitched differently depending on context.
         instructionContent:
           - body: Session Replay shows up in 5 of 7 use cases. The same product gets pitched differently depending on context. "Watch the drop-off" (PI), "watch the error" (Obs), "watch the bug report" (CX) — same product, different framing.
@@ -418,6 +420,8 @@ concepts:
           The sweet spot for Product Intelligence: technical product teams at companies with engineers who value depth, flexibility, and not paying for 5 tools. Weaker against very large enterprises (Amplitude's ML) and non-technical teams (Hotjar/Pendo's simpler UX).
 
           Don't oversell AI on replay. Nearly every competitor shipped an AI analyst in the last year, and some had it GA before Replay Vision. A buyer who has seen the Fullstory or LogRocket AI demo won't be moved by "we have AI too." Make the narrower claim instead. Replay Vision's output is a normal PostHog event, so "sessions where the user hit a dead end" becomes a funnel breakdown, a cohort you can survey, or an experiment exclusion. Other tools keep their AI findings inside their AI panel. And the loop keeps going past the insight, into a pull request.
+
+          Coach customers on how much to trust Replay Vision. Each observation is a model's judgment, not ground truth, and a PM who treats one observation as fact will get burned. Every observation carries a confidence score and citations that link to the exact moment in the recording. So tell customers to spot-check the cited moment before they act, and to look for a pattern across many sessions instead of trusting a single scan.
         instructionContent:
           - body: Technical product teams with engineers who value depth, flexibility, and not paying for 5 tools. Weaker against very large enterprises (Amplitude's ML) and non-technical teams (Hotjar/Pendo's simpler UX).
             type: callout
@@ -484,6 +488,8 @@ concepts:
           - Session Replay: When control outperforms the variant in an experiment, filter
             replays by flag variant to see why.
 
+
+          Watch for one usage signal: Session Replay is enabled, but replays aren't filtered by flag variant. The team is recording sessions without connecting them to rollout debugging. That's an onboarding opportunity, not a new sale. Show them how to filter replays by variant, so the next time a user says "the new feature is broken," they watch exactly what happened instead of guessing.
 
           For a team drowning in old flags, pitch PostHog Desktop, which is in beta. Its enricher reads the local codebase and annotates each PostHog SDK call inline with live data: how far the flag is rolled out, whether it's stale, and whether the experiment behind it is still running. Flag debt stops being invisible in the editor. That's the flag-hygiene feature LaunchDarkly charges for.
 
@@ -761,7 +767,7 @@ concepts:
 
           This is described internally as "probably the most underserved use case in our current motion." The products exist but PostHog rarely leads with this story. Marketing teams spending $10k+/month on Segment, Mixpanel, GA4, CDPs.
 
-          The pitch is stack consolidation: replace 3-5 marketing tools with one platform that goes from ad click to conversion to revenue.
+          The pitch is stack consolidation: replace 3-5 marketing tools with one platform that goes from ad click to conversion to revenue. That's strongest against teams using 3 or more tools to do what PostHog does in one. It's weakest against teams deep in the Google ecosystem, running GA4, Google Ads, and Looker together, where switching cost is very high. There, don't pitch a full GA4 replacement. Position PostHog as a complement for product analytics and conversion funnel depth.
 
           The primary buyers are Growth Engineers, Marketing Leads, CRO/Growth PMs, Founding Growth, and Marketing Analysts. These are separate budgets from engineering — a different buyer than Product Intelligence or Release Engineering.
 
