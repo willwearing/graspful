@@ -1408,6 +1408,8 @@ concepts:
 
           Self-driving readiness: if Error Tracking, Logs, or health checks are active, the account is already set up for self-driving. Each one is a signal source. An SRE team that instrumented for observability has done the setup work without meaning to. That makes Observability to self-driving the strongest expansion in the playbook. The pitch: "You've got the signals. Want an agent to investigate them and open the PR, instead of you triaging every alert?"
 
+          Error Tracking on AI features points somewhere else: AI/LLM Observability. Traditional error tracking misses AI quality regressions, because a model can respond without throwing an exception and still give worse answers. AI Evals fills that gap and pulls in AI Observability for the model-level context. The pitch: "You're catching exceptions, but are you catching when your model starts giving worse answers? That's a different kind of 'error.'"
+
           Growth & Marketing: Web Analytics active but no other products, mentions GA4/Segment/CDP, multiple marketing/growth members invited, low Pipelines despite high analytics.
 
           Data Infrastructure: Active batch exports, active external data schemas, high rows synced, mentions Fivetran/Snowflake, high HogQL usage.
