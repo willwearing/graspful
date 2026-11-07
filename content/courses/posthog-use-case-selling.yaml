@@ -1414,6 +1414,8 @@ concepts:
 
           Data Infrastructure: Active batch exports, active external data schemas, high rows synced, mentions Fivetran/Snowflake, high HogQL usage.
 
+          A request for billing or CRM data next to product data also routes to Data Infrastructure, whichever team asks. A team on Group Analytics and Person Profiles that wants a complete customer view needs Data Warehouse, because the job is unifying product data with business data. The pitch: "You're looking at users in PostHog. What if you could see their Stripe revenue and HubSpot status alongside their product behavior?"
+
           The general pattern: look for single-product accounts, mentions of competitor tools, team composition (which roles are active), and usage gaps (high activity on one product, zero on the logical next step).
         instructionContent:
           - body: 'Look for three things: single-product accounts, mentions of competitor tools in notes, and usage gaps (high activity on one product, zero on the logical next step). These signal expansion readiness.'
