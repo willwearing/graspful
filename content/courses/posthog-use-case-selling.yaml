@@ -192,7 +192,8 @@ concepts:
           - AI Observability, AI Evals, and Prompt management are primary for AI/LLM Observability.
           - Data Warehouse, Data Pipelines, Endpoints, and the semantic layer are primary for
             Data Infrastructure. Endpoints is the one to reach for when a team wants to serve
-            query results into their own app or internal tool.
+            query results into their own app or internal tool. Maturity differs: Endpoints is
+            beta, and the semantic layer is alpha.
           - Logs, distributed tracing, metrics, and health checks are primary for Observability.
           - Replay Vision is primary for Product Intelligence, secondary for Customer Experience
             and Observability.
@@ -341,6 +342,8 @@ concepts:
           - Founders want to figure out what to build next.
 
           The expansion path follows a clear logic: Analytics shows the "what" (40% drop at step 3). Replay shows the "why" (qualitative context). Surveys let you ask users directly. Experiments let you test fixes. Revenue Analytics proves business impact. Workflows automate action on insights with behavior-triggered sequences.
+
+          Watch for high event volume with low survey usage. They have the traffic to run surveys but haven't started. That's a low-hanging Surveys cross-sell: put one survey at the friction point they already see in their funnels.
 
           Two replay patterns point somewhere else. If an account records lots of sessions but rarely watches them, pitch Replay Vision: its AI scanners read the recordings and tag the ones where users got stuck, so the team stops paying to record sessions nobody has time to watch. If the team watches replays and files tickets by hand, pitch self-driving: the step between "we saw the problem" and "someone fixed it" is all manual today.
 
@@ -774,6 +777,10 @@ concepts:
           Critical expansion mechanism: Experiments + Feature Flags create a multithreading bridge. The growth team defines the hypothesis, engineering implements the flag. Both teams are now active in PostHog. This is the highest-value cross-team play because it creates flags in the codebase (sticky) and pulls in engineering (new champion).
 
           Watch for the signal that this bridge is stuck: experiments created, but low flag evaluation volume. The growth team is trying to experiment, but engineering hasn't implemented the flags yet. That's your opening. Step in and facilitate the handoff between growth and engineering.
+
+          Set the evaluation timeline up front: 2 to 4 weeks to see meaningful data. Channel attribution and funnel insights start showing value in the first week if traffic is decent. Experiments need enough traffic for statistical significance, so their timeline varies.
+
+          A second usage signal: UTM parameters showing up in event properties. That means they're tracking acquisition sources, and Marketing Analytics is the natural add. It's the next step on the path because it connects the traffic and referrers they already see to actual ad spend and ROAS.
         instructionContent:
           - body: 'Growth & Marketing is "probably the most underserved use case" internally. Marketing teams spending $10k+/month on Segment, Mixpanel, GA4, CDPs. The pitch is stack consolidation: replace 3-5 tools with one platform from ad click to revenue.'
             type: callout
