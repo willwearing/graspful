@@ -53,7 +53,7 @@ concepts:
 
           Maturity matters when you're pitching. Anything marked alpha or beta, like Endpoints, Customer Analytics, or distributed tracing, needs a caveat said out loud in the room. Don't pitch it as finished. Each use case playbook carries the specific caveat for its alpha and beta products, so check it before the call.
 
-          Every use case playbook follows the same section order, so you always know where to look. It runs from the job to be done, through products, adoption paths, business impact, personas, signals, discovery, competitive positioning, and known limitations, to getting a customer started, cross-sell pathways, internal resources, and company archetypes. Only three playbooks deviate. Growth and Marketing and Customer Experience each add an objection handling section right after getting a customer started. Data Infrastructure adds a data-maturity appendix at the end.
+          Every use case playbook follows the same section order, so you always know where to look. It runs from the job to be done, through products, adoption paths, business impact, personas, signals, discovery, competitive positioning, and known limitations, to getting a customer started, cross-sell pathways, internal resources, and company archetypes. The discovery step is the Command of the Message section, seventh in the order, right after signals. That's where you'll find the discovery questions, negative consequences, desired state, outcomes, and metrics for the use case. Only three playbooks deviate. Growth and Marketing and Customer Experience each add an objection handling section right after getting a customer started. Data Infrastructure adds a data-maturity appendix at the end.
 
           Self-driving is a capability, not a SKU. There's no self-driving line item to add to a plan. So when a customer asks to buy it, keep the conversation on the use case it serves and the product it runs on. Write it lowercase and hyphenated, and keep the customer's product as the subject: we make their product self-driving. Never say PostHog is a self-driving product.
         instructionContent:
@@ -352,6 +352,8 @@ concepts:
           One gap to know: PostHog has no native in-app guides or tooltips. When a team needs tooltip or modal onboarding, tell them to keep a dedicated tool like Appcues or Pendo for that UX, and use PostHog for the analytics and experimentation around it.
 
           For B2B accounts, Group Analytics is a significant upsell opportunity — it answers "which companies are most engaged?" not just "which users."
+
+          Set the evaluation timeline up front. A Product Intelligence evaluation should show value from analytics and replay in 1 to 2 weeks: instrument the core flow, build the main funnel and retention view, and turn on replay for key flows. Experiments are the exception. They need enough traffic to reach statistical significance, so their timeline varies with the customer's volume.
         instructionContent:
           - body: Analytics shows the "what" (40% drop at step 3). Replay shows the "why." Surveys let you ask users directly. Experiments test fixes. Each step builds on the previous insight. For B2B, Group Analytics is a significant upsell.
             type: callout
@@ -774,6 +776,8 @@ concepts:
 
           The primary buyers are Growth Engineers, Marketing Leads, CRO/Growth PMs, Founding Growth, and Marketing Analysts. These are separate budgets from engineering — a different buyer than Product Intelligence or Release Engineering.
 
+          The Marketing Analyst is the persona who cares about data accuracy, attribution modeling, cohort analysis, and reporting. Think Marketing Analyst or a Data Analyst on the marketing team. They evaluate with two questions: "Can I trust this data?" and "Can I build reports without engineering help?" So show them clean, consistent conversion data and reports they can build on their own.
+
           Critical expansion mechanism: Experiments + Feature Flags create a multithreading bridge. The growth team defines the hypothesis, engineering implements the flag. Both teams are now active in PostHog. This is the highest-value cross-team play because it creates flags in the codebase (sticky) and pulls in engineering (new champion).
 
           Watch for the signal that this bridge is stuck: experiments created, but low flag evaluation volume. The growth team is trying to experiment, but engineering hasn't implemented the flags yet. That's your opening. Step in and facilitate the handoff between growth and engineering.
@@ -1130,6 +1134,8 @@ concepts:
           Key honest limitation: data engineering teams may not trust PostHog as a warehouse. Don't oversell. Position as complement. Demonstrate HogQL with their actual data to build credibility.
 
           Second honest limitation: batch exports are periodic, hourly by default. A team that needs sub-minute data freshness won't get it from a batch export. For real-time needs, use Realtime Destinations instead, and set expectations on latency during the evaluation.
+
+          Third honest limitation: query performance at very large scale. A team with billions of rows in external sources may hit performance limits in Data Warehouse, because it's optimized for product analytics query patterns, not general-purpose warehousing. For datasets that big, point them to batch exports into Snowflake or BigQuery and run the heavy queries there.
         instructionContent:
           - body: For mature data stacks, PostHog is a complement, not a replacement. Don't try to replace Snowflake. Demonstrate HogQL with their actual data to build credibility with skeptical data teams.
             type: callout
@@ -1203,6 +1209,8 @@ concepts:
           Primary buyers: Support Leaders, Engineering Leads, Product Managers, AI Leads, CS Leaders.
 
           Support leaders care about faster resolution, fewer escalations, and what their agent tooling costs per seat. So open with where the work lands and what it costs: "Where do customer conversations land today, and what does that tool cost you per seat?" Then ask what their agents already know when a ticket comes in, and what they have to go ask for. The gap between those two answers is where Replay, Error Tracking, and Logs fit.
+
+          The per-seat question sets up the pricing answer. Support's core is free with no per-seat charge: the widget, the inbox, every channel, workflow automation, and imports. So a growing support team stops paying more every time it hires. That makes helpdesk consolidation one of the clearest hard-dollar cases you can make.
 
           Key business impact: engineering time savings. Bug reproduction drops from 2 hours to 30-60 minutes. Support shares one link (replay + errors + logs) and engineering has full context in seconds. Can justify the entire PostHog contract on debugging time savings alone.
 
