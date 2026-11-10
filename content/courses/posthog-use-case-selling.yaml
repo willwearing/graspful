@@ -500,6 +500,8 @@ concepts:
 
           The primary buyers are Engineering Managers, Platform Engineers, Individual Developers, and Founding Engineers. They care about release velocity, incident rate, rollback time, and SDK quality.
 
+          An evaluation costs the customer nothing to start. The Feature Flags free tier covers 1 million requests, and Experiments are included. So the scope is small: put one upcoming release behind a flag, roll it out gradually, and optionally measure it with an experiment.
+
           Critical business insight: Feature flags in the codebase are extremely sticky — they're infrastructure, not a dashboard. Once embedded, they're very hard to rip out. This makes Release Engineering one of the highest-retention use cases.
 
           The tight flags + experiments integration is genuinely differentiated. No other flag tool lets you create a flag → run an experiment → measure in analytics → watch sessions by variant, all in one platform.
@@ -705,6 +707,8 @@ concepts:
           vs Datadog: PostHog has product analytics integration, replay depth, and is much cheaper. Datadog has the complete observability stack (APM, traces, metrics) and a massive enterprise ecosystem. Don't try to replace Datadog entirely.
 
           One gap to name honestly: PostHog can't alert on trace data. Alerts cover insights (trends, funnels, SQL) and logs, but not spans. Route around it. Alert on an error-tracking issue or a log pattern that tracks the latency they care about. The APM scout also watches p95 latency and error rate per service on a schedule and files a report. That's proactive coverage, just not a pager.
+
+          A second gap sits in the tracing SDKs. Tracing SDK coverage is backend-only: Node, Python, Go, Java, .NET, PHP, and Ruby. There's no browser or mobile tracing. Frontend performance is covered by Web vitals and Session Replay instead. It's a different shape of answer, but the user experience is still covered.
 
           vs New Relic: Similar to Datadog — PostHog adds product analytics and replay, but New Relic has more mature enterprise features.
 
@@ -992,7 +996,7 @@ concepts:
 
           Sweet spot: AI-native startups and teams building AI inside existing products who want model performance connected to user outcomes without managing 4 vendors.
 
-          Be honest about maturity: LLM Obs feature set is newer than Langfuse's. Platform breadth is the differentiator, not depth on LLM-specific tooling.
+          Be honest about maturity: AI Observability is newer than Langfuse, so a team deep in a Langfuse workflow may find specific rough edges. When a Langfuse user claims feature gaps, be honest about track record rather than feature gaps. PostHog ships prompt management and evals too. Then position the breadth of the platform (analytics, experiments, replay) as the reason to consolidate.
 
           A second honest gap: Session Replay on chat-based AI products can be noisy, because each chat session produces a lot of replay data. The fix is to configure sampling rules and focus replay viewing on sessions with error events or low AI quality scores.
         instructionContent:
