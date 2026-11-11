@@ -421,6 +421,10 @@ concepts:
           - vs Pendo: Deeper analytics, experiments, open source, better pricing.
             Pendo has more mature in-app guides and enterprise PM workflow features.
 
+          - vs Contentsquare: One platform through to shipping the fix, and better pricing.
+            Contentsquare's Sense Analyst, an autonomous analysis agent, is further along
+            than our replay AI. They also have deep enterprise CX tooling.
+
 
           The sweet spot for Product Intelligence: technical product teams at companies with engineers who value depth, flexibility, and not paying for 5 tools. Weaker against very large enterprises (Amplitude's ML) and non-technical teams (Hotjar/Pendo's simpler UX).
 
@@ -778,6 +782,8 @@ concepts:
 
           The pitch is stack consolidation: replace 3-5 marketing tools with one platform that goes from ad click to conversion to revenue. That's strongest against teams using 3 or more tools to do what PostHog does in one. It's weakest against teams deep in the Google ecosystem, running GA4, Google Ads, and Looker together, where switching cost is very high. There, don't pitch a full GA4 replacement. Position PostHog as a complement for product analytics and conversion funnel depth.
 
+          Put a number on the consolidation. The playbook's expected outcome is a 20-40% cut in marketing tool spend when GA4, Segment, a CDP, and point solutions move into PostHog.
+
           The primary buyers are Growth Engineers, Marketing Leads, CRO/Growth PMs, Founding Growth, and Marketing Analysts. These are separate budgets from engineering — a different buyer than Product Intelligence or Release Engineering.
 
           The Marketing Analyst is the persona who cares about data accuracy, attribution modeling, cohort analysis, and reporting. Think Marketing Analyst or a Data Analyst on the marketing team. They evaluate with two questions: "Can I trust this data?" and "Can I build reports without engineering help?" So show them clean, consistent conversion data and reports they can build on their own.
@@ -933,6 +939,8 @@ concepts:
 
           With an AI engineer, lead with model-level metrics: latency, cost, token usage, and accuracy. That's what they care about first. User-level analytics comes second, so save it for after the model story has opened the door.
 
+          Framework coverage is rarely a blocker. The team instruments its LLM calls with the PostHog SDK or API, and there are integration guides for 20+ frameworks, including OpenAI, Anthropic, Vercel AI SDK, LangChain, LangGraph, LiteLLM, Bedrock, and OpenRouter.
+
           Watch for custom LLM events in Product Analytics, with names like llm_generation or ai_response. That team is already tracking AI behavior as plain analytics events. They're one step from AI Observability, which gives them the model-level detail those events can't: traces, tokens, latency, and cost per call. Pitch it as the upgrade to what they built by hand.
 
           Key differentiation: No one else connects model performance → quality → user behavior → business outcomes in one platform. Langfuse does tracing. Amplitude does analytics. Sentry does errors. Nobody connects all four.
@@ -1076,6 +1084,8 @@ concepts:
 
 
           Watch for the active batch exports trait in Vitally. It means the team already sends PostHog data out. The natural next step is the other direction: Data Warehouse, bringing their business data in. They likely aren't thinking of PostHog as a warehouse at all, so you have to raise it.
+
+          An evaluation costs little to start. The Data Warehouse free tier covers 1M rows a month, plus free historical syncs. The Batch Exports free tier also covers 1M rows a month.
 
           The "lightweight warehouse" pitch works for early-stage companies who don't have Snowflake yet. PostHog gives them warehouse capabilities without a separate vendor.
         instructionContent:
