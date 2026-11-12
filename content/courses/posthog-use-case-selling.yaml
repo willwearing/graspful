@@ -117,6 +117,8 @@ concepts:
 
           Each use case has a different core buyer. Product Intelligence sells to PMs. Release Engineering sells to engineering managers. Observability sells to SREs. Growth & Marketing sells to growth engineers and marketing leads. These are separate budgets, separate champions, separate conversations.
 
+          The other three follow the same rule. AI/LLM Observability sells to AI/ML engineers, AI PMs, and AI founders. Data Infrastructure sells to data engineers, analytics engineers, and product ops. Customer Experience sells to support leaders, engineering leads, and CS leaders. So when the champion is in product ops, the use case to lead with is Data Infrastructure.
+
           One word choice to get right. In brand terms, most of the things each use case bundles are tools: capabilities customers reach through PostHog's five products, which are PostHog Web, Slack, MCP, CLI, and Desktop. That doesn't change how you sell a use case, but it changes the words. Don't call PostHog Desktop a tool, and don't call product analytics a product.
         instructionContent:
           - body: Each use case has a different core buyer. PI sells to PMs. Release Engineering sells to EMs. Observability sells to SREs. Growth & Marketing sells to growth engineers. These are separate budgets, separate champions, separate conversations.
@@ -190,6 +192,9 @@ concepts:
             and Customer Experience.
           - Web Analytics, Marketing Analytics, and Workflows are primary for Growth & Marketing.
           - AI Observability, AI Evals, and Prompt management are primary for AI/LLM Observability.
+            Prompt management is the answer when a team wants to version prompts. It stores,
+            versions, and rolls out prompts from PostHog instead of hardcoding them, and ties
+            each prompt version to the generations it produced. It's beta, so caveat it.
           - Data Warehouse, Data Pipelines, Endpoints, and the semantic layer are primary for
             Data Infrastructure. Endpoints is the one to reach for when a team wants to serve
             query results into their own app or internal tool. Maturity differs: Endpoints is
@@ -431,6 +436,8 @@ concepts:
           Don't oversell AI on replay. Nearly every competitor shipped an AI analyst in the last year, and some had it GA before Replay Vision. A buyer who has seen the Fullstory or LogRocket AI demo won't be moved by "we have AI too." Make the narrower claim instead. Replay Vision's output is a normal PostHog event, so "sessions where the user hit a dead end" becomes a funnel breakdown, a cohort you can survey, or an experiment exclusion. Other tools keep their AI findings inside their AI panel. And the loop keeps going past the insight, into a pull request.
 
           Coach customers on how much to trust Replay Vision. Each observation is a model's judgment, not ground truth, and a PM who treats one observation as fact will get burned. Every observation carries a confidence score and citations that link to the exact moment in the recording. So tell customers to spot-check the cited moment before they act, and to look for a pattern across many sessions instead of trusting a single scan.
+
+          Set two more expectations before a team turns it on. Replay Vision runs only on Gemini, so a customer who needs a different model provider can't swap one in. And usage is metered in credits against a monthly budget per organization. A broad scanner can burn that budget fast, so scope each scanner to one flow while tuning it.
         instructionContent:
           - body: Technical product teams with engineers who value depth, flexibility, and not paying for 5 tools. Weaker against very large enterprises (Amplitude's ML) and non-technical teams (Hotjar/Pendo's simpler UX).
             type: callout
@@ -1231,6 +1238,8 @@ concepts:
           The highest-leverage usage signal in this use case: Support is enabled, but tickets arrive with no replay attached. The team is running Support as a plain inbox and getting a fraction of the value, because the value lands when each ticket carries the sender's session replay and errors. When you see tickets being created, check whether replay and Error Tracking are on. If they aren't, that's the conversation to have first.
 
           A second signal to watch: the Support widget loads often, but few tickets get created. Compare widget loads against tickets created. A big gap usually means the widget is installed but hard to find, or user identification isn't configured. Offer a config review.
+
+          Before the call, check support ticket volume in Vitally. It lives in the custom field vitally.custom.supportTickets. A high count means the team handles a lot of customer issues. PostHog can help them debug faster, and that volume makes self-driving relevant.
 
           At dev-tool and infra companies, "support" is often really an issue tracker. Their users report problems as GitHub issues. So land Support through the GitHub channel: connect the repo, and issues become tickets with two-way comment sync. The team works one inbox, and nothing changes for their users. The pitch goes to the CTO, the DevRel lead, or the head of support.
         instructionContent:
