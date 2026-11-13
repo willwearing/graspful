@@ -797,6 +797,8 @@ concepts:
 
           Critical expansion mechanism: Experiments + Feature Flags create a multithreading bridge. The growth team defines the hypothesis, engineering implements the flag. Both teams are now active in PostHog. This is the highest-value cross-team play because it creates flags in the codebase (sticky) and pulls in engineering (new champion).
 
+          The step after experiments on the primary path is Data Pipelines. Once they've validated what works, they need to feed real conversion events back to ad platforms and push user data to their CRM. The full path runs Web Analytics, Marketing Analytics, Product Analytics, Experiments with Feature Flags, Data Pipelines, Workflows, then Surveys.
+
           Watch for the signal that this bridge is stuck: experiments created, but low flag evaluation volume. The growth team is trying to experiment, but engineering hasn't implemented the flags yet. That's your opening. Step in and facilitate the handoff between growth and engineering.
 
           Set the evaluation timeline up front: 2 to 4 weeks to see meaningful data. Channel attribution and funnel insights start showing value in the first week if traffic is decent. Experiments need enough traffic for statistical significance, so their timeline varies.
