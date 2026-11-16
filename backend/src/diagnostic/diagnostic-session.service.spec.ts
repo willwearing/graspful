@@ -26,6 +26,7 @@ describe('DiagnosticSessionService', () => {
 
   beforeEach(() => {
     mockPrisma = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
       academyEnrollment: {
         findUnique: jest.fn(),
         update: jest.fn(),
@@ -50,6 +51,7 @@ describe('DiagnosticSessionService', () => {
         findUnique: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       diagnosticMasterySnapshot: {
         createMany: jest.fn(),
@@ -60,7 +62,7 @@ describe('DiagnosticSessionService', () => {
 
     mockStudentState = {
       getMasteryMap: jest.fn(),
-      updateConceptDiagnosticState: jest.fn(),
+      updateDiagnosticStates: jest.fn(),
       bulkUpdateMasteries: jest.fn(),
       updateSpeedParameters: jest.fn(),
       markDiagnosticComplete: jest.fn(),
@@ -326,7 +328,7 @@ describe('DiagnosticSessionService', () => {
       mockPrisma.concept.findMany.mockResolvedValue(concepts);
       mockPrisma.prerequisiteEdge.findMany.mockResolvedValue([]);
       mockPrisma.diagnosticMasterySnapshot.upsert.mockResolvedValue({});
-      mockStudentState.updateConceptDiagnosticState.mockResolvedValue({});
+      mockStudentState.updateDiagnosticStates.mockResolvedValue({});
       mockStudentState.updateSpeedParameters.mockResolvedValue([]);
       mockStudentState.markDiagnosticComplete.mockResolvedValue({});
       mockPrisma.academyEnrollment.update.mockResolvedValue({});
@@ -366,7 +368,7 @@ describe('DiagnosticSessionService', () => {
       })).rejects.toThrow('Diagnostic content is no longer available');
       expect(mockPrisma.problemAttempt.create).not.toHaveBeenCalled();
       expect(mockPrisma.diagnosticMasterySnapshot.upsert).not.toHaveBeenCalled();
-      expect(mockStudentState.updateConceptDiagnosticState).not.toHaveBeenCalled();
+      expect(mockStudentState.updateDiagnosticStates).not.toHaveBeenCalled();
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
 
@@ -390,10 +392,10 @@ describe('DiagnosticSessionService', () => {
 
       expect(result.isComplete).toBe(true);
       expect(mockPrisma.problem.findMany).not.toHaveBeenCalled();
-      expect(mockPrisma.diagnosticMasterySnapshot.upsert).toHaveBeenCalledTimes(1);
-      expect(mockPrisma.diagnosticMasterySnapshot.upsert.mock.calls[0][0].create.conceptId).toBe('c1');
-      expect(mockStudentState.updateConceptDiagnosticState).toHaveBeenCalledTimes(1);
-      expect(mockStudentState.updateConceptDiagnosticState.mock.calls[0][1]).toBe('c1');
+      expect(mockPrisma.$executeRaw).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(mockPrisma.$executeRaw.mock.calls[0][2])).toEqual([expect.objectContaining({ conceptId: 'c1' })]);
+      expect(mockStudentState.updateDiagnosticStates).toHaveBeenCalledTimes(1);
+      expect(mockStudentState.updateDiagnosticStates.mock.calls[0][1]).toEqual([expect.objectContaining({ conceptId: 'c1' })]);
       expect(result).toEqual(expect.objectContaining({ result: expect.objectContaining({ totalConcepts: 1 }) }));
     });
 

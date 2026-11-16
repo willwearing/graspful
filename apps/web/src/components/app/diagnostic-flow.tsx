@@ -7,7 +7,7 @@ import { useAnswerSubmission } from "@/lib/hooks/use-answer-submission";
 import { usePracticeLoop } from "@/lib/hooks/use-practice-loop";
 import { useLatestRef } from "@/lib/hooks/use-latest-ref";
 import { useMountEffect } from "@/lib/hooks/use-mount-effect";
-import { apiClientFetch } from "@/lib/api-client";
+import { apiClientFetch, ApiError } from "@/lib/api-client";
 import { ProblemRenderer, type ProblemFeedback } from "@/components/app/problems/problem-renderer";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -28,6 +28,11 @@ interface DiagnosticResult {
   };
   conceptDetails: Array<{ conceptName: string; category: string }>;
 }
+
+type DiagnosticAnswerResponse =
+  | (Omit<DiagnosticState, "totalEstimated"> & { totalEstimated?: number; wasCorrect: boolean })
+  | { sessionId: string; isComplete: true; questionsAnswered: number; result: DiagnosticResult; wasCorrect?: boolean }
+  | { resumed: true; state: DiagnosticState };
 
 interface DiagnosticFlowProps {
   orgSlug: string;
@@ -59,12 +64,14 @@ export function DiagnosticFlow({
     ? `/orgs/${orgSlug}/academies/${academyId}/diagnostic`
     : `/orgs/${orgSlug}/courses/${courseId}/diagnostic`;
 
+  function showResult(response: DiagnosticResult) {
+    setResult(response);
+    trackDiagnosticComplete(courseId, response.breakdown.mastered + response.breakdown.conditionally_mastered, response.totalConcepts);
+  }
+
   const completion = useAnswerSubmission<string, DiagnosticResult>({
     send: (sessionId) => apiClientFetch(`${diagnosticBasePath}/result/${sessionId}`, token),
-    onSuccess: (response) => {
-      setResult(response);
-      trackDiagnosticComplete(courseId, response.breakdown.mastered + response.breakdown.conditionally_mastered, response.totalConcepts);
-    },
+    onSuccess: showResult,
     errorMessage: "Could not load your diagnostic result. Try again.",
   });
   const { submit: fetchResult } = completion;
@@ -84,15 +91,39 @@ export function DiagnosticFlow({
   }, [state.isComplete, state.sessionId, result, fetchResult]);
 
   const submission = useAnswerSubmission<{
-    body: string; questionNumber: number; responseTimeMs: number; skipped: boolean;
-  }, Omit<DiagnosticState, "totalEstimated"> & { wasCorrect: boolean }>({
-    send: (request) => apiClientFetch(`${diagnosticBasePath}/answer`, token, { method: "POST", body: request.body }),
+    body: string; sessionId: string; questionNumber: number; responseTimeMs: number; skipped: boolean;
+  }, DiagnosticAnswerResponse>({
+    send: async (request) => {
+      try {
+        return await apiClientFetch<DiagnosticAnswerResponse>(`${diagnosticBasePath}/answer`, token, { method: "POST", body: request.body });
+      } catch (cause) {
+        if (!(cause instanceof ApiError) || cause.statusCode !== 409 || cause.message !== "Diagnostic question changed. Reload the current question.") throw cause;
+        try {
+          const current = await apiClientFetch<DiagnosticState>(`${diagnosticBasePath}/start`, token, { method: "POST" });
+          return { resumed: true, state: current };
+        } catch (resumeCause) {
+          if (!(resumeCause instanceof ApiError) || resumeCause.statusCode !== 400 || resumeCause.message !== "Diagnostic already completed") throw resumeCause;
+          return { resumed: true, state: { sessionId: request.sessionId, questionNumber: request.questionNumber,
+            totalEstimated: stateRef.current.totalEstimated, isComplete: true, question: null } };
+        }
+      }
+    },
     onSuccess: (response, request) => {
-      trackDiagnosticQuestionAnswered(courseId, request.questionNumber, response.wasCorrect, request.skipped, request.responseTimeMs);
-      return present({ wasCorrect: response.wasCorrect, skipped: request.skipped }, () => {
+      if ("resumed" in response) {
+        setState(response.state);
+        startTimeRef.current = Date.now();
+        return;
+      }
+      trackDiagnosticQuestionAnswered(courseId, request.questionNumber, response.wasCorrect ?? false, request.skipped, request.responseTimeMs);
+      return present({ wasCorrect: response.wasCorrect ?? false, skipped: request.skipped }, () => {
+        // The final answer already persisted and returns its result. Avoid making
+        // access to the course depend on another network request.
+        if ("result" in response) showResult(response.result);
         setState((previous) => ({ ...previous, sessionId: response.sessionId ?? previous.sessionId,
-          questionNumber: response.questionNumber ?? previous.questionNumber,
-          isComplete: response.isComplete, question: response.question ?? null }));
+          questionNumber: "questionNumber" in response ? response.questionNumber : previous.questionNumber,
+          totalEstimated: "totalEstimated" in response ? response.totalEstimated ?? previous.totalEstimated : previous.totalEstimated,
+          supportsQuestionIdentity: "supportsQuestionIdentity" in response ? response.supportsQuestionIdentity ?? previous.supportsQuestionIdentity : previous.supportsQuestionIdentity,
+          isComplete: response.isComplete, question: "question" in response ? response.question : null }));
         startTimeRef.current = Date.now();
       });
     },
@@ -104,7 +135,9 @@ export function DiagnosticFlow({
     if (submitting || feedback || state.isComplete) return;
     const responseTimeMs = Date.now() - startTimeRef.current;
     return submission.submit({
-      body: JSON.stringify({ sessionId: state.sessionId, answer, responseTimeMs }),
+      body: JSON.stringify({ sessionId: state.sessionId, answer, responseTimeMs,
+        ...(state.supportsQuestionIdentity === true ? { expectedProblemId: state.question?.id, questionNumber: state.questionNumber } : {}) }),
+      sessionId: state.sessionId,
       questionNumber: state.questionNumber, responseTimeMs, skipped: answer === "__I_DONT_KNOW__",
     });
   }
@@ -139,13 +172,6 @@ export function DiagnosticFlow({
                 <p className="text-xs text-muted-foreground">New to You</p>
               </div>
             </div>
-
-            <Button
-              onClick={() => router.push(completionHref ?? (academyId ? `/academy/${academyId}` : "/dashboard"))}
-              className="mt-4"
-            >
-              {completionLabel ?? (academyId ? "Go to Academy" : "Go to Dashboard")}
-            </Button>
           </>
         ) : (
           completion.error ? (
@@ -155,6 +181,16 @@ export function DiagnosticFlow({
             </div>
           ) : <p className="text-muted-foreground">Loading results...</p>
         )}
+
+        <Button
+          onClick={() => {
+            router.push(completionHref ?? (academyId ? `/academy/${academyId}` : "/dashboard"));
+            router.refresh();
+          }}
+          className="mt-4"
+        >
+          {completionLabel ?? (academyId ? "Go to Academy" : "Go to Dashboard")}
+        </Button>
       </div>
     );
   }

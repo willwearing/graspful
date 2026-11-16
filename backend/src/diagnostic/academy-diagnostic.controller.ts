@@ -45,10 +45,19 @@ export class AcademyDiagnosticController {
     @Body() body: SubmitDiagnosticAnswerDto,
     @CurrentOrg() org: OrgContext,
   ) {
-    return this.diagnosticSession.submitAnswer(body.sessionId, org.userId, {
+    const result = await this.diagnosticSession.submitAnswer(body.sessionId, org.userId, {
       answer: body.answer,
       responseTimeMs: body.responseTimeMs,
+      ...(body.expectedProblemId !== undefined ? { expectedProblemId: body.expectedProblemId } : {}),
+      ...(body.questionNumber !== undefined ? { questionNumber: body.questionNumber } : {}),
     }, academyId);
+    if (result.isComplete) {
+      this.posthog.capture({ distinctId: org.userId }, 'diagnostic completed', {
+        session_id: body.sessionId,
+        org_id: org.orgId,
+      });
+    }
+    return result;
   }
 
   @Get('result/:sessionId')
@@ -58,10 +67,6 @@ export class AcademyDiagnosticController {
     @CurrentOrg() org: OrgContext,
   ) {
     const result = await this.diagnosticSession.getResult(sessionId, org.userId, academyId);
-    this.posthog.capture({ distinctId: org.userId }, 'diagnostic completed', {
-      session_id: sessionId,
-      org_id: org.orgId,
-    });
     return result;
   }
 }

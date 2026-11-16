@@ -40,6 +40,8 @@ export class DiagnosticController {
     return this.diagnosticSession.submitAnswer(body.sessionId, org.userId, {
       answer: body.answer,
       responseTimeMs: body.responseTimeMs,
+      ...(body.expectedProblemId !== undefined ? { expectedProblemId: body.expectedProblemId } : {}),
+      ...(body.questionNumber !== undefined ? { questionNumber: body.questionNumber } : {}),
     }, course.academyId);
   }
 
