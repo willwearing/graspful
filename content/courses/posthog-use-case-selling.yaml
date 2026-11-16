@@ -513,6 +513,10 @@ concepts:
 
           An evaluation costs the customer nothing to start. The Feature Flags free tier covers 1 million requests, and Experiments are included. So the scope is small: put one upcoming release behind a flag, roll it out gradually, and optionally measure it with an experiment.
 
+          Set timing expectations up front. Implementing the first flag takes 1 to 2 days, because engineering has to install the SDK first. After that, adding new flags is trivial. Experiment results take longer, about 1 to 2 weeks, depending on traffic.
+
+          The onboarding checklist gives the rollout numbers. Start the first flag at 5 to 10% of users, monitor, then expand. Then test the kill switch: turn the flag off and confirm the feature disappears immediately.
+
           Critical business insight: Feature flags in the codebase are extremely sticky — they're infrastructure, not a dashboard. Once embedded, they're very hard to rip out. This makes Release Engineering one of the highest-retention use cases.
 
           The tight flags + experiments integration is genuinely differentiated. No other flag tool lets you create a flag → run an experiment → measure in analytics → watch sessions by variant, all in one platform.
@@ -950,6 +954,8 @@ concepts:
 
           Framework coverage is rarely a blocker. The team instruments its LLM calls with the PostHog SDK or API, and there are integration guides for 20+ frameworks, including OpenAI, Anthropic, Vercel AI SDK, LangChain, LangGraph, LiteLLM, Bedrock, and OpenRouter.
 
+          An evaluation costs little to start. The AI Observability free tier covers 100K events a month. The Product Analytics free tier covers 1M events, and Experiments are included with Feature Flags.
+
           Watch for custom LLM events in Product Analytics, with names like llm_generation or ai_response. That team is already tracking AI behavior as plain analytics events. They're one step from AI Observability, which gives them the model-level detail those events can't: traces, tokens, latency, and cost per call. Pitch it as the upgrade to what they built by hand.
 
           Key differentiation: No one else connects model performance → quality → user behavior → business outcomes in one platform. Langfuse does tracing. Amplitude does analytics. Sentry does errors. Nobody connects all four.
@@ -1381,6 +1387,8 @@ concepts:
 
           3. Product Intelligence → Growth & Marketing: "Product team uses PostHog. Has the growth team seen Web Analytics and attribution?"
 
+          Product Intelligence has its own multithreading moment, and it comes late in the path. The product team moves from analytics to Session Replay to Surveys, then to Experiments to test a fix. Experiments need Feature Flags, and flags need engineering to implement them. That step from Surveys to Experiments is when engineering joins the account.
+
           4. Any use case → Data Infrastructure: "You're measuring conversion. Are you sending those conversions back to Meta and Google for optimization?" Data flow creates stickiness.
 
           5. AI/LLM Obs → Multiple: AI products sit at the intersection of 4+ use cases, making AI companies the strongest cross-sell targets.
@@ -1455,6 +1463,8 @@ concepts:
           Data Infrastructure: Active batch exports, active external data schemas, high rows synced, mentions Fivetran/Snowflake, high HogQL usage.
 
           A request for billing or CRM data next to product data also routes to Data Infrastructure, whichever team asks. A team on Group Analytics and Person Profiles that wants a complete customer view needs Data Warehouse, because the job is unifying product data with business data. The pitch: "You're looking at users in PostHog. What if you could see their Stripe revenue and HubSpot status alongside their product behavior?"
+
+          Data flowing the other way points somewhere else. An account using Data Pipelines to sync data out to its CRM, like HubSpot or Salesforce, is a Growth & Marketing lead. The growth team could use more of the marketing analytics stack. The pitch: "You're syncing data to your CRM. Has the marketing team seen Web Analytics and Marketing Analytics for attribution?"
 
           The general pattern: look for single-product accounts, mentions of competitor tools, team composition (which roles are active), and usage gaps (high activity on one product, zero on the logical next step).
         instructionContent:
