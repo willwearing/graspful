@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { THEME_PRESETS } from "@graspful/shared";
-import { fetchBrandByDomain, clearBrandCache } from "../resolve-db";
+import { fetchBrandByDomain, clearBrandCache, lookupBrandDomain } from "../resolve-db";
 import { defaultBrand } from "../defaults";
 
 const makeMockApiResponse = (overrides: Record<string, unknown> = {}) => ({
@@ -234,5 +234,49 @@ describe("fetchBrandByDomain", () => {
       expect(result!.pricing.yearly).toBe(defaultBrand.pricing.yearly);
       expect(result!.pricing.trialDays).toBe(defaultBrand.pricing.trialDays);
     });
+  });
+});
+
+describe("lookupBrandDomain", () => {
+  beforeEach(() => {
+    clearBrandCache();
+    vi.stubGlobal("fetch", vi.fn());
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("reports found when the backend returns a brand", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(makeMockApiResponse({ domain: "acme.graspful.ai" })),
+    });
+    expect(await lookupBrandDomain("acme.graspful.ai")).toBe("found");
+  });
+
+  it("reports missing only for a backend 404, and caches it", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, status: 404 });
+    expect(await lookupBrandDomain("jira.graspful.ai")).toBe("missing");
+    expect(await lookupBrandDomain("jira.graspful.ai")).toBe("missing");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["a backend 500", () => Promise.resolve({ ok: false, status: 500 })],
+    ["a network error", () => Promise.reject(new Error("ECONNREFUSED"))],
+  ])("reports unknown for %s", async (_label, response) => {
+    (fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(response);
+    expect(await lookupBrandDomain("acme.graspful.ai")).toBe("unknown");
+  });
+
+  it("shares the cache with fetchBrandByDomain", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(makeMockApiResponse({ domain: "acme.graspful.ai" })),
+    });
+    expect(await lookupBrandDomain("acme.graspful.ai")).toBe("found");
+    expect((await fetchBrandByDomain("acme.graspful.ai"))?.id).toBe("firefighter");
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });

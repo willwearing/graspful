@@ -2,13 +2,28 @@ import { createServerClient } from "@supabase/ssr";
 import { createSessionCookieAdapter } from "@graspful/creator-ui/session-cookies";
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveBrand } from "@/lib/brand/resolve";
+import { lookupBrandDomain } from "@/lib/brand/resolve-db";
 import {
   decideRoute,
   getHostSurface,
   getRequestHost,
+  isPlatformSubdomain,
   routeNeedsSession,
   type RoutingContext,
 } from "@/lib/hosts";
+import { isProbePath } from "@/lib/probe-paths";
+
+/** A few bytes instead of a rendered page, for scanners and unknown hosts. */
+function notFound() {
+  return new NextResponse("Not Found", {
+    status: 404,
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "no-store",
+      "x-robots-tag": "noindex",
+    },
+  });
+}
 
 export async function proxy(request: NextRequest) {
   try {
@@ -16,6 +31,21 @@ export async function proxy(request: NextRequest) {
     const surface = getHostSurface(hostname);
     const cookieHeader = request.headers.get("cookie");
     const pathname = request.nextUrl.pathname;
+
+    if (isProbePath(pathname)) {
+      return notFound();
+    }
+
+    // Wildcard DNS sends every *.graspful.ai name here. Only serve the ones
+    // that belong to an academy. A backend outage returns "unknown", not
+    // "missing", so real academies keep working.
+    if (
+      surface === "academy" &&
+      isPlatformSubdomain(hostname) &&
+      (await lookupBrandDomain(hostname)) === "missing"
+    ) {
+      return notFound();
+    }
 
     const brandId = surface === "local" ? (await resolveBrand(hostname, cookieHeader)).id : undefined;
     const routing: RoutingContext = { brandId, currentUrl: request.nextUrl, surface };

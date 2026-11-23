@@ -3,15 +3,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { proxy } from "@/proxy";
 
-const { createServerClient, resolveBrand } = vi.hoisted(() => ({ createServerClient: vi.fn(), resolveBrand: vi.fn() }));
+const { createServerClient, resolveBrand, lookupBrandDomain } = vi.hoisted(() => ({
+  createServerClient: vi.fn(),
+  resolveBrand: vi.fn(),
+  lookupBrandDomain: vi.fn(),
+}));
 vi.mock("@supabase/ssr", () => ({ createServerClient }));
 vi.mock("@/lib/brand/resolve", () => ({ resolveBrand }));
+vi.mock("@/lib/brand/resolve-db", () => ({ lookupBrandDomain }));
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://localhost:54321");
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "public-test-key");
   resolveBrand.mockResolvedValue({ id: "graspful" });
+  lookupBrandDomain.mockResolvedValue("found");
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -159,6 +165,66 @@ describe("routing proxy", () => {
       const response = await proxy(request("https://app.graspful.ai/creator"));
 
       expect(response.headers.get("location")).toBe("https://app.graspful.ai/sign-in?redirect=%2Fcreator");
+    });
+  });
+
+  describe("scanner traffic", () => {
+    it.each([
+      "https://graspful.ai/.env",
+      "https://app.graspful.ai/wp-json/wp/v2/users/me",
+      "https://academy.example.com/proc/self/environ",
+      "http://acme.graspful.ai/laravel../config/database.php",
+    ])("answers probe path %s with a small 404 and no session or brand work", async (url) => {
+      const response = await proxy(request(url));
+
+      expect(response.status).toBe(404);
+      expect(await response.text()).toBe("Not Found");
+      expect(response.headers.get("location")).toBeNull();
+      expect(createServerClient).not.toHaveBeenCalled();
+      expect(lookupBrandDomain).not.toHaveBeenCalled();
+    });
+
+    it("answers an unknown graspful.ai subdomain with a small 404", async () => {
+      lookupBrandDomain.mockResolvedValue("missing");
+
+      for (const path of ["/", "/sign-in", "/dashboard"]) {
+        const response = await proxy(request(`http://jira.graspful.ai${path}`));
+        expect(response.status).toBe(404);
+        expect(response.headers.get("location")).toBeNull();
+      }
+      expect(lookupBrandDomain).toHaveBeenCalledWith("jira.graspful.ai");
+      expect(createServerClient).not.toHaveBeenCalled();
+    });
+
+    it("serves a known academy subdomain", async () => {
+      createServerClient.mockReturnValue(anonymous());
+      lookupBrandDomain.mockResolvedValue("found");
+
+      const landing = await proxy(request("https://acme.graspful.ai/"));
+      expect(landing.status).toBe(200);
+      expect(landing.headers.get("x-middleware-next")).toBe("1");
+
+      const dashboard = await proxy(request("https://acme.graspful.ai/dashboard"));
+      expect(dashboard.headers.get("location")).toBe("https://acme.graspful.ai/sign-in?redirect=%2Fdashboard");
+    });
+
+    it("keeps serving academy subdomains when the backend lookup fails", async () => {
+      createServerClient.mockReturnValue(anonymous());
+      lookupBrandDomain.mockResolvedValue("unknown");
+
+      const response = await proxy(request("https://acme.graspful.ai/"));
+      expect(response.status).toBe(200);
+    });
+
+    it.each([
+      "https://graspful.ai/",
+      "https://app.graspful.ai/sign-in",
+      "https://academy.example.com/",
+      "https://graspful-git-main.vercel.app/",
+    ])("does not look up a brand for %s", async (url) => {
+      createServerClient.mockReturnValue(anonymous());
+      await proxy(request(url));
+      expect(lookupBrandDomain).not.toHaveBeenCalled();
     });
   });
 });

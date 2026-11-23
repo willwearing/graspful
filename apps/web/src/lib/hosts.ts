@@ -102,6 +102,15 @@ export function getHostSurface(hostname: string): HostSurface {
   return "academy";
 }
 
+/**
+ * True for any subdomain of the platform host, such as `acme.graspful.ai`.
+ * Creator academies live on these hosts; wildcard DNS sends every other name
+ * here too.
+ */
+export function isPlatformSubdomain(hostname: string): boolean {
+  return normalizeHost(hostname).endsWith(`.${getPlatformHost()}`);
+}
+
 export function getRequestHost(
   headersLike: Pick<Headers, "get">,
   fallback = "localhost",

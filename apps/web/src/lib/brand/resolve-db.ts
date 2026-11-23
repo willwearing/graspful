@@ -20,6 +20,8 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 interface CacheEntry {
   brand: BrandConfig | null;
   expiresAt: number;
+  /** True only when the backend answered 404, so the brand does not exist. */
+  missing?: boolean;
 }
 
 const cache = new Map<string, CacheEntry>();
@@ -210,13 +212,11 @@ export async function fetchBrandBySlug(
   }
 }
 
-export async function fetchBrandByDomain(
-  domain: string,
-): Promise<BrandConfig | null> {
+async function loadBrandByDomain(domain: string): Promise<CacheEntry | null> {
   const now = Date.now();
   const cached = cache.get(domain);
   if (cached && cached.expiresAt > now) {
-    return cached.brand;
+    return cached;
   }
 
   try {
@@ -232,16 +232,34 @@ export async function fetchBrandByDomain(
     clearTimeout(timeout);
 
     if (!res.ok) {
-      cache.set(domain, { brand: null, expiresAt: now + CACHE_TTL_MS });
-      return null;
+      const entry = { brand: null, expiresAt: now + CACHE_TTL_MS, missing: res.status === 404 };
+      cache.set(domain, entry);
+      return entry;
     }
 
     const data = await res.json();
-    const brand = mapToBrandConfig(data);
-
-    cache.set(domain, { brand, expiresAt: now + CACHE_TTL_MS });
-    return brand;
+    const entry = { brand: mapToBrandConfig(data), expiresAt: now + CACHE_TTL_MS };
+    cache.set(domain, entry);
+    return entry;
   } catch {
     return null;
   }
+}
+
+export async function fetchBrandByDomain(
+  domain: string,
+): Promise<BrandConfig | null> {
+  return (await loadBrandByDomain(domain))?.brand ?? null;
+}
+
+/**
+ * Whether an academy exists for a host. Returns "unknown" when the backend
+ * errors or times out, so callers never treat an outage as a missing academy.
+ */
+export async function lookupBrandDomain(
+  domain: string,
+): Promise<"found" | "missing" | "unknown"> {
+  const entry = await loadBrandByDomain(domain);
+  if (entry?.brand) return "found";
+  return entry?.missing ? "missing" : "unknown";
 }
