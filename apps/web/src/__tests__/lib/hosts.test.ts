@@ -5,6 +5,7 @@ import {
   getRequestHost,
   normalizeHost,
   decideRoute,
+  isPlatformSubdomain,
   isPublicRoute,
 } from "@/lib/hosts";
 
@@ -28,6 +29,16 @@ describe("hosts", () => {
     expect(getHostSurface("app.graspful.ai")).toBe("app");
     expect(getHostSurface("firefighterprep.vercel.app")).toBe("academy");
     expect(getHostSurface("localhost:3001")).toBe("local");
+  });
+
+  it("detects subdomains of the platform host", () => {
+    expect(isPlatformSubdomain("acme.graspful.ai")).toBe(true);
+    expect(isPlatformSubdomain("Jira.Graspful.ai:80")).toBe(true);
+    expect(isPlatformSubdomain("a.b.graspful.ai")).toBe(true);
+    expect(isPlatformSubdomain("graspful.ai")).toBe(false);
+    expect(isPlatformSubdomain("evilgraspful.ai")).toBe(false);
+    expect(isPlatformSubdomain("firefighterprep.vercel.app")).toBe(false);
+    expect(isPlatformSubdomain("graspful-git-main.vercel.app")).toBe(false);
   });
 
   it("uses control-plane redirects for platform and app auth", () => {
