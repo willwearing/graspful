@@ -200,6 +200,8 @@ concepts:
             query results into their own app or internal tool. Maturity differs: Endpoints is
             beta, and the semantic layer is alpha.
           - Logs, distributed tracing, metrics, and health checks are primary for Observability.
+            Logs also appears as a secondary product in the Customer Experience playbook,
+            where it gives support the server-side context behind a ticket.
           - Replay Vision is primary for Product Intelligence, secondary for Customer Experience
             and Observability.
           - Support is primary for Customer Experience.
@@ -512,6 +514,10 @@ concepts:
           The primary buyers are Engineering Managers, Platform Engineers, Individual Developers, and Founding Engineers. They care about release velocity, incident rate, rollback time, and SDK quality.
 
           An evaluation costs the customer nothing to start. The Feature Flags free tier covers 1 million requests, and Experiments are included. So the scope is small: put one upcoming release behind a flag, roll it out gradually, and optionally measure it with an experiment.
+
+          Set timing expectations up front. Implementing the first flag takes 1 to 2 days, because engineering has to install the SDK first. After that, adding new flags is trivial. Experiment results take longer, about 1 to 2 weeks, depending on traffic.
+
+          The onboarding checklist gives the rollout numbers. Start the first flag at 5 to 10% of users, monitor, then expand. Then test the kill switch: turn the flag off and confirm the feature disappears immediately.
 
           Critical business insight: Feature flags in the codebase are extremely sticky — they're infrastructure, not a dashboard. Once embedded, they're very hard to rip out. This makes Release Engineering one of the highest-retention use cases.
 
@@ -950,6 +956,8 @@ concepts:
 
           Framework coverage is rarely a blocker. The team instruments its LLM calls with the PostHog SDK or API, and there are integration guides for 20+ frameworks, including OpenAI, Anthropic, Vercel AI SDK, LangChain, LangGraph, LiteLLM, Bedrock, and OpenRouter.
 
+          An evaluation costs little to start. The AI Observability free tier covers 100K events a month. The Product Analytics free tier covers 1M events, and Experiments are included with Feature Flags.
+
           Watch for custom LLM events in Product Analytics, with names like llm_generation or ai_response. That team is already tracking AI behavior as plain analytics events. They're one step from AI Observability, which gives them the model-level detail those events can't: traces, tokens, latency, and cost per call. Pitch it as the upgrade to what they built by hand.
 
           Key differentiation: No one else connects model performance → quality → user behavior → business outcomes in one platform. Langfuse does tracing. Amplitude does analytics. Sentry does errors. Nobody connects all four.
@@ -1093,6 +1101,8 @@ concepts:
 
 
           Watch for the active batch exports trait in Vitally. It means the team already sends PostHog data out. The natural next step is the other direction: Data Warehouse, bringing their business data in. They likely aren't thinking of PostHog as a warehouse at all, so you have to raise it.
+
+          A high rows-synced trait in Vitally (rowsSyncedLast30DaysIfSendingData) reads differently. It means significant data is already moving through PostHog. Data Infrastructure is an active use case for that account, so treat it as one they already run, not a new pitch.
 
           An evaluation costs little to start. The Data Warehouse free tier covers 1M rows a month, plus free historical syncs. The Batch Exports free tier also covers 1M rows a month.
 
@@ -1301,6 +1311,8 @@ concepts:
 
           "Can we run Zendesk and PostHog Support side by side?" → Set expectations honestly. There's no live two-way sync with Zendesk or Intercom. The **Zendesk import** is a one-time historical backfill, and it's in open beta. So don't promise a hybrid steady state with tickets in both tools. Position Support as a switchover, not coexistence. If they won't switch yet, sell the context layer (replay links in their existing tickets) and wire their helpdesk in as a self-driving signal source. Revisit Support when their helpdesk contract comes up.
 
+          "Can it route tickets like Zendesk?" → Be honest about the size it fits. Routing is manual assignment to a user or role, plus Workflows for rule-based auto-assignment, for example by customer email domain. Workflows also handle tagging, SLAs, and escalation. That's enough for most teams under a few dozen agents. It isn't a replacement for Zendesk's advanced skills-based or omnichannel routing.
+
           "What about AI answering tickets for us?" → An AI reply agent isn't available yet. One is coming, it'll be opt-in, and only teams who turn it on get billed for it. Then point to what works today, in the opposite direction: recurring issues get investigated and come back as a pull request the team reviews and merges. Deflecting a ticket is good. Making it never happen again is better.
 
           "Session replay has privacy concerns." → Extensive controls: input masking, DOM blocking, network filtering. HIPAA BAA available with Boost package.
@@ -1381,6 +1393,8 @@ concepts:
 
           3. Product Intelligence → Growth & Marketing: "Product team uses PostHog. Has the growth team seen Web Analytics and attribution?"
 
+          Product Intelligence has its own multithreading moment, and it comes late in the path. The product team moves from analytics to Session Replay to Surveys, then to Experiments to test a fix. Experiments need Feature Flags, and flags need engineering to implement them. That step from Surveys to Experiments is when engineering joins the account.
+
           4. Any use case → Data Infrastructure: "You're measuring conversion. Are you sending those conversions back to Meta and Google for optimization?" Data flow creates stickiness.
 
           5. AI/LLM Obs → Multiple: AI products sit at the intersection of 4+ use cases, making AI companies the strongest cross-sell targets.
@@ -1455,6 +1469,8 @@ concepts:
           Data Infrastructure: Active batch exports, active external data schemas, high rows synced, mentions Fivetran/Snowflake, high HogQL usage.
 
           A request for billing or CRM data next to product data also routes to Data Infrastructure, whichever team asks. A team on Group Analytics and Person Profiles that wants a complete customer view needs Data Warehouse, because the job is unifying product data with business data. The pitch: "You're looking at users in PostHog. What if you could see their Stripe revenue and HubSpot status alongside their product behavior?"
+
+          Data flowing the other way points somewhere else. An account using Data Pipelines to sync data out to its CRM, like HubSpot or Salesforce, is a Growth & Marketing lead. The growth team could use more of the marketing analytics stack. The pitch: "You're syncing data to your CRM. Has the marketing team seen Web Analytics and Marketing Analytics for attribution?"
 
           The general pattern: look for single-product accounts, mentions of competitor tools, team composition (which roles are active), and usage gaps (high activity on one product, zero on the logical next step).
         instructionContent:
