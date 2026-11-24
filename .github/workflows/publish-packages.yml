@@ -127,20 +127,32 @@ jobs:
             echo "published=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # List each new @graspful/mcp release in the official MCP Registry
+      # List the current @graspful/mcp version in the official MCP Registry if it is missing
       # (registry.modelcontextprotocol.io). Directories such as PulseMCP read from it.
       - name: Install cosign
-        if: steps.mcp_npm.outputs.published == 'true'
+        if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'mcp') && github.event.inputs.dry_run != 'true'
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
       - name: Publish @graspful/mcp to the MCP Registry
-        if: steps.mcp_npm.outputs.published == 'true'
+        if: (steps.target.outputs.target == 'all' || steps.target.outputs.target == 'mcp') && github.event.inputs.dry_run != 'true'
         env:
           MCP_PUBLISHER_VERSION: v1.8.1
         run: |
           set -euo pipefail
           cd packages/mcp
           VERSION=$(node -p "require('./package.json').version")
+          NAME=$(jq -r .name server.json)
+          status=$(curl -s -o /dev/null -w '%{http_code}' "https://registry.modelcontextprotocol.io/v0/servers/${NAME/\//%2F}/versions/$VERSION")
+          if [ "$status" = "200" ]; then
+            echo "$NAME@$VERSION is already in the MCP Registry"
+            exit 0
+          fi
+          # The registry checks npm, and a new npm version can take a few minutes to appear.
+          for i in $(seq 1 60); do
+            npm view "@graspful/mcp@$VERSION" version >/dev/null 2>&1 && break
+            echo "Waiting for @graspful/mcp@$VERSION on npm ($i/60)"
+            sleep 10
+          done
           jq --arg v "$VERSION" '.version = $v | .packages[0].version = $v' server.json > server.tmp && mv server.tmp server.json
           archive="mcp-publisher_linux_amd64.tar.gz"
           base_url="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
