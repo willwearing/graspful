@@ -719,7 +719,7 @@ concepts:
         instruction: |-
           The three main Observability competitors are Sentry, Datadog, and New Relic.
 
-          vs Sentry: PostHog has deeper product analytics and replay context. Sentry has more mature error tracking, broader language support, and a larger install base. Best pitch: "Sentry gives you the stack trace. PostHog gives you the stack trace, the user's session, and the business impact."
+          vs Sentry: PostHog has deeper product analytics, replay context, business impact, and the flag and experiment connection. Sentry leads in four places: more mature error tracking, broader language and framework support, a larger install base, and code-level profiling. When a prospect asks which tool covers more languages, the honest answer is Sentry. Best pitch: "Sentry gives you the stack trace. PostHog gives you the stack trace, the user's session, and the business impact."
 
           vs Datadog: PostHog has product analytics integration, replay depth, and is much cheaper. Datadog has the complete observability stack (APM, traces, metrics) and a massive enterprise ecosystem. Don't try to replace Datadog entirely.
 
@@ -1468,7 +1468,7 @@ concepts:
 
           Data Infrastructure: Active batch exports, active external data schemas, high rows synced, mentions Fivetran/Snowflake, high HogQL usage.
 
-          A request for billing or CRM data next to product data also routes to Data Infrastructure, whichever team asks. A team on Group Analytics and Person Profiles that wants a complete customer view needs Data Warehouse, because the job is unifying product data with business data. The pitch: "You're looking at users in PostHog. What if you could see their Stripe revenue and HubSpot status alongside their product behavior?"
+          A request for billing or CRM data next to product data also routes to Data Infrastructure, whichever team asks. A team on Group Analytics and Person Profiles that wants a complete customer view needs Data Warehouse, because the job is unifying product data with business data. This shows up most in Customer Experience accounts. Support and CS teams lean on Group Analytics and Person Profiles to look up a user or an account, and the next thing they want on that record is CRM and billing data. So a support team living in Person Profiles is a Data Infrastructure lead. The pitch: "You're looking at users in PostHog. What if you could see their Stripe revenue and HubSpot status alongside their product behavior?"
 
           Data flowing the other way points somewhere else. An account using Data Pipelines to sync data out to its CRM, like HubSpot or Salesforce, is a Growth & Marketing lead. The growth team could use more of the marketing analytics stack. The pitch: "You're syncing data to your CRM. Has the marketing team seen Web Analytics and Marketing Analytics for attribution?"
 
