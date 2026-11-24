@@ -1,0 +1,37 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.willwearing/graspful",
+  "title": "Graspful",
+  "description": "Build, review and publish adaptive learning courses with spaced repetition from your AI agent.",
+  "websiteUrl": "https://graspful.ai/docs/mcp",
+  "repository": {
+    "url": "https://github.com/willwearing/graspful",
+    "source": "github",
+    "subfolder": "packages/mcp"
+  },
+  "version": "0.3.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@graspful/mcp",
+      "version": "0.3.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "GRASPFUL_API_KEY",
+          "description": "Graspful API key for import and publish. Optional: authoring, validation and review work offline.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "GRASPFUL_ORG",
+          "description": "Your Graspful organization slug.",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}
