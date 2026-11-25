@@ -22,6 +22,10 @@ describe("sitemap", () => {
     expect(
       urls.some((url) => url.includes("/docs/concepts/mastery-learning")),
     ).toBe(true);
+    expect(urls.some((url) => url.endsWith("/blog"))).toBe(true);
+    expect(
+      urls.some((url) => url.endsWith("/blog/turn-docs-into-a-course-with-claude-code")),
+    ).toBe(true);
     expect(urls.some((url) => url.includes("/sign-up"))).toBe(false);
     expect(urls.some((url) => url.includes("/sign-in"))).toBe(false);
   });

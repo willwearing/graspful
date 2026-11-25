@@ -19,6 +19,7 @@ const learnerProductLinks = [
 
 const platformResourceLinks = [
   { href: "/ai-course-builder", label: "AI course builder" },
+  { href: "/blog", label: "Blog" },
   { href: "/docs", label: "Documentation" },
   { href: "/docs/quickstart", label: "Quickstart" },
   { href: "/docs/mcp", label: "MCP server" },
