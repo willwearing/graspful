@@ -1,5 +1,6 @@
 import type { Metadata, MetadataRoute } from "next";
 import type { HostSurface } from "@/lib/hosts";
+import { BLOG_POSTS } from "@/lib/blog/posts";
 
 export const privatePageRobots = {
   index: false,
@@ -149,6 +150,16 @@ export function buildSitemapEntries(
       changeFrequency: "monthly",
       priority: 0.6,
     },
+    {
+      url: `${baseUrl}/blog`,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    ...BLOG_POSTS.map((post) => ({
+      url: `${baseUrl}/blog/${post.slug}`,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
   ];
 }
 

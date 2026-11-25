@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   ArrowRight,
   Bot,
@@ -180,7 +181,14 @@ export default function AiCourseBuilderPage() {
             <p className="mt-4 max-w-xl leading-7 text-muted-foreground">
               Graspful gives AI agents a defined course schema and an exact
               review process. You stay in control of the source, structure, and
-              final content.
+              final content. For a full walkthrough with real output, read{" "}
+              <Link
+                href="/blog/turn-docs-into-a-course-with-claude-code"
+                className="font-medium text-primary underline underline-offset-4"
+              >
+                how to turn your docs into a course with Claude Code
+              </Link>
+              .
             </p>
             <div className="mt-7 overflow-hidden rounded-2xl border border-border/60 bg-[#07111f] p-5 shadow-xl">
               <div className="mb-4 flex items-center gap-2 text-xs text-slate-400">

@@ -16,12 +16,16 @@ describe("isPublicRoute", () => {
     expect(isPublicRoute("/ai-course-builder")).toBe(true);
     expect(isPublicRoute("/academies")).toBe(true);
     expect(isPublicRoute("/docs")).toBe(true);
+    expect(isPublicRoute("/blog")).toBe(true);
+    expect(isPublicRoute("/blog/turn-docs-into-a-course-with-claude-code")).toBe(true);
   });
 
   it("treats academy hosts as learner-only public surfaces", () => {
     expect(isPublicRoute("/pricing", "academy")).toBe(false);
     expect(isPublicRoute("/ai-course-builder", "academy")).toBe(false);
     expect(isPublicRoute("/docs", "academy")).toBe(false);
+    expect(isPublicRoute("/blog", "academy")).toBe(false);
+    expect(isPublicRoute("/blog", "app")).toBe(false);
     expect(isPublicRoute("/sign-in", "academy")).toBe(true);
   });
 

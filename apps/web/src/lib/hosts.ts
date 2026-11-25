@@ -35,6 +35,7 @@ const MARKETING_ROUTES = [
   "/ai-course-builder",
   "/academies",
   "/docs",
+  "/blog",
   "/cli-auth",
 ];
 const CREATOR_ROUTES = ["/creator"];

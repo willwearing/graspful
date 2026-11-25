@@ -449,6 +449,8 @@ export type LandingCtaLocation =
     | "seo_pillar_primary"
     | "seo_pillar_guide"
     | "seo_pillar_bottom"
+    | "blog_post_primary"
+    | "blog_post_secondary"
     | "bottom"
     | "footer";
 
