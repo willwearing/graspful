@@ -168,6 +168,7 @@ graspful publish <course-id> --org my-org --format json`}
             { href: "/docs/mcp", label: "Set up MCP for your AI agent" },
             { href: "/docs/course-schema", label: "Course YAML schema reference" },
             { href: "/docs/course-creation-guide", label: "Plan and author an academy" },
+            { href: "/blog/turn-docs-into-a-course-with-claude-code", label: "Walkthrough: turn your docs into a course with Claude Code" },
           ].map(({ href, label }) => (
             <Link key={href} href={href} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
               <ArrowRight className="h-3.5 w-3.5 text-primary" />

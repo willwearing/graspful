@@ -1,8 +1,11 @@
+import { Callout } from "@/components/docs/callout";
 import { DocSection } from "@/components/docs/doc-section";
 import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
 import { QUALITY_CHECKS } from "@graspful/shared";
+import Link from "next/link";
 import { CodeBlock, InlineCode } from "@/components/docs/code-block";
+import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
   title: { absolute: "Graspful MCP Server: Setup and Login" },
@@ -454,6 +457,22 @@ The returned YAML includes brand identity, theme, landing page sections (hero, f
           returns="Array of { courseId, name, published, stats }"
         />
       </DocSection>
+
+      <Callout as="section" className="mt-16 p-8" title="Next steps">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[
+            { href: "/blog/turn-docs-into-a-course-with-claude-code", label: "Walkthrough: turn your docs into a course with Claude Code" },
+            { href: "/docs/quickstart", label: "Quickstart: build your first course" },
+            { href: "/docs/review-gate", label: "Review gate: the checks a course must pass" },
+            { href: "/docs/cli", label: "CLI reference" },
+          ].map(({ href, label }) => (
+            <Link key={href} href={href} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+              <ArrowRight className="h-3.5 w-3.5 text-primary" />
+              <span>{label}</span>
+            </Link>
+          ))}
+        </div>
+      </Callout>
     </DocPage>
   );
 }
