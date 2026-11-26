@@ -62,6 +62,15 @@ test.describe("Docs Pages Smoke Tests", () => {
     expect(content).toContain("import_course");
   });
 
+  for (const path of ["/docs/mcp", "/docs/quickstart", "/docs/course-creation-guide"]) {
+    test(`${path} links to the docs-to-course walkthrough`, async ({ page }) => {
+      await page.goto(path);
+      await expect(
+        page.locator('main a[href="/blog/turn-docs-into-a-course-with-claude-code"]').first(),
+      ).toBeVisible();
+    });
+  }
+
   test("quickstart separates authoring, draft import, and confirmed publication", async ({ page }) => {
     await page.goto("/docs/quickstart");
     const headings = await page.getByRole("heading", { level: 2 }).allTextContents();

@@ -1034,6 +1034,13 @@ graspful import js-mastery-brand.yaml
       <Callout as="section" className="mt-16 p-8" title="Next steps">
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
+            href="/blog/turn-docs-into-a-course-with-claude-code"
+            className="group flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowRight className="h-3.5 w-3.5 text-primary" />
+            <span>Walkthrough: turn your docs into a course with Claude Code</span>
+          </Link>
+          <Link
             href="/docs/course-schema"
             className="group flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
