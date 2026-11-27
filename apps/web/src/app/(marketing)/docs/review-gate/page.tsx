@@ -2,6 +2,7 @@ import { Callout } from "@/components/docs/callout";
 import { DocSection } from "@/components/docs/doc-section";
 import { DocPage } from "@/components/docs/doc-page";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { QUALITY_CHECK_METADATA } from "@graspful/shared";
 import { CodeBlock, InlineCode } from "@/components/docs/code-block";
 
@@ -54,6 +55,7 @@ graspful review course.yaml --format json`}</CodeBlock>
       <Callout as="section" className="mt-10 border-border bg-muted/30" title="What the score means" headingId="scoring" titleClassName="text-xl font-bold text-foreground">
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">The score counts automated checks that passed. It does not measure a learner&apos;s mastery or establish that every fact and explanation is correct. Vocabulary alignment is a heuristic. It can miss ambiguous, misleading, or poorly taught questions.</p>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">Read warnings as well as failures. Warnings, such as missing key-prerequisite links, can identify improvements even when the publication checks pass. Import can also fail for account permissions, conflicting course IDs, or service errors.</p>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">For the checks a person still has to do, such as facts and answer keys against your source, use the <Link href="/blog/ai-generated-course-quality-checklist" className="font-medium text-primary underline underline-offset-4">AI-generated course quality checklist</Link>.</p>
       </Callout>
     </DocPage>
   );

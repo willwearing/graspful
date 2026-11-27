@@ -39,6 +39,24 @@ export const BLOG_POSTS: readonly BlogPost[] = [
       "onboarding docs to training course",
     ],
   },
+  {
+    slug: "ai-generated-course-quality-checklist",
+    title: "AI-Generated Course Quality Checklist: 15 Checks",
+    heading: "AI-generated course quality checklist: what to check before you publish",
+    description:
+      "Check an AI-generated course in two passes: 10 automated checks for structure, duplicates, practice depth and prerequisites, then 5 human checks of facts and answer keys against your source.",
+    summary:
+      "A 15-point checklist with real review output, and the one error a 10/10 automated score can't catch.",
+    publishedAt: "2026-11-27",
+    updatedAt: "2026-11-27",
+    keywords: [
+      "ai generated course quality checklist",
+      "check ai generated course",
+      "review ai generated course before publishing",
+      "ai course quality",
+      "ai generated training content review",
+    ],
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
