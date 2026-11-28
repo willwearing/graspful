@@ -62,6 +62,13 @@ test.describe("Docs Pages Smoke Tests", () => {
     expect(content).toContain("import_course");
   });
 
+  test("docs/mcp API key step links to sign-up", async ({ page }) => {
+    await page.goto("/docs/mcp");
+    await expect(
+      page.locator('article a[href="/sign-up"]', { hasText: "Create free account" }),
+    ).toBeVisible();
+  });
+
   for (const path of ["/docs/mcp", "/docs/quickstart", "/docs/course-creation-guide"]) {
     test(`${path} links to the docs-to-course walkthrough`, async ({ page }) => {
       await page.goto(path);
