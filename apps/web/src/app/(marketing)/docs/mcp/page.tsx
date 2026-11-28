@@ -6,6 +6,7 @@ import { QUALITY_CHECKS } from "@graspful/shared";
 import Link from "next/link";
 import { CodeBlock, InlineCode } from "@/components/docs/code-block";
 import { ArrowRight } from "lucide-react";
+import { TrackedMarketingLink } from "@/components/marketing/tracked-marketing-link";
 
 export const metadata: Metadata = {
   title: { absolute: "Graspful MCP Server: Setup and Login" },
@@ -122,10 +123,17 @@ export default function MCPPage() {
                 Web dashboard
               </p>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Go to{" "}
-                <InlineCode>graspful.ai</InlineCode> &rarr; API Keys and create
-                a new key.
+                Create a free account, then open API Keys in the creator
+                dashboard and create a new key.
               </p>
+              <TrackedMarketingLink
+                href="/sign-up"
+                location="docs_api_key"
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+              >
+                Create free account
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </TrackedMarketingLink>
             </div>
           </div>
           <div className="flex items-start gap-4 rounded-lg border border-border/30 bg-card px-4 py-3">

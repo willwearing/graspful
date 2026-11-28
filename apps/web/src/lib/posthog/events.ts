@@ -451,6 +451,7 @@ export type LandingCtaLocation =
     | "seo_pillar_bottom"
     | "blog_post_primary"
     | "blog_post_secondary"
+    | "docs_api_key"
     | "bottom"
     | "footer";
 
